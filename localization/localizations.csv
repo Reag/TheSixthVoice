@@ -10,3 +10,8 @@ frame.mf_fitzgerald.flavor,"Barely larger than the cannon bolted through it, the
 ,
 gear.mt_weak_computer.name,Weak Computer
 gear.mt_weak_computer.effect,The Fitzgerald receives +1 Difficulty on all SYSTEMS saves and checks.
+,
+gear.cp_broadside.name,Broadside
+gear.cp_broadside.effect,"The BIZARRE CANNON is built through the Fitzgerald's chassis rather than mounted on it: it occupies no weapon mount and cannot take a weapon mod."
+gear.cp_broadside.action_bizarre_cannon.name,Bizarre Cannon
+gear.cp_broadside.action_bizarre_cannon.effect,"On attack: you take 2 AP kinetic damage and are knocked back 2 spaces, away from the direction of fire."

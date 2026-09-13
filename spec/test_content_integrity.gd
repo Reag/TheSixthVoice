@@ -154,6 +154,7 @@ func test_the_efficient_term_resolves_end_to_end():
 ## the kit itself wears the kit's icon, so it lists none.
 const ICON_TARGETS := {
 	&'mt_weak_computer': [], # its only action is the kit itself
+	&'cp_broadside': [&'action_bizarre_cannon'], # a named weapon profile: it wears its own icon
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 const VISIBLE_BUFFS:Array[StringName] = []
