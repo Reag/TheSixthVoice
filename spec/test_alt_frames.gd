@@ -9,8 +9,12 @@
 #
 #  1. The extension can silently un-happen. Upstream bug 7 is unfixed on 1.4.3: ModLoader no longer
 #     retains an extended resource, so the effect evaporates once nothing holds a reference. The
-#     mod holds one from mod_main.EXTENDED_RESOURCES. A dropped reference looks exactly like a
-#     frame that was never built - it just is not in the licence.
+#     mod holds one from mod_main.EXTENDED_RESOURCES, and every alt's entry is checked to be IN that
+#     list (test_every_alt_frame_reaches_its_licence). A dropped reference looks exactly like a frame
+#     that was never built - it just is not in the licence.
+#     Note what that half can and cannot do: it proves the path is DECLARED for retention. Whether
+#     the reference survives is a lifetime question, and a test run where ContentLibrary happens to
+#     hold the licence would pass either way. The declaration check is the cheap half worth having.
 #  2. The vanilla licence underneath can move. The grants below are read from the LIVE licence, not
 #     transcribed, so a modkit update that reshuffles a rank shows red HERE, in one place, rather
 #     than as a confusing failure inside whichever alt happened to be built that week.
@@ -22,6 +26,7 @@
 extends GutTest
 
 const MOD_ID := 'Reag-TheSixthVoice'
+const OUR_MOD_MAIN := 'res://unpacked/Reag-TheSixthVoice/mod_main.gd'
 
 ## Our alt frames, by the licence they attach to. Each entry is
 ##   <base licence id> : { frame = <our mf_ id>, rank = <1|2> }
@@ -61,6 +66,20 @@ func _license(license_id:StringName) -> UnlockTree:
 	var tree = ContentLibrary.get_license_tree(license_id)
 	return tree if tree is UnlockTree else null
 
+## Every licence path the engine knows, vanilla and modded, by id.
+##
+## Read off the ResourceGroup rather than ContentLibrary.compcon_id_to_path, which is an INSTANCE var
+## on the autoload: the parser resolves the bare name `ContentLibrary` to the class, so naming that
+## member is a PARSE error, and GUT skips an unparsable script instead of failing it - the suite goes
+## green and two tests quietly vanish. (Done exactly that on 2026-09-13; the totals caught it.)
+## RESOURCE_GROUPS is a const, so it is safe here.
+func _license_paths_by_id() -> Dictionary:
+	var by_id := {}
+	var group:ResourceGroup = ContentLibrary.RESOURCE_GROUPS.get(&'licenses', null)
+	if group == null: return by_id
+	for path:String in group.get_paths(): by_id[ContentLibrary.get_compcon_id_from_path(path)] = path
+	return by_id
+
 # ---------------------------------------------------------------- the alts themselves
 
 ## How many alts are built. Bumped by each alt's sub-project, in the same commit that adds its
@@ -71,9 +90,16 @@ const ALTS_BUILT := 0
 
 func test_every_alt_frame_reaches_its_licence():
 	assert_eq(ALT_FRAMES.size(), ALTS_BUILT, '%d alt frames built, %d in the table.' % [ALTS_BUILT, ALT_FRAMES.size()])
+	var retained:Array = load(OUR_MOD_MAIN).get_script_constant_map().get('EXTENDED_RESOURCES', [])
+	var license_paths := _license_paths_by_id()
 	for license_id:StringName in ALT_FRAMES:
 		# Consistency first: an alt may only be built against a base whose baseline is pinned below.
 		assert_true(BASE_LICENSES.has(license_id), '%s is pinned in BASE_LICENSES.' % license_id)
+		# And its licence must be declared for retention, or upstream bug 7 drops the extension the
+		# moment nothing else holds the resource - which reads as a frame that was never built.
+		var vanilla_path:String = license_paths.get(license_id, '')
+		assert_true(retained.has(vanilla_path),
+			'mod_main.EXTENDED_RESOURCES declares %s (%s).' % [license_id, vanilla_path])
 		var entry:Dictionary = ALT_FRAMES[license_id]
 		var tree:UnlockTree = _license(license_id)
 		assert_not_null(tree, '%s loads.' % license_id)
@@ -130,6 +156,12 @@ func test_the_everest_is_reachable_at_any_licence_level():
 	# M/K2 is the only alt attaching at rank 1, and it does so because PilotCore.get_available_frames
 	# takes every GMS licence frame regardless of level - which is what makes an Everest alt playable
 	# from the start. If that stops being true, M/K2's whole shape changes.
+	# The fragile part is not the licence's contents but the lookup that reaches it: get_available_frames
+	# (pilot_core.gd:394-396) walks Manufacturer.all_licenses[&'gms'] and asks each for rank 3, so a
+	# frame granted at GMS rank 1 is available at any level. Both halves are pinned.
+	assert_true(Manufacturer.all_licenses.has(&'gms'), 'There is a GMS licence list.')
+	assert_true(Array(Manufacturer.all_licenses.get(&'gms', [])).has(&'li_gms'),
+		'li_gms is in the GMS licence list get_available_frames walks.')
 	var tree:UnlockTree = _license(&'li_gms')
 	assert_not_null(tree, 'li_gms loads.')
 	if tree == null: return
@@ -141,8 +173,14 @@ func test_the_three_alts_without_a_base_are_known_absent():
 	# Not a to-do: a guard. If a future modkit ships the Sunzi, the Emperor or the Lich, these
 	# licences appear and this test goes red - which is the signal to re-plan phase 6 rather than
 	# keep paying for an optional-dependency release nobody needs.
+	# Asked of the licence paths rather than through _license(), which would route each miss through
+	# ContentLibrary.load_compcon_id_resource and printerr three "Could not find compcon ID" lines
+	# into every run forever. Those do not fail the suite, but noise in a green run is how a real
+	# error stops being noticed.
+	var license_paths := _license_paths_by_id()
+	assert_gt(license_paths.size(), 0, 'The licences index loaded, so absence means something.')
 	for license_id:StringName in [&'li_sunzi', &'li_emperor', &'li_lich']:
-		assert_null(_license(license_id),
+		assert_false(license_paths.has(license_id),
 			'%s is still absent from the modkit.' % license_id)
 	for alt:String in ALTS_WITHOUT_A_BASE:
 		gut.p('  %-16s blocked on %s' % [alt, ALTS_WITHOUT_A_BASE[alt]])

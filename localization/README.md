@@ -21,7 +21,7 @@ hit is not evidence of anything. Use mtime and size, or a spec.
 
 | Key | What it names |
 |---|---|
-| `mod.reag_thesixthvoice.name` | the mod, in Mod Manage |
+| `mod.reag_thesixthvoice.name` | **nothing the player sees.** Kept as a test canary — see below |
 | `frame.<mf_id>.name` / `.flavor` / `.flavor.short` | a frame |
 | `gear.<kit_id>.name` / `.effect` / `.trigger` / `.flavor` | a kit: trait, core power, system, weapon, weapon mod |
 | `gear.<kit_id>.<action_id>.name` / `.effect` | one action on a multi-action kit |
@@ -34,8 +34,26 @@ ContentLibrary index — so a renamed `.tres` is a renamed localization key.
 ## Wiki markup
 
 `|term|` renders as a glossary link when the term resolves. `|Label=gear.<kit>.<action>|` links
-arbitrary text to a specific kit or action — use it whenever rule text names another ability of the
-same frame, so the player can read it without leaving the tooltip.
+arbitrary text to a **kit** — use it whenever rule text names another ability of the same frame, so
+the player can read it without leaving the tooltip.
+
+Note the link target is the kit, not the action: `GlossaryItem.process_glossed_text` takes
+`split_key[1]` as the kit id and emits `[url={"kit":"<kit>"}]`, discarding the `.<action>` segment
+(`engine/utils/glossary_item.gd:240-250`). Keep writing the full `gear.<kit>.<action>` form — it is
+what vanilla and Thy Hubris do, and it is the right key if the engine ever resolves deeper — but do
+not expect the tooltip to scroll to a particular action.
+
+## The `mod.*` row is dead
+
+Nothing in the engine reads a `mod.*` key. Mod Manage shows `ModCore.tr_label()`
+(`engine/mod/mod_core.gd:80-84`), which returns `manifest.title`, then `manifest.name`, then the
+mod id — no translation lookup anywhere. **To change what Mod Manage displays, edit `title` in
+`manifest.json`.**
+
+The row stays because `spec/test_content_integrity.gd` uses it as a canary: it is the only key only
+this mod supplies, so `tr()` resolving it is the proof that `add_translations` registered our
+artifact with the TranslationServer. Loading the `.translation` file directly, as the glossary test
+does, proves the file is right but not that anything can see it.
 
 ## Glossary terms
 

@@ -48,23 +48,44 @@ func test_the_manifest_names_the_running_engine():
 	# version-mismatch warning in Mod Manage and on mod.io, with nothing in a normal test run to say
 	# so. The check is an any() over the array, so the fix is always to APPEND the new version to
 	# compatible_game_version, never to replace what is there.
-	var mod_util = load(MOD_UTIL)
+	# ASSERTED ON THE ARRAY, not only through the engine call, and that distinction is the whole
+	# point of this test. is_mod_likely_compatible_with_game_version (mod_util.gd:124-127) does
+	#
+	#     mod_compatible_versions.append(manifest.mod_meta.game_version)
+	#     mod_compatible_versions.append_array(manifest.compatible_game_version)
+	#
+	# and then an any() over the result - so `mod_meta.game_version` ALONE satisfies it, and a stale
+	# compatible_game_version sails through. `mod_meta` is written by the upload machinery, and
+	# ModManifest.deserialize falls back to ModMeta.create() - which sets game_version to the CURRENT
+	# engine - when the key is absent, at which point the engine call could never fail at all.
+	#
+	# Caught in review 2026-09-13, after a mutation run that changed both values at once and so could
+	# not tell them apart.
 	var library = load(MOD_LIBRARY)
 	var manifest = library.get_manifest(StringName(MOD_ID))
 	assert_not_null(manifest, '%s has a manifest.' % MOD_ID)
 	if manifest == null: return
+	var declared:Array = Array(manifest.compatible_game_version)
+	assert_true(declared.has(Compat.version_label()),
+		'compatible_game_version %s names %s.' % [declared, Compat.version_label()])
+	# The engine's own verdict too, so a future change to how it reads the manifest also shows up.
+	var mod_util = load(MOD_UTIL)
 	assert_true(
 		mod_util.is_mod_likely_compatible_with_game_version(manifest),
-		'manifest.json compatible_game_version names %s.' % Compat.version_label()
+		'The engine agrees this mod is compatible with %s.' % Compat.version_label()
 	)
 
-func test_the_mod_name_is_localized():
-	# A key with an empty value in the CSV is not registered at all, so tr() hands back the raw key
-	# and THAT is what renders in game. This also proves localizations.en.translation was actually
-	# regenerated after the last CSV edit: the compiled artifact is what Translate loads, and a stale
-	# one hands back raw keys while the CSV beside it looks perfect.
+func test_this_mods_translation_reached_the_translation_server():
+	# NOT a test of what Mod Manage displays. Mod Manage shows ModCore.tr_label()
+	# (mod_core.gd:80-84), which returns manifest.title with no translation lookup at all - nothing
+	# in the engine reads a `mod.*` key. The row is vestigial, inherited from Thy Hubris.
+	#
+	# It is kept as a canary, and it is the ONLY test that proves
+	# LancerTacticsMod.add_translations actually registered our artifact with the TranslationServer.
+	# The glossary test below loads the .translation file directly, which proves the file is right
+	# but says nothing about whether tr() can see it.
 	assert_ne(tr('mod.reag_thesixthvoice.name'), 'mod.reag_thesixthvoice.name',
-		'The mod name resolves to real text.')
+		'tr() resolves a key that only this mod supplies, so our translation is registered.')
 
 # ---------------------------------------------------------------- the glossary
 #
@@ -104,11 +125,17 @@ func test_this_mods_own_translation_carries_both_glossary_rows():
 	# The artifact is an OptimizedTranslation, which hashes its keys, so grep cannot answer this and a
 	# zero hit is not evidence of anything. get_message can.
 	var translation:Translation = load(OUR_TRANSLATION)
-	assert_not_null(translation, 'This mod has a compiled translation.')
+	assert_not_null(translation,
+		'This mod has a compiled translation (run the headless --import if this is a fresh clone).')
 	if translation == null: return
-	for key:String in ['lancer.term.efficient', 'lancer.term.efficient.desc']:
-		assert_ne(translation.get_message(key), StringName(''),
-			'Our own artifact carries %s.' % key)
+	# Driven off GLOSSARY_TERMS, not a hardcoded list, so the second term somebody registers cannot
+	# ship without its CSV rows.
+	var terms:Array = load(OUR_MOD_MAIN).get_script_constant_map().get('GLOSSARY_TERMS', [])
+	assert_false(terms.is_empty(), 'GLOSSARY_TERMS is not empty, so this test has something to check.')
+	for term:StringName in terms:
+		for key:String in [String(term), '%s.desc' % term]:
+			assert_ne(translation.get_message(key), StringName(''),
+				'Our own artifact carries %s.' % key)
 
 func test_the_efficient_term_resolves_end_to_end():
 	# The real behaviour, with the caveat above: green here does NOT prove this mod supplied the term
@@ -142,8 +169,11 @@ func test_every_player_facing_kit_and_action_has_a_real_icon():
 	var kits:Array[Resource] = ModResources.load_ours(MOD_ID, &'kits')
 	assert_eq(ICON_TARGETS.size(), kits.size(), 'ICON_TARGETS lists every kit this mod ships.')
 	for kit:Kit in kits:
-		assert_true(Kit.is_valid(kit), '%s is registered.' % kit.resource_path.get_file())
-		if not Kit.is_valid(kit): continue
+		# The count above is not enough on its own: a stale row for a deleted kit plus a new kit with
+		# no row balances it, and `ICON_TARGETS.get(id, [])` would then silently check no actions on
+		# the new kit. This is what makes the pairing exact.
+		assert_true(ICON_TARGETS.has(kit.compcon_id),
+			'%s is listed in ICON_TARGETS.' % kit.resource_path.get_file())
 		_assert_real_icon(kit.icon_override, kit.compcon_id)
 		var listed:Array = ICON_TARGETS.get(kit.compcon_id, [])
 		var by_id := {}

@@ -7,8 +7,14 @@ frozen the moment that sub-project ships, recorded in roadmap §4 and in memory
 with every earlier spec still green.
 
 The shape is the Draugr's: a static-function script plus whatever `.tres` it needs, no autoload, no
-`class_name` (a `class_name` script cannot be reliably extended — Godot #83542 — and every consumer
-reaches it by `preload` anyway).
+`class_name`. Every consumer reaches it by `preload`.
+
+**Why no `class_name`**: global class names are registered from `project.godot`'s class list, which
+is built at startup — so a `class_name` declared in a script a mod loads at runtime is never
+registered, and cannot be referenced by that name at all. (This is a different problem from Godot
+#83542, which is why a `class_name` script in the *base game* cannot be reliably script-extended;
+that one is why the engine has so many autoloads. Both end at the same advice, for different
+reasons.)
 
 Planned, none built yet:
 

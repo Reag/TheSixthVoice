@@ -20,14 +20,20 @@ const GLOSSARY_TERMS:Array[StringName] = [&'lancer.term.efficient']
 
 ## Holds every resource named in EXTENDED_RESOURCES alive for the life of the mod. Load-bearing;
 ## see retain_extended_resources(). An instance var, not static: this node lives exactly as long as
-## the mod is active, and the manifest declares requires_restart, so there is no deactivate() to
-## release it from.
+## the mod is active, and ModApplier.execute_unload_all_mods queue_free()s every embassy node, so
+## the array dies with the mod and needs no explicit release.
 var _retained_resources:Array[Resource] = []
 
-# Runs when this mod is activated (whenever active mods are changed). _init rather than _ready: the
-# applier marks the mod "installing" before instantiating this script and "installed" only after
-# adding it to the tree, so _init runs inside the install window, which retain_extended_resources()
-# depends on.
+# Runs when this mod is activated (whenever active mods are changed).
+#
+# _init rather than _ready only to match the sibling mods; on 1.4.3 either would do. Both run inside
+# ModApplier.install_mod - start_installing_mod() precedes add_mod_embassy_node(), whose add_child
+# fires _ready synchronously, and record_installed_mod() comes after both. (Do NOT read the engine's
+# own comment there - "the mod will not show up as installed during its _ready()" - as meaning
+# _ready falls outside the window. It means the opposite: the mod is still marked INSTALLING then.)
+#
+# What actually matters for retain_extended_resources() is only that this runs before
+# apply_installed_queued_extensions, which happens after every mod is installed. Both hooks clear that.
 func _init() -> void:
 	ModLoaderLog.info("Activating.", MOD_ID)
 
@@ -106,6 +112,13 @@ func reload_extended_autoloads() -> void:
 		var node:Node = get_tree().root.get_node_or_null(NodePath(autoload_name))
 		if node == null: continue
 		var extended:Script = load(EXTENDED_AUTOLOADS[autoload_name])
+		if extended == null:
+			# Guarded because the consequence of not guarding is severe and silent: a null here would
+			# fail the comparison below (the node HAS a script), and the set_script(null) that follows
+			# would strip the autoload of its script permanently, in the real game, at load time.
+			ModLoaderLog.error('Cannot reload autoload %s: %s did not load.'
+				% [autoload_name, EXTENDED_AUTOLOADS[autoload_name]], MOD_ID)
+			continue
 		if node.get_script() == extended: continue # already right (engine fixed, or nothing extended it)
 		node.set_script(null)
 		node.set_script(extended)

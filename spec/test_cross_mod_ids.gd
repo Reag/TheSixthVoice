@@ -56,6 +56,32 @@ func test_no_resource_id_is_shared_with_another_of_our_mods():
 				assert_false(ours.has(id),
 					'%s is ours alone; %s does not also ship it.' % [id, mod_id])
 
+func test_no_resource_id_collides_with_a_vanilla_one():
+	# The likeliest collision in a supplement this size, and the quietest.
+	#
+	# ContentLibrary builds ONE flat compcon_id_to_path from group.get_paths(), which is
+	# `paths + mod_resource_paths` with the mod paths LAST (content_library.gd:328-332). So a mod file
+	# whose BASENAME matches a vanilla resource sitting at a DIFFERENT folder silently wins the id -
+	# and because the mirror path does not match, add_overwrite_extend_mod_resources treats it as a
+	# brand new resource rather than an override: no replace_resource, no log line, no warning. The
+	# vanilla gear simply stops being reachable by id.
+	#
+	# A deliberate override is the legitimate case and is NOT this: it shares the vanilla MIRROR PATH,
+	# so the paths match and only one entry ever existed. That is why this compares paths, not ids
+	# alone.
+	for index_name:StringName in INDEXES:
+		var group:ResourceGroup = ContentLibrary.RESOURCE_GROUPS.get(index_name, null)
+		if group == null: continue
+		var vanilla := {}
+		for path:String in group.paths: vanilla[ContentLibrary.get_compcon_id_from_path(path)] = path
+		var ours := _ids_by_mod(MOD_ID, index_name)
+		assert_gt(vanilla.size(), 0, 'The %s index has vanilla entries to collide with.' % index_name)
+		for id:StringName in ours:
+			if not vanilla.has(id): continue
+			var mirror:String = ours[id].replace('res://unpacked/%s/res/' % MOD_ID, 'res://')
+			assert_eq(mirror, vanilla[id],
+				'%s shares a vanilla id; it is an override at the vanilla path, not a collision.' % id)
+
 func test_no_two_of_our_resources_share_an_id_within_this_mod():
 	# The same collision one level down: two files with the same basename in different folders of
 	# THIS mod overwrite each other just as thoroughly, and it is an easy mistake once a frame's

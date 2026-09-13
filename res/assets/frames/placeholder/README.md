@@ -2,8 +2,12 @@
 
 `mf_placeholder.png` is the stand-in sprite every frame in this mod references until the author
 drops in commissioned art. 80×80 RGBA, the vanilla size-1 frame dimension
-(`assets/frames/ipsn/mf_blackbeard/ipsn_blackbeard.png`); 160×160 is size 2 only. A size-½ frame
-still occupies one tile and uses 80×80.
+(`assets/frames/ipsn/mf_blackbeard/ipsn_blackbeard.png`). A size-½ frame still occupies one tile and
+uses 80×80, so the placeholder fits the Fitzgerald as-is.
+
+Measured across vanilla `assets/frames/`: **93 files at 80×80, 39 at 160×160 (size 2), 3 at 240×240**
+(the Barbarossa, size 3). A size-2 or size-3 frame in this supplement needs its own placeholder at
+the matching dimension rather than this one scaled.
 
 Art never blocks a release (roadmap §6). A sprite drop-in needs no session: replace the file, run
 the headless import, commit the regenerated `.import` sidecar.
