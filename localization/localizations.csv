@@ -21,3 +21,8 @@ gear.cp_broadside.action_more_black_powder.name,Bizarre Cannon (More Black Powde
 gear.cp_broadside.action_more_black_powder.effect,"On attack: you take 3 AP kinetic damage and are knocked back 3 spaces, in any direction. On hit: targets must succeed on a Hull save or become prone."
 gear.buff_more_black_powder.name,More Black Powder
 gear.buff_more_black_powder.effect,"The BIZARRE CANNON has a second, heavier profile for the rest of this scene."
+,
+gear.mt_hole_puncher.name,Hole Puncher
+gear.mt_hole_puncher.effect,"The Fitzgerald may ignore line of sight when attacking with Cannon or Line weapons. Targets attacked this way have soft cover."
+gear.buff_hole_puncher_soft_cover.name,Soft cover (Hole Puncher)
+gear.buff_hole_puncher_soft_cover.effect,"Attacked without being seen: the shot treats this target as having soft cover."

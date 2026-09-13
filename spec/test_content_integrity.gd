@@ -160,11 +160,17 @@ const ICON_TARGETS := {
 	&'cp_broadside': [
 		&'action_bizarre_cannon', &'action_more_black_powder_protocol', &'action_more_black_powder',
 	],
+	&'mt_hole_puncher': [], # a passive trait: no action of its own, so it wears the Kit's icon
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
 ## Only STANDALONE buff_*.tres files reach this list: ModResources reads the mod's `buffs` index, and
 ## a Buff carried as an inline SubResource on an action never enters it.
+##
+## Hole Puncher's three buffs (buff_hole_puncher_arcing / _ignore_cover / _soft_cover) are all
+## hide_from_player - they are trait plumbing, never a chip on the unit - so they are deliberately
+## absent here, and the count assertion below is what keeps that honest: unhide one and this list
+## stops matching.
 const VISIBLE_BUFFS:Array[StringName] = [&'buff_more_black_powder']
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

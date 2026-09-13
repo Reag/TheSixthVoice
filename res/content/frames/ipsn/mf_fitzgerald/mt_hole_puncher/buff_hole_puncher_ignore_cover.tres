@@ -1,0 +1,8 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_fitzgerald/mt_hole_puncher/buff_hole_puncher_ignore_cover.gd" id="1_ignorecover"]
+
+[resource]
+script = ExtResource("1_ignorecover")
+to = &"ignore_cover"
+hide_from_player = true
