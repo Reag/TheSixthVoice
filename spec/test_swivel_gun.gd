@@ -510,3 +510,119 @@ func test_grapeshot_is_a_line_and_also_hits_a_second_unit_standing_in_it() -> vo
 	assert_gt(target.current_damage(), 0, 'fixture: the closer target was hit.')
 	assert_gt(far_target.current_damage(), 0,
 		"Grapeshot's Line pattern also hit the farther target standing in it.")
+
+# ============================================================ Task 3: reloading refills the counter
+#
+# Design §3.1, last bullet. Without this the gun's counter never moves once it hits zero: the
+# engine's own event_gear_reload.gd sets weapon.is_loaded = true in execute() and has no idea a
+# counter exists at all, so nothing else in the engine would ever put a round back in the magazine
+# and every profile stays refused for the rest of the mission.
+#
+# THE ORDERING THAT MAKES THIS WORK. event_gear_reload.gd:24-33 sets is_loaded = true on every
+# weapon it reloads, and only THEN calls core.queue_reaction_events(TRIGGER.RELOAD, TIMING.POST) -
+# so by the time action_swivel_reload_refill.gd's reaction is even considered, the gun already reads
+# loaded. That matters because reaction_bus.gd's does_reaction_trigger runs the FULL availability
+# check (UnitAction.can_activate_gear) before ever asking triggers_on_event, and an unloaded gear
+# would fail that check outright. Precedent, near-exact:
+# content/frames/ipsn/mf_raleigh/cp_m35_mjolnir_cannon/action_thunder_god_chamber_rounds.gd.
+#
+# THE ONE THING THIS TASK HAS TO GET RIGHT, AND THE TEST THAT CATCHES IT.
+# test_reloading_a_different_weapon_does_not_refill_the_swivel_gun below equips a vanilla LOADING
+# weapon, empties the swivel gun by hand (its own arithmetic is already pinned by the Task 1/2 tests
+# above), reloads ONLY the vanilla weapon, and asserts the swivel gun's counter did not move. A
+# reaction that triggered on ANY reload - not just a reload of ITS OWN gear - would pass every other
+# test in this file and fail only this one.
+
+const RELOAD_ACTION_ID := &'action_swivel_reload_refill'
+
+## A vanilla Main Rifle carrying the engine's own LOADING tag, and nothing else complicated about it
+## (a single action, no on-hit effects) - exactly what test_reloading_a_different_weapon_... needs to
+## reload something that is not the swivel gun. unit.core.equip_system works for any Kit regardless
+## of mount, the same way it already does for the swivel gun itself (see before_each's own comment).
+const LOADING_RIFLE_ID := &'mw_anti_materiel_rifle'
+
+func test_reloading_the_gun_refills_all_three_rounds_and_it_is_firable_again() -> void:
+	for shot_number:int in STARTING_ROUNDS:
+		cheat_a_hit()
+		await fire_single_shot_at(target)
+		await new_turn()
+
+	var gear := _gear()
+	assert_not_null(gear, 'fixture: the gun is still equipped.')
+	if gear == null: return
+	assert_eq(rounds_left(), 0, 'fixture: three real shots emptied the gun.')
+	assert_false(gear.is_loaded, 'fixture: and it reads unloaded.')
+
+	# game.execute_event is how the vanilla suite exercises event_gear_reload directly (see
+	# test/gear/test_cp_m35_mjolnir_cannon.gd's test_cp_m35_mjolnir_cannon_free_fire) rather than
+	# going through Stabilize's variant-action picker, which is what a real reload button does but
+	# which SP1's fixture never had to drive from a spec before now.
+	await game.execute_event(&'event_gear_reload', {unit = unit, gear = gear})
+
+	assert_true(gear.is_loaded, 'The reload set is_loaded back to true, same as any other weapon.')
+	assert_eq(rounds_left(), STARTING_ROUNDS,
+		'And the reload REACTION refilled all three rounds - the engine event alone never would.')
+	assert_true(UnitAction.can_activate_gear(_specific(SINGLE_SHOT_ID)), 'The gun is firable again.')
+
+	cheat_a_hit()
+	await fire_single_shot_at(target)
+	assert_gt(target.current_damage(), 0, 'And firing the refilled gun actually works.')
+	assert_eq(rounds_left(), STARTING_ROUNDS - 1, 'One shot spent one of the freshly refilled rounds.')
+
+func test_reloading_a_different_weapon_does_not_refill_the_swivel_gun() -> void:
+	var gear := _gear()
+	var counter := _counter()
+	assert_not_null(gear, 'fixture: the gun is on the unit.')
+	assert_not_null(counter, 'fixture: it carries its counter.')
+	if gear == null or counter == null: return
+
+	# THE RIFLE GOES ON FIRST, AND ITS OWN FULL REPAIR HAS TO FINISH, BEFORE THE SWIVEL GUN IS
+	# HAND-EMPTIED BELOW - not merely a nicety of test order. unit.core.equip_system does not just
+	# append to equipped_kits the way LoadoutCore.equip_system alone would (see that function's own
+	# comment in loadout_core.gd:338-340): UnitCore.equip_system actually delegates to
+	# UnitPrinter.equip_system (unit_printer.gd:178-185), which calls UnitPrinter.full_repair(core) -
+	# and GearCore.full_repair (gear_core.gd:152-154) calls short_repair() and THEN unconditionally
+	# clears state again, wiping every equipped gear's state dictionary, PassiveDieCounter values
+	# included, regardless of resets_on_repair (short_repair's own preservation only checks
+	# resets_on_spawn, and passive_swivel_rounds.tres does not set it, so it defaults true and is not
+	# preserved either way). Reversing this order would silently refill the swivel gun back to 3 via
+	# the RIFLE's own equip call - the exact false pass this test exists to rule out - and for a
+	# reason that has nothing to do with the reload reaction under test. Measured, not theorised: an
+	# earlier draft of this test emptied the gun BEFORE equipping the rifle and its very next
+	# assertion ("equipping the rifle did not touch the swivel gun") failed with rounds back at 3.
+	unit.core.equip_system(LOADING_RIFLE_ID)
+	SpecFactory.apply_passive_buffs(unit)
+	var rifle:GearCore = unit.get_gear(LOADING_RIFLE_ID)
+	assert_not_null(rifle, 'fixture: a second, vanilla LOADING weapon is also equipped.')
+	if rifle == null: return
+	rifle.is_loaded = false
+
+	# NOW it is safe to empty the swivel gun by hand - nothing left in this test triggers another
+	# full repair. Emptied by hand rather than by firing three real shots because the counter's own
+	# arithmetic is already pinned by the Task 1/2 tests above; what is under test here is which gear
+	# a RELOAD reacts to, not how the count gets to zero.
+	counter.update_value(unit, gear, 0)
+	gear.is_loaded = false
+	assert_eq(rounds_left(), 0, 'fixture: the swivel gun reads empty and unloaded.')
+
+	await game.execute_event(&'event_gear_reload', {unit = unit, gear = rifle})
+
+	assert_true(rifle.is_loaded, 'fixture: reloading the RIFLE specifically did reload the rifle.')
+	assert_eq(rounds_left(), 0,
+		"THE DISCRIMINATING ASSERTION: reloading a DIFFERENT weapon left the swivel gun's rounds"
+		+ ' untouched. A reaction gated only on the RELOAD trigger, with no check of which gear was'
+		+ ' actually being reloaded, would refill it here too.')
+	assert_false(gear.is_loaded,
+		"And the swivel gun is still unloaded too - only the gear actually named in the reload event"
+		+ ' was affected.')
+
+## Mirrors how SP1 pinned action_blasting_powder_spend's own invisibility: one direct assertion on
+## the mechanism the player-facing UI actually reads. Reactions never reach the gear bar at all
+## (gear_bar.gd:143 drops every ActionReaction), and show_in_tooltip is what keeps the Kit tooltip
+## from growing a line for it either.
+func test_the_reload_reaction_is_invisible_to_the_player() -> void:
+	var action := _action(RELOAD_ACTION_ID)
+	assert_not_null(action, 'fixture: the reload reaction is on the gear.')
+	if action == null: return
+	assert_false(action.show_in_tooltip(_kit()),
+		'Hidden bookkeeping, same as action_blasting_powder_spend: never shown in the Kit tooltip.')

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/weapons/mw_breech_loading_swivel_gun/action_swivel_reload_refill.gd" id="1_reloadrefill"]
+
+[resource]
+script = ExtResource("1_reloadrefill")
+usage_group = &"swivel_reload_refill"
+triggers_on = Array[StringName]([&"reload"])
+trigger_timing = 1
+consumes_rxn = false
