@@ -3,8 +3,10 @@
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_fitzgerald/cp_broadside/action_bizarre_cannon.tres" id="2_bizarrecannon"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="3_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_fitzgerald/cp_broadside/action_more_black_powder_protocol.tres" id="4_moreblackpowderprotocol"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_fitzgerald/cp_broadside/action_more_black_powder.tres" id="5_moreblackpowder"]
 
 [resource]
 script = ExtResource("3_kit")
-actions = Array[ExtResource("1_action")]([ExtResource("2_bizarrecannon")])
+actions = Array[ExtResource("1_action")]([ExtResource("2_bizarrecannon"), ExtResource("4_moreblackpowderprotocol"), ExtResource("5_moreblackpowder")])
 is_trait = true

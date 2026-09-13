@@ -1,0 +1,40 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_fitzgerald/cp_broadside/action_more_black_powder.gd" id="1_moreblackpowder"]
+[ext_resource type="Script" uid="uid://c0yv6pnw2be6l" path="res://engine/character/gear_action/resources/range_pattern.gd" id="2_rangepattern"]
+[ext_resource type="Script" uid="uid://cs5u2sk1kig6i" path="res://engine/character/gear_action/resources/damage_value.gd" id="3_damagevalue"]
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="4_onhiteffect"]
+
+[sub_resource type="Resource" id="Resource_line15"]
+script = ExtResource("2_rangepattern")
+pattern = 2
+value = 15
+
+[sub_resource type="Resource" id="Resource_explosive1d6"]
+script = ExtResource("3_damagevalue")
+dice = "1d6"
+type = 2
+
+[sub_resource type="Resource" id="Resource_pronesave"]
+script = ExtResource("4_onhiteffect")
+apply_on = 1
+statuses = Array[StringName]([&"prone"])
+save_to_avoid = true
+save_type = 0
+
+[resource]
+script = ExtResource("1_moreblackpowder")
+damage_type = 0
+damage_dice = "2d6"
+additional_damage_values = Array[ExtResource("3_damagevalue")]([SubResource("Resource_explosive1d6")])
+weapon_size = 2
+weapon_type = 1
+aim_range = 0
+tags = Array[StringName]([&"ap", &"reliable"])
+reliable_damage = "3"
+range_pattern = SubResource("Resource_line15")
+self_heat_dice = "1"
+on_hit_effects = Array[ExtResource("4_onhiteffect")]([SubResource("Resource_pronesave")])
+hide_if_disabled = true
+recoil_damage_dice = "3"
+recoil_knockback = 3
