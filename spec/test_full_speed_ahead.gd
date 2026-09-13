@@ -88,6 +88,112 @@ func test_an_engaged_fitzgerald_leaves_without_provoking_overwatch() -> void:
 	# Adjacent hostile: engagement would normally hold it, and leaving would provoke a reaction.
 	var blocker := Fixture.create_dummy(game, START + Vector2i(1, 0), 10)
 	var blocker_health:int = blocker.core.current.health
+	# TASK 2 AMENDED THIS TEST, AND ONLY THIS LINE. The blocker stands on a tile the dash enters, so
+	# once the path walk below existed it started forcing a Hull save on it - and an uncheated d20
+	# failed that save often enough to knock 3 AP off the blocker and turn "nothing shot at it" red
+	# for the wrong reason. Cheating the save to PASS takes the path walk's damage off the table
+	# without weakening anything: this assertion still reads zero only if no REACTION fired, and an
+	# overwatch shot would pop its own die off the same queue (a 20 against evasion 10 is a hit) and
+	# move the number. The placement is deliberately unchanged - adjacent AND in the way is the case
+	# worth testing.
+	cheat_passed_saves()
 	await dash_to(START + Vector2i(SPEED, 0))
 	assert_eq(fitz.tile(), START + Vector2i(SPEED, 0), 'Engagement did not hold it.')
 	assert_eq(blocker.core.current.health, blocker_health, 'Nothing shot at it on the way out.')
+
+# ---------------------------------------------------------------- the path walk (Task 2)
+#
+# Ruling 7: hostiles PASSED THROUGH, or adjacent to any tile entered AFTER the start tile, are
+# affected once each. Adjacency to the start tile alone is not enough - you were already standing
+# there. That exclusion is free rather than subtracted: AoeCalculator.line's rings begin one step
+# from the origin (aoe_calculator.gd:143, Tile.get_rings starts its loop at 1 - tile.gd:349), so the
+# entered-tile list never contains the start tile.
+#
+# ADJACENCY HERE IS CHEBYSHEV, AND THAT MOVED ONE OF THESE TESTS. Tile.distance is max(dx, dy)
+# (tile.gd:380-387) over an eight-way neighbourhood (Tile.DIRECTIONS, tile.gd:22), so a tile
+# DIAGONALLY off the ray is at distance 1 from it. The tile directly north of START is diagonally
+# adjacent to START + (1, 0), which IS an entered tile, so it is caught - correctly, by the ruling.
+# The only tiles adjacent to START and to nothing else on an eastward dash are the three BEHIND it,
+# so the start-tile exclusion is pinned from due west instead. (The task brief specified
+# START + (0, -1); that would have failed against a correct implementation.)
+
+## Force every Hull save in this activation to FAIL. The save is a d20 plus the target's HULL
+## against the Fitzgerald's save target (event_unit_save.gd, execute()); a 1 can never clear it.
+## Buffer sized for four saves - no test below puts more than two hostiles on the ray, and one d20
+## is popped per save (unit_hasecheck.gd:200, roll_d20_with_player_interventions; the accuracy die
+## is only rolled for a non-zero bonus, dice.gd:86-88).
+##
+## Dice.cheat_roll() does NOT exist - the queue is the API, exactly as the sibling specs' cheat_a_hit
+## helpers use it. Cleared first for the reason test_knock_em_down.gd records at length: cheat
+## helpers only APPEND, so a leftover die from an earlier activation would answer the next save.
+func cheat_failed_saves() -> void:
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	Dice.CHEAT_ROLL_QUEUE.append_array([1, 1, 1, 1])
+
+## ...and to PASS.
+func cheat_passed_saves() -> void:
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	Dice.CHEAT_ROLL_QUEUE.append_array([20, 20, 20, 20])
+
+## A dummy that can actually be hurt and shoved: 20 HP, 1 armor so the AP on the damage is visible,
+## and the frame's own HULL so the cheated save die decides the outcome. Fixture.create_dummy has
+## already FrameIsolation'd it, so these writes are to its own copy of the frame, not a shared one.
+func make_victim(tile:Vector2i) -> Unit:
+	var victim := Fixture.create_dummy(game, tile, 10)
+	victim.core.frame.stat.health = 20
+	victim.core.frame.stat.armor = 1
+	victim.core.full_repair()
+	return victim
+
+func test_a_hostile_passed_through_is_knocked_prone_and_takes_three_ap() -> void:
+	var victim := make_victim(START + Vector2i(2, 0))
+	var before:int = victim.core.current.health
+	cheat_failed_saves()
+	await dash_to(START + Vector2i(SPEED, 0))
+	assert_true(victim.has_status(Lancer.STATUS.PRONE), 'It failed its Hull save and went down.')
+	assert_eq(before - victim.core.current.health, 3, 'Three damage, and its 1 armor did not bite: AP.')
+
+func test_a_passed_save_costs_nothing() -> void:
+	var victim := make_victim(START + Vector2i(2, 0))
+	var before:int = victim.core.current.health
+	cheat_passed_saves()
+	await dash_to(START + Vector2i(SPEED, 0))
+	assert_false(victim.has_status(Lancer.STATUS.PRONE), 'It stayed up.')
+	assert_eq(victim.core.current.health, before, 'And took nothing.')
+
+func test_a_hostile_beside_the_path_is_caught_too() -> void:
+	# One tile north of the second tile entered: never passed through, but became adjacent.
+	var victim := make_victim(START + Vector2i(2, -1))
+	cheat_failed_saves()
+	await dash_to(START + Vector2i(SPEED, 0))
+	assert_true(victim.has_status(Lancer.STATUS.PRONE), 'Becoming adjacent is enough.')
+
+func test_a_hostile_beside_only_the_start_tile_is_not_caught() -> void:
+	# Directly WEST of where the Fitzgerald was standing - behind the dash, and the only direction
+	# from which a tile touches the start tile and nothing on the eastward ray. See the Chebyshev
+	# note in this section's header for why north does not qualify.
+	var victim := make_victim(START + Vector2i(-1, 0))
+	cheat_failed_saves()
+	await dash_to(START + Vector2i(SPEED, 0))
+	assert_false(victim.has_status(Lancer.STATUS.PRONE),
+		'Ruling 7: you were already standing next to it.')
+
+func test_a_hostile_passed_through_and_adjacent_later_is_affected_once() -> void:
+	var victim := make_victim(START + Vector2i(1, 0))
+	var before:int = victim.core.current.health
+	cheat_failed_saves()
+	await dash_to(START + Vector2i(SPEED, 0))
+	assert_eq(before - victim.core.current.health, 3, 'One save, one helping of damage.')
+
+func test_crossing_two_occupied_spaces_costs_two_self_damage() -> void:
+	make_victim(START + Vector2i(1, 0))
+	make_victim(START + Vector2i(3, 0))
+	var before:int = fitz.core.current.health
+	cheat_passed_saves() # keep the victims upright so only the self-damage moves
+	await dash_to(START + Vector2i(SPEED, 0))
+	assert_eq(before - fitz.core.current.health, 2, 'One AP kinetic per occupied space crossed.')
+
+func test_an_empty_run_costs_the_fitzgerald_nothing() -> void:
+	var before:int = fitz.core.current.health
+	await dash_to(START + Vector2i(SPEED, 0))
+	assert_eq(fitz.core.current.health, before, 'Nothing was in the way, so nothing was paid.')
