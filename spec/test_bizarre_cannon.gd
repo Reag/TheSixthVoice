@@ -7,8 +7,10 @@
 #   of fire.
 #
 # "On attack" - so the recoil fires on a hit AND on a miss, which is why it hangs off activate()
-# rather than an OnHitEffect. Both firing tests therefore assert the same two things about the
-# FIRER, and differ only in whether the shot landed.
+# rather than an OnHitEffect. The firing tests in this file (both profiles, both directions, and
+# MORE BLACK POWDER's prone save) each assert whatever subset of the recoil, self-damage, target
+# damage and target-status facts is relevant to what that test is pinning - not all the same two
+# things any more, now that the file covers more than the base profile.
 #
 # WHY THE MAP IS 15x9 AND NOT THE DEFAULT. Landscape.create_default() is Tile.MIN_MAP_DIMENSION
 # square - 5x5 - and a 2-space recoil needs two clear, in-bounds tiles behind the firer or the
@@ -131,17 +133,19 @@ func _weapon(action_id:StringName) -> ActionAttackWeapon:
 func _specific(action_id:StringName) -> SpecificAction:
 	return SpecificAction.create(unit, _gear(), _action(action_id))
 
-## Would the gear bar draw a button for this action at all?
+## Does gear_bar.gd's hide_if_disabled clause hide this action's button?
 ##
-## The distinction this exists for is HIDDEN versus GREYED. gear_bar.gd:147 drops an action from the
-## bar only when `hide_if_disabled and not can_activate_gear`; an unavailable action WITHOUT
+## This mirrors ONLY that one clause of gear_bar.gd:147 - not the surrounding
+## is_action_hibernating_alt / is_situationally_activated / ActionReaction conditions - so it can
+## only speak to the HIDDEN-versus-GREYED distinction this file cares about: `hide_if_disabled and
+## not can_activate_gear` drops an action from the bar entirely; an unavailable action WITHOUT
 ## hide_if_disabled still gets a button, just a dead one. "The second profile does not exist until
 ## the protocol is used" is a claim about the first case, so asserting availability alone would not
-## prove it.
-func _gear_bar_shows(action_id:StringName) -> bool:
+## prove it. Do not lean on this helper for a claim about the whole gear-bar decision - it isn't one.
+func _gear_bar_hides_when_disabled(action_id:StringName) -> bool:
 	var action := _action(action_id)
 	if action == null: return false
-	return not (action.hide_if_disabled and not UnitAction.can_activate_gear(_specific(action_id)))
+	return action.hide_if_disabled and not UnitAction.can_activate_gear(_specific(action_id))
 
 ## Open the unit's turn, once.
 ##
@@ -265,6 +269,17 @@ func test_the_kit_and_its_profile_have_display_text() -> void:
 	for key:String in keys:
 		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
 
+	# The regression this pins: gear.<kit>.effect is the KIT-LEVEL rule (no weapon mount, no weapon
+	# mod) plus a one-clause pointer at the protocol, while gear.<kit>.<protocol>.effect is the
+	# protocol BUTTON's own full rules text. A prior revision overwrote the former with a copy of the
+	# latter, which left the no-mount rule rendered nowhere in the game while the protocol's text
+	# appeared twice. Non-empty alone does not catch that; distinctness does.
+	assert_ne(
+		translation.get_message('gear.%s.effect' % KIT_ID),
+		translation.get_message('gear.%s.%s.effect' % [KIT_ID, MBP_PROTOCOL_ID]),
+		'The Kit-level rule text must not be a copy of the protocol button\'s own rules text.'
+	)
+
 # ---------------------------------------------------------------- the recoil
 
 func test_firing_costs_two_ap_kinetic_self_damage_on_a_hit() -> void:
@@ -336,12 +351,12 @@ func test_the_second_profile_is_hidden_before_the_protocol() -> void:
 		'And it is refused for OUR reason (SPECIFIC = is_available_to_activate said no), not because'
 		+ ' the unit happens to be out of actions or the gear is jammed.'
 	)
-	assert_false(_gear_bar_shows(MBP_ACTION_ID),
+	assert_true(_gear_bar_hides_when_disabled(MBP_ACTION_ID),
 		'So the gear bar draws no button for it at all: the profile does not exist yet.')
-	# Asked through can_activate_gear and NOT through _gear_bar_shows. The base profile does not set
-	# hide_if_disabled, so _gear_bar_shows is `not (false and ...)` = true for it whatever its
-	# availability - it would pass here even from outside a turn, which is exactly the state this
-	# fixture is supposed to rule out.
+	# Asked through can_activate_gear and NOT through _gear_bar_hides_when_disabled. The base profile
+	# does not set hide_if_disabled, so _gear_bar_hides_when_disabled is `false and ...` = false for it
+	# whatever its availability - it would pass here even from outside a turn, which is exactly the
+	# state this fixture is supposed to rule out.
 	assert_true(UnitAction.can_activate_gear(_specific(ACTION_ID)),
 		'Fixture: the BASE profile IS usable right now, so the assertions above are about the missing'
 		+ ' marker and not about the whole Kit being unusable.')
@@ -397,6 +412,13 @@ func test_the_second_profile_carries_its_own_statistics() -> void:
 		'The BASE profile has no on-hit effect: only More Black Powder prones.')
 
 func test_the_protocol_spends_the_core_power_and_applies_the_marker() -> void:
+	# action_type = 4 (PROTOCOL) on the .tres is otherwise asserted nowhere: SpecFactory.start_turn
+	# opens is_using_protocols unconditionally, so a .tres edit that quietly turned this into a QUICK
+	# action would leave every other test in this file green while "Protocol" - which is in the rules
+	# text - stopped being true.
+	assert_true(UnitAction.is_protocol(_specific(MBP_PROTOCOL_ID)),
+		'MORE BLACK POWDER is a PROTOCOL action.')
+
 	assert_true(unit.core.has_core_power, 'Fixture: the Fitzgerald starts with its core power.')
 	assert_false(UnitCondition.has_buff(unit, MARKER_ID), 'Fixture: and without the marker.')
 
@@ -418,7 +440,7 @@ func test_the_marker_persists_across_turns() -> void:
 
 	assert_true(UnitCondition.has_buff(unit, MARKER_ID),
 		'The marker survived a turn boundary: until = MANUAL, so only the scene ending clears it.')
-	assert_true(_gear_bar_shows(MBP_ACTION_ID),
+	assert_false(_gear_bar_hides_when_disabled(MBP_ACTION_ID),
 		'And the second profile is still on the gear bar on the new turn.')
 
 func test_both_profiles_are_firable_after_the_protocol() -> void:
@@ -434,8 +456,27 @@ func test_both_profiles_are_firable_after_the_protocol() -> void:
 		'And the second profile is now firable too.')
 	# Only the second profile is worth asking the gear-bar predicate about: it is the one carrying
 	# hide_if_disabled, so it is the only one for which "is it drawn" can answer anything.
-	assert_true(_gear_bar_shows(MBP_ACTION_ID),
+	assert_false(_gear_bar_hides_when_disabled(MBP_ACTION_ID),
 		'And the second profile now has a button on the bar, where a moment ago it had none.')
+
+func test_firing_one_profile_spends_the_shared_allowance_for_the_other() -> void:
+	# Both profiles share the Kit's usage group by ENGINE DEFAULT, not by anything either .tres sets:
+	# GearCore.get_usage_group_for_action (gear_core.gd:166-168) falls back to kit.compcon_id whenever
+	# an action leaves usage_group empty, and neither action_bizarre_cannon.tres nor
+	# action_more_black_powder.tres sets one. Ruling 8 is that this is correct - the protocol only
+	# ADDS a profile to choose per shot, it does not grant a second allowance - but nothing else in
+	# this file would notice if the two ever stopped sharing: test_both_profiles_are_firable_after_the
+	# _protocol only checks availability before either has been fired. Without this test, a future
+	# .tres edit that gave either profile its own usage_group would let a player fire 2d6 AND
+	# 2d6+1d6 in the same round with nothing here to catch it.
+	cheat_a_hit()
+	await use_protocol()
+	await fire_at(AIM_EAST)
+
+	assert_false(UnitAction.can_activate_gear(_specific(MBP_ACTION_ID)),
+		'The second profile is unavailable this turn: the shared per-turn allowance is spent, not the'
+		+ ' marker (which is still held) and not is_available_to_activate (which only ever gates on the'
+		+ ' marker).')
 
 func test_the_second_profile_costs_exactly_three_ap_kinetic_self_damage() -> void:
 	cheat_a_hit()

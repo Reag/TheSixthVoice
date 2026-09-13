@@ -12,7 +12,7 @@ gear.mt_weak_computer.name,Weak Computer
 gear.mt_weak_computer.effect,The Fitzgerald receives +1 Difficulty on all SYSTEMS saves and checks.
 ,
 gear.cp_broadside.name,Broadside
-gear.cp_broadside.effect,"Active, MORE BLACK POWDER (Protocol): for the rest of this scene, the BIZARRE CANNON gains a second profile - Heavy Cannon, AP, Reliable 3, Heat 1 (Self). [Line 15] [2d6 kinetic + 1d6 explosive damage]."
+gear.cp_broadside.effect,"The BIZARRE CANNON is built through the Fitzgerald's chassis rather than mounted on it: it occupies no weapon mount and cannot take a weapon mod. Its active MORE BLACK POWDER protocol grants the cannon a second profile."
 gear.cp_broadside.action_bizarre_cannon.name,Bizarre Cannon
 gear.cp_broadside.action_bizarre_cannon.effect,"On attack: you take 2 AP kinetic damage and are knocked back 2 spaces, away from the direction of fire."
 gear.cp_broadside.action_more_black_powder_protocol.name,MORE BLACK POWDER
