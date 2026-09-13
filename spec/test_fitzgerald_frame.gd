@@ -146,16 +146,29 @@ func test_the_licence_grants_the_frame_at_rank_2():
 	assert_true(license.rank_1.granted_frames.is_empty(), 'rank_1.granted_frames is empty.')
 	assert_true(license.rank_3.granted_frames.is_empty(), 'rank_3.granted_frames is empty.')
 
-func test_the_licence_grants_no_gear_yet():
-	# Pins that SP1 Task 1 ships a frame-only licence. Tasks 2-7 fill granted_gear as each trait
-	# Kit lands, and each of those tasks edits this test - it is not meant to stay true forever.
+## SP2 Task 1 replaced SP1's test_the_licence_grants_no_gear_yet, which pinned a frame-only licence
+## and was never meant to stay true: rank 1 now grants the Breech-loading Swivel Gun. Ranks 2 and 3
+## are still empty of gear and stay asserted, so a rank-2 or rank-3 item cannot arrive unannounced.
+##
+## ASSERTED AS AN EXACT LIST, NOT AS MEMBERSHIP, matching the deliberate order assertion in
+## test_the_frame_carries_all_five_traits above: granted_gear order is player-visible in the catalog's
+## licence spread the same way the trait array is, and "contains" would not notice a duplicate entry
+## or a second item landing in the wrong rank. The gun's own behaviour is specced in
+## test_swivel_gun.gd; this only pins where the licence hands it out.
+func test_the_licence_grants_the_rank_1_gear():
 	var license := _license()
 	assert_not_null(license, 'fixture: the licence loads.')
 	if license == null: return
 	for rank:UnlockRank in license.get_ranks():
 		assert_not_null(rank, 'fixture: every rank exists.')
-		if rank == null: continue
-		assert_true(rank.granted_gear.is_empty(), 'a rank grants no gear yet.')
+	if license.rank_1 == null or license.rank_2 == null or license.rank_3 == null: return
+
+	var rank_1_gear:Array = license.rank_1.granted_gear.map(
+		func(kit:Kit) -> StringName: return kit.compcon_id)
+	assert_eq(rank_1_gear, [&'mw_breech_loading_swivel_gun'],
+		'Rank 1 grants exactly the Breech-loading Swivel Gun. (SP2 Task 4 appends HEAER here.)')
+	assert_true(license.rank_2.granted_gear.is_empty(), 'Rank 2 grants no gear yet.')
+	assert_true(license.rank_3.granted_gear.is_empty(), 'Rank 3 grants no gear yet.')
 
 # ---------------------------------------------------------------- display text
 

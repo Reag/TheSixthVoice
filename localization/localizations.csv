@@ -30,5 +30,11 @@ gear.buff_hole_puncher_soft_cover.effect,"Attacked without being seen: the shot 
 gear.mt_knock_em_down.name,Knock 'em down
 gear.mt_knock_em_down.effect,"1/round, when the Fitzgerald critically hits a character with a Cannon, that character must succeed on a Hull save or be knocked Prone."
 ,
+gear.mw_breech_loading_swivel_gun.name,Breech-loading Swivel Gun
+gear.mw_breech_loading_swivel_gun.effect,"|Loading| (3 rounds). The gun holds three rounds and is reloaded as a whole: every profile draws on the same three, and when the last one is spent the gun is empty until it is reloaded."
+gear.mw_breech_loading_swivel_gun.swivel_rounds,Rounds
+gear.mw_breech_loading_swivel_gun.action_swivel_single_shot.name,Single Shot
+gear.mw_breech_loading_swivel_gun.action_swivel_single_shot.effect,"Fire one of the gun's three rounds."
+,
 gear.mt_blasting_powder.name,Blasting Powder
 gear.mt_blasting_powder.effect,"1/round, when the Fitzgerald makes a successful ranged attack with a Line weapon, it deals additional bonus damage to each character hit after the first: +1 to the second, +2 to the third, and so on down the line."

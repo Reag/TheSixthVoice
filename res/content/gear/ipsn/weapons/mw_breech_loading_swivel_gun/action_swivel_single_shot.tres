@@ -1,0 +1,11 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/weapons/mw_breech_loading_swivel_gun/action_swivel_single_shot.gd" id="1_singleshot"]
+
+[resource]
+script = ExtResource("1_singleshot")
+damage_type = 0
+damage_dice = "1d6+2"
+weapon_size = 1
+weapon_type = 1
+aim_range = 10
