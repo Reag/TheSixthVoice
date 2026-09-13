@@ -148,14 +148,15 @@ func test_the_licence_grants_the_frame_at_rank_2():
 
 ## SP2 Task 1 replaced SP1's test_the_licence_grants_no_gear_yet, which pinned a frame-only licence
 ## and was never meant to stay true: rank 1 now grants the Breech-loading Swivel Gun and, since SP2
-## Task 4, HEAER. Ranks 2 and 3 are still empty of gear and stay asserted, so a rank-2 or rank-3 item
-## cannot arrive unannounced.
+## Task 4, HEAER. SP3 Task 1 gives rank 2 its first piece of gear too (Hull-break Thrusters); rank 3
+## is still empty and stays asserted, so a rank-3 item cannot arrive unannounced.
 ##
 ## ASSERTED AS AN EXACT LIST, NOT AS MEMBERSHIP, matching the deliberate order assertion in
 ## test_the_frame_carries_all_five_traits above: granted_gear order is player-visible in the catalog's
 ## licence spread the same way the trait array is, and "contains" would not notice a duplicate entry
-## or a second item landing in the wrong rank. The gun's own behaviour is specced in
-## test_swivel_gun.gd; this only pins where the licence hands it out.
+## or a second item landing in the wrong rank. Each item's own behaviour is specced beside it
+## (test_swivel_gun.gd, test_heaer.gd, test_full_speed_ahead.gd); this only pins where the licence
+## hands it out.
 func test_the_licence_grants_the_rank_1_gear():
 	var license := _license()
 	assert_not_null(license, 'fixture: the licence loads.')
@@ -168,7 +169,10 @@ func test_the_licence_grants_the_rank_1_gear():
 		func(kit:Kit) -> StringName: return kit.compcon_id)
 	assert_eq(rank_1_gear, [&'mw_breech_loading_swivel_gun', &'ms_heaer'],
 		'Rank 1 grants exactly the Breech-loading Swivel Gun and HEAER, in that order.')
-	assert_true(license.rank_2.granted_gear.is_empty(), 'Rank 2 grants no gear yet.')
+	var rank_2_gear:Array = license.rank_2.granted_gear.map(
+		func(kit:Kit) -> StringName: return kit.compcon_id)
+	assert_eq(rank_2_gear, [&'ms_hull_break_thrusters'],
+		'Rank 2 grants exactly Hull-break Thrusters.')
 	assert_true(license.rank_3.granted_gear.is_empty(), 'Rank 3 grants no gear yet.')
 
 # ---------------------------------------------------------------- display text

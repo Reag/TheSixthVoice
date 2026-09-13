@@ -44,3 +44,8 @@ gear.ms_heaer.action_heaer_detonate.confirm,Expend a HEAER charge?
 ,
 gear.mt_blasting_powder.name,Blasting Powder
 gear.mt_blasting_powder.effect,"1/round, when the Fitzgerald makes a successful ranged attack with a Line weapon, it deals additional bonus damage to each character hit after the first: +1 to the second, +2 to the third, and so on down the line."
+,
+gear.ms_hull_break_thrusters.name,Hull-break Thrusters
+gear.ms_hull_break_thrusters.effect,"|Limited| 3, |Unique|. Thrusters bolted along the spine, meant for shifting cargo hulls and used here to shift the Fitzgerald."
+gear.ms_hull_break_thrusters.action_full_speed_ahead.name,FULL SPEED AHEAD
+gear.ms_hull_break_thrusters.action_full_speed_ahead.effect,"Expend a charge: fly your |Speed| in a straight line in any direction, moving through hostile characters. Every hostile character you pass through or become adjacent to during this movement must succeed on a |hull save| or be knocked |Prone| and take 3 |AP| kinetic damage. For each occupied space you pass through, you take 1 |AP| kinetic damage. This movement ignores |engagement| and does not provoke reactions."

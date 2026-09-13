@@ -177,6 +177,11 @@ const ICON_TARGETS := {
 	# the player sees ever wears an icon for it. The Kit's own icon still has to be real - the system
 	# is equippable, and sits in the loadout like any other.
 	&'ms_heaer': [],
+	# SP3 Task 1. Unlike ms_heaer, this system's one action is a QUICK the player presses on the gear
+	# bar, so it wears its own icon rather than sharing the Kit's - vanilla's ms_ramjet is the shape
+	# (its Kit carries no icon_override at all and its single action carries one). This mod's own
+	# guard is stricter and wants both, which is SP5's job.
+	&'ms_hull_break_thrusters': [&'action_full_speed_ahead'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

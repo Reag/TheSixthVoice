@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ActionSystemMovement" format=3]
+
+[ext_resource type="Script" uid="uid://dm70abfkyepk1" path="res://engine/character/gear_action/archtypes/action_system_movement.gd" id="1_movement"]
+[ext_resource type="Script" uid="uid://udxarj3kb6nm" path="res://engine/character/unit/movement_type.gd" id="2_movetype"]
+
+[sub_resource type="Resource" id="Resource_fullspeed"]
+script = ExtResource("2_movetype")
+ignore_rxns = true
+ignore_engagement = true
+flying = true
+straight_line = true
+can_move_through_enemies = true
+
+[resource]
+script = ExtResource("1_movement")
+action_type = 1
+movement_type = SubResource("Resource_fullspeed")
