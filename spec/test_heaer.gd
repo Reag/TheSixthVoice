@@ -149,8 +149,13 @@ func charges_left() -> int:
 
 ## A mech that this one shot will destroy: 5 HP against Single Shot's cheated 8, armor 0, evasion
 ## -10 so the shot cannot miss, and ONE structure, so health <= 0 means the next event kills it.
-func make_victim(tile:Vector2i, structure:int = 1) -> Unit:
-	var victim := SpecFactory.create_unit(game.map, tile, Faction.AI_ENEMY)
+##
+## FACTION IS A PARAMETER, NOT ALWAYS AI_ENEMY (whole-branch review, finding 4): ruling 6 requires a
+## HOSTILE character, and every call site before the review left this at the AI_ENEMY default, so
+## nothing in this file ever exercised the are_enemies gate - deleting it
+## (action_heaer_detonate.gd:94) would have passed every test here just the same.
+func make_victim(tile:Vector2i, structure:int = 1, faction:Faction.SIDE = Faction.AI_ENEMY) -> Unit:
+	var victim := SpecFactory.create_unit(game.map, tile, faction)
 	FrameIsolation.isolate_frame(victim)
 	victim.core.frame.stat.health = 5
 	victim.core.frame.stat.armor = 0
@@ -160,12 +165,19 @@ func make_victim(tile:Vector2i, structure:int = 1) -> Unit:
 	return victim
 
 ## A bystander with a rigged Agility save. 40 HP so the blast cannot kill it (a death mid-blast
-## would change what the rest of the burst sees), armor 0 so the damage number is the blast's.
-func make_bystander(tile:Vector2i, agi:int, faction:Faction.SIDE = Faction.AI_ENEMY) -> Unit:
+## would change what the rest of the burst sees), armor 0 by default so the damage number is the
+## blast's own.
+##
+## ARMOR IS A PARAMETER (whole-branch review, finding 5): every bystander before the review was
+## armor 0, where DAMAGE_FLAG.AP is invisible - stripping it from the queued blast damage
+## (action_heaer_detonate.gd:221) left every blast test in this file green regardless.
+func make_bystander(
+	tile:Vector2i, agi:int, faction:Faction.SIDE = Faction.AI_ENEMY, armor:int = 0
+) -> Unit:
 	var bystander := SpecFactory.create_unit(game.map, tile, faction)
 	FrameIsolation.isolate_frame(bystander)
 	bystander.core.frame.stat.health = 40
-	bystander.core.frame.stat.armor = 0
+	bystander.core.frame.stat.armor = armor
 	bystander.core.frame.stat.evasion = 20 # never caught by a stray attack roll; only by the blast
 	bystander.core.frame.hase = HaseBlock.create(0, agi, 0, 0)
 	bystander.core.full_repair()
@@ -343,6 +355,74 @@ func test_a_destroyed_deployable_counts() -> void:
 	assert_eq(charges_left(), CHARGES - 1, 'Which was spent.')
 	assert_eq(doomed.core.current.health, 40 - BLAST_DAMAGE, 'And the burst went off around it.')
 	assert_eq(spared.core.current.health, 40, 'Save still rolled.')
+
+## WHOLE-BRANCH REVIEW, FINDING 4, gate 3 (action_heaer_detonate.gd:94,
+## `if not UnitRelation.are_enemies(unit, victim): return false`). "Whenever you destroy a HOSTILE
+## character" - a Fitzgerald that guns down its own ally must not be offered the charge. Every other
+## test in this file kills an AI_ENEMY victim, so deleting this gate would have passed the suite
+## just the same; make_victim's faction argument (above) is what makes this test possible.
+##
+## Mutation-tested 2026-09-13: with `if not UnitRelation.are_enemies(unit, victim): return false`
+## deleted from action_heaer_detonate.gd and the scoped spec re-run, this test went red
+## (heaer_offers().size() came back 1, not 0) while every other test in the file stayed green.
+## Restored immediately after.
+func test_killing_an_allied_victim_offers_nothing() -> void:
+	var victim := make_victim(VICTIM_TILE, 1, Faction.PLAYER)
+	var doomed := make_bystander(DOOMED_TILE, -30)
+
+	cheat_a_hit()
+	await shoot(victim)
+
+	assert_false(Unit.is_valid(victim), 'fixture: the shot destroyed the ally just the same.')
+	assert_eq(heaer_offers().size(), 0, 'An allied kill is not a HOSTILE kill: nothing is offered.')
+	assert_eq(charges_left(), CHARGES, 'No charge was spent.')
+	assert_eq(doomed.core.current.health, 40, 'And nothing exploded.')
+
+## WHOLE-BRANCH REVIEW, FINDING 4, gate 1 (action_heaer_detonate.gd:74,
+## `if context.target_unit != unit: return false`). "Whenever YOU destroy" is about this mech's own
+## gun - a kill made by some other unit entirely must not set the Fitzgerald's own HEAER off, even
+## when the victim is genuinely hostile. Every other test's kill is the Fitzgerald's own, so
+## deleting this gate would have passed the suite just the same.
+##
+## Mutation-tested 2026-09-13: with `if context.target_unit != unit: return false` deleted from
+## action_heaer_detonate.gd and the scoped spec re-run, this test went red (heaer_offers().size()
+## came back 1, not 0) while every other test in the file stayed green. Restored immediately after.
+func test_a_kill_by_a_different_unit_offers_the_fitzgerald_nothing() -> void:
+	var other := FitzgeraldFixture.create_dummy(game, Vector2i(4, 2), -10, Faction.PLAYER)
+	other.core.equip_system(GUN_ID)
+	SpecFactory.apply_passive_buffs(other)
+
+	var victim := make_victim(VICTIM_TILE)
+	var doomed := make_bystander(DOOMED_TILE, -30)
+
+	cheat_a_hit()
+	await FitzgeraldFixture.open_turn(game, other)
+	await SpecFactory.use(game, other, GUN_ID, SINGLE_SHOT_ID, victim)
+
+	assert_false(Unit.is_valid(victim), "fixture: the OTHER unit's shot destroyed it just the same.")
+	assert_eq(heaer_offers().size(), 0,
+		"The Fitzgerald's own HEAER was not offered another unit's kill.")
+	assert_eq(charges_left(), CHARGES, 'No charge was spent.')
+	assert_eq(doomed.core.current.health, 40, 'And nothing exploded.')
+
+## WHOLE-BRANCH REVIEW, FINDING 5 (action_heaer_detonate.gd:221,
+## `flags = [DAMAGE_FLAG.AP, DAMAGE_FLAG.SAVE_FAILED]`). Rules text: "1d6+1 AP kinetic damage". Every
+## OTHER blast test's bystanders are armor 0, where AP is invisible (damage_modifications.gd:103
+## only skips the armor reduction when AP is set AND armor is > 0) - stripping the flag would have
+## left every one of them green regardless.
+##
+## Mutation-tested 2026-09-13: with `EventService.DAMAGE_FLAG.AP` deleted from the flags array in
+## action_heaer_detonate.gd and the scoped spec re-run, this test went red (armored took 40 - 5, not
+## 40 - 7) while every other test in the file stayed green. Restored immediately after.
+func test_the_blast_is_ap_and_ignores_armor() -> void:
+	var victim := make_victim(VICTIM_TILE)
+	var armored := make_bystander(DOOMED_TILE, -30, Faction.AI_ENEMY, 2)
+
+	cheat_a_hit()
+	await shoot(victim)
+
+	assert_eq(armored.core.current.health, 40 - BLAST_DAMAGE,
+		'An armor-2 bystander still takes the full 1d6+1: the blast ignores armor because it is AP.')
 
 func test_the_blast_catches_an_ally_in_burst_1() -> void:
 	# Ruling 12's sibling, design §3.2: "allies and self included - the pilot chose it". A spec that

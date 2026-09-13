@@ -3,12 +3,26 @@
 ## The save/status wiring itself (save_to_avoid, save_type, statuses) is declarative on the .tres,
 ## and the engine's base OnHitEffect already does the actual work: should_abort()
 ## (on_hit_effect.gd:67-73) rolls the save and, on a pass, returns true - which skips
-## apply_statuses_and_buffs entirely, so a passed save never applies Shredded at all. This script
-## exists for exactly one reason: get_applied_duration_for_statuses is the one hook OnHitEffect does
-## NOT already implement to the design's wording. Its default (on_hit_effect.gd:89-91) is
-## StatusType.get_standard_until(status), which answers "how long does Shredded normally last", not
-## "until the end of your next turn" - the Grapeshot's own clause. Precedent for an OnHitEffect
-## subclass in this mod: onhit_knock_em_down.gd (mt_knock_em_down).
+## apply_statuses_and_buffs entirely, so a passed save never applies Shredded at all.
+##
+## WHOLE-BRANCH REVIEW, FINDING 1 (2026-09-13): the override below returns
+## Lancer.UNTIL.END_OF_NEXT_TURN, and content/statuses/status_shredded.tres already declares
+## standard_until = 1, which IS END_OF_NEXT_TURN (lancer.gd:46-48). So this override changes NOTHING
+## about the shipped behaviour - it returns exactly what OnHitEffect's own default
+## (StatusType.get_standard_until(status), on_hit_effect.gd:89-91) would already have answered. The
+## header used to claim this hook was "the one hook OnHitEffect does NOT already implement to the
+## design's wording" - that is false, and is corrected here.
+##
+## KEPT ANYWAY, DELIBERATELY: this is now a declaration, not a behavioural change. It pins ruling
+## 10's decided value against a future edit to status_shredded.tres's standard_until - if vanilla
+## ever changes Shredded's default duration, the Grapeshot's own clause ("until the end of your next
+## turn") must not silently move with it. The measured-evidence section below is exactly why this
+## particular value was chosen, and it is still true and still worth keeping. Precedent for an
+## OnHitEffect subclass in this mod: onhit_knock_em_down.gd (mt_knock_em_down).
+##
+## test_swivel_gun.gd's test_the_shredded_duration_pins_the_override_directly asserts this method's
+## return value straight off the loaded .tres - THAT is what actually pins the mod's own decision;
+## the four-turn integration test below it only proves the engine currently honours it.
 ##
 ## RULING 10 (2026-09-13), AND THE RESULT ACTUALLY MEASURED.
 ##

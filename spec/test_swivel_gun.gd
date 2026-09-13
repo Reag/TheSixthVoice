@@ -355,15 +355,22 @@ func test_an_activation_that_aborts_before_attacking_does_not_eat_a_round() -> v
 # is_loaded - same decrement site, same reasoning, as action_swivel_single_shot.gd, just spending
 # all three rounds in one activation instead of one.
 #
-# RULING 10 IS DECIDED BY test_the_shredded_duration_is_the_ruled_boundary BELOW, NOT ASSUMED. It is
-# written to read out whichever boundary the engine actually honours and say so in its own assertion
-# messages, per the plan: "make it assert the boundary that is actually implemented once decided."
-# See onhit_swivel_grapeshot.gd for the UNTIL value this mod ships and the reasoning tied to what
-# this test observed.
+# RULING 10 WAS DECIDED BY A REAL RUN OF test_the_shredded_duration_is_the_ruled_boundary, NOT
+# ASSUMED - see onhit_swivel_grapeshot.gd for the UNTIL value this mod ships and the measured
+# reasoning behind it. That test now asserts the one decided outcome directly, rather than reading
+# out whichever boundary the engine happens to honour (whole-branch review, finding 2:  the old
+# either-boundary-passes branch is gone). test_the_shredded_duration_pins_the_override_directly is
+# what actually pins the override's own return value against a regression (finding 1).
 
 const GRAPESHOT_ID := &'action_swivel_grapeshot'
 const GRAPESHOT_ROUNDS_REQUIRED := 3
 const GRAPESHOT_SELF_HEAT := 2
+
+## WHOLE-BRANCH REVIEW, FINDING 7: two cheated 6s through armor 0 - 2d6, not a stray 1d6, and not
+## some other size. Single Shot's own exact number (SINGLE_SHOT_DAMAGE above) is what proves that
+## pattern is worth repeating here: "more than zero" would pass a 1d6 typo in damage_dice just the
+## same.
+const GRAPESHOT_DAMAGE := 12
 
 ## Fire GRAPESHOT at a TILE, not a Unit. Grapeshot carries a Line range_pattern (unlike Single
 ## Shot), so a supplied tile resolves through get_aoe_tiles_with_targets into "everyone standing on
@@ -431,11 +438,21 @@ func test_grapeshot_fired_at_three_rounds_empties_the_gun_and_unloads_it() -> vo
 	cheat_a_grapeshot_hit()
 	await fire_grapeshot_at(AIM_EAST)
 
-	assert_gt(target.current_damage(), 0, 'fixture: the shot landed.')
+	# Exactly 12 - two cheated 6s through armor 0. See GRAPESHOT_DAMAGE and finding 7.
+	assert_eq(target.current_damage(), GRAPESHOT_DAMAGE, 'Grapeshot dealt 2d6: two cheated 6s.')
 	assert_eq(rounds_left(), 0, 'Grapeshot spends all three rounds in one activation.')
 	var gear := _gear()
 	assert_true(gear != null and not gear.is_loaded,
 		'And the gun is unloaded afterward, same as an emptied Single Shot magazine.')
+
+	# The profile's own Reliable 3, asserted flatly the same way test_one_single_shot_...:257 asserts
+	# the ABSENCE of LOADING - "damage happened" says nothing about whether reliable_damage or the
+	# RELIABLE tag itself are actually wired.
+	var grapeshot := _weapon(GRAPESHOT_ID)
+	assert_true(grapeshot != null and grapeshot.reliable_damage == '3', 'reliable_damage is 3.')
+	assert_true(
+		grapeshot != null and grapeshot.has_tag(Lancer.WEAPON_TAG.RELIABLE, _specific(GRAPESHOT_ID)),
+		'Grapeshot carries the engine RELIABLE tag.')
 
 func test_grapeshot_heats_the_firer_by_two() -> void:
 	assert_eq(unit.core.current.heat, 0, 'fixture: the firer starts cold.')
@@ -464,10 +481,33 @@ func test_a_grapeshot_hit_forces_a_hull_save_and_shreds_only_on_a_failure() -> v
 	assert_true(fail_target.has_status(Lancer.STATUS.SHREDDED),
 		'A failed Hull save leaves the target Shredded.')
 
+## WHOLE-BRANCH REVIEW, FINDING 1. onhit_swivel_grapeshot.gd's override happens to return exactly
+## what OnHitEffect's own default already would (status_shredded.tres's standard_until IS
+## END_OF_NEXT_TURN), so the integration test below - which only reads Shredded's observed lifetime
+## off the running engine - cannot tell "our override fired" from "we never overrode anything at
+## all". This is the assertion that actually discriminates: it calls the override directly and pins
+## its return value, so flipping it back to END_OF_OWNERS_NEXT_TURN (ruling 10's rejected first
+## choice) goes red here immediately instead of only three-asserts-quieter inside a passing
+## integration test.
+func test_the_shredded_duration_pins_the_override_directly() -> void:
+	var onhit:OnHitEffect = load(
+		'res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/weapons/mw_breech_loading_swivel_gun/onhit_swivel_grapeshot.tres'
+	)
+	assert_not_null(onhit, 'fixture: the Grapeshot on-hit effect loads.')
+	if onhit == null: return
+	assert_eq(onhit.get_applied_duration_for_statuses(&'shredded', null, null), Lancer.UNTIL.END_OF_NEXT_TURN,
+		"Ruling 10's own decision, pinned directly: the override answers END_OF_NEXT_TURN.")
+
 ## RULING 10, DECIDED HERE. Fires Grapeshot, confirms the failing target is Shredded, then advances
-## turns and reads out at which boundary the status actually expires - whichever UNTIL value ships,
-## this test's own assertion messages say which one it observed, per the plan's instruction to make
-## the test "say clearly which boundary was observed."
+## turns and confirms the status survives the firer's own turn ending and clears at the end of the
+## TARGET's own next turn - the "until the end of your next turn" boundary the design clause means,
+## read from the victim's own seat.
+##
+## WHOLE-BRANCH REVIEW, FINDING 2: this test used to branch on whichever boundary the engine
+## happened to give, with an early return whose assert_false(false, ...) passed either way - so a
+## regression to END_OF_OWNERS_NEXT_TURN would have gone green here too, losing only three asserts
+## inside a still-passing test. The exploratory branch is gone; this now asserts the one outcome
+## ruling 10 actually decided.
 func test_the_shredded_duration_is_the_ruled_boundary() -> void:
 	force_hull_save_to_fail(target)
 
@@ -478,20 +518,11 @@ func test_the_shredded_duration_is_the_ruled_boundary() -> void:
 
 	# End the FIRER's own turn - the very turn the shot was fired in.
 	await SpecFactory.end_turn(game, unit)
-	var survived_the_firers_own_turn_ending:bool = target.has_status(Lancer.STATUS.SHREDDED)
-
-	if not survived_the_firers_own_turn_ending:
-		assert_false(survived_the_firers_own_turn_ending,
-			'OBSERVED: Shredded cleared as soon as the FIRERs own turn ended - not the ruled "end of'
-			+ ' your next turn" boundary. Ruling 10s fallback is what this file ships; see'
-			+ ' onhit_swivel_grapeshot.gd.')
-		return
-
-	# Survived the firer's own turn ending - now check whether it survives to (and expires at) the
-	# end of the TARGET's own next turn, the ordinary "end of your next turn" reading every other
-	# UNTIL value in this mod relies on.
-	assert_true(survived_the_firers_own_turn_ending,
+	assert_true(target.has_status(Lancer.STATUS.SHREDDED),
 		'OBSERVED: Shredded survived the FIRERs own turn ending.')
+
+	# Survives to, and expires at, the end of the TARGET's own next turn - the ordinary "end of your
+	# next turn" reading every other UNTIL value in this mod relies on.
 	await SpecFactory.start_turn(game, target)
 	assert_true(target.has_status(Lancer.STATUS.SHREDDED),
 		'Still Shredded at the start of the targets own next turn.')

@@ -170,6 +170,16 @@ func activate(context:Context, activation:EventCore) -> void:
 	var center_size:int = int(gear.get_state(size_key(victim), 1))
 	gear.state.erase(tile_key(victim))
 	gear.state.erase(size_key(victim))
+
+	# ALSO SWEEP ANY OTHER heaer_-PREFIXED KEY LEFT ON THE GEAR (whole-branch review, finding 10):
+	# triggers_on_event's capture_victim() writes are not guaranteed to ever reach an activate() call
+	# at all - the reaction is collected as an EventBlock, and an aborted block or a level exit
+	# between collection and execution leaves that kill's pair with no other code path to erase them.
+	# THIS activation, for whichever kill actually gets here, is the next best place to catch that
+	# orphaned pair, so it is cleared here rather than left to accumulate toward a save file.
+	for stale_key in gear.state.keys():
+		if stale_key is String and stale_key.begins_with('heaer_'): gear.state.erase(stale_key)
+
 	if center == Tile.INVALID: return
 
 	# "you MAY expend a charge". The AI always says yes - it has no way to weigh the friendly fire,
