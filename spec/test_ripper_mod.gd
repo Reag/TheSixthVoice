@@ -235,6 +235,22 @@ func test_ap_gained_from_a_buff_is_stripped_too() -> void:
 	var lost := await shoot(weapon, 6)
 	assert_eq(lost, 6 - ARMOR + 6, 'The strip runs after every source of AP.')
 
+## THE CONTROL for the test above (review finding: without it, the strip test can go falsely green).
+## If the engine's buff-granted-tag -> DAMAGE_FLAG.AP conversion ever broke, NO AP flag would be set
+## at all, armor would bite for that reason instead of because of the strip, and
+## test_ap_gained_from_a_buff_is_stripped_too's damage assertion would land on the same number either
+## way - passing while proving nothing about the strip. This test is identical except the weapon is
+## UNMODDED, so there is nothing to strip: it proves the buff's grant reaches the damage flag at all,
+## which is what makes the stripped case meaningful. No mod, no bonus d6 - see
+## test_an_unmodded_weapon_gets_no_bonus - so full damage here is the base 6, unreduced by armor.
+func test_ap_granted_by_a_buff_reaches_an_unmodded_weapon() -> void:
+	armour_the_target()
+	var weapon := equip_plain(PLAIN_RIFLE)
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), fitz, GrantApToEverything.new())
+	assert_true(has_ap(weapon), 'The tag side says AP.')
+	var lost := await shoot(weapon, 6)
+	assert_eq(lost, 6, 'No mod to strip it: buff-granted AP ignored the armor, in full.')
+
 func test_the_strip_buff_survives_the_shot() -> void:
 	armour_the_target()
 	var weapon := equip_modded(AP_RIFLE)
@@ -273,6 +289,13 @@ func test_a_weapon_wearing_someone_elses_mod_is_untouched() -> void:
 	assert_true(GearCore.is_valid(their_mod), 'The second weapon wears a mod of its own.')
 	assert_ne(their_mod.persistent_id, weapons[0].get_weapon_mod(fitz.core.loadout).persistent_id,
 		'A DIFFERENT mod - this is what the id comparison has to tell apart.')
+	# This test only survives because Dice.CHEAT_ROLL_QUEUE is ONE queue shared by attack AND damage
+	# dice (dice.gd:22-40: cheat_attack appends attacks then damage into the same array, and every
+	# roll - accuracy included - pops from the front), and OTHER_MOD's -2 accuracy pops two EXTRA d6
+	# through roll_d6_accuracy before the attack die is even reached. shoot()'s buffer is uniform
+	# (every slot pinned to the same `die`) and 8 deep, so those two stolen accuracy dice are
+	# invisible - they just consume two of the spare pinned values instead of misaligning anything.
+	# Shortening the buffer would silently break this without any assertion telling you why.
 	var lost := await shoot(theirs, 3)
 	assert_eq(lost, AP_RIFLE_DAMAGE,
 		'Being modded is not enough: our buffs only reach the weapon OUR mod is fitted to.')
