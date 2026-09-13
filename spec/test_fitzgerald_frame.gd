@@ -87,12 +87,12 @@ func test_the_frame_has_one_main_mount():
 	assert_eq(frame.mount_types[0], expected, 'The one mount is content/mounts/mount_main.tres.')
 
 func test_the_frame_carries_its_traits_so_far():
-	# SP1 Task 2 landed the first of five trait Kits (Weak Computer), Task 3 the second (Broadside)
-	# and Task 5 the third (Hole Puncher); this list grows by one with each of Tasks 6-7, the same way
-	# test_content_integrity.gd's ICON_TARGETS does. Each trait's own behaviour is specced beside
-	# it - test_weak_computer.gd, test_bizarre_cannon.gd, test_hole_puncher.gd - so this only pins
-	# that it is wired onto the frame at all, and in a way that a new trait cannot quietly displace
-	# an old one.
+	# SP1 Task 2 landed the first of five trait Kits (Weak Computer), Task 3 the second (Broadside),
+	# Task 5 the third (Hole Puncher), and Task 6 the fourth (Knock 'em down); this list grows by one
+	# with Task 7, the same way test_content_integrity.gd's ICON_TARGETS does. Each trait's own
+	# behaviour is specced beside it - test_weak_computer.gd, test_bizarre_cannon.gd,
+	# test_hole_puncher.gd, test_knock_em_down.gd - so this only pins that it is wired onto the frame
+	# at all, and in a way that a new trait cannot quietly displace an old one.
 	#
 	# (Task 2 folded this into the mount test to hit a predicted test count; split back out in
 	# Task 3, because a mount regression and a trait regression are not the same failure.)
@@ -100,7 +100,7 @@ func test_the_frame_carries_its_traits_so_far():
 	assert_not_null(frame, 'fixture: the frame loads.')
 	if frame == null: return
 	var carried:Array = frame.traits.map(func(kit:Kit) -> StringName: return kit.compcon_id)
-	assert_eq(carried, [&'mt_weak_computer', &'cp_broadside', &'mt_hole_puncher'],
+	assert_eq(carried, [&'mt_weak_computer', &'cp_broadside', &'mt_hole_puncher', &'mt_knock_em_down'],
 		'The frame carries exactly the traits built so far, in the order they were added.')
 
 func test_the_frame_has_the_sheets_roles():

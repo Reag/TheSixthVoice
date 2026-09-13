@@ -161,6 +161,7 @@ const ICON_TARGETS := {
 		&'action_bizarre_cannon', &'action_more_black_powder_protocol', &'action_more_black_powder',
 	],
 	&'mt_hole_puncher': [], # a passive trait: no action of its own, so it wears the Kit's icon
+	&'mt_knock_em_down': [], # a passive trait: no action of its own, so it wears the Kit's icon
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

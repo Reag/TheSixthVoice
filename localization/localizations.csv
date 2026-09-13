@@ -26,3 +26,6 @@ gear.mt_hole_puncher.name,Hole Puncher
 gear.mt_hole_puncher.effect,"The Fitzgerald may ignore line of sight when attacking with Cannon or Line weapons. Targets attacked this way have soft cover."
 gear.buff_hole_puncher_soft_cover.name,Soft cover (Hole Puncher)
 gear.buff_hole_puncher_soft_cover.effect,"Attacked without being seen: the shot treats this target as having soft cover."
+,
+gear.mt_knock_em_down.name,Knock 'em down
+gear.mt_knock_em_down.effect,"1/round, when the Fitzgerald critically hits a character with a Cannon, that character must succeed on a Hull save or be knocked Prone."
