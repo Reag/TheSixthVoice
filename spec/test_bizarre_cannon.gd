@@ -29,6 +29,7 @@
 extends GutTest
 
 const FrameIsolation := preload('res://testkit/frame_isolation.gd')
+const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 
 const FRAME_ID := &'mf_fitzgerald'
 const KIT_ID := &'cp_broadside'
@@ -84,22 +85,14 @@ var unit:Unit
 var target:Unit
 
 func before_each() -> void:
-	game = SpecFactory.setup_gamemaster(self, true,
-		SpecFactory.create_combat(Landscape.create_default(Vector2i(15, 9))))
-
-	unit = SpecFactory.create_unit(game.map, FIRE_FROM)
-	unit.core.frame = ContentLibrary.get_mech_frame(FRAME_ID)
-	# NOT FrameIsolation'd on purpose: this spec never writes to the Fitzgerald's stats, and a deep
-	# duplicate of the frame would hand the unit COPIES of its trait Kits, whose compcon_id is a
-	# lazily-derived bare var (kit.gd:11-16) that does not survive duplicate() - at which point
-	# unit.get_gear(&'cp_broadside') stops finding anything.
-	SpecFactory.apply_passive_buffs(unit) # full_repair() + the frame's trait Kits' passive buffs
-
-	target = SpecFactory.create_unit(game.map, AIM_EAST, Faction.AI_ENEMY)
-	FrameIsolation.isolate_frame(target) # we DO rewrite this one's stats
-	target.core.frame.stat.health = 200 # never dies; a death mid-spec would end the scene
-	target.core.frame.stat.armor = 0 # so the damage numbers below are the weapon's, not armor's
-	target.core.full_repair()
+	game = FitzgeraldFixture.create_game(self)
+	unit = FitzgeraldFixture.create_fitzgerald(game, FIRE_FROM)
+	# The evasion argument here (8) is the frame's own statblock_default.tres value: this file never
+	# set a target evasion in before_each at all, and every test overwrites it itself via
+	# cheat_a_hit() / cheat_a_miss() before firing - so 8 is what preserves the exact value the
+	# original before_each left in place, not a newly chosen default. See fitzgerald_fixture.gd's
+	# create_dummy() header for the same reasoning spelled out across all four files.
+	target = FitzgeraldFixture.create_dummy(game, AIM_EAST, 8)
 
 func after_each() -> void:
 	Dice.CHEAT_ROLL_QUEUE.clear()
@@ -147,26 +140,16 @@ func _gear_bar_hides_when_disabled(action_id:StringName) -> bool:
 	if action == null: return false
 	return action.hide_if_disabled and not UnitAction.can_activate_gear(_specific(action_id))
 
-## Open the unit's turn, once.
-##
-## The turn start is not decoration. unit_action.gd:119 refuses a PROTOCOL unless
-## unit.state.is_using_protocols, which only event_turn_start opens - and More Black Powder is a
-## protocol on this same Kit. The weapon profiles are QUICK actions and would activate without it;
-## going through one helper means every test fires from the same state, and means a test that uses
-## the protocol and then fires does not re-open a turn it is already in.
-func open_turn() -> void:
-	if not unit.state.is_taking_turn: await SpecFactory.start_turn(game, unit)
-
 func fire_at(tile:Vector2i) -> void:
-	await open_turn()
+	await FitzgeraldFixture.open_turn(game, unit)
 	await SpecFactory.use(game, unit, KIT_ID, ACTION_ID, tile)
 
 func fire_more_black_powder_at(tile:Vector2i) -> void:
-	await open_turn()
+	await FitzgeraldFixture.open_turn(game, unit)
 	await SpecFactory.use(game, unit, KIT_ID, MBP_ACTION_ID, tile)
 
 func use_protocol() -> void:
-	await open_turn()
+	await FitzgeraldFixture.open_turn(game, unit)
 	await SpecFactory.use(game, unit, KIT_ID, MBP_PROTOCOL_ID)
 
 ## Enough sixes that the roll queue can never drain into real randomness, whatever the exact number
@@ -350,7 +333,7 @@ func test_the_recoil_follows_the_direction_of_fire() -> void:
 func test_the_second_profile_is_hidden_before_the_protocol() -> void:
 	# The turn is opened first so this is a fair comparison: outside a turn the unit has no actions
 	# to spend, can_activate_gear is false for EVERYTHING, and "hidden" would prove nothing.
-	await open_turn()
+	await FitzgeraldFixture.open_turn(game, unit)
 
 	var mbp := _weapon(MBP_ACTION_ID)
 	assert_not_null(mbp, '%s carries %s as an ActionAttackWeapon.' % [KIT_ID, MBP_ACTION_ID])

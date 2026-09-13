@@ -40,8 +40,8 @@
 extends GutTest
 
 const FrameIsolation := preload('res://testkit/frame_isolation.gd')
+const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 
-const FRAME_ID := &'mf_fitzgerald'
 const KIT_ID := &'cp_broadside'
 const ACTION_ID := &'action_bizarre_cannon'
 const TRAIT_ID := &'mt_knock_em_down'
@@ -59,22 +59,12 @@ var unit:Unit
 var target:Unit
 
 func before_each() -> void:
-	game = SpecFactory.setup_gamemaster(self, true,
-		SpecFactory.create_combat(Landscape.create_default(Vector2i(15, 9))))
-
-	unit = SpecFactory.create_unit(game.map, FIRE_FROM)
-	unit.core.frame = ContentLibrary.get_mech_frame(FRAME_ID)
+	game = FitzgeraldFixture.create_game(self)
 	# NOT FrameIsolation'd, same reasoning as test_bizarre_cannon.gd: a deep duplicate of the frame
 	# would hand the unit copies of its trait Kits, and Kit.compcon_id is a lazily-derived bare var
 	# that does not survive duplicate(), which would break unit.get_gear() lookups on those traits.
-	SpecFactory.apply_passive_buffs(unit) # full_repair() + the frame's trait Kits' passive buffs
-
-	target = SpecFactory.create_unit(game.map, AIM_EAST, Faction.AI_ENEMY)
-	FrameIsolation.isolate_frame(target) # we DO rewrite this one's stats
-	target.core.frame.stat.health = 200 # never dies mid-spec
-	target.core.frame.stat.evasion = -10 # every test here needs a guaranteed hit
-	target.core.frame.stat.armor = 0
-	target.core.full_repair()
+	unit = FitzgeraldFixture.create_fitzgerald(game, FIRE_FROM)
+	target = FitzgeraldFixture.create_dummy(game, AIM_EAST, -10) # every test here needs a guaranteed hit
 
 func after_each() -> void:
 	Dice.CHEAT_ROLL_QUEUE.clear()
@@ -89,13 +79,8 @@ func _trait_gear() -> GearCore:
 	var gear := unit.get_gear(TRAIT_ID)
 	return gear if GearCore.is_valid(gear) else null
 
-## Open the unit's turn, once. Mirrors test_bizarre_cannon.gd: MORE BLACK POWDER needs it and so
-## does the Fitzgerald's own protocol, so every fixture in this mod fires through the same helper.
-func open_turn() -> void:
-	if not unit.state.is_taking_turn: await SpecFactory.start_turn(game, unit)
-
 func fire_at(tile:Vector2i) -> void:
-	await open_turn()
+	await FitzgeraldFixture.open_turn(game, unit)
 	await SpecFactory.use(game, unit, KIT_ID, ACTION_ID, tile)
 
 ## A guaranteed CRITICAL hit. base_roll of 30 clears total_roll >= 20 even against the Bizarre
@@ -203,7 +188,7 @@ func test_a_rifle_crit_does_nothing() -> void:
 	force_save_to_fail()
 
 	cheat_a_crit()
-	await open_turn()
+	await FitzgeraldFixture.open_turn(game, unit)
 	await SpecFactory.use_solo(game, unit, RIFLE_ID, target)
 
 	assert_gt(target.current_damage(), 0, 'Fixture: the rifle shot landed.')

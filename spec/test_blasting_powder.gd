@@ -36,9 +36,8 @@
 #   godot --resolution 800x600 --position 20,20 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-dir=res://unpacked/Reag-TheSixthVoice/spec
 extends GutTest
 
-const FrameIsolation := preload('res://testkit/frame_isolation.gd')
+const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 
-const FRAME_ID := &'mf_fitzgerald'
 const KIT_ID := &'cp_broadside'
 const ACTION_ID := &'action_bizarre_cannon'
 const TRAIT_ID := &'mt_blasting_powder'
@@ -74,16 +73,12 @@ var mid:Unit
 var far:Unit
 
 func before_each() -> void:
-	game = SpecFactory.setup_gamemaster(self, true,
-		SpecFactory.create_combat(Landscape.create_default(Vector2i(15, 9))))
-
-	unit = SpecFactory.create_unit(game.map, FIRE_FROM)
-	unit.core.frame = ContentLibrary.get_mech_frame(FRAME_ID)
+	game = FitzgeraldFixture.create_game(self)
 	# NOT FrameIsolation'd, same reasoning as test_bizarre_cannon.gd and test_knock_em_down.gd: a
 	# deep duplicate of the frame would hand the unit COPIES of its trait Kits, and Kit.compcon_id is
 	# a lazily-derived bare var that does not survive duplicate(), which would break the
 	# unit.get_gear(&'mt_blasting_powder') lookup this whole file leans on.
-	SpecFactory.apply_passive_buffs(unit) # full_repair() + the frame's trait Kits' passive buffs
+	unit = FitzgeraldFixture.create_fitzgerald(game, FIRE_FROM)
 
 	near = _make_target(NEAR_TILE)
 	mid = _make_target(MID_TILE)
@@ -101,11 +96,12 @@ func after_each() -> void:
 ## on a unit whose heat_max is 0 - which would quietly turn that test's discriminator back into HP
 ## damage and make it pass for the wrong reason.
 func _make_target(tile:Vector2i) -> Unit:
-	var target:Unit = SpecFactory.create_unit(game.map, tile, Faction.AI_ENEMY)
-	FrameIsolation.isolate_frame(target) # we DO rewrite these stats
-	target.core.frame.stat.health = 200 # never dies; a death mid-spec would end the scene
-	target.core.frame.stat.evasion = -10 # every shot lands unless a test says otherwise
-	target.core.frame.stat.armor = 0 # so the damage numbers below are the weapon's, not armor's
+	# health, armor and evasion (-10: every shot lands unless a test says otherwise) come from the
+	# shared fixture. heat stays local to this file - it is the one stat none of the other three
+	# spec files need - and the second full_repair() below is harmless: nothing has taken an action
+	# against this unit yet, so there is no uses_this_round or similar state for a second repair to
+	# clobber (see top_up_the_firer()'s own comment on that hazard, which applies only mid-spec).
+	var target:Unit = FitzgeraldFixture.create_dummy(game, tile, -10)
 	target.core.frame.stat.heat = 20
 	target.core.full_repair()
 	return target
@@ -118,11 +114,8 @@ func _uses() -> int:
 	var gear := _trait_gear()
 	return -1 if gear == null else gear.get_uses_this_round_alt(USAGE_KEY)
 
-func open_turn() -> void:
-	if not unit.state.is_taking_turn: await SpecFactory.start_turn(game, unit)
-
 func fire_at(tile:Vector2i) -> void:
-	await open_turn()
+	await FitzgeraldFixture.open_turn(game, unit)
 	await SpecFactory.use(game, unit, KIT_ID, ACTION_ID, tile)
 
 ## A SECOND shot in the same turn. The Bizarre Cannon is a full action and the Fitzgerald has one
@@ -136,7 +129,7 @@ func fire_at(tile:Vector2i) -> void:
 ## particular it is NOT Action.FLAG.NO_BONUS_DAMAGE, which is the flag that would suppress the very
 ## thing under test.
 func fire_again_at(tile:Vector2i) -> void:
-	await open_turn()
+	await FitzgeraldFixture.open_turn(game, unit)
 	await SpecFactory.use(game, unit, KIT_ID, ACTION_ID, tile, [Action.FLAG.AS_FREEBIE])
 
 ## Every die in the run comes back a 6 until the queue runs dry. See the header for why this is the
@@ -334,7 +327,7 @@ func test_a_non_line_cannon_shot_adds_nothing() -> void:
 	SpecFactory.apply_passive_buffs(unit)
 
 	cheat_every_die_to_six()
-	await open_turn()
+	await FitzgeraldFixture.open_turn(game, unit)
 	await SpecFactory.use_solo(game, unit, MORTAR_ID, BLAST_CENTRE)
 
 	assert_gt(near.current_damage(), 0, 'Fixture: the blast caught the near target.')

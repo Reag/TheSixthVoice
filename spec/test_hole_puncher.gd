@@ -34,9 +34,8 @@
 #   godot --resolution 800x600 --position 20,20 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-dir=res://unpacked/Reag-TheSixthVoice/spec
 extends GutTest
 
-const FrameIsolation := preload('res://testkit/frame_isolation.gd')
+const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 
-const FRAME_ID := &'mf_fitzgerald'
 const TRAIT_ID := &'mt_hole_puncher'
 const KIT_ID := &'cp_broadside'
 const ACTION_ID := &'action_bizarre_cannon'
@@ -96,32 +95,13 @@ var unit:Unit
 var target:Unit
 
 func before_each() -> void:
-	game = SpecFactory.setup_gamemaster(self, true,
-		SpecFactory.create_combat(Landscape.create_default(MAP_SIZE)))
+	# forbidden_interiors_enabled is set true by FitzgeraldFixture.create_game() - see its header
+	# for why the flag has to be true before the wall below is placed, and why the extraction makes
+	# it true for every Fitzgerald spec now instead of only this one.
+	game = FitzgeraldFixture.create_game(self, MAP_SIZE)
+	unit = FitzgeraldFixture.create_fitzgerald(game, FIRE_FROM)
+	target = FitzgeraldFixture.create_dummy(game, BEHIND_WALL, 10) # only hit when we say
 
-	unit = SpecFactory.create_unit(game.map, FIRE_FROM)
-	unit.core.frame = ContentLibrary.get_mech_frame(FRAME_ID)
-	# NOT FrameIsolation'd, for the reason test_bizarre_cannon.gd:95 gives: a deep duplicate of the
-	# frame hands the unit COPIES of its trait Kits, whose compcon_id is a lazily-derived bare var
-	# that does not survive duplicate(), and unit.get_gear(&'cp_broadside') then finds nothing.
-	SpecFactory.apply_passive_buffs(unit) # full_repair() + the frame's trait Kits' passive buffs
-
-	target = SpecFactory.create_unit(game.map, BEHIND_WALL, Faction.AI_ENEMY)
-	FrameIsolation.isolate_frame(target) # we DO rewrite this one's stats
-	target.core.frame.stat.health = 200 # never dies; a death mid-spec would end the scene
-	target.core.frame.stat.armor = 0
-	target.core.frame.stat.evasion = 10 # only hit when we say
-	target.core.full_repair()
-
-	# The flag is load-bearing and its absence is SILENT. landscape_node.gd:608 treats a forbidden
-	# interior as a full-height sight blocker only when map.shape.forbidden_interiors_enabled is
-	# true, and map_shape.gd:19 sets that from X.current_level() when the shape is built - which,
-	# for the FIRST gamemaster a spec run creates, happens before the level is current, so it comes
-	# out false and the interior is just a one-tall setpiece that two size-1 units look straight
-	# over (sight runs along layer 2 here: floor 1 plus a body of 1). Every later test re-uses the
-	# level, rebuilds the shape with the flag true, and blocks properly - so without this line the
-	# first test in a run silently sees through the wall and the rest do not.
-	game.map.shape.forbidden_interiors_enabled = true
 	SpecFactory.add_setpieces_to_landscape(game.get_landscape_node(), &'setpiece_forbidden_interior', WALL)
 	game.map.calculate_los_blockers() # vanilla's test_map_sightlines.gd re-pushes the blockers the same way
 
@@ -486,7 +466,7 @@ func test_a_blind_cannon_shot_resolves():
 	target.core.frame.stat.evasion = -10
 	target.core.full_repair()
 	Dice.cheat_attack([19], [6, 6, 6, 6, 6, 6])
-	await SpecFactory.start_turn(game, unit)
+	await FitzgeraldFixture.open_turn(game, unit)
 	await SpecFactory.use(game, unit, KIT_ID, ACTION_ID, BEHIND_WALL)
 	assert_gt(target.current_damage(), 0, 'The Bizarre Cannon hit a target it cannot see.')
 	assert_false(UnitRelation.can_see(unit, target), 'fixture held: the target was never in sight.')
