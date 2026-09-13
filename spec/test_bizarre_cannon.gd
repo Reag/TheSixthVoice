@@ -129,6 +129,10 @@ func test_the_core_kit_is_registered_as_a_trait() -> void:
 	# And it survives the trip through the loadout: regenerate_derived_gear builds a GearCore per
 	# frame trait (loadout_core.gd:153-154), which is what makes the weapon actually fireable.
 	assert_not_null(_gear(), 'A live Fitzgerald carries %s as gear.' % KIT_ID)
+	# Design doc §2.5 gives the Bizarre Cannon SP 0. Nothing else pins this - it is currently
+	# satisfied only by Kit.sp_cost defaulting to 0 (kit.gd:29) - so an inspector save that ever
+	# writes a non-zero sp_cost into cp_broadside.tres would go unnoticed without this assertion.
+	assert_eq(kit.sp_cost, 0, '%s costs SP 0.' % KIT_ID)
 
 # ---------------------------------------------------------------- the base profile's statistics
 

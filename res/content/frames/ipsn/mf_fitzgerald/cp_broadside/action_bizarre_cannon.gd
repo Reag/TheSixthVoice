@@ -3,10 +3,20 @@
 ## "On attack: You take 2 AP Kinetic damage and are knocked back 2 spaces, away from the direction
 ## of fire." Both halves fire whether the shot hits or misses, which is why this hangs off
 ## activate() and not an OnHitEffect.
+##
+## The recoil magnitudes are @export PROPERTIES, not consts, on purpose. GDScript resolves a
+## `const` against the script the *reference* is written in, not the runtime type - so if
+## activate() below read consts, a subclass redeclaring them would change nothing about what this
+## activate() actually uses, and there would be no way for a second profile (MORE BLACK POWDER:
+## 3 AP self-damage, 3-space knockback, any direction) to differ without either doubling the recoil
+## (calling super.activate() re-runs THIS activate(), firing the base recoil before its own) or
+## skipping the attack entirely (not calling super at all). Exporting them as resource data means
+## activate() never needs overriding for a new profile: a subclass's .tres sets its own values and
+## only recoil_origin_tiles() needs a method override.
 extends ActionAttackWeapon
 
-const SELF_DAMAGE_DICE:String = '2'
-const SELF_KNOCKBACK:int = 2
+@export var recoil_damage_dice:String = '2'
+@export var recoil_knockback:int = 2
 
 func activate(context:Context, activation:EventCore) -> void:
 	await super.activate(context, activation) # make the attack
@@ -16,7 +26,7 @@ func activate(context:Context, activation:EventCore) -> void:
 	# (action_attack_weapon.gd:62).
 	if activation.aborted: return
 	if not Unit.is_valid(context.unit) or not GearCore.is_valid(context.gear): return
-	recoil(context, activation, SELF_DAMAGE_DICE, SELF_KNOCKBACK, recoil_origin_tiles(context))
+	recoil(context, activation, recoil_damage_dice, recoil_knockback, recoil_origin_tiles(context))
 
 ## The tiles the knockback is measured AWAY from. CommonActionUtil.generate_knockback_events
 ## computes its cone away from origin_tiles, so handing it the far end of the line we just fired
@@ -47,7 +57,23 @@ func recoil_origin_tiles(context:Context) -> Array[Vector2i]:
 	if far == Tile.INVALID: return []
 	return [far] as Array[Vector2i]
 
-## Shared by both profiles: the self-damage, then the shove.
+## Shared by both profiles: queues the self-damage, then the shove.
+##
+## SOURCE order here is self-damage then shove, but that is not RESOLUTION order. The self-damage
+## is queued at Priority.ATTACK.self_damage (= 6, priority.gd:36); queue_events for the shove takes
+## the default block_priority = 0 (event_core.gd:91) - and a higher priority resolves first, so the
+## KNOCKBACK actually happens before the wound lands, not after. This matches vanilla:
+## action_attack_weapon.gd:337 queues its own KNOCKBACK-tag shove at the same default priority, so
+## the ordering here is idiomatic, not a bug - do not "fix" it by re-priming the shove.
+##
+## ASSUMPTION: this wounds and shoves context.unit, the SAME unit recoil_origin_tiles() measured
+## the fired line from. ActionAttack.activate can relay an attack through another unit
+## (action_attack.gd:234, specific.unit = get_attacker_relay(...)), which would leave the fired
+## tiles measured from the relay while the recoil origin and this wound are computed against
+## context.unit. No relay exists for an integrated trait weapon today, and wounding the frame that
+## fired is the intended reading of the rules, so this is left as-is - but a future relay buff on
+## this weapon needs to reconcile which unit each half applies to before it silently draws the line
+## from one unit and computes the shove against another's position.
 ##
 ## An EMPTY origin_tiles is not passed through. generate_knockback_events defaults an empty array to
 ## the acting unit's own tiles (common_action_util.gd:130), which opens a cone in EVERY direction -

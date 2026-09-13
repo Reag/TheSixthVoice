@@ -19,3 +19,5 @@ tags = Array[StringName]([&"ap", &"inaccurate", &"reliable"])
 reliable_damage = "2"
 range_pattern = SubResource("Resource_line15")
 self_heat_dice = "1"
+recoil_damage_dice = "2"
+recoil_knockback = 2
