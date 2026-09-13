@@ -15,8 +15,8 @@
 # would spend it on the first target and deny targets 2 and 3 their bonus, while the damage numbers
 # still looked roughly right. The round is therefore spent by a separate hidden ATTACK_DECLARED POST
 # reaction, which runs after every per-target bonus has been computed
-# (event_unit_attack_declared.gd:205 executes the POST rxns at the very end of execute(), long after
-# the per-roll roll_specific_bonus_damage loop at :126-140). Test 1 is the one that would fail under
+# (event_unit_attack_declared.gd:221 executes the POST rxns at the very end of execute(), long after
+# the per-roll roll_specific_bonus_damage loop at :127-145). Test 1 is the one that would fail under
 # the naive implementation: it asserts the damage EACH of three targets took, not merely that a
 # bonus happened somewhere.
 #
@@ -64,6 +64,8 @@ const MID_TILE := Vector2i(11, 4)
 const FAR_TILE := Vector2i(13, 4)
 ## Blast 1 centred between NEAR_TILE and MID_TILE catches both and leaves FAR_TILE alone.
 const BLAST_CENTRE := Vector2i(10, 4)
+## Well off the y = 4 firing lane, for the one test that kills everything standing in it.
+const SURVIVOR_TILE := Vector2i(2, 8)
 
 var game:Gamemaster
 var unit:Unit
@@ -178,6 +180,21 @@ func set_entity_type(targets:Array, entity_type:int) -> void:
 		target.core.frame.entity_type = entity_type
 		target.core.full_repair()
 
+## Low enough to die to a single shot of the Bizarre Cannon: 1 HP and its LAST point of structure, so
+## the 12 damage takes structure to zero, which destroys the unit outright rather than rolling the
+## structure table. Safe on a target - full_repair()'s uses_this_round reset is only a hazard on the
+## FIRER, whose 1/round counter is what these tests measure.
+func make_fragile(target:Unit) -> void:
+	target.core.frame.stat.health = 1
+	target.core.frame.stat.structure = 1
+	target.core.full_repair()
+
+## Makes a target read as a GRUNT to the Line's target sort without saddling it with the grunt
+## statline. See test_a_grunt_nearest_the_firer_is_the_last_character_hit for why that is the honest
+## fixture here rather than a dodge.
+func make_grunt(target:Unit) -> void:
+	target.core.templates.append(ContentLibrary.get_npc_template(&'npct_grunt'))
+
 # ---------------------------------------------------------------- the trait
 
 ## THE TEST THIS TASK EXISTS FOR. Three characters on one line, one shot, and the damage EACH of
@@ -266,6 +283,48 @@ func test_a_line_attack_that_misses_everyone_leaves_the_round_unconsumed() -> vo
 		'The next Line attack of the same round still gets its full bonus.')
 	assert_eq(_uses(), 1, 'And that one spent the round.')
 
+## Ruling 5's other half, in its hardest case: the 1/round is consumed by the first Line attack that
+## HITS at least one character - whether or not any of them are still standing when the bookkeeping
+## gets asked.
+##
+## THE TEST FOR REVIEW FINDING 1. Damage is applied at event_unit_attack_declared.gd:192; the spend
+## reaction runs at :221, by which time the dead are off the map. Every "is this a unit" helper in
+## the engine is alive-gated - get_all_hit_units() filters on Unit.is_valid
+## (declared_attack_summary.gd:51), which demands unit.is_alive (unit.gd:86) - so an implementation
+## that asked get_all_hit_units() got an EMPTY list here, left the round unspent, and paid the trait
+## out all over again on the next Line shot of the same round. Nothing exotic on an Artillery frame
+## firing down a lane of grunts. The fix reads the FRAME (frame.gd:100), which answers the question
+## for a corpse as readily as for a survivor.
+##
+## The enemy off the line is not decoration: without it the entire hostile faction dies mid-test and
+## the scene ends underneath the measurement.
+##
+## AND NEITHER IS THE CAMPAIGN CORE. setup_gamemaster's make_fresh_gamemaster path returns at
+## spec_factory.gd:32, before the CampaignCore that the ordinary path builds at :47-48 - and
+## EventService.remove_unit_from_game dereferences map.campaign_core on its way out
+## (event_service.gd:80), one line ABOVE the unit.remove_from_game() at :85. So on a fresh gamemaster
+## a death aborts halfway: three red "Nonexistent function 'get_lancer_by_id' in base 'Nil'" engine
+## errors, and three corpses still answering true to Unit.is_valid - which would have made this test
+## pass against the very bug it exists to catch. Measured, not guessed: that is exactly what the
+## first run of this test did.
+func test_a_line_that_kills_every_character_it_hits_still_spends_the_round() -> void:
+	game.campaign_core = CampaignCore.create(SpecFactory.create_campaign_base())
+	game.map.campaign_core = game.campaign_core
+
+	var survivor:Unit = SpecFactory.create_unit(game.map, SURVIVOR_TILE, Faction.AI_ENEMY)
+	for doomed:Unit in [near, mid, far]: make_fragile(doomed)
+
+	cheat_every_die_to_six()
+	await fire_at(FAR_TILE)
+
+	assert_false(Unit.is_valid(near), 'Fixture: the shot killed the near target.')
+	assert_false(Unit.is_valid(mid), 'Fixture: and the middle one.')
+	assert_false(Unit.is_valid(far), 'Fixture: and the far one.')
+	assert_true(Unit.is_valid(survivor),
+		'Fixture: the enemy off the line survived, so the scene did not end mid-test.')
+	assert_eq(_uses(), 1,
+		'The attack hit three characters, so it spent the round. Killing them does not hand it back.')
+
 ## The gate is on the range PATTERN, not on the weapon type: a Cannon that is not a Line does
 ## nothing. Fired with mw_mortar (Blast 1) rather than a single-target weapon on purpose - a
 ## single-target shot would hit exactly one character, whose bonus is +0 either way, so "no bonus"
@@ -285,13 +344,31 @@ func test_a_non_line_cannon_shot_adds_nothing() -> void:
 	assert_eq(far.current_damage(), 0, 'Fixture: Blast 1 did not reach the far target.')
 	assert_eq(_uses(), 0, 'A non-Line Cannon shot did not spend the round either.')
 
-## inherit_type_from_attack. The bonus damage is KINETIC because the Bizarre Cannon is, and the buff
-## resource's own damage_type is deliberately set to HEAT so that this test can tell the difference:
-## with inheritance working the +1 lands as HP damage and no heat, and if it ever broke, the +1 would
-## arrive as heat instead (event_unit_damage.gd:102-103 routes HEAT to the heat track, never to HP)
-## - failing BOTH assertions below. With the buff's damage_type left at the KINETIC default this
-## test could not fail at all, on a kinetic weapon.
+## inherit_type_from_attack. The bonus damage is KINETIC because the Bizarre Cannon is.
+##
+## THE FLAG IS PINNED DIRECTLY RATHER THAN INFERRED. An earlier draft set the buff resource's own
+## damage_type to HEAT so that a broken inheritance would show up as heat damage instead of HP
+## damage - a canary. That was test scaffolding living in a shipped content file, asserting something
+## false about the mechanic to whoever copies it as a template, and it bought nothing the assertion
+## below does not buy honestly: damage_type is read only when INHERIT_TYPE is absent
+## (attack_util.gd:299-300), so with the flag on it is dead weight either way. The resource now
+## carries the KINETIC default, and the flag itself is asserted here.
+##
+## The behavioural half stays, because the flag being true is not proof the engine honoured it: with
+## inheritance working the +1 lands as HP damage and no heat, and if it broke while the flag still
+## read true the bonus would arrive as whatever damage_type says (event_unit_damage.gd:102-103 routes
+## HEAT to the heat track, never to HP).
 func test_the_bonus_is_kinetic_on_a_kinetic_weapon() -> void:
+	var buff:Buff = ContentLibrary.get_buff(&'buff_blasting_powder')
+	assert_not_null(buff, 'fixture: the buff resource is in ContentLibrary.')
+	assert_true(buff is BuffDamage, 'fixture: and it is a BuffDamage.')
+	if buff is BuffDamage:
+		assert_true(buff.inherit_type_from_attack,
+			"The bonus inherits the attack's damage type - which is what makes it kinetic here.")
+		assert_eq(buff.damage_type, Lancer.DAMAGE_TYPE.KINETIC,
+			'And the unused fallback type is the plain KINETIC default, not a test canary: a content'
+			+ ' file must not claim a damage profile the trait does not have.')
+
 	assert_gt(mid.get_heat_max(), 0,
 		'fixture: the target HAS a heat track, so stray heat damage would show up there rather than'
 		+ ' being converted to energy damage and landing on HP after all.')
@@ -339,6 +416,42 @@ func test_an_object_in_the_line_takes_no_bonus_damage() -> void:
 		'The far character is the 2nd CHARACTER hit and took +1 - the object neither took a bonus'
 		+ ' nor consumed its place in the order.')
 
+## "CLOSEST-FIRST" IS THE ENGINE'S SORT ORDER, NOT DISTANCE ORDER - pinned here deliberately, and
+## NOT a ruling.
+##
+## action_attack.gd:174 sorts a Line's targets through
+## CommonActionUtil.sort_deployables_and_grunts_to_back (common_action_util.gd:474-480), whose second
+## clause (:477) pushes npct_grunt units to the BACK. Grunts ARE characters, so "the next character
+## hit" is not the next one along the line: a grunt standing NEAREST the firer is the LAST character
+## hit and therefore collects the LARGEST bonus, while the mech standing behind it is paid as though
+## the grunt were not there at all. That falls straight out of vanilla's sort, it is what the trait
+## does today, and THE AUTHOR HAS NOT RULED ON WHETHER IT IS WANTED. This test exists so a later
+## ruling has something to edit rather than something to discover; if the ruling goes the other way,
+## this is the test to change, not a bug report to file.
+##
+## THE GRUNT TEMPLATE IS APPENDED WITHOUT A full_repair(), on purpose and not as a dodge. The sort's
+## only question is UnitPrinter.has_template(core, &'npct_grunt') (:477), which reads core.templates
+## directly - so this unit is a grunt to every line of code under test. The template's 1 HP / 1
+## structure override reaches a unit through core.bonus instead, and bonus is rebuilt only by
+## UnitPrinter.recalculate_bonuses, which nothing in an attack calls. A genuinely 1-HP grunt would
+## die to the shot and take the damage readout this test is built on with it.
+func test_a_grunt_nearest_the_firer_is_the_last_character_hit() -> void:
+	make_grunt(near)
+	assert_true(UnitPrinter.has_template(near.core, &'npct_grunt'),
+		'fixture: the nearest target is a grunt as far as the target sort is concerned.')
+	assert_eq(near.get_health_max(), 200,
+		'fixture: and still tough enough to survive the shot and report what it took.')
+
+	cheat_every_die_to_six()
+	await fire_at(FAR_TILE)
+
+	assert_eq(mid.current_damage(), BASE_DAMAGE,
+		'The MIDDLE target is the 1st character hit and takes +0 - though the grunt is closer.')
+	assert_eq(far.current_damage(), BASE_DAMAGE + 1, 'The far target is the 2nd character hit: +1.')
+	assert_eq(near.current_damage(), BASE_DAMAGE + 2,
+		'And the NEAREST character, the grunt, is the 3rd and takes the biggest bonus: +2.')
+	assert_eq(_uses(), 1, 'The attack spent the round like any other.')
+
 ## Ruling 5 again: the round is spent by an attack that hits at least one CHARACTER. A line that
 ## only broke some scenery has not used the trait up.
 func test_a_line_that_hits_only_objects_leaves_the_round_unconsumed() -> void:
@@ -379,8 +492,8 @@ func test_the_trait_has_display_text() -> void:
 
 	# The hidden halves stay hidden: neither the bookkeeping reaction nor the buff is a thing the
 	# player reads, so neither may acquire rule text of its own. A `trigger` row in particular would
-	# drag the reaction back into the Kit tooltip through Action.show_in_tooltip's first clause
-	# (action.gd:343), undoing the override in action_blasting_powder_spend.gd.
+	# drag the reaction back into the Kit tooltip through Action.show_in_tooltip's trigger clause
+	# (action.gd:344), undoing the override in action_blasting_powder_spend.gd.
 	for key:String in [
 		'gear.%s.action_blasting_powder_spend.name' % TRAIT_ID,
 		'gear.%s.trigger' % TRAIT_ID,

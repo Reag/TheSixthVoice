@@ -1,16 +1,17 @@
 ## Blasting Powder: +N bonus damage to the Nth character hit by one Line attack, N counted from 0.
 ##
 ## WHY THIS CAN BE COMPUTED AT ALL. Buff.TO.BONUS_DAMAGE_SPECIFIC is rolled once PER TARGET and is
-## never halved (event_unit_attack_declared.gd:281-284 passes halve = false), and unlike the
-## ATTACK_ROLL channel, AttackUtil.DamageRoll.roll_bonus_damage DOES hand the context to get_values
-## (attack_util.gd:298) - so the value can depend on which target is being rolled for.
+## never halved (the roll_bonus_damage call at event_unit_attack_declared.gd:284-286 passes
+## halve = false on :285), and unlike the ATTACK_ROLL channel,
+## AttackUtil.DamageRoll.roll_bonus_damage DOES hand the context to get_values (attack_util.gd:298) -
+## so the value can depend on which target is being rolled for.
 ##
 ## THE ORDERING THIS DEPENDS ON. Every attack_roll is appended to the shared DeclaredAttackSummary
 ## as its own event resolves (event_unit_attack.gd:63), and event_unit_attack_declared.gd runs ALL
-## of those attack-roll events (:68) before it rolls any damage (:75 onwards) - so by the time the
+## of those attack-roll events (:67) before it rolls any damage (:74 onwards) - so by the time the
 ## first target's bonus is computed, the summary already knows about every target. get_all_hit_units
 ## (declared_attack_summary.gd:48-52) returns them in resolution order, which for a Line is
-## closest-first.
+## closest-first-ish: see hit_index at the bottom of this file for what "-ish" costs.
 ##
 ## THE ROUND IS NOT SPENT HERE. get_values runs once per target, so counting the round in this file
 ## would spend it on the first target and deny the second and third their bonus. The spend lives in
@@ -49,11 +50,27 @@ func get_values(core:BuffCore, context:Context) -> Context:
 	values.string = str(hit_index(context))
 	return values
 
-## This target's position among the units this attack HIT, closest-first. Guarded to 0 whenever the
-## question cannot be answered - a damage PREVIEW has no DeclaredAttackSummary, and find() returns
-## -1 for a unit that is not in the list - so the value can never come back negative and subtract
-## damage.
+## This target's position among the CHARACTERS this attack HIT, in resolution order. Guarded to 0
+## whenever the question cannot be answered - a damage PREVIEW has no DeclaredAttackSummary, and
+## find() returns -1 for a unit that is not in the list - so the value can never come back negative
+## and subtract damage.
+##
+## THE CHARACTER FILTER IS NOT REDUNDANT, even though check_if_passive_applies above has already
+## refused every non-character. Without it this function counts a position in the UNFILTERED hit
+## list while the gate counts characters, and the two only agree because vanilla happens to sort
+## every object behind every character (common_action_util.gd:474-480, clause 3). That is one line
+## of engine code away from being untrue, and the failure would be silent: a wreck in the line would
+## push the mech behind it up a bonus step. Filtering here makes the index mean what the gate means,
+## whatever vanilla sorts.
+##
+## What the filter deliberately does NOT do is re-order. Resolution order is the engine's, and it is
+## only roughly closest-first: the same sort pushes npct_grunt units to the BACK (:477), and grunts
+## ARE characters - so a grunt standing nearest is the LAST character hit and collects the LARGEST
+## bonus. spec/test_blasting_powder.gd pins that; the author has not yet ruled on whether it is
+## wanted.
 static func hit_index(context:Context) -> int:
 	if not DeclaredAttackSummary.is_valid(context.resource): return 0
 	if not Unit.is_valid(context.target_unit): return 0
-	return maxi(0, context.resource.get_all_hit_units().find(context.target_unit))
+	var characters_hit:Array[Unit] = context.resource.get_all_hit_units().filter(
+		func(hit_unit:Unit) -> bool: return hit_unit.is_character())
+	return maxi(0, characters_hit.find(context.target_unit))
