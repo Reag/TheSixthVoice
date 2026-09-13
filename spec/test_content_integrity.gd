@@ -168,9 +168,10 @@ const ICON_TARGETS := {
 	&'mt_blasting_powder': [],
 	# SP2 Task 1. A weapon Kit, not a trait: its SINGLE SHOT profile is a separately pressable button
 	# on the gear bar, so it wears its own icon rather than sharing the Kit's - same reasoning as
-	# cp_broadside's three entries. (Tasks 2 and 3 append the Grapeshot profile here; Task 3's hidden
-	# reload reaction gets no row, for the mt_blasting_powder reason above.)
-	&'mw_breech_loading_swivel_gun': [&'action_swivel_single_shot'],
+	# cp_broadside's three entries. Task 2 adds GRAPESHOT here for the same reason: a second,
+	# separately pressable profile on the same Kit. (Task 3's hidden reload reaction gets no row, for
+	# the mt_blasting_powder reason above.)
+	&'mw_breech_loading_swivel_gun': [&'action_swivel_single_shot', &'action_swivel_grapeshot'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

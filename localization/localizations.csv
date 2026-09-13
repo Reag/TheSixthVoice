@@ -35,6 +35,8 @@ gear.mw_breech_loading_swivel_gun.effect,"|Loading| (3 rounds). The gun holds th
 gear.mw_breech_loading_swivel_gun.swivel_rounds,Rounds
 gear.mw_breech_loading_swivel_gun.action_swivel_single_shot.name,Single Shot
 gear.mw_breech_loading_swivel_gun.action_swivel_single_shot.effect,"Fire one of the gun's three rounds."
+gear.mw_breech_loading_swivel_gun.action_swivel_grapeshot.name,Grapeshot
+gear.mw_breech_loading_swivel_gun.action_swivel_grapeshot.effect,"Fire all three of the gun's rounds at once in a |Line 10|, |Reliable 3|, |Heat 2| (Self). On a hit, the target must succeed on a |hull save| or become |Shredded| until the end of their next turn."
 ,
 gear.mt_blasting_powder.name,Blasting Powder
 gear.mt_blasting_powder.effect,"1/round, when the Fitzgerald makes a successful ranged attack with a Line weapon, it deals additional bonus damage to each character hit after the first: +1 to the second, +2 to the third, and so on down the line."

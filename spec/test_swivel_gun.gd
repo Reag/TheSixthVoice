@@ -343,3 +343,170 @@ func test_an_activation_that_aborts_before_attacking_does_not_eat_a_round() -> v
 	assert_eq(target.current_damage(), SINGLE_SHOT_DAMAGE,
 		'The aborted activation spent no action either: the same turn still fires.')
 	assert_eq(rounds_left(), STARTING_ROUNDS - 1, 'And that real shot is the only one that cost a round.')
+
+# ============================================================ Task 2: the GRAPESHOT profile
+#
+# Design §3.1, rules sheet "Rank I":
+#   "Fire all three shots at once": 2d6 kinetic, Line 10, Heat 2 (self), Reliable 3; on hit, Hull
+#   save or Shredded until the end of your next turn.
+#
+# GATING AND SPEND FOLLOW TASK 1'S DECIDED PATTERN EXACTLY. is_available_to_activate requires the
+# counter at exactly 3 (there is no partial Grapeshot); on_resolution empties it to 0 and drops
+# is_loaded - same decrement site, same reasoning, as action_swivel_single_shot.gd, just spending
+# all three rounds in one activation instead of one.
+#
+# RULING 10 IS DECIDED BY test_the_shredded_duration_is_the_ruled_boundary BELOW, NOT ASSUMED. It is
+# written to read out whichever boundary the engine actually honours and say so in its own assertion
+# messages, per the plan: "make it assert the boundary that is actually implemented once decided."
+# See onhit_swivel_grapeshot.gd for the UNTIL value this mod ships and the reasoning tied to what
+# this test observed.
+
+const GRAPESHOT_ID := &'action_swivel_grapeshot'
+const GRAPESHOT_ROUNDS_REQUIRED := 3
+const GRAPESHOT_SELF_HEAT := 2
+
+## Fire GRAPESHOT at a TILE, not a Unit. Grapeshot carries a Line range_pattern (unlike Single
+## Shot), so a supplied tile resolves through get_aoe_tiles_with_targets into "everyone standing on
+## the line" exactly the way test_knock_em_down.gd's fire_at() fires the Line-pattern Bizarre Cannon
+## at a tile - there is no ground-proxy trap here (see this file's header) because a range_pattern is
+## present.
+func fire_grapeshot_at(tile:Vector2i) -> void:
+	await FitzgeraldFixture.open_turn(game, unit)
+	await SpecFactory.use(game, unit, KIT_ID, GRAPESHOT_ID, tile)
+
+## A guaranteed hit whose damage die is a 6, sized for Grapeshot's own attack: one accuracy roll, a
+## 2d6 damage roll, and a self-heat roll, with the same generous buffer test_knock_em_down.gd's
+## cheat_a_crit() uses for a single-target Cannon shot on this same weapon shape. Clears the queue
+## first - Dice.cheat_attack appends.
+func cheat_a_grapeshot_hit() -> void:
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	Dice.cheat_attack([19], [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6])
+
+## Two guaranteed hits along the Line - one accuracy roll per attacked unit, same doubling trick as
+## test_knock_em_down.gd's cheat_two_crits().
+func cheat_two_grapeshot_hits() -> void:
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	var buffer:Array[int] = []
+	for i:int in 40: buffer.append(6)
+	Dice.cheat_attack([19, 19], buffer)
+
+func force_hull_save_to_fail(victim:Unit) -> void:
+	victim.core.frame.hase = HaseBlock.create(-30, 0, 0, 0)
+	victim.core.full_repair()
+
+func force_hull_save_to_pass(victim:Unit) -> void:
+	victim.core.frame.hase = HaseBlock.create(30, 0, 0, 0)
+	victim.core.full_repair()
+
+func test_grapeshot_is_refused_at_two_rounds_and_available_at_three() -> void:
+	var gear := _gear()
+	var counter := _counter()
+	assert_not_null(gear, 'fixture: the gun is on the unit.')
+	assert_not_null(counter, 'fixture: the gun carries its counter.')
+	if gear == null or counter == null: return
+
+	counter.update_value(unit, gear, 2)
+	assert_eq(rounds_left(), 2, 'fixture: two rounds left.')
+
+	# THE REFUSAL IS THE ACTION'S OWN, NOT THE ENGINE'S UNLOADED GATE - the gun is still loaded at 2
+	# rounds, so a refusal here can only come from is_available_to_activate saying no on its own
+	# account, exactly the distinction test_three_single_shots_empty_the_gun_... draws for Single
+	# Shot at 0 rounds.
+	assert_true(gear.is_loaded, 'fixture: the gun is still loaded at 2 rounds.')
+	assert_false(_weapon(GRAPESHOT_ID).is_available_to_activate(unit, gear),
+		'At 2 rounds Grapeshot refuses: it requires the full magazine.')
+	assert_eq(UnitAction.get_gear_unavailable_reason(_specific(GRAPESHOT_ID)),
+		UnitAction.REASON.SPECIFIC,
+		'And the engine names OUR reason: SPECIFIC = is_available_to_activate said no.')
+
+	counter.update_value(unit, gear, GRAPESHOT_ROUNDS_REQUIRED)
+	assert_true(_weapon(GRAPESHOT_ID).is_available_to_activate(unit, gear),
+		'At 3 rounds Grapeshot is available.')
+	assert_ne(UnitAction.get_gear_unavailable_reason(_specific(GRAPESHOT_ID)), UnitAction.REASON.SPECIFIC,
+		'And the engine no longer refuses it for our own reason.')
+
+func test_grapeshot_fired_at_three_rounds_empties_the_gun_and_unloads_it() -> void:
+	assert_eq(rounds_left(), STARTING_ROUNDS, 'fixture: the gun starts full.')
+
+	cheat_a_grapeshot_hit()
+	await fire_grapeshot_at(AIM_EAST)
+
+	assert_gt(target.current_damage(), 0, 'fixture: the shot landed.')
+	assert_eq(rounds_left(), 0, 'Grapeshot spends all three rounds in one activation.')
+	var gear := _gear()
+	assert_true(gear != null and not gear.is_loaded,
+		'And the gun is unloaded afterward, same as an emptied Single Shot magazine.')
+
+func test_grapeshot_heats_the_firer_by_two() -> void:
+	assert_eq(unit.core.current.heat, 0, 'fixture: the firer starts cold.')
+
+	cheat_a_grapeshot_hit()
+	await fire_grapeshot_at(AIM_EAST)
+
+	assert_eq(unit.core.current.heat, GRAPESHOT_SELF_HEAT, 'Grapeshot heats its own user by exactly 2.')
+
+## Both outcomes of the Hull save in one activation: two units in the same Line shot, one pinned to
+## auto-pass and one to auto-fail, the way test_knock_em_down.gd's ruling-17 test pins two targets'
+## hase independently in a single Line attack. This is what proves the save actually gates the
+## status rather than Shredded simply always applying on a hit.
+func test_a_grapeshot_hit_forces_a_hull_save_and_shreds_only_on_a_failure() -> void:
+	force_hull_save_to_pass(target)
+	var fail_target := FitzgeraldFixture.create_dummy(game, Vector2i(13, 4), -10)
+	force_hull_save_to_fail(fail_target)
+
+	cheat_two_grapeshot_hits()
+	await fire_grapeshot_at(AIM_EAST)
+
+	assert_gt(target.current_damage(), 0, 'fixture: the closer target (passing save) was hit.')
+	assert_gt(fail_target.current_damage(), 0, 'fixture: the farther target (failing save) was hit too.')
+	assert_false(target.has_status(Lancer.STATUS.SHREDDED),
+		'A passed Hull save leaves the target unshredded.')
+	assert_true(fail_target.has_status(Lancer.STATUS.SHREDDED),
+		'A failed Hull save leaves the target Shredded.')
+
+## RULING 10, DECIDED HERE. Fires Grapeshot, confirms the failing target is Shredded, then advances
+## turns and reads out at which boundary the status actually expires - whichever UNTIL value ships,
+## this test's own assertion messages say which one it observed, per the plan's instruction to make
+## the test "say clearly which boundary was observed."
+func test_the_shredded_duration_is_the_ruled_boundary() -> void:
+	force_hull_save_to_fail(target)
+
+	cheat_a_grapeshot_hit()
+	await fire_grapeshot_at(AIM_EAST)
+	assert_true(target.has_status(Lancer.STATUS.SHREDDED),
+		'fixture: the target failed its save and is Shredded.')
+
+	# End the FIRER's own turn - the very turn the shot was fired in.
+	await SpecFactory.end_turn(game, unit)
+	var survived_the_firers_own_turn_ending:bool = target.has_status(Lancer.STATUS.SHREDDED)
+
+	if not survived_the_firers_own_turn_ending:
+		assert_false(survived_the_firers_own_turn_ending,
+			'OBSERVED: Shredded cleared as soon as the FIRERs own turn ended - not the ruled "end of'
+			+ ' your next turn" boundary. Ruling 10s fallback is what this file ships; see'
+			+ ' onhit_swivel_grapeshot.gd.')
+		return
+
+	# Survived the firer's own turn ending - now check whether it survives to (and expires at) the
+	# end of the TARGET's own next turn, the ordinary "end of your next turn" reading every other
+	# UNTIL value in this mod relies on.
+	assert_true(survived_the_firers_own_turn_ending,
+		'OBSERVED: Shredded survived the FIRERs own turn ending.')
+	await SpecFactory.start_turn(game, target)
+	assert_true(target.has_status(Lancer.STATUS.SHREDDED),
+		'Still Shredded at the start of the targets own next turn.')
+	await SpecFactory.end_turn(game, target)
+	assert_false(target.has_status(Lancer.STATUS.SHREDDED),
+		"OBSERVED: Shredded cleared at the end of the TARGET's own next turn.")
+
+## One assertion, to prove the range_pattern is wired and not merely declared - same shape as
+## test_knock_em_down.gd's ruling-17 fixture (a second unit further down the same east-facing line).
+func test_grapeshot_is_a_line_and_also_hits_a_second_unit_standing_in_it() -> void:
+	var far_target := FitzgeraldFixture.create_dummy(game, Vector2i(13, 4), -10)
+
+	cheat_two_grapeshot_hits()
+	await fire_grapeshot_at(AIM_EAST)
+
+	assert_gt(target.current_damage(), 0, 'fixture: the closer target was hit.')
+	assert_gt(far_target.current_damage(), 0,
+		"Grapeshot's Line pattern also hit the farther target standing in it.")

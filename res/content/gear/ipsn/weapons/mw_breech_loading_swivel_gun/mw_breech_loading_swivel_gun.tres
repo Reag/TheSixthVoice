@@ -5,10 +5,11 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="3_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/weapons/mw_breech_loading_swivel_gun/action_swivel_single_shot.tres" id="4_singleshot"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/weapons/mw_breech_loading_swivel_gun/passive_swivel_rounds.tres" id="5_swivelrounds"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/weapons/mw_breech_loading_swivel_gun/action_swivel_grapeshot.tres" id="6_grapeshot"]
 
 [resource]
 script = ExtResource("3_kit")
-actions = Array[ExtResource("1_action")]([ExtResource("4_singleshot")])
+actions = Array[ExtResource("1_action")]([ExtResource("4_singleshot"), ExtResource("6_grapeshot")])
 passives = Array[ExtResource("2_passive")]([ExtResource("5_swivelrounds")])
 sp_cost = 0
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"
