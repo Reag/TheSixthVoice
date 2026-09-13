@@ -1,3 +1,5 @@
 id,en
 mod.reag_thesixthvoice.name,The Sixth Voice
 ,
+lancer.term.efficient,Efficient
+lancer.term.efficient.desc,"An |Efficient| ability refunds 1 |CORE POWER| at the end of any scene in which it was used, so it is available again in the next one."
