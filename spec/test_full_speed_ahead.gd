@@ -160,6 +160,17 @@ func test_a_passed_save_costs_nothing() -> void:
 	await dash_to(START + Vector2i(SPEED, 0))
 	assert_false(victim.has_status(Lancer.STATUS.PRONE), 'It stayed up.')
 	assert_eq(victim.core.current.health, before, 'And took nothing.')
+	# Neither assertion above tells "the save was forced and passed" apart from "cheat_passed_saves
+	# silently did nothing and no save was ever forced" - a victim that is never made to save looks
+	# exactly the same as one that saved and cleared it. roll_dice (dice.gd:33-35) only pops
+	# CHEAT_ROLL_QUEUE when it is non-empty, otherwise it rolls live; cheat_passed_saves seeded four
+	# 20s, and this dash forces exactly one Hull save (one hostile on the ray, accuracy_bonus 0 so
+	# no extra d6 pop - roll_d6_accuracy, dice.gd:86-88, only rolls for a non-zero bonus). A working
+	# cheat therefore leaves exactly three 20s behind; a no-op cheat would have left the queue empty
+	# both before and after, since an empty queue is never touched. This is the cheapest proof that
+	# the pass was cheated rather than lucked into on a natural roll.
+	assert_eq(Dice.CHEAT_ROLL_QUEUE.size(), 3,
+		'One cheated 20 was actually popped for the forced save, not left unused.')
 
 func test_a_hostile_beside_the_path_is_caught_too() -> void:
 	# One tile north of the second tile entered: never passed through, but became adjacent.
@@ -192,6 +203,27 @@ func test_crossing_two_occupied_spaces_costs_two_self_damage() -> void:
 	cheat_passed_saves() # keep the victims upright so only the self-damage moves
 	await dash_to(START + Vector2i(SPEED, 0))
 	assert_eq(before - fitz.core.current.health, 2, 'One AP kinetic per occupied space crossed.')
+
+func test_crossing_an_ally_still_costs_self_damage_but_spares_the_ally() -> void:
+	# The self-damage half of the card ("each occupied space you pass through") counts ANY
+	# character; the save half ("all hostile characters") only makes hostiles save - see
+	# count_occupied_crossed's and caught_hostiles' headers. That asymmetry was, until now, only a
+	# comment: nothing distinguished it from a future refactor that unified the two helpers onto one
+	# hostiles-only definition of "occupied", which would still make every other test above pass.
+	var ally := Fixture.create_dummy(game, START + Vector2i(2, 0), 10, Faction.AI_ALLY)
+	assert_true(UnitRelation.are_allies(fitz, ally),
+		'Sanity: PLAYER (the Fitzgerald) and AI_ALLY are actually allied, not two enemies.')
+	var fitz_before:int = fitz.core.current.health
+	var ally_before:int = ally.core.current.health
+	# Failed, not passed: if a regression ever DID route the ally into caught_hostiles, a cheated
+	# fail makes that show up deterministically as Prone + 3 damage, rather than a natural roll that
+	# might pass by luck and hide the bug.
+	cheat_failed_saves()
+	await dash_to(START + Vector2i(SPEED, 0))
+	assert_eq(fitz_before - fitz.core.current.health, 1,
+		'The Fitzgerald still pays 1 AP for the occupied space - the ally counts same as a hostile.')
+	assert_false(ally.has_status(Lancer.STATUS.PRONE), 'The ally is never forced to save...')
+	assert_eq(ally.core.current.health, ally_before, '...and takes no damage either.')
 
 func test_an_empty_run_costs_the_fitzgerald_nothing() -> void:
 	var before:int = fitz.core.current.health
