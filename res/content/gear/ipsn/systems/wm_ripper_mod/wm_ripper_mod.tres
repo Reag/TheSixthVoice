@@ -5,11 +5,12 @@
 [ext_resource type="Script" uid="uid://ch8avblisp8j1" path="res://engine/character/gear_passive/passive_weapon_mod.gd" id="3_weaponmod"]
 [ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="4_buff"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/wm_ripper_mod/buff_ripper_mod_bonus.tres" id="5_bonus"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/wm_ripper_mod/buff_ripper_mod_strip_ap.tres" id="6_strip"]
 
 [sub_resource type="Resource" id="Resource_rippermod"]
 script = ExtResource("3_weaponmod")
 allowed_types = Array[int]([1, 3, 0])
-applied_buffs = Array[ExtResource("4_buff")]([ExtResource("5_bonus")])
+applied_buffs = Array[ExtResource("4_buff")]([ExtResource("5_bonus"), ExtResource("6_strip")])
 
 [resource]
 script = ExtResource("1_kit")

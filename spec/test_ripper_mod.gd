@@ -102,8 +102,9 @@ func test_it_fits_an_ap_weapon() -> void:
 
 func test_the_mod_hangs_its_buff_off_its_own_gear() -> void:
 	# What makes "is this MY weapon" answerable at all: PassiveWeaponMod.applied_buffs are applied
-	# with from_gear set to the mod's own GearCore (unit_condition.gd:885-893), and both buffs compare
-	# that against weapon.get_weapon_mod(loadout).persistent_id.
+	# with from_gear set to the mod's own GearCore (unit_condition.gd:884-891 - CORRECTED from the
+	# 885-893 this line carried, verified against the 1.4.3 tree), and both buffs compare that against
+	# weapon.get_weapon_mod(loadout).persistent_id.
 	var weapon := equip_modded(PLAIN_RIFLE)
 	var mod:GearCore = weapon.get_weapon_mod(fitz.core.loadout)
 	assert_true(GearCore.is_valid(mod), 'The mod is fitted.')
@@ -158,3 +159,120 @@ func test_an_unmodded_weapon_gets_no_bonus() -> void:
 	var weapon := equip_plain(PLAIN_RIFLE)
 	var lost := await shoot(weapon, 6)
 	assert_eq(lost, 6 - 1, 'No mod, no bonus.')
+
+# ---------------------------------------------------------------- "lose AP, and cannot gain AP"
+#
+# Spike 10's seam (specs/2026-09-13-ap-strip-feasibility.md 1-2): event_unit_damage.gd's
+# execute_preblock computes DamageModifications TWICE - at :52 and again at :63 - with
+# execute_reaction_events(TRIGGER.DAMAGE, TIMING.PRE) at :59 between the two reads, and
+# damage_modifications.gd:103 only skips armor when the FINAL read still carries the flag. The
+# reaction bus fires triggered BUFFS on every unit for that trigger (reaction_bus.gd:61-67), so a
+# hidden PRE buff on the attacker can erase the flag in between.
+#
+# THE TAG SIDE IS UNTOUCHED AND THAT IS RULED, NOT AN OVERSIGHT. Weapon tags are add-only, so the
+# card still reads AP; the author accepted that 2026-09-13 (rulings.md). test_the_card_still_says_ap
+# pins it, so a future change that DID hide the chip shows up as a decision rather than a surprise.
+const ARMOR := 2
+const AP_RIFLE_DAMAGE := 5    # 1d3+2 with the die pinned to 3
+
+## A vanilla weapon mod that is NOT ours, for the "which mod is this" half of the predicate. Fits any
+## Auxiliary/Main/Heavy weapon (allowed_sizes [0,1,2], no type filter) and its only effect is an
+## inaccuracy buff, so it never moves a damage number - the Spike 10 probe used it exactly this way.
+const OTHER_MOD := &'wm_uncle_class_comp_con'
+
+func has_ap(weapon:GearCore) -> bool:
+	var specific := SpecificAction.create(fitz, weapon, weapon.get_solo_action())
+	return specific.action.has_tag(Lancer.WEAPON_TAG.AP, specific)
+
+## A WEAPON_TAG buff granting AP to everything - the Rainmaker's Huntsman shape - for the
+## "cannot gain AP by any means" half. weapon_types left empty so BuffWeaponType's gate lets
+## everything through.
+class GrantApToEverything extends BuffWeaponType:
+	func _init() -> void:
+		to = Buff.TO.WEAPON_TAG
+		hide_from_player = true
+	func get_values(core:BuffCore, context:Context) -> Context:
+		return Context.create({category = Lancer.WEAPON_TAG.AP, number = 0})
+
+func armour_the_target() -> void:
+	target.core.frame.stat.armor = ARMOR
+	target.core.full_repair()
+
+## Equip TWO weapons and fit a mod to EACH, ours to the first and `other_mod` to the second. EQUIP
+## BOTH BEFORE APPLYING THE BUFFS, for the reason equip_modded's header gives: equip_system() calls
+## full_repair(), which empties every equipped gear's state dictionary.
+func equip_two(ours_id:StringName, theirs_id:StringName, other_mod:StringName) -> Array:
+	var ours:GearCore = fitz.core.equip_system(ours_id)
+	var theirs:GearCore = fitz.core.equip_system(theirs_id)
+	fitz.core.loadout.equip_weapon_mod(MOD_ID, ours)
+	if other_mod != &'': fitz.core.loadout.equip_weapon_mod(other_mod, theirs)
+	SpecFactory.apply_passive_buffs(fitz)
+	return [ours, theirs]
+
+func test_a_modded_ap_weapon_stops_ignoring_armor() -> void:
+	armour_the_target()
+	var weapon := equip_modded(AP_RIFLE)
+	var lost := await shoot(weapon, 3)
+	# The +1d6 is in this number too: it is rolled from the same cheated buffer, so it comes out 3.
+	# The armor bite is what the unmodded control below pins out.
+	assert_eq(lost, AP_RIFLE_DAMAGE - ARMOR + 3, 'Armor bit, and the bonus d6 landed: AP was stripped.')
+
+func test_an_unmodded_ap_weapon_keeps_ignoring_armor() -> void:
+	armour_the_target()
+	var weapon := equip_plain(AP_RIFLE)
+	var lost := await shoot(weapon, 3)
+	assert_eq(lost, AP_RIFLE_DAMAGE, 'Full damage: this one still has its AP.')
+
+func test_the_card_still_says_ap() -> void:
+	var weapon := equip_modded(AP_RIFLE)
+	assert_true(has_ap(weapon), 'The TAG is add-only and stays; only the damage flag is taken away.')
+
+func test_ap_gained_from_a_buff_is_stripped_too() -> void:
+	armour_the_target()
+	var weapon := equip_modded(PLAIN_RIFLE)
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), fitz, GrantApToEverything.new())
+	assert_true(has_ap(weapon), 'The tag side says AP.')
+	var lost := await shoot(weapon, 6)
+	assert_eq(lost, 6 - ARMOR + 6, 'The strip runs after every source of AP.')
+
+func test_the_strip_buff_survives_the_shot() -> void:
+	armour_the_target()
+	var weapon := equip_modded(AP_RIFLE)
+	var before:int = fitz.state.buffs.size()
+	await shoot(weapon, 3)
+	assert_eq(fitz.state.buffs.size(), before, 'It was not consumed by firing.')
+
+# ---------------------------------------------------------------- one mod, two weapons, one owner
+#
+# ADDED BY TASK 4 BEYOND THE BRIEF, from Task 3's review. Both buffs gate on
+# RipperBonus.is_modded_weapon, whose second half is `mod.persistent_id == from_gear`; until these
+# two tests existed nothing on the Fitzgerald carried a weapon it did NOT own, so a mutant reading
+# `return GearCore.is_valid(mod)` passed the whole suite.
+#
+# TWO TESTS, NOT ONE, AND THE SECOND IS THE ONE THAT BITES. A second weapon carrying NO mod does not
+# discriminate against that mutant at all: get_weapon_mod() returns null, GearCore.is_valid(null) is
+# false, and the mutant answers "not mine" for the right result by accident. Only a second weapon
+# wearing a DIFFERENT mod forces the id comparison to be the thing that decides. The mod-less case is
+# kept anyway, because it is the ordinary loadout and it proves the buff's attribution survives the
+# Fitzgerald holding two weapons at once.
+
+func test_a_second_unmodded_weapon_on_the_same_unit_is_untouched() -> void:
+	armour_the_target()
+	var weapons := equip_two(PLAIN_RIFLE, AP_RIFLE, &'')
+	var theirs:GearCore = weapons[1]
+	assert_null(theirs.get_weapon_mod(fitz.core.loadout), 'The second weapon carries no mod.')
+	assert_true(GearCore.is_valid(weapons[0].get_weapon_mod(fitz.core.loadout)), 'The first one does.')
+	var lost := await shoot(theirs, 3)
+	assert_eq(lost, AP_RIFLE_DAMAGE, 'Neither the +1d6 nor the strip reached the other weapon.')
+
+func test_a_weapon_wearing_someone_elses_mod_is_untouched() -> void:
+	armour_the_target()
+	var weapons := equip_two(PLAIN_RIFLE, AP_RIFLE, OTHER_MOD)
+	var theirs:GearCore = weapons[1]
+	var their_mod:GearCore = theirs.get_weapon_mod(fitz.core.loadout)
+	assert_true(GearCore.is_valid(their_mod), 'The second weapon wears a mod of its own.')
+	assert_ne(their_mod.persistent_id, weapons[0].get_weapon_mod(fitz.core.loadout).persistent_id,
+		'A DIFFERENT mod - this is what the id comparison has to tell apart.')
+	var lost := await shoot(theirs, 3)
+	assert_eq(lost, AP_RIFLE_DAMAGE,
+		'Being modded is not enough: our buffs only reach the weapon OUR mod is fitted to.')

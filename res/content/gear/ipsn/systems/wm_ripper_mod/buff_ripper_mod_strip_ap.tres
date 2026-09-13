@@ -1,0 +1,9 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/wm_ripper_mod/buff_ripper_mod_strip_ap.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+triggers_on = Array[StringName]([&"damage"])
+trigger_timing = 0
+hide_from_player = true
