@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_heaer/action_heaer_detonate.gd" id="1_detonate"]
+
+[resource]
+script = ExtResource("1_detonate")
+usage_group = &"heaer_detonate"
+triggers_on = Array[StringName]([&"damage"])
+trigger_timing = 1
+consumes_rxn = false

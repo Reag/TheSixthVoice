@@ -172,6 +172,11 @@ const ICON_TARGETS := {
 	# separately pressable profile on the same Kit. (Task 3's hidden reload reaction gets no row, for
 	# the mt_blasting_powder reason above.)
 	&'mw_breech_loading_swivel_gun': [&'action_swivel_single_shot', &'action_swivel_grapeshot'],
+	# SP2 Task 4. Its one action (action_heaer_detonate) is a hidden bookkeeping reaction: reactions
+	# never reach the gear bar (gear_bar.gd:143) and it overrides show_in_tooltip to false, so nothing
+	# the player sees ever wears an icon for it. The Kit's own icon still has to be real - the system
+	# is equippable, and sits in the loadout like any other.
+	&'ms_heaer': [],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

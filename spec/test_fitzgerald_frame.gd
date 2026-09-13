@@ -147,8 +147,9 @@ func test_the_licence_grants_the_frame_at_rank_2():
 	assert_true(license.rank_3.granted_frames.is_empty(), 'rank_3.granted_frames is empty.')
 
 ## SP2 Task 1 replaced SP1's test_the_licence_grants_no_gear_yet, which pinned a frame-only licence
-## and was never meant to stay true: rank 1 now grants the Breech-loading Swivel Gun. Ranks 2 and 3
-## are still empty of gear and stay asserted, so a rank-2 or rank-3 item cannot arrive unannounced.
+## and was never meant to stay true: rank 1 now grants the Breech-loading Swivel Gun and, since SP2
+## Task 4, HEAER. Ranks 2 and 3 are still empty of gear and stay asserted, so a rank-2 or rank-3 item
+## cannot arrive unannounced.
 ##
 ## ASSERTED AS AN EXACT LIST, NOT AS MEMBERSHIP, matching the deliberate order assertion in
 ## test_the_frame_carries_all_five_traits above: granted_gear order is player-visible in the catalog's
@@ -165,8 +166,8 @@ func test_the_licence_grants_the_rank_1_gear():
 
 	var rank_1_gear:Array = license.rank_1.granted_gear.map(
 		func(kit:Kit) -> StringName: return kit.compcon_id)
-	assert_eq(rank_1_gear, [&'mw_breech_loading_swivel_gun'],
-		'Rank 1 grants exactly the Breech-loading Swivel Gun. (SP2 Task 4 appends HEAER here.)')
+	assert_eq(rank_1_gear, [&'mw_breech_loading_swivel_gun', &'ms_heaer'],
+		'Rank 1 grants exactly the Breech-loading Swivel Gun and HEAER, in that order.')
 	assert_true(license.rank_2.granted_gear.is_empty(), 'Rank 2 grants no gear yet.')
 	assert_true(license.rank_3.granted_gear.is_empty(), 'Rank 3 grants no gear yet.')
 
