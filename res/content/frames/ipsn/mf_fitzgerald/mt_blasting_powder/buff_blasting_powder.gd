@@ -19,7 +19,29 @@
 ## per-target bonus has been computed. See that file.
 extends BuffDamage
 
+## The CANONICAL declaration of both halves' shared vocabulary. action_blasting_powder_spend.gd
+## preloads this script and reads USAGE_KEY and fired_as_a_line() from here rather than restating
+## them, the same way buff_hole_puncher_ignore_cover.gd / _soft_cover.gd read their shared predicates
+## off buff_hole_puncher_arcing.gd (Task 5). The two halves are a payer and a charger of the SAME
+## 1/round: if their gates ever drift apart the trait either pays a bonus it never charges for (two
+## payouts in one round) or charges for one it never paid, and nothing would say so. One declaration
+## makes that drift impossible rather than merely unlikely. The ONE place the spend reaction reads
+## deliberately wider - a SHUTDOWN or EXILED target still spends the round - is documented at the top
+## of its triggers_on_event, and is a different question (was it a character?) asked of the frame
+## rather than of the unit.
 const USAGE_KEY:StringName = &'blasting_powder'
+
+## Was this attack fired as a LINE? Ruling 5 scopes the whole trait to the Fitzgerald's Line
+## attacks, so both halves ask this and both must get the same answer.
+##
+## context.action is the ACTION the attack was declared through; a non-weapon action (a tech action,
+## a protocol) casts to null and is refused. range_pattern is nullable on ActionAttackWeapon, so the
+## null check is not defensive padding - a weapon authored without one would otherwise throw here.
+static func fired_as_a_line(context:Context) -> bool:
+	var weapon:ActionAttackWeapon = context.action as ActionAttackWeapon
+	if weapon == null: return false
+	if weapon.range_pattern == null: return false
+	return weapon.range_pattern.pattern == Lancer.AOE_TYPE.LINE
 
 ## require_hit = true on the .tres does two thirds of the gating for free, through super():
 ## BuffDamage.is_buff_context_valid_for_passive demands context.object is an AttackRoll, and
@@ -34,9 +56,7 @@ const USAGE_KEY:StringName = &'blasting_powder'
 func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 	if not super.check_if_passive_applies(core, context): return false
 	if not Unit.is_valid(context.target_unit) or not context.target_unit.is_character(): return false
-	var weapon:ActionAttackWeapon = context.action as ActionAttackWeapon
-	if weapon == null: return false
-	if weapon.range_pattern == null or weapon.range_pattern.pattern != Lancer.AOE_TYPE.LINE: return false
+	if not fired_as_a_line(context): return false
 	var trait_gear:GearCore = core.get_owner_gear(context.map)
 	if not GearCore.is_valid(trait_gear): return false
 	return trait_gear.get_uses_this_round_alt(USAGE_KEY) == 0

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BuffSkillSave" format=3]
+
+[ext_resource type="Script" uid="uid://d1ariwna5bslg" path="res://engine/character/buff/archtypes/buff_skill_save.gd" id="1_buffskillsave"]
+
+[resource]
+script = ExtResource("1_buffskillsave")
+save_type = 2
+mod = -1
+to = &"save"
+metadata/_custom_type_script = "uid://d1ariwna5bslg"

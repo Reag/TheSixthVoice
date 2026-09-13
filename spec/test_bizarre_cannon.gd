@@ -172,14 +172,23 @@ func use_protocol() -> void:
 ## Enough sixes that the roll queue can never drain into real randomness, whatever the exact number
 ## of accuracy/difficulty dice the attack pops. The hit is guaranteed by the target's evasion, not
 ## by the dice, so the count does not have to be predicted.
+##
+## THE CLEAR IS NOT DECORATION. Dice.cheat_attack APPENDS to Dice.CHEAT_ROLL_QUEUE, so a value left
+## over from an earlier call is popped BEFORE anything queued here and silently decides the roll -
+## Task 6 lost time to exactly that, an intended crit resolving as a plain hit. Every test in this
+## file calls its helper once and after_each clears, so nothing here is wrong today; the clear is so
+## the next test added to this file cannot be the one that finds out. Task 6's cheat_a_crit /
+## cheat_a_hit_no_crit and Task 7's cheat_every_die_to_six all open the same way.
 func cheat_a_hit() -> void:
+	Dice.CHEAT_ROLL_QUEUE.clear()
 	target.core.frame.stat.evasion = -10
 	target.core.full_repair()
 	Dice.cheat_attack([19], [6, 6, 6, 6, 6, 6])
 
 ## Same trick the other way: evasion 30 cannot be beaten by 20 plus any accuracy die, so the shot
-## misses no matter how the dice fall.
+## misses no matter how the dice fall. Clears first for the reason above.
 func cheat_a_miss() -> void:
+	Dice.CHEAT_ROLL_QUEUE.clear()
 	target.core.frame.stat.evasion = 30
 	target.core.full_repair()
 	Dice.cheat_attack([1], [1, 1, 1, 1, 1, 1])

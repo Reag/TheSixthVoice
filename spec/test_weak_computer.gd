@@ -1,9 +1,24 @@
 # SP1 Task 2: Weak Computer (mf_fitzgerald / mt_weak_computer.tres).
 #
 # Design doc §2.4: "The Fitzgerald receives +1 Difficulty on all SYSTEMS saves and checks."
-# Implemented as content only: content/frames/shared/mt_exposed_reactor.tres copied wholesale with
-# save_type changed to Lancer.HASE.SYS (2) - a BuffSkillSave (mod = -1, to = &"save") wrapped in a
+# Implemented as content only: content/frames/shared/mt_exposed_reactor.tres copied with save_type
+# changed to Lancer.HASE.SYS (2) - a BuffSkillSave (mod = -1, to = &"save") wrapped in a
 # PassiveBuffApplicator on a trait Kit.
+#
+# THE BUFF IS A STANDALONE FILE, unlike vanilla's, which carries its BuffSkillSave as an inline
+# SubResource. Whole-branch review 2026-09-13: the buff does not set hide_from_player, so
+# mech_info.gd:34 renders it as a status chip on every Fitzgerald - and an inline Buff never enters
+# the mod's `buffs` index, so test_content_integrity's icon guard could not see it and SP5 could have
+# finished the icon pass with this chip still blank. It now lives beside the Kit as
+# res/content/frames/ipsn/mf_fitzgerald/buff_weak_computer.tres, and is listed in VISIBLE_BUFFS.
+#
+# The conversion is behaviour-preserving, and the three tests below are what proves it: the buff is
+# the same script with the same three properties, reached by ExtResource instead of SubResource. Two
+# things it does change, both improvements: compcon_id goes from Buff.GENERIC_ID to
+# &'buff_weak_computer' (buff.gd:106-111), so the buff serializes by id instead of by
+# Util.serialize_generic; and its display text now resolves through the buff_weak_computer key path
+# first, which carries no rows, so Translate.buff falls through to the owner gear's
+# gear.mt_weak_computer.* rows - the same strings the chip showed before.
 #
 # WHY THIS PROVES THE DIE, NOT JUST THE RETURN VALUE. unit_hasecheck.gd:161-186's roll_check pops
 # the d20 unconditionally, then calls Dice.roll_d6_accuracy(accuracy_bonus) - which pops a SECOND

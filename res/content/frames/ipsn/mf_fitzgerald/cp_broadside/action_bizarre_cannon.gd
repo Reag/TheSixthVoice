@@ -61,8 +61,9 @@ func recoil_origin_tiles(context:Context) -> Array[Vector2i]:
 ##
 ## SOURCE order here is self-damage then shove, but that is not RESOLUTION order. The self-damage
 ## is queued at Priority.ATTACK.self_damage (= 6, priority.gd:36); queue_events for the shove takes
-## the default block_priority = 0 (event_core.gd:91) - and a higher priority resolves first, so the
-## KNOCKBACK actually happens before the wound lands, not after. This matches vanilla:
+## the default block_priority = 0 (event_core.gd:91) - and a LOWER priority number resolves first
+## ("Lower is sooner, higher is later (-1 runs before 1)", action_reaction.gd:70), so 0 beats 6 and
+## the KNOCKBACK actually happens before the wound lands, not after. This matches vanilla:
 ## action_attack_weapon.gd:337 queues its own KNOCKBACK-tag shove at the same default priority, so
 ## the ordering here is idiomatic, not a bug - do not "fix" it by re-priming the shove.
 ##

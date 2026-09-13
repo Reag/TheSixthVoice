@@ -212,8 +212,12 @@ func test_a_rifle_crit_does_nothing() -> void:
 	# Review finding 3: current_damage() > 0 alone is satisfied by a plain hit too, since this test's
 	# cheated damage queue is all 6s - a crit and a non-crit deal identical damage. This distinguishes
 	# "the weapon_types gate rejected the Rifle" from "the trait is dead and would reject anything".
-	assert_eq(_trait_gear().get_uses_this_round_alt(USAGE_KEY), 0,
-		"The Rifle crit never even reached the buff: the gate is on weapon_types, not a fluke of damage.")
+	var trait_gear := _trait_gear()
+	assert_not_null(trait_gear, 'fixture: the trait gear is reachable.')
+	if trait_gear != null:
+		assert_eq(trait_gear.get_uses_this_round_alt(USAGE_KEY), 0,
+			'The Rifle crit never even reached the buff: the gate is on weapon_types, not a fluke of'
+			+ ' damage.')
 
 func test_the_second_cannon_crit_in_a_round_does_nothing_and_the_next_round_works_again() -> void:
 	# RULING 15. The first crit's save PASSES on purpose: if the round were spent only by a FAILED
@@ -281,14 +285,21 @@ func test_a_cannon_crit_on_a_non_character_does_nothing() -> void:
 	await fire_at(AIM_EAST)
 
 	assert_gt(target.current_damage(), RELIABLE_ON_MISS, 'Fixture: the shot still landed and crit.')
+	# A SANITY CHECK, NOT THE CLAIM - kept deliberately, but do not read it as proof of the gate.
+	# A non-character cannot end up Prone whether or not this trait's is_character() check exists:
+	# unit_hasecheck.gd auto-fails a non-character's save without rolling, and unit_condition.gd:502
+	# makes it immune to Prone outright. So this line would read green against a version of the trait
+	# with the gate torn out. The usage-counter assertion below is the one that actually discriminates
+	# - it is zero only if should_abort refused to increment - and it carries the real claim.
 	assert_false(target.has_status(Lancer.STATUS.PRONE),
-		"No save was forced on the non-character target: Prone never applied, though a forced save"
-		+ ' would have failed for certain.')
+		'Sanity check: the non-character target is not Prone. Guaranteed by the engine either way'
+		+ ' (non-characters are immune), so the counter below is what proves the gate.')
 	var trait_gear := _trait_gear()
 	assert_not_null(trait_gear, 'fixture: the trait gear is reachable.')
 	if trait_gear != null:
 		assert_eq(trait_gear.get_uses_this_round_alt(USAGE_KEY), 0,
-			"Knock 'em down does not spend its 1/round on a non-character target.")
+			"Knock 'em down does not spend its 1/round on a non-character target: the is_character()"
+			+ ' gate in should_abort refused before it ever incremented.')
 
 ## FINDING 2 / RULING 17 (author ruling, pinned - not a bug, do not change): on a multi-target Line
 ## crit, only the FIRST target (closest, per aoe_calculator.line building rings out from the attacker,

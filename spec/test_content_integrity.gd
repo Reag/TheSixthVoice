@@ -170,13 +170,29 @@ const ICON_TARGETS := {
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
 ## Only STANDALONE buff_*.tres files reach this list: ModResources reads the mod's `buffs` index, and
-## a Buff carried as an inline SubResource on an action never enters it.
+## a Buff carried as an inline SubResource on a Kit, action or passive never enters it.
+##
+## THAT IS A HOUSE RULE, NOT JUST A NOTE. A player-visible Buff MUST live in its own buff_*.tres
+## file. mech_info.gd:34 renders every buff without hide_from_player as a status chip, so an inline
+## one is on screen and needs an icon exactly as much as a standalone one - but this guard cannot
+## see it, so the SP5 icon pass could watch both icon tests go green and still ship a blank chip.
+## Whole-branch review, 2026-09-13: mt_weak_computer carried its BuffSkillSave inline (copied from
+## vanilla mt_exposed_reactor's shape) and was exactly that hole; it is now
+## res/content/frames/ipsn/mf_fitzgerald/buff_weak_computer.tres. Nineteen more frames copy the
+## Fitzgerald, so the standalone shape is the one to copy. Inline is still fine for a buff that sets
+## hide_from_player - Knock 'em down's and Hole Puncher's are standalone only because they carry
+## their own scripts.
 ##
 ## Hole Puncher's three buffs (buff_hole_puncher_arcing / _ignore_cover / _soft_cover) are all
 ## hide_from_player - they are trait plumbing, never a chip on the unit - so they are deliberately
 ## absent here, and the count assertion below is what keeps that honest: unhide one and this list
 ## stops matching.
-const VISIBLE_BUFFS:Array[StringName] = [&'buff_more_black_powder']
+## buff_weak_computer is player-visible on purpose: the Fitzgerald wears it permanently, and the
+## drawback being legible as a chip on the unit is the point of it. Its name and effect text need no
+## CSV rows of their own - Translate.buff (translate.gd:65-77) falls through to the owner gear's
+## keys, so the chip reads "Weak Computer" off gear.mt_weak_computer.name exactly as it did while the
+## buff was inline.
+const VISIBLE_BUFFS:Array[StringName] = [&'buff_more_black_powder', &'buff_weak_computer']
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
 	# A kit or action without icon_override falls back to the generic glyph, which reads as "this

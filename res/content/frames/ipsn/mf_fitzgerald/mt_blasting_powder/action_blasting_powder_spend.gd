@@ -15,7 +15,13 @@
 ## the Kit tooltip, so the player never sees a button or a line of text for it.
 extends ActionReactionSelf
 
-const USAGE_KEY:StringName = &'blasting_powder'
+## The other half of the trait, and the OWNER of the vocabulary the two halves share: USAGE_KEY (the
+## 1/round counter this file writes and the buff reads) and fired_as_a_line() (the Line gate both
+## must answer identically). Declared once there and referenced here, rather than restated - two
+## copies of the same predicate on the paying half and the charging half of one 1/round can drift
+## silently, and the failure is a double payout or a phantom charge rather than an error. Same
+## precedent as Hole Puncher's three buffs sharing statics off buff_hole_puncher_arcing.gd.
+const BlastingPowder := preload('./buff_blasting_powder.gd')
 
 ## Bookkeeping, not a rule the player reads: the trait's own effect row says everything there is to
 ## say. show_in_tooltip is a FUNCTION on Action (action.gd:341), not an exported property, so this is
@@ -49,11 +55,9 @@ func show_in_tooltip(kit:Kit) -> bool: return false
 func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> bool:
 	if not super.triggers_on_event(unit, gear, triggering_event): return false
 	if not GearCore.is_valid(gear): return false
-	if gear.get_uses_this_round_alt(USAGE_KEY) > 0: return false # already spent this round
+	if gear.get_uses_this_round_alt(BlastingPowder.USAGE_KEY) > 0: return false # already spent this round
 	var context:Context = triggering_event.context
-	var weapon:ActionAttackWeapon = context.action as ActionAttackWeapon
-	if weapon == null: return false
-	if weapon.range_pattern == null or weapon.range_pattern.pattern != Lancer.AOE_TYPE.LINE: return false
+	if not BlastingPowder.fired_as_a_line(context): return false
 	if not DeclaredAttackSummary.is_valid(context.resource): return false
 	return context.resource.attack_rolls.any(func(roll:AttackRoll) -> bool:
 		return roll.hit and hit_a_character(roll))
@@ -73,7 +77,13 @@ static func hit_a_character(roll:AttackRoll) -> bool:
 ## honest, because two halves writing and reading different gear would make the 1/round either never
 ## bite or bite forever.
 ##
-## increment_per_turn_counter = false is passed EXPLICITLY. That flag gates ONLY the uses_this_turn
+## increment_per_turn_counter = false is passed EXPLICITLY, and THIS PARAGRAPH IS THE FRAME'S
+## CANONICAL STATEMENT OF WHY - mt_knock_em_down/onhit_knock_em_down.gd, the Fitzgerald's other
+## 1/round trait, points here rather than restating it, and the nineteen frames that copy this one
+## should settle on the same answer. The rule: a trait whose limit is the per-ROUND counter passes
+## false, because the per-turn tally it would otherwise write is a counter nothing reads.
+##
+## That flag gates ONLY the uses_this_turn
 ## tally (gear_core.gd:173-177; uses_this_round and uses_this_scene are written either way), and
 ## nothing reads a per-TURN count under this key: the trait's own limit is the per-ROUND counter,
 ## the per-turn soft limit at unit_action.gd:168 asks per-ACTION and this reaction's usage_group is
@@ -82,4 +92,4 @@ static func hit_a_character(roll:AttackRoll) -> bool:
 ## ticking under a key nothing consults.
 func activate(context:Context, activation:EventCore) -> void:
 	if not GearCore.is_valid(context.gear): return
-	context.gear.increment_action_usage(USAGE_KEY, false)
+	context.gear.increment_action_usage(BlastingPowder.USAGE_KEY, false)

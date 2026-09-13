@@ -97,14 +97,24 @@ func test_the_frame_carries_all_five_traits():
 	#
 	# (Task 2 folded this into the mount test to hit a predicted test count; split back out in
 	# Task 3, because a mount regression and a trait regression are not the same failure.)
+	#
+	# THIS ASSERTS ORDER, DELIBERATELY, and must not be relaxed to membership. The array order is
+	# PLAYER-VISIBLE: catalog_license_focus_spread.gd:31 iterates core.frame.traits in array order to
+	# fill the catalog's trait slots (lifting the core power out into its own slot as it goes), and
+	# mech_section.gd:109 iterates loadout.get_frame_traits(), which preserves it. The order below is
+	# the one the design doc (2026-09-13-fitzgerald-design.md
+	# §2.0) and the rules sheet (specs/sixth-voice/01-fitzgerald.md) both specify - abilities first,
+	# the drawback second-to-last, the core system last. Whole-branch review, 2026-09-13: the build
+	# tasks had left the array in the order the tasks happened to land in, which led the catalog with
+	# the frame's drawback and buried the core system second.
 	var frame := _frame()
 	assert_not_null(frame, 'fixture: the frame loads.')
 	if frame == null: return
 	var carried:Array = frame.traits.map(func(kit:Kit) -> StringName: return kit.compcon_id)
 	assert_eq(carried,
-		[&'mt_weak_computer', &'cp_broadside', &'mt_hole_puncher', &'mt_knock_em_down',
-			&'mt_blasting_powder'],
-		'The frame carries exactly its five traits, in the order they were added.')
+		[&'mt_hole_puncher', &'mt_knock_em_down', &'mt_blasting_powder', &'mt_weak_computer',
+			&'cp_broadside'],
+		'The frame carries exactly its five traits, in the order the design and rules sheet specify.')
 
 func test_the_frame_has_the_sheets_roles():
 	# Rules sheet (01-fitzgerald.md line 6): "Roles: Artillery, Striker". role_secondary is
