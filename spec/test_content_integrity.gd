@@ -162,6 +162,10 @@ const ICON_TARGETS := {
 	],
 	&'mt_hole_puncher': [], # a passive trait: no action of its own, so it wears the Kit's icon
 	&'mt_knock_em_down': [], # a passive trait: no action of its own, so it wears the Kit's icon
+	# Its one action (action_blasting_powder_spend) is a hidden bookkeeping reaction: reactions never
+	# reach the gear bar (gear_bar.gd:143) and it overrides show_in_tooltip to false, so nothing the
+	# player sees ever wears an icon for it. The Kit's own icon still has to be real.
+	&'mt_blasting_powder': [],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
