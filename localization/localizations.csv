@@ -7,3 +7,6 @@ lancer.term.efficient.desc,"An |Efficient| ability refunds 1 |CORE POWER| at the
 frame.mf_fitzgerald.name,Fitzgerald
 frame.mf_fitzgerald.flavor.short,Blindfire Gunner
 frame.mf_fitzgerald.flavor,"Barely larger than the cannon bolted through it, the Fitzgerald is what happens when a shipyard is asked for artillery and answers with a recoil problem. Its gunners do not need to see what they are shooting at, and its chassis does not expect to survive doing so."
+,
+gear.mt_weak_computer.name,Weak Computer
+gear.mt_weak_computer.effect,The Fitzgerald receives +1 Difficulty on all SYSTEMS saves and checks.

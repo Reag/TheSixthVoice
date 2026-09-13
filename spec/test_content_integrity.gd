@@ -152,7 +152,9 @@ func test_the_efficient_term_resolves_end_to_end():
 ##
 ## Shape: kit id => the action ids on that kit that are player-facing. A kit whose only action is
 ## the kit itself wears the kit's icon, so it lists none.
-const ICON_TARGETS := {}
+const ICON_TARGETS := {
+	&'mt_weak_computer': [], # its only action is the kit itself
+}
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 const VISIBLE_BUFFS:Array[StringName] = []
 

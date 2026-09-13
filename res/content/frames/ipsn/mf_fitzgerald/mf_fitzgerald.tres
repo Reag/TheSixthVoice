@@ -6,6 +6,8 @@
 [ext_resource type="Script" uid="uid://djuk56crywqss" path="res://engine/character/unit_core/mount_type.gd" id="4_mounttype"]
 [ext_resource type="Resource" uid="uid://dvhgasnfwqbym" path="res://content/mounts/mount_main.tres" id="5_mountmain"]
 [ext_resource type="Script" uid="uid://bxpc46igtsmvw" path="res://engine/character/unit/statblock.gd" id="6_statblock"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="7_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_fitzgerald/mt_weak_computer.tres" id="8_weakcomputer"]
 
 [sub_resource type="Resource" id="Resource_colorscheme"]
 script = ExtResource("3_colorscheme")
@@ -42,4 +44,5 @@ mount_types = Array[ExtResource("4_mounttype")]([ExtResource("5_mountmain")])
 stat = SubResource("Resource_statblock")
 role_primary = 4
 role_secondary = 1
+traits = Array[ExtResource("7_kit")]([ExtResource("8_weakcomputer")])
 metadata/_custom_type_script = "uid://daycu0mqh1rbq"

@@ -77,7 +77,7 @@ func test_the_frame_is_size_half():
 	assert_true(unit.core.is_size_half(), 'The live unit built on this frame reads as size-half.')
 	assert_eq(unit.core.get_size_float(), 0.5, 'The live unit is size 0.5.')
 
-func test_the_frame_has_one_main_mount():
+func test_the_frame_has_one_main_mount_and_its_traits_so_far():
 	var frame := _frame()
 	assert_not_null(frame, 'fixture: the frame loads.')
 	if frame == null: return
@@ -85,6 +85,14 @@ func test_the_frame_has_one_main_mount():
 	if frame.mount_types.size() != 1: return
 	var expected:MountType = load('res://content/mounts/mount_main.tres')
 	assert_eq(frame.mount_types[0], expected, 'The one mount is content/mounts/mount_main.tres.')
+
+	# SP1 Task 2 lands the first of five traits (Weak Computer); this count grows by one with each
+	# of Tasks 3-6, the same way test_content_integrity.gd's ICON_TARGETS does. See
+	# test_weak_computer.gd for the trait's own behaviour - this only pins that it is wired onto
+	# the frame at all.
+	assert_eq(frame.traits.size(), 1, 'The frame has exactly one trait so far.')
+	if frame.traits.size() != 1: return
+	assert_eq(frame.traits[0].compcon_id, &'mt_weak_computer', 'The one trait is Weak Computer.')
 
 func test_the_frame_has_the_sheets_roles():
 	# Rules sheet (01-fitzgerald.md line 6): "Roles: Artillery, Striker". role_secondary is
