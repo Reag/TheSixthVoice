@@ -170,6 +170,13 @@ func trait_mods(pre:AttackRoll.PreAttack) -> Array:
 func mod_titles(pre:AttackRoll.PreAttack) -> Array:
 	return pre.accuracy_mods.map(func(accmod) -> String: return accmod.title_key)
 
+## The icon the trait's breakdown line is drawn with, or null if the line is not there.
+func trait_mod_icon(pre:AttackRoll.PreAttack) -> Texture2D:
+	var wanted := tr(SOFT_COVER_KEY)
+	for accmod in pre.accuracy_mods:
+		if accmod.title_key == wanted: return accmod.icon
+	return null
+
 # ---------------------------------------------------------------- registration and the fixture
 
 func test_the_trait_is_registered_and_applies_its_three_buffs():
@@ -279,6 +286,13 @@ func test_an_unseen_target_takes_exactly_minus_one_with_the_traits_label():
 	assert_ne(tr(SOFT_COVER_KEY), SOFT_COVER_KEY, 'The trait penalty has a localization row of its own.')
 	assert_eq(trait_mods(pre), [-1], 'Exactly one accuracy mod, worth -1, titled %s.' % tr(SOFT_COVER_KEY))
 	assert_eq(pre.cover, Lancer.COVER.NONE, 'The engine records no cover; the trait supplies it instead.')
+
+	# The whole point of the labelled -1 is that the breakdown reads like cover rather than like an
+	# unexplained penalty, and the line's icon is half of that. attack_roll.gd:188 passes
+	# buff_core.base.icon straight through - the exported field, NOT BuffBonus.get_icon() - so an
+	# unset icon silently gives the line no glyph at all.
+	assert_eq(trait_mod_icon(pre), Icon.cover(Lancer.COVER.SOFT),
+		'The breakdown line wears the vanilla soft-cover icon.')
 
 	revoke_buffs([BUFF_SOFT_COVER])
 	assert_eq(trait_mods(preattack(specific, target)), [],
