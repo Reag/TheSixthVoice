@@ -338,8 +338,12 @@ func test_the_second_profile_is_hidden_before_the_protocol() -> void:
 	)
 	assert_false(_gear_bar_shows(MBP_ACTION_ID),
 		'So the gear bar draws no button for it at all: the profile does not exist yet.')
-	assert_true(_gear_bar_shows(ACTION_ID),
-		'Fixture: the BASE profile IS on the bar right now, so the assertion above is about the'
+	# Asked through can_activate_gear and NOT through _gear_bar_shows. The base profile does not set
+	# hide_if_disabled, so _gear_bar_shows is `not (false and ...)` = true for it whatever its
+	# availability - it would pass here even from outside a turn, which is exactly the state this
+	# fixture is supposed to rule out.
+	assert_true(UnitAction.can_activate_gear(_specific(ACTION_ID)),
+		'Fixture: the BASE profile IS usable right now, so the assertions above are about the missing'
 		+ ' marker and not about the whole Kit being unusable.')
 
 func test_the_second_profile_carries_its_own_statistics() -> void:
@@ -428,8 +432,10 @@ func test_both_profiles_are_firable_after_the_protocol() -> void:
 		'The base profile is still firable after the protocol.')
 	assert_true(UnitAction.can_activate_gear(_specific(MBP_ACTION_ID)),
 		'And the second profile is now firable too.')
-	assert_true(_gear_bar_shows(ACTION_ID), 'Both have buttons on the bar: the base one...')
-	assert_true(_gear_bar_shows(MBP_ACTION_ID), '...and the new one.')
+	# Only the second profile is worth asking the gear-bar predicate about: it is the one carrying
+	# hide_if_disabled, so it is the only one for which "is it drawn" can answer anything.
+	assert_true(_gear_bar_shows(MBP_ACTION_ID),
+		'And the second profile now has a button on the bar, where a moment ago it had none.')
 
 func test_the_second_profile_costs_exactly_three_ap_kinetic_self_damage() -> void:
 	cheat_a_hit()
