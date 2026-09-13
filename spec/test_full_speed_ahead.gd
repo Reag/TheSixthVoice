@@ -69,6 +69,36 @@ func test_the_fitzgerald_flies_its_full_speed_in_a_straight_line() -> void:
 	await dash_to(START + Vector2i(SPEED, 0))
 	assert_eq(fitz.tile(), START + Vector2i(SPEED, 0), 'It ended Speed tiles due east.')
 
+## The destination above is straight, exactly Speed away, and reachable by ordinary walking - so
+## test_the_fitzgerald_flies_its_full_speed_in_a_straight_line's landing-tile assertion is satisfied
+## by almost any movement action, including one with every card clause deleted. These two tests pin
+## the card directly on the action instead of inferring it from where the unit happened to land.
+func test_the_movement_budget_is_the_units_speed() -> void:
+	# get_target_range only falls through to unit.get_speed_max() because movement_range_fixed is
+	# left at 0 and the .tres never sets movement_type.spend_move (action_system_movement.gd:31-36,
+	# 33-35). Nothing else on this branch tries to overshoot Speed, so a widened
+	# movement_range_fixed would pass every other test in this file.
+	var action:Action = thrusters.kit.get_action(ACTION_ID)
+	var specific := SpecificAction.create(fitz, thrusters, action)
+	assert_eq(action.get_target_range(specific), SPEED, 'The budget is exactly Speed, not more.')
+
+func test_the_movement_type_carries_every_clause_of_the_card() -> void:
+	# get_movement_type(unit) (action_system_movement.gd:38-45) merges the .tres's inline
+	# MovementType with the unit's own - asserting the merged flags directly is the only way to pin
+	# each clause of the card independently of the others or of where the dash lands.
+	#
+	# The Fitzgerald carries no FLYING status, so MovementType.create's "flying implies
+	# straight_line" fallback (movement_type.gd:54-55) never fires for it: straight_line and flying
+	# only reach the merged type because the .tres sets them explicitly, so deleting either one from
+	# the .tres has to turn this test - and the realized path - red.
+	var action:ActionSystemMovement = thrusters.kit.get_action(ACTION_ID) as ActionSystemMovement
+	var movement_type := action.get_movement_type(fitz)
+	assert_true(movement_type.flying, 'FLYING: "fly your speed" on the card.')
+	assert_true(movement_type.straight_line, '"in a straight line" - no dog-legs.')
+	assert_true(movement_type.can_move_through_enemies, '"moving through hostile characters".')
+	assert_true(movement_type.ignore_engagement, 'Leaving engagement is silent: no hold, no reaction.')
+	assert_true(movement_type.ignore_rxns, 'Nothing gets a reaction off this move at all.')
+
 func test_a_charge_is_spent() -> void:
 	var before:int = thrusters.charges_current
 	await dash_to(START + Vector2i(SPEED, 0))
@@ -76,6 +106,19 @@ func test_a_charge_is_spent() -> void:
 
 func test_it_is_refused_with_no_charges_left() -> void:
 	thrusters.charges_current = 0
+	# The tile assertion below would also pass against an action that never fired at all - it does
+	# not tell a REFUSAL apart from a no-op. get_gear_unavailable_reason is exactly what
+	# event_gear_activate.check_specific_context calls before aborting the event
+	# (content/events/event_gear_activate.gd:46-51, whose own log line is literally
+	# "[ Gear not available ]"), and unit_action.gd:153 is the clause that reads charges_current and
+	# hands back REASON.NO_CHARGES. Asserting that reason directly proves the refusal is FOR LACK OF
+	# CHARGES specifically, not some unrelated gate that happened to also block the dash.
+	var action:Action = thrusters.kit.get_action(ACTION_ID)
+	var specific := SpecificAction.create(fitz, thrusters, action)
+	assert_eq(
+		UnitAction.get_gear_unavailable_reason(specific), UnitAction.REASON.NO_CHARGES,
+		'The system itself reports NO_CHARGES, not some other gate.'
+	)
 	await dash_to(START + Vector2i(SPEED, 0))
 	assert_eq(fitz.tile(), START, 'An uncharged system moves nobody.')
 
