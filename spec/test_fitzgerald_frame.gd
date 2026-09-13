@@ -171,8 +171,8 @@ func test_the_licence_grants_the_rank_1_gear():
 		'Rank 1 grants exactly the Breech-loading Swivel Gun and HEAER, in that order.')
 	var rank_2_gear:Array = license.rank_2.granted_gear.map(
 		func(kit:Kit) -> StringName: return kit.compcon_id)
-	assert_eq(rank_2_gear, [&'ms_hull_break_thrusters'],
-		'Rank 2 grants exactly Hull-break Thrusters.')
+	assert_eq(rank_2_gear, [&'ms_hull_break_thrusters', &'wm_ripper_mod'],
+		'Rank 2 grants exactly Hull-break Thrusters and the Ripper Mod, in that order.')
 	assert_true(license.rank_3.granted_gear.is_empty(), 'Rank 3 grants no gear yet.')
 
 # ---------------------------------------------------------------- display text

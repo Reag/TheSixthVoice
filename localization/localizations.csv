@@ -49,3 +49,6 @@ gear.ms_hull_break_thrusters.name,Hull-break Thrusters
 gear.ms_hull_break_thrusters.effect,"|Limited| 3, |Unique|. Thrusters bolted along the spine, meant for shifting cargo hulls and used here to shift the Fitzgerald."
 gear.ms_hull_break_thrusters.action_full_speed_ahead.name,FULL SPEED AHEAD
 gear.ms_hull_break_thrusters.action_full_speed_ahead.effect,"Expend a charge: fly your |Speed| in a straight line in any direction, moving through hostile characters. Every hostile character you pass through or become adjacent to during this movement must succeed on a |hull save| or be knocked |Prone| and take 3 |AP| kinetic damage. For each occupied space you pass through, you take 1 |AP| kinetic damage. This movement ignores |engagement| and does not provoke reactions."
+,
+gear.wm_ripper_mod.name,RIPPER MOD
+gear.wm_ripper_mod.effect,"This weapon deals +1d6 bonus damage against targets with at least 1 Armor. Attacks made with this weapon lose |AP| and cannot gain |AP| by any means."

@@ -182,6 +182,9 @@ const ICON_TARGETS := {
 	# (its Kit carries no icon_override at all and its single action carries one). This mod's own
 	# guard is stricter and wants both, which is SP5's job.
 	&'ms_hull_break_thrusters': [&'action_full_speed_ahead'],
+	# SP3 Task 3. A weapon mod: no actions at all, so nothing but the Kit's own icon is ever shown -
+	# it appears in the weapon-mod dropdown and on the modded weapon's card.
+	&'wm_ripper_mod': [],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
