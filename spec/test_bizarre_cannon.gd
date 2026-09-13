@@ -273,12 +273,18 @@ func test_the_kit_and_its_profile_have_display_text() -> void:
 	# mod) plus a one-clause pointer at the protocol, while gear.<kit>.<protocol>.effect is the
 	# protocol BUTTON's own full rules text. A prior revision overwrote the former with a copy of the
 	# latter, which left the no-mount rule rendered nowhere in the game while the protocol's text
-	# appeared twice. Non-empty alone does not catch that; distinctness does.
-	assert_ne(
-		translation.get_message('gear.%s.effect' % KIT_ID),
-		translation.get_message('gear.%s.%s.effect' % [KIT_ID, MBP_PROTOCOL_ID]),
-		'The Kit-level rule text must not be a copy of the protocol button\'s own rules text.'
-	)
+	# appeared twice. Non-empty alone does not catch that, and neither does mere distinctness - the
+	# historical bad text was a paraphrase of the protocol's text, not a byte-identical copy, so an
+	# assert_ne on the two full strings would have passed against the actual bug. Assert on what each
+	# row must actually SAY instead: the kit row still states its own no-mount rule, and it does not
+	# carry the protocol's distinctive stat block.
+	var kit_effect:String = translation.get_message('gear.%s.effect' % KIT_ID)
+	assert_true(kit_effect.contains('weapon mount'),
+		'The Kit-level rule text still states the no-weapon-mount rule.')
+	assert_true(kit_effect.contains('weapon mod'),
+		'The Kit-level rule text still states the no-weapon-mod rule.')
+	assert_false(kit_effect.contains('Heavy Cannon, AP, Reliable'),
+		'The Kit-level rule text must not carry a copy of the protocol button\'s own stat block.')
 
 # ---------------------------------------------------------------- the recoil
 
