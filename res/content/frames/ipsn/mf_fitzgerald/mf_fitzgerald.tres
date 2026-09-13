@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="Frame" format=3]
+
+[ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="1_frame"]
+[ext_resource type="Texture2D" uid="uid://dygcj7y0qg504" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/placeholder/mf_placeholder.png" id="2_sprite"]
+[ext_resource type="Script" uid="uid://dch85ypcupfgo" path="res://engine/character/unit_core/color_scheme.gd" id="3_colorscheme"]
+[ext_resource type="Script" uid="uid://djuk56crywqss" path="res://engine/character/unit_core/mount_type.gd" id="4_mounttype"]
+[ext_resource type="Resource" uid="uid://dvhgasnfwqbym" path="res://content/mounts/mount_main.tres" id="5_mountmain"]
+[ext_resource type="Script" uid="uid://bxpc46igtsmvw" path="res://engine/character/unit/statblock.gd" id="6_statblock"]
+
+[sub_resource type="Resource" id="Resource_colorscheme"]
+script = ExtResource("3_colorscheme")
+base_0 = Color(0.5, 0.5, 0.5, 1)
+base_1 = Color(0.25, 0.25, 0.25, 1)
+base_2 = Color(0.75, 0.75, 0.75, 1)
+
+[sub_resource type="Resource" id="Resource_statblock"]
+script = ExtResource("6_statblock")
+size = 1
+is_size_half = true
+structure = 4
+stress = 4
+health = 6
+armor = 1
+evasion = 10
+edef = 6
+speed = 4
+heat = 5
+save_target = 10
+sensor_range = 10
+tech_attack = -2
+repairs = 4
+systems_points = 6
+reactions = 1
+activations = 1
+metadata/_custom_type_script = "uid://bxpc46igtsmvw"
+
+[resource]
+script = ExtResource("1_frame")
+default_color_scheme = SubResource("Resource_colorscheme")
+sprites = Array[Texture2D]([ExtResource("2_sprite")])
+mount_types = Array[ExtResource("4_mounttype")]([ExtResource("5_mountmain")])
+stat = SubResource("Resource_statblock")
+role_primary = 4
+metadata/_custom_type_script = "uid://daycu0mqh1rbq"

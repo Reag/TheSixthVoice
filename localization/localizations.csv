@@ -3,3 +3,7 @@ mod.reag_thesixthvoice.name,The Sixth Voice
 ,
 lancer.term.efficient,Efficient
 lancer.term.efficient.desc,"An |Efficient| ability refunds 1 |CORE POWER| at the end of any scene in which it was used, so it is available again in the next one."
+,
+frame.mf_fitzgerald.name,Fitzgerald
+frame.mf_fitzgerald.flavor.short,Blindfire Gunner
+frame.mf_fitzgerald.flavor,"Barely larger than the cannon bolted through it, the Fitzgerald is what happens when a shipyard is asked for artillery and answers with a recoil problem. Its gunners do not need to see what they are shooting at, and its chassis does not expect to survive doing so."
