@@ -41,4 +41,5 @@ sprites = Array[Texture2D]([ExtResource("2_sprite")])
 mount_types = Array[ExtResource("4_mounttype")]([ExtResource("5_mountmain")])
 stat = SubResource("Resource_statblock")
 role_primary = 4
+role_secondary = 1
 metadata/_custom_type_script = "uid://daycu0mqh1rbq"

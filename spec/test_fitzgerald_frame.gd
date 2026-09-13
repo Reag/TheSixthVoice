@@ -86,6 +86,16 @@ func test_the_frame_has_one_main_mount():
 	var expected:MountType = load('res://content/mounts/mount_main.tres')
 	assert_eq(frame.mount_types[0], expected, 'The one mount is content/mounts/mount_main.tres.')
 
+func test_the_frame_has_the_sheets_roles():
+	# Rules sheet (01-fitzgerald.md line 6): "Roles: Artillery, Striker". role_secondary is
+	# consumed by catalog_blurb.gd and opfor_editor_modal.gd, not decorative - a missing value
+	# silently drops the frame's second role from both.
+	var frame := _frame()
+	assert_not_null(frame, 'fixture: the frame loads.')
+	if frame == null: return
+	assert_eq(frame.role_primary, Lancer.SQUAD_ROLE.ARTILLERY, 'role_primary is Artillery.')
+	assert_eq(frame.role_secondary, Lancer.SQUAD_ROLE.STRIKER, 'role_secondary is Striker.')
+
 # ---------------------------------------------------------------- the licence
 
 func test_the_licence_is_registered():
