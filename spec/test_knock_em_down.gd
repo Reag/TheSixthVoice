@@ -31,6 +31,12 @@
 # +-30 dominates whatever the save's own d20 comes up as, cheated or real.
 #
 #   godot --resolution 800x600 --position 20,20 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-dir=res://unpacked/Reag-TheSixthVoice/spec
+#
+# FIX: REVIEW FINDINGS 1-3 (2026-09-13). Finding 1 (the author ruled: add the gate) is
+# test_a_cannon_crit_on_a_non_character_does_nothing below, pinning the new attacked_unit.is_character()
+# guard in onhit_knock_em_down.should_abort(). Finding 2 (RULING 17: on a multi-target Line crit, only
+# the FIRST target's save is forced) is test_ruling_17_only_the_first_line_target_gets_the_save. Finding
+# 3's three test-strengthening items are folded into the existing tests below (see their own comments).
 extends GutTest
 
 const FrameIsolation := preload('res://testkit/frame_isolation.gd')
@@ -123,6 +129,17 @@ func force_save_to_pass() -> void:
 	target.core.frame.hase = HaseBlock.create(30, 0, 0, 0)
 	target.core.full_repair()
 
+## Same trick as cheat_a_crit(), doubled: a single Line shot that hits TWO units rolls a SEPARATE
+## attack roll (and pops a separate base_roll off Dice.CHEAT_ROLL_QUEUE) for each target
+## (event_unit_attack.gd's execute() runs once per attacked unit), so 30 is queued twice up front.
+## The buffer is doubled too, since two attack rolls and the shared damage roll between them pop
+## more dice than a single shot does.
+func cheat_two_crits() -> void:
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	var buffer:Array[int] = []
+	for i:int in 40: buffer.append(6)
+	Dice.cheat_attack([30, 30], buffer)
+
 # ---------------------------------------------------------------- the trait
 
 func test_a_cannon_crit_forces_a_hull_save_and_prones_on_a_failure() -> void:
@@ -151,6 +168,14 @@ func test_a_passed_save_leaves_the_target_standing() -> void:
 	assert_gt(target.current_damage(), RELIABLE_ON_MISS,
 		'Fixture: the shot still landed, so the save is what spared it and not a miss.')
 	assert_false(target.has_status(Lancer.STATUS.PRONE), 'A passed Hull save leaves the target standing.')
+	# Review finding 3: without this, the test would pass identically if the trait never fired at
+	# all - the passed save and "never triggered" both leave the target standing. The counter is
+	# what proves the save really was forced (and just happened to pass).
+	var trait_gear := _trait_gear()
+	assert_not_null(trait_gear, 'fixture: the trait gear is reachable.')
+	if trait_gear != null:
+		assert_eq(trait_gear.get_uses_this_round_alt(USAGE_KEY), 1,
+			"Knock 'em down still spent its 1/round usage, even though the save passed.")
 
 func test_a_cannon_hit_that_is_not_a_crit_does_nothing() -> void:
 	# Would fail its save if forced - discriminates "the effect never triggered" from "it triggered
@@ -163,6 +188,13 @@ func test_a_cannon_hit_that_is_not_a_crit_does_nothing() -> void:
 	assert_gt(target.current_damage(), RELIABLE_ON_MISS, 'Fixture: the shot landed.')
 	assert_false(target.has_status(Lancer.STATUS.PRONE),
 		"A hit that is not a crit does not trigger Knock 'em down.")
+	# Review finding 3: pins that the round was never spent either - without this, a version of the
+	# trait that was entirely dead would pass this test just as well as the correct one.
+	var trait_gear := _trait_gear()
+	assert_not_null(trait_gear, 'fixture: the trait gear is reachable.')
+	if trait_gear != null:
+		assert_eq(trait_gear.get_uses_this_round_alt(USAGE_KEY), 0,
+			"A hit that is not a crit does not spend the 1/round usage either.")
 
 func test_a_rifle_crit_does_nothing() -> void:
 	unit.core.equip_system(RIFLE_ID)
@@ -177,6 +209,11 @@ func test_a_rifle_crit_does_nothing() -> void:
 	assert_gt(target.current_damage(), 0, 'Fixture: the rifle shot landed.')
 	assert_false(target.has_status(Lancer.STATUS.PRONE),
 		"A Rifle crit does not trigger Knock 'em down: the weapon_types = [CANNON] gate holds.")
+	# Review finding 3: current_damage() > 0 alone is satisfied by a plain hit too, since this test's
+	# cheated damage queue is all 6s - a crit and a non-crit deal identical damage. This distinguishes
+	# "the weapon_types gate rejected the Rifle" from "the trait is dead and would reject anything".
+	assert_eq(_trait_gear().get_uses_this_round_alt(USAGE_KEY), 0,
+		"The Rifle crit never even reached the buff: the gate is on weapon_types, not a fluke of damage.")
 
 func test_the_second_cannon_crit_in_a_round_does_nothing_and_the_next_round_works_again() -> void:
 	# RULING 15. The first crit's save PASSES on purpose: if the round were spent only by a FAILED
@@ -208,11 +245,102 @@ func test_the_second_cannon_crit_in_a_round_does_nothing_and_the_next_round_work
 	# pinned to auto-fail, so the trait re-firing is what makes this prone.
 	await SpecFactory.end_turn(game, unit)
 	await SpecFactory.start_turn(game, unit)
-	assert_eq(trait_gear.get_uses_this_round_alt(USAGE_KEY), 0,
-		'Fixture: the new round reset the usage counter.')
+	# Review finding 3: guarded for consistency with the same variable's guard sixteen lines above -
+	# harmless today (the fixture already proved trait_gear non-null), but this file's own style
+	# guards every dereference of it.
+	if trait_gear != null:
+		assert_eq(trait_gear.get_uses_this_round_alt(USAGE_KEY), 0,
+			'Fixture: the new round reset the usage counter.')
 
 	cheat_a_crit()
 	await fire_at(AIM_EAST)
 
 	assert_true(target.has_status(Lancer.STATUS.PRONE),
 		"Knock 'em down works again on the new round.")
+
+# ---------------------------------------------------------------- review findings 1 and 2
+
+## FINDING 1 (the author ruled: add the gate). The rules sheet and the shipped localization row both
+## say "critically hits A CHARACTER", but the guard in onhit_knock_em_down.should_abort() checked only
+## Unit.is_valid(attacked_unit) - and event_unit_attack.gd's apply_on_crits is reached for ANY valid
+## target unit, character or not; it only checks target_unit.is_character() two lines later, for the
+## crit bark. So a Cannon crit on a destructible object (or any other non-character unit) would spend
+## the 1/round and force a Hull save that can do nothing - Prone has no effect on a non-character.
+##
+## The target here is the SAME fixture unit as every other test in this file, just re-flagged as an
+## OBJECT (the same technique the base game's own test_event_unit_damage.gd uses for a "structured
+## deployable" fixture) - it stays a valid, active, hostile, hittable unit; only is_character() flips.
+func test_a_cannon_crit_on_a_non_character_does_nothing() -> void:
+	target.core.frame.entity_type = Frame.ENTITY.OBJECT
+	target.core.full_repair()
+	assert_false(target.is_character(), 'fixture: the target is no longer a character.')
+
+	force_save_to_fail() # would guarantee Prone if a save were forced
+
+	cheat_a_crit()
+	await fire_at(AIM_EAST)
+
+	assert_gt(target.current_damage(), RELIABLE_ON_MISS, 'Fixture: the shot still landed and crit.')
+	assert_false(target.has_status(Lancer.STATUS.PRONE),
+		"No save was forced on the non-character target: Prone never applied, though a forced save"
+		+ ' would have failed for certain.')
+	var trait_gear := _trait_gear()
+	assert_not_null(trait_gear, 'fixture: the trait gear is reachable.')
+	if trait_gear != null:
+		assert_eq(trait_gear.get_uses_this_round_alt(USAGE_KEY), 0,
+			"Knock 'em down does not spend its 1/round on a non-character target.")
+
+## FINDING 2 / RULING 17 (author ruling, pinned - not a bug, do not change): on a multi-target Line
+## crit, only the FIRST target (closest, per aoe_calculator.line building rings out from the attacker,
+## and lancer-tactics-attack-pipeline-facts.md's "Line targets resolve closest-first") gets its save
+## forced. event_unit_attack_declared.gd queues one event_unit_attack PER attacked unit
+## (event_unit_attack.gd:39 takes context.target_unit, singular), and the 1/round gate is
+## RE-EVALUATED PER EVENT via buff_knock_em_down.check_if_passive_applies ->
+## UnitCondition.get_buffs_to (event_unit_attack.gd:46) - so target 1's should_abort() increment
+## closes the gate before target 2's event ever asks for the buff. "1/round" means one save per
+## round, full stop, however many characters a single Line crits.
+##
+## FIRED WITH THE BASE BIZARRE CANNON PROFILE, NOT MORE BLACK POWDER, even though MBP was the
+## finding's suggested vehicle. MBP carries its own separate ON_HIT effect (Ruling 11: a Hull save
+## against Prone on every hit, un-gated by any round limit) that would fire on BOTH targets
+## regardless of Knock 'em down's gate - so "the far target never went prone" would be genuinely
+## ambiguous between "Knock 'em down's gate was closed" and "MBP's own save happened to pass". The
+## base profile has no on-hit effect of its own
+## (test_bizarre_cannon.gd's test_the_second_profile_carries_its_own_statistics pins that this save
+## belongs to MBP alone) and is also a Line 15, so it draws the same multi-target line with zero
+## confound - the simpler vehicle the finding allowed as a fallback.
+func test_ruling_17_only_the_first_line_target_gets_the_save() -> void:
+	# A second character further down the same east-facing line 'target' (at AIM_EAST, (11,4)) sits
+	# on. aoe_calculator.line's rings are built outward from the firer regardless of which tile along
+	# the line was aimed at, so both (11,4) and this unit at (13,4) are hit by one shot fired at
+	# AIM_EAST - and (11,4), being closer to (7,4), resolves first.
+	var far_target:Unit = SpecFactory.create_unit(game.map, Vector2i(13, 4), Faction.AI_ENEMY)
+	FrameIsolation.isolate_frame(far_target)
+	far_target.core.frame.stat.health = 200
+	far_target.core.frame.stat.evasion = -10
+	far_target.core.frame.stat.armor = 0
+	far_target.core.full_repair()
+
+	force_save_to_fail() # 'target' (closer): guaranteed Prone IF its save is forced
+	far_target.core.frame.hase = HaseBlock.create(-30, 0, 0, 0) # far_target: same guarantee
+	far_target.core.full_repair()
+
+	cheat_two_crits()
+	await fire_at(AIM_EAST)
+
+	assert_gt(target.current_damage(), RELIABLE_ON_MISS, 'Fixture: the closer target was hit and crit.')
+	assert_gt(far_target.current_damage(), RELIABLE_ON_MISS, 'Fixture: the farther target was hit and crit too.')
+
+	assert_true(target.has_status(Lancer.STATUS.PRONE),
+		'RULING 17: the closer target resolves first, so its save WAS forced - and pinned to auto-fail.')
+	assert_false(far_target.has_status(Lancer.STATUS.PRONE),
+		"RULING 17: the farther target's save was never forced - the 1/round gate was already closed"
+		+ ' by the closer target, even though this target also crit and would have failed for certain'
+		+ ' if forced.')
+
+	var trait_gear := _trait_gear()
+	assert_not_null(trait_gear, 'fixture: the trait gear is reachable.')
+	if trait_gear != null:
+		assert_eq(trait_gear.get_uses_this_round_alt(USAGE_KEY), 1,
+			'Exactly one save was forced this round, despite two characters being critically hit by'
+			+ ' the same shot.')
