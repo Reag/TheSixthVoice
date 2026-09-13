@@ -77,9 +77,19 @@ const HARD_COVER_FOR_UNSEEN := Vector2i(7, 4)
 const SEEN_FAR := Vector2i(2, 8)
 const HARD_COVER_FOR_SEEN := Vector2i(2, 7)
 
+## The mirror image of HARD_COVER_FOR_UNSEEN: one block east of the FITZGERALD, i.e. adjacent to it
+## and squarely on the ray from the enemy behind the wall, so it is HARD cover for the Fitzgerald
+## against a shot coming the other way.
+const HARD_COVER_FOR_FITZGERALD := Vector2i(3, 4)
+
 ## Vanilla Launcher, natively Arcing, no range pattern - so it ignores sight on its own merits and
 ## the trait must NOT touch it (ruling 3).
 const VANILLA_ARCING_LAUNCHER := &'mw_sharanga_missiles'
+
+## Stock Arcing Cannon (weapon_type 1, tagged &"arcing", not SEEKING) - so an enemy holding it can
+## shoot at a Fitzgerald it cannot see, and because it is not SEEKING its ignores_cover() stays false
+## and the attack roll still runs the defender-side cover query. mw_howitzer has the same shape.
+const ENEMY_BLIND_CANNON := &'mw_mortar'
 
 var game:Gamemaster
 var unit:Unit
@@ -384,6 +394,58 @@ func test_a_vanilla_arcing_launcher_at_an_unseen_target_gets_geometry_cover_and_
 	var by_cannon := preattack(control, target)
 	assert_eq(by_cannon.cover, Lancer.COVER.NONE, 'control: the trait IS live for the Cannon.')
 	assert_eq(trait_mods(by_cannon), [-1], 'control: and the Cannon takes its -1.')
+
+## THE OTHER DIRECTION THROUGH Buff.TO.IGNORE_COVER, which is a dual-purpose channel (buff.gd:35:
+## "(attacker) see-through seeker, kill with my heart; (defender) markerlight, wrecks"). Once cover
+## has been calculated, attack_roll.gd:160 runs the SAME query a second time against the unit being
+## SHOT AT, and zeroes its cover if anything answers:
+##
+##   get_buffs_to(attacked_unit, Buff.TO.IGNORE_COVER, Context.clone(context, {category = ...}))
+##
+## In that query the context still describes the ENEMY and the ENEMY'S weapon, and target_unit is
+## the Fitzgerald - a shape in which every clause of buff_hole_puncher_ignore_cover reads true when
+## an enemy blind-fires a Cannon at us. So without its owner guard the trait would delete the
+## Fitzgerald's OWN cover, making it easier to hit: the exact inverse of the rules text, and none of
+## the four rulings. Reachable with stock content, not just in theory - mw_mortar and mw_howitzer are
+## both Arcing Cannons, as are the Bastion's grenade launcher and the Bombard's cannon.
+func test_an_enemy_blind_firing_a_cannon_does_not_strip_the_fitzgeralds_own_cover():
+	raise_cover_at(HARD_COVER_FOR_FITZGERALD)
+
+	var gear := target.core.equip_system(ENEMY_BLIND_CANNON)
+	assert_true(GearCore.is_valid(gear), 'fixture: the enemy carries %s.' % ENEMY_BLIND_CANNON)
+	if not GearCore.is_valid(gear): return
+	var incoming := SpecificAction.create(target, gear, gear.get_solo_action())
+	var incoming_context := incoming.to_context({target_unit = unit})
+
+	assert_true(incoming.action.is_weapon_type(Lancer.WEAPON_TYPE.CANNON, gear),
+		'fixture: %s is a Cannon, so the trait gate would match it.' % ENEMY_BLIND_CANNON)
+	assert_true(incoming.action.has_tag(Lancer.WEAPON_TAG.ARCING, incoming),
+		'fixture: it is natively Arcing, so the enemy can fire it at a target it cannot see.')
+	assert_false(incoming.action.ignores_cover(incoming_context),
+		'fixture: it is not SEEKING, so the defender-side cover query really does run.')
+	assert_false(UnitRelation.can_see(target, unit),
+		'fixture: the enemy cannot see the Fitzgerald - which is what makes the blindness clause true.')
+	assert_eq(CoverCalculator.determine_cover(unit, target).total, Lancer.COVER.HARD,
+		'fixture: this geometry really does give the Fitzgerald HARD cover from over there.')
+
+	# The defect stated directly, at the seam it would occur on: attack_roll.gd:160's query, context
+	# and all. An answer here is the cover erasure, whatever the rest of the roll then looks like.
+	var defender_query := incoming.to_context({target_unit = unit, category = Lancer.COVER.HARD})
+	assert_eq(UnitCondition.get_buffs_to(unit, Buff.TO.IGNORE_COVER, defender_query).size(), 0,
+		'The trait offers nothing to the defender-side IGNORE_COVER query.')
+
+	# And the same thing observed through the real attack roll.
+	var pre := preattack(incoming, unit)
+	assert_eq(pre.cover, Lancer.COVER.HARD, 'The Fitzgerald keeps its own hard cover while blind-fired at.')
+	assert_eq(trait_mods(pre), [], 'And the trait puts no line on the enemy attacker\'s roll.')
+
+	# Control, so this cannot pass against a trait that never installed - the same unit, the same
+	# instant, firing its own Cannon at the same enemy, still gets the full attacker-side behaviour.
+	var control := cannon()
+	if control == null: return
+	var outgoing := preattack(control, target)
+	assert_eq(outgoing.cover, Lancer.COVER.NONE, 'control: the trait IS live - our own blind shot erases cover.')
+	assert_eq(trait_mods(outgoing), [-1], 'control: and takes its -1.')
 
 # SP4: the Carronade goes here. It is a Cannon that ignores cover in its own right, so
 # buff_hole_puncher_soft_cover's `not context.action.ignores_cover(context)` clause must leave it at

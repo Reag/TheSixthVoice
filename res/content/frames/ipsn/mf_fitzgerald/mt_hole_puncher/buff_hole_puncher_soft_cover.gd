@@ -15,22 +15,28 @@
 ## (behind a wall that would give HARD, max-then-zero keeps the HARD) nor ruling 3 (it cannot see
 ## which weapon is firing). Paired with buff_hole_puncher_ignore_cover, which erases the geometry,
 ## this gives the "exactly soft" the rules text asks for.
+##
+## WHERE THE LINE APPEARS IN THE UI, which is engine-forced and not a defect. attack_roll.gd:188
+## passes `buff_core.base.to == Buff.TO.ATTACK_ROLL` as AccuracyMod's `_from_attacker` flag, while
+## genuine cover passes false (attack_roll.gd:167), and attack_preview_column.gd:18 splits the
+## breakdown on exactly that flag. So "Soft cover (Hole Puncher)" sits on the ATTACKER'S side of the
+## attack preview rather than the target's, where a cover line normally reads. Every ATTACK_ROLL buff
+## in the game lands there; there is no mod-side seam that moves it. Do not chase it.
 extends BuffBonus
 
 const HolePuncher := preload('./buff_hole_puncher_arcing.gd')
 
-## Mirrors BuffWeaponType's own validity check (buff_weapon_type.gd:26-32) plus the target, because
-## BuffBonus extends Buff directly and Buff's default answers true for anything.
+## BuffBonus extends Buff directly and Buff's defaults answer true for anything, so the two halves
+## BuffWeaponType would have supplied - the validity check and the basic-gear guard - are taken from
+## the shared statics on buff_hole_puncher_arcing.gd instead of being re-typed here. Re-typing them
+## is what let this buff drift from its two siblings before: it had the validity check but not the
+## guard, so a basic Cannon or Line weapon would have taken the -1 while getting neither the ARCING
+## nor the cover erasure it is priced against.
 func is_buff_context_valid_for_passive(core:BuffCore, context:Context) -> bool:
-	return (
-		Unit.is_valid(context.unit) and
-		Unit.is_valid(context.target_unit) and
-		GearCore.is_valid(context.gear) and
-		Action.is_valid(context.action) and
-		context.action is ActionAttackWeapon
-	)
+	return HolePuncher.is_weapon_context_valid(context) and Unit.is_valid(context.target_unit)
 
 func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
+	if HolePuncher.is_gear_basic(context): return false
 	if not HolePuncher.applies_to_weapon(context): return false
 	# A weapon that already ignores cover in its own right (SP4's Carronade) is not made worse by
 	# the trait: there is no cover for the trait to be "exactly" equal to.

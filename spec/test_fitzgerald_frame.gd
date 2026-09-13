@@ -90,8 +90,9 @@ func test_the_frame_carries_its_traits_so_far():
 	# SP1 Task 2 landed the first of five trait Kits (Weak Computer), Task 3 the second (Broadside)
 	# and Task 5 the third (Hole Puncher); this list grows by one with each of Tasks 6-7, the same way
 	# test_content_integrity.gd's ICON_TARGETS does. Each trait's own behaviour is specced beside
-	# it - test_weak_computer.gd, test_bizarre_cannon.gd, test_hole_puncher.gd - so this only pins that it is wired onto
-	# the frame at all, and in a way that a new trait cannot quietly displace an old one.
+	# it - test_weak_computer.gd, test_bizarre_cannon.gd, test_hole_puncher.gd - so this only pins
+	# that it is wired onto the frame at all, and in a way that a new trait cannot quietly displace
+	# an old one.
 	#
 	# (Task 2 folded this into the mount test to hit a predicted test count; split back out in
 	# Task 3, because a mount regression and a trait regression are not the same failure.)
