@@ -363,6 +363,14 @@ func test_a_refused_activation_does_not_reload_the_weapon() -> void:
 	assert_true(amr.is_loaded, 'Fixture: ruling 6 readied it on activation.')
 
 	amr.is_loaded = false
+	# PIN WHICH REFUSAL THIS IS. get_gear_unavailable_reason is one elif chain with ORDNANCE
+	# (unit_action.gd:146) ABOVE UNLOADED (:151), and the AMR carries both tags. This test's whole
+	# premise is the UNLOADED branch; today only a protocol has been taken so the ordnance window is
+	# still open and UNLOADED is genuinely what we hit, but anything that shuts that window earlier
+	# would silently switch the refusal to ORDNANCE and leave both assertions below green while the
+	# claim they document went untested.
+	assert_eq(reason_for(amr), UnitAction.REASON.UNLOADED,
+		'Fixture: refused for being unloaded, not for the ordnance window.')
 	var before:int = mk2.core.current.heat
 	cheat_every_die_to(3)
 	await shoot(amr, 3)

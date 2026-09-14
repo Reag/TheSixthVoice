@@ -216,6 +216,11 @@ func test_a_superheavy_attack_does_not_spend_the_bonus() -> void:
 	var amr := equip(AMR)
 	await MK2Fixture.open_turn(game, mk2)
 	await shoot(cyclone, target)
+	# The positive control: without it a Cyclone activation that was refused or aborted - a mount or
+	# size rule, a heat gate, a can_target_unit change - would leave the SUPERHEAVY exclusion
+	# untested and this assertion trivially true. The Cyclone is Loading, so its spent flag is the
+	# cheapest proof the excluded shot really fired.
+	assert_false(cyclone.is_loaded, 'Fixture: the excluded shot really did go off.')
 	assert_eq(accuracy_for(amr, target), 2, 'The excluded shot charged nothing.')
 
 func test_a_non_loading_weapon_gets_nothing() -> void:
@@ -253,7 +258,20 @@ func test_an_enemys_loading_shot_does_not_spend_our_bonus() -> void:
 		'Fixture: it is the enemy that is taking a turn, so ITS shot passes qualifies().')
 	assert_false(mk2.state.is_taking_turn, 'Fixture: and we are not.')
 
-	await shoot_from(enemy, enemy_amr, mk2)
+	# FIRED AT THE DUMMY, NOT AT US, AND THAT IS DELIBERATE. The guard under test cares only about
+	# WHO SHOT; the victim is irrelevant to it. Aiming this at the M/K2 made the test a live flake:
+	# d20 19 + accuracy 3 = 22 against our 8 Evasion is a CRIT, a crit doubles the damage dice, and
+	# 6 AP damage against a 6 HP frame structures us - which then rolls the structure table, taking
+	# the queued values to 8 of the 9 this helper queues. One extra die anywhere (an added tag, a
+	# structure-table change, a third-party event_unit_structure extension) drains the FIFO, hands
+	# the structure roll to real RNG, and a rolled 1 destroys the M/K2 mid-spec. The dummy has 200 HP
+	# and -10 Evasion, so nothing downstream of the hit can vary.
+	await shoot_from(enemy, enemy_amr, target)
+	# THE POSITIVE CONTROL. Without it the assertion below is trivially true whenever the enemy's
+	# activation never resolves at all - a faction, range or availability change would leave the
+	# holder guard untested and this test green. The AMR is Loading, so its spent flag is the
+	# cheapest proof the shot actually went off.
+	assert_false(enemy_amr.is_loaded, 'Fixture: their Loading shot really did go off.')
 	assert_eq(trait_uses(), 0, "An enemy's Loading shot did not spend OUR once-per-turn charge.")
 
 	await SpecFactory.end_turn(game, enemy)

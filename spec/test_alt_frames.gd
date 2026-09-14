@@ -89,6 +89,18 @@ func _license_paths_by_id() -> Dictionary:
 ## exactly like a pass.
 const ALTS_BUILT := 1
 
+## The same tripwire for BASE_LICENSES, which ALTS_BUILT does not cover. Three tests below loop over
+## it, and emptying it ENTIRELY is caught indirectly (test_every_alt_frame_reaches_its_licence
+## asserts its own licence is present) - but SHRINKING it from ten rows to one is caught by nothing:
+## all three loops simply get quieter, and GUT marks a zero-assert test RISKY rather than FAILED
+## (gut.gd:581, :821), so the suite still reads green while the baseline it pins has evaporated.
+## Bump this only when a row is added or removed deliberately.
+const BASE_LICENSES_PINNED := 10
+
+func test_the_baseline_table_is_intact():
+	assert_eq(BASE_LICENSES.size(), BASE_LICENSES_PINNED,
+		'%d base licences pinned, %d in the table.' % [BASE_LICENSES_PINNED, BASE_LICENSES.size()])
+
 func test_every_alt_frame_reaches_its_licence():
 	assert_eq(ALT_FRAMES.size(), ALTS_BUILT, '%d alt frames built, %d in the table.' % [ALTS_BUILT, ALT_FRAMES.size()])
 	var retained:Array = load(OUR_MOD_MAIN).get_script_constant_map().get('EXTENDED_RESOURCES', [])

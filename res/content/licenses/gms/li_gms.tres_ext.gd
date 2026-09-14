@@ -5,8 +5,13 @@ extends RefCounted
 # offers every pilot the frames of every GMS licence at rank 3 regardless of licence level
 # (pilot_core.gd get_available_frames), so a frame appended here is playable from the start.
 #
-# APPENDED, never inserted: UnlockTree.license_name reads granted_frames.front() to name the
-# licence, so the Everest must stay first.
+# APPENDED, never inserted, so the Everest stays first - but NOT for the reason an earlier version
+# of this comment gave. UnlockTree.license_name does read granted_frames.front(), but off rank_2
+# (unlock_tree.gd:28-32), and vanilla li_gms.tres declares ONLY rank_1 (li_gms.tres:53) - so
+# license_name() returns '???' for this licence whatever we do here. The real reason is display
+# order: UnlockRank builds its granted-frame name and description lists by walking granted_frames
+# in array order (unlock_rank.gd:12, :19), so inserting would put the M/K2 ahead of the Everest on
+# vanilla's own licence card.
 #
 # This script is queued by LancerTacticsMod.add_overwrite_extend_mod_resources like any other
 # .tres_ext.gd, and then mod_main.gd takes it straight back out of the engine's queue and calls it

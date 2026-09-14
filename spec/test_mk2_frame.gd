@@ -1,8 +1,8 @@
 # THE M/K2's frame sheet (SP1 Task 4), and the home of the five licence tests SP1 absorbed from
 # spec/test_spike_license_extension.gd when that probe was deleted.
 #
-# Numbers come from D:\DEV\lancer-tactics-claude\specs\sixth-voice\02-mk2.md's Stats table, which is
-# generated from the LCP by D:\DEV\lancer-tactics-claude\tools\lcp_to_sheets.py. Neither lives in
+# Numbers come from the notes repo's specs/sixth-voice/02-mk2.md Stats table, which is
+# generated from the LCP by that repo's tools/lcp_to_sheets.py. Neither lives in
 # this repo - the sheets and the generator are kept out of the mod repos on purpose. A red here
 # means the .tres drifted from the card, OR that the sheet was regenerated - check the sheet's git
 # history (in the lancer-tactics-claude repo) before touching the resource.
@@ -16,6 +16,7 @@ const FRAME_ID := &'mf_mk2'
 const LICENSE_ID := &'li_gms'
 const EVEREST_ID := &'mf_standard_pattern_i_everest'
 const MOD_ID := 'Reag-TheSixthVoice'
+const OUR_TRANSLATION := 'res://unpacked/Reag-TheSixthVoice/localization/localizations.en.translation'
 
 ## Other li_gms extenders a testkit run can contain, and the frame each grants there. Carried over
 ## from the probe (spike 2): Reag-SpikeLiGmsCompetitor is a throwaway mod, no longer on disk, that
@@ -113,7 +114,51 @@ func test_replaceable_parts_is_vanillas_own_instance() -> void:
 
 func test_the_tagline_is_the_one_the_author_ruled() -> void:
 	# Ruling 2: the stand-in role word from the spike is gone.
+	#
+	# ASSERTED AGAINST OUR OWN ARTIFACT AS WELL AS tr(), which is the stronger of the two shapes
+	# available and the one test_fitzgerald_frame.gd already uses. A bare tr() reads the global
+	# TranslationServer, and Translate.add_translation_from_file globs the mod's directory for
+	# *.translation and loads THAT - so an outdated compiled artifact answers while the CSV on disk
+	# says something else, and the test passes against text nobody ships. Reading the artifact
+	# directly is what notices.
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation,
+		'This mod has a compiled translation (run the headless --import if this is a fresh clone).')
+	if translation != null:
+		assert_eq(String(translation.get_message('frame.mf_mk2.flavor.short')), 'Archival Artillerist',
+			'Ruling 2, in the artifact that actually ships.')
 	assert_eq(tr('frame.mf_mk2.flavor.short'), 'Archival Artillerist', 'Ruling 2.')
+
+## THE M/K2's DISPLAY TEXT, DRIVEN OFF THE FRAME ITSELF.
+##
+## The branch added 21 localisation rows and, before this test, exactly one of them was asserted
+## anywhere. Delete frame.mf_mk2.name - the string mech select shows - or any trait's .name/.effect,
+## and the player reads a raw translation key off a card while the suite stays green.
+##
+## DRIVEN OFF frame().traits RATHER THAN A HAND-WRITTEN LIST on purpose: a fifth trait cannot ship
+## without its rows, because the loop grows with the frame. Replaceable Parts is vanilla's own Kit
+## and its rows are vanilla's, which is exactly why asking the ARTIFACT about it would be wrong -
+## the loop below asks tr() for every trait (vanilla's included, and it must resolve) and asks our
+## own artifact only about the keys this mod is the sole possible supplier of.
+func test_every_new_display_row_resolves() -> void:
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation, 'This mod has a compiled translation.')
+	if translation == null: return
+
+	for key:String in ['frame.mf_mk2.name', 'frame.mf_mk2.flavor', 'frame.mf_mk2.flavor.short']:
+		assert_ne(String(translation.get_message(key)), '', 'Our artifact carries %s.' % key)
+		assert_ne(tr(key), key, 'tr(%s) does not come back as the key.' % key)
+
+	var traits:Array = frame().traits
+	assert_eq(traits.size(), EXPECTED_TRAITS.size(), 'Guard: the trait list is not empty.')
+	for kit:Kit in traits:
+		assert_ne(kit.name(), 'gear.%s.name' % kit.compcon_id,
+			'%s resolves a display name.' % kit.compcon_id)
+		# Our three carry their own rows; vanilla's Replaceable Parts is answered by the base game.
+		if kit.compcon_id == &'mt_replaceable_parts': continue
+		for suffix:String in ['name', 'effect']:
+			var key := 'gear.%s.%s' % [kit.compcon_id, suffix]
+			assert_ne(String(translation.get_message(key)), '', 'Our artifact carries %s.' % key)
 
 # ---------------------------------------------------------------- the licence
 #

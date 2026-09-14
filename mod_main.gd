@@ -106,15 +106,32 @@ func apply_resource_extensions_directly() -> void:
 			continue
 		# Stand down from the shared queue whether or not the engine got as far as filling it.
 		mod.queued_resource_modifications.erase(vanilla_path)
-		_retained_resources.append(resource)
-		if resource.has_meta(APPLIED_META): continue
+		if resource.has_meta(APPLIED_META):
+			_retained_resources.append(resource)
+			continue
 		var extension_path := extension_script_path_for(vanilla_path)
 		var extender_script:Script = load(extension_path)
 		if extender_script == null:
 			ModLoaderLog.error('Cannot extend %s: %s did not load.' % [vanilla_path, extension_path], MOD_ID)
+			_retained_resources.append(resource)
 			continue
-		extender_script.new().modify_resource(resource)
-		resource.set_meta(APPLIED_META, true)
+		# THE RETURN VALUE IS THE CONTRACT, AND IT IS CHECKED - the engine's own path checks it
+		# (addons/mod_loader/internal/resource_extension.gd:20-32: a falsy return is ModLoaderLog.fatal,
+		# and the RETURNED object is what gets take_over_path'd). An extension that returns a different
+		# instance - a duplicate(), a wholesale replacement - or null is a real shape, and discarding
+		# the return would retain the UN-extended original while still logging success. li_gms's
+		# extension mutates in place and returns the same object, so nothing changes today; this exists
+		# because EXTENDED_RESOURCES is meant to grow, and the next alt frame's author gets a signal
+		# rather than a silent no-op. Note the retention now happens AFTER the call, on whatever came
+		# back, for the same reason.
+		var extended:Resource = extender_script.new().modify_resource(resource)
+		if extended == null:
+			ModLoaderLog.error('Cannot extend %s: %s returned null.' % [vanilla_path, extension_path], MOD_ID)
+			_retained_resources.append(resource)
+			continue
+		if extended != resource: extended.take_over_path(vanilla_path)
+		_retained_resources.append(extended)
+		extended.set_meta(APPLIED_META, true)
 		ModLoaderLog.info('Applied %s directly, outside the shared extension queue.' % extension_path.get_file(), MOD_ID)
 
 ## res://content/licenses/gms/li_gms.tres => res://unpacked/<this mod>/res/content/licenses/gms/li_gms.tres_ext.gd
