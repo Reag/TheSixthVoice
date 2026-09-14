@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/gms/mf_mk2/mt_rapid_stabilization_jets/buff_rapid_stabilization_jets.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+until = 2
+to = &"none"
+triggers_on = Array[StringName]([&"unit_action", &"entire_movement"])
+trigger_timing = 1
