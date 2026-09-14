@@ -315,6 +315,15 @@ func test_every_visible_buff_has_a_real_icon():
 const HIDDEN_BUFFS_NEEDING_ICONS:Array[StringName] = [&'buff_hybridized_shot']
 
 func test_every_hidden_buff_that_is_still_drawn_has_a_real_icon():
+	# This list is hand-maintained and, unlike ICON_TARGETS and VISIBLE_BUFFS, NOT size-checked
+	# against a mod index (see above), so nothing else would notice it being emptied. Without this
+	# guard the loop below would simply have no body, and GUT scores a test that asserted nothing as
+	# RISKY, not FAILED (gut.gd:820-821 and, on the parameterized path, gut.gd:580-581; the run
+	# summary prints it as 'Did not assert' at summary.gd:121-122). The failing-test count would not
+	# move, so a deleted row would take the gate with it in silence. Same guard, same reason, as
+	# test_this_mods_own_translation_carries_both_glossary_rows above.
+	assert_false(HIDDEN_BUFFS_NEEDING_ICONS.is_empty(),
+		'HIDDEN_BUFFS_NEEDING_ICONS is not empty, so this test has something to check.')
 	var by_id := {}
 	for buff:Buff in ModResources.load_ours(MOD_ID, &'buffs'): by_id[buff.compcon_id] = buff
 	for buff_id:StringName in HIDDEN_BUFFS_NEEDING_ICONS:

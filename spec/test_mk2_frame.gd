@@ -1,9 +1,11 @@
-# THE M/K2's frame sheet (SP1 Task 4), and the home of the two licence tests SP1 absorbed from
+# THE M/K2's frame sheet (SP1 Task 4), and the home of the five licence tests SP1 absorbed from
 # spec/test_spike_license_extension.gd when that probe was deleted.
 #
-# Numbers come from specs/sixth-voice/02-mk2.md's Stats table, which is generated from the LCP by
-# tools/lcp_to_sheets.py. A red here means the .tres drifted from the card, OR that the sheet was
-# regenerated - check the sheet's git history before touching the resource.
+# Numbers come from D:\DEV\lancer-tactics-claude\specs\sixth-voice\02-mk2.md's Stats table, which is
+# generated from the LCP by D:\DEV\lancer-tactics-claude\tools\lcp_to_sheets.py. Neither lives in
+# this repo - the sheets and the generator are kept out of the mod repos on purpose. A red here
+# means the .tres drifted from the card, OR that the sheet was regenerated - check the sheet's git
+# history (in the lancer-tactics-claude repo) before touching the resource.
 #
 #   godot --resolution 800x600 --position 20,20 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_mk2_frame.gd
 extends GutTest
@@ -83,11 +85,30 @@ func test_the_traits_are_the_sheets_four_in_order() -> void:
 func test_replaceable_parts_is_vanillas_own_instance() -> void:
 	# Ruling 1: the trait is TEXT-ONLY in this engine (a Kit with is_trait, an icon, no actions and no
 	# passives, and no reader anywhere under engine/ or ui/), so the Everest already diverges from the
-	# book here and the M/K2 inherits exactly that divergence. Asserting IDENTITY rather than id
-	# catches the mistake this ruling exists to prevent: a COPY of the Kit under our own res/ would
-	# register a second mt_replaceable_parts in the kits index, and ContentLibrary keys by basename.
+	# book here and the M/K2 inherits exactly that divergence. We therefore reference VANILLA'S Kit at
+	# its vanilla path and ship no copy of it.
+	#
+	# assert_same is pointer identity (test.gd:2192 wraps @GlobalScope.is_same); assert_eq would do
+	# the same for two Objects (comparator.gd:53-54 falls through to `v1 == v2` once the datatypes
+	# match), but same states the intent.
+	#
+	# WHAT THIS CATCHES, exactly - it is narrower than "nobody copied the Kit":
+	#   CAUGHT: a copy of the Kit at a NEW path under our res/ while mf_mk2.tres still points at the
+	#     vanilla path. The copy is a new file, so it joins new_resource_paths
+	#     (lancer_tactics_mod.gd:91), the resgrp_kits mt_*.tres glob picks it up, and
+	#     compcon_id_to_path[basename] is last-writer-wins (content_library.gd:329-332) over
+	#     get_paths()'s `paths + mod_resource_paths` (resource_group.gd:28) - so get_kit resolves to
+	#     the copy (content_library.gd:409-411) while traits[0] is still vanilla's. Two instances,
+	#     red.
+	#   NOT CAUGHT: a MIRROR-PATH copy. replace_resource take_over_path's it onto the vanilla path
+	#     (lancer_tactics_mod.gd:119-125), so both sides are then the same instance. Green, wrongly.
+	#   NOT CAUGHT, and this is THE MOST NATURAL FORM OF THE MISTAKE: a copy at a new path with
+	#     mf_mk2.tres repointed at it. By the same last-writer-wins rule get_kit returns the copy too,
+	#     so both sides are the copy and this test is green while the mod ships a duplicate
+	#     mt_replaceable_parts that has displaced vanilla's in the kits index for the whole game.
+	#     Nothing here guards that; testkit/mod_content_audit.gd and a reviewer's eye do.
 	var ours:Kit = frame().traits[0]
-	assert_eq(ours, ContentLibrary.get_kit(&'mt_replaceable_parts'),
+	assert_same(ours, ContentLibrary.get_kit(&'mt_replaceable_parts'),
 		'The very same Resource instance vanilla registered, not a copy of it.')
 
 func test_the_tagline_is_the_one_the_author_ruled() -> void:
@@ -125,6 +146,8 @@ func test_the_everest_still_names_the_licence_and_its_gear_is_untouched():
 		assert_false(kit.resource_path.contains(MOD_ID),
 			'%s is not ours: an alt adds no gear to the base licence.' % kit.compcon_id)
 
+# ---------------------------------------------------------------- retention
+
 func test_the_instance_content_library_serves_is_the_one_mod_main_retains():
 	# Bug 7 in one assertion: if the engine dropped the extended instance and ContentLibrary loaded
 	# a fresh copy off disk, these would be two different objects and the fresh one would be vanilla.
@@ -140,6 +163,8 @@ func test_the_instance_content_library_serves_is_the_one_mod_main_retains():
 	var same := false
 	for resource in retained: if resource == tree: same = true
 	assert_true(same, 'The li_gms instance ContentLibrary serves is the one mod_main holds.')
+
+# ---------------------------------------------------------------- co-existence
 
 func test_the_other_extenders_of_li_gms_also_land():
 	# Whoever else touched li_gms in this run must still have their frame in it. A queue-path
