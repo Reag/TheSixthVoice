@@ -20,8 +20,21 @@ reduction_amount = "1"
 damage_types = Array[int]([0, 1, 2])
 ; Real armor reduces self-inflicted non-AP damage too - nothing in damage_modifications.gd's armor
 ; branch looks at DAMAGE_FLAG.SELF_INFLICTED - so without this, buff_resist_damage.gd:44 would make
-; the Fitzgerald's own self-damage (FULL SPEED AHEAD, MORE BLACK POWDER's second profile) the one
-; case its own armor did not cover.
+; self-inflicted damage the one case a unit's own armor did not cover.
+;
+; THE REACHABLE CASE IS A UNIT STANDING IN ITS OWN AREA DAMAGE, not any of this frame's own recoil.
+; CommonActionUtil.generate_damage_events (common_action_util.gd:91) appends SELF_INFLICTED to
+; whatever flags the CALLER passed, on any damage event whose target is the acting unit - and most
+; area damage passes no AP at all, so the flag arrives on an ordinary kinetic/energy/explosive hit
+; that armor would blunt. That is what this export protects. event_unit_damage_multiple
+; (event_unit_damage_multiple.gd:18) routes arbitrary caller flags through the same helper.
+;
+; AND IT IS EXPLICITLY *NOT* THE TWO EXAMPLES AN EARLIER REVISION OF THIS COMMENT NAMED. FULL SPEED
+; AHEAD (action_full_speed_ahead.gd:83) and BOTH More Black Powder profiles, through the shared
+; recoil() at action_bizarre_cannon.gd:93, each queue flags = [AP, SELF_INFLICTED]. The AP guard in
+; this buff's own .gd excludes an AP hit before super() - and therefore before buff_resist_damage.gd:44
+; - is ever reached, so this export can never be what decides either of them. Verified against the
+; 1.4.3 tree, 2026-09-14. The .gd header never repeated the claim, so this file was its only home.
 resist_self_inflicted = true
 ; The reduction is invisible on purpose: the STATBLOCK half already wears the chip, and two chips for
 ; one effect would read as two effects. test_content_integrity.gd's VISIBLE_BUFFS therefore does NOT

@@ -174,6 +174,19 @@ func activate(context:Context, activation:EventCore) -> void:
 			# is_ap` line - a standard block has 2), and
 			# it is the flag event_map_damage.gd:59 turns into DAMAGE_FLAG.AP on every object damage
 			# event it spawns.
+			#
+			# THIS AP IS OUT OF THE RIPPER MOD'S REACH, AND THE AUTHOR RULED IT LEFT THAT WAY on
+			# 2026-09-14 - documented, no code. wm_ripper_mod.tres:12 lists CANNON in allowed_types,
+			# so this weapon CAN carry the mod, and the mod's card says "Attacks made with this
+			# weapon lose |AP| and cannot gain |AP| by any means" - which reads as covering the whole
+			# firing. It does not. buff_ripper_mod_strip_ap.gd erases the flag from an ATTACK's
+			# damage context, and its triggers_on_event asks two questions the per-object events
+			# event_map_damage spawns cannot answer: those events are built at
+			# event_map_damage.gd:64-68 with unit / number / flags and NOTHING ELSE - no `gear`, so
+			# RipperBonus.is_modded_weapon(context.gear, ...) is false, and no `object`, so
+			# AttackRoll.is_valid(context.object) is false too. Terrain never goes near a damage
+			# event at all (landscape_node.gd reads the map-damage flag directly). So the 10 stays AP
+			# against objects as well as terrain, on a modded Carronade exactly as on a bare one.
 			EventMapDamage.FLAG.AP,
 			# "...to all OBJECTS and terrain". Without this the event touches terrain only; with it,
 			# every is_object() unit standing in the line takes the 10 as a damage event of its own,

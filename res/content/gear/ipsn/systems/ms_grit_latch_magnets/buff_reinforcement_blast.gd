@@ -40,7 +40,10 @@
 ##
 ## MEASURED, NOT ASSUMED, AND THE MEASUREMENT CORRECTS THE TASK BRIEF: on 1.4.3 this line is
 ## BELT-AND-BRACES on every path that ships, not load-bearing. Deleting its body and re-running
-## spec/test_reinforcement_blast.gd left it 12/12 (mutation run, 2026-09-14,
+## spec/test_reinforcement_blast.gd left that file green in full - 12/12 AS TASK 3 LEFT IT, which is
+## the only count that sentence ever meant; the file has grown since (24 tests as of SP4's
+## branch-review pass) and the number is a record of the run, not a figure to reconcile against the
+## file today (mutation run, 2026-09-14,
 ## .superpowers/sdd/sp4-t3-mutation-onapplication.log). The reason is that
 ## `ActionSystemApplyBuff.apply_buffs` goes through `UnitCondition.apply_buffs`
 ## (unit_condition.gd:703-715), which deliberately suppresses the per-buff cache update and then

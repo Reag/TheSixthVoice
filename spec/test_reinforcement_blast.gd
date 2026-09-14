@@ -345,6 +345,11 @@ func test_it_is_refused_with_no_charges_left() -> void:
 const PLAIN_RIFLE := &'mw_assault_rifle'
 const RIFLE_DIE := 6
 
+## This mod's own rank II weapon mod, for the cross-gear test at the foot of the file. Its +1d6
+## clause reads unit.get_armor() - the getter the DISPLAY half of this pair raises - so the two
+## pieces of gear meet even though neither file mentions the other in code.
+const RIPPER_MOD_ID := &'wm_ripper_mod'
+
 ## A flat hit big enough that a 1-point reduction cannot be confused with a rounding artefact of the
 ## halving at damage_modifications.gd:52/108, and small enough that nothing here dies: the fixture
 ## dummies carry 200 HP.
@@ -575,6 +580,131 @@ func test_the_reduction_buff_is_hidden_and_permanent_for_its_lifetime() -> void:
 	assert_not_null(visible, 'fixture: the visible half is indexed too.')
 	if visible == null: return
 	assert_eq(reduction.until, visible.until, 'Both halves run on exactly the same clock.')
+
+# ---------------------------------------------------------------- a second blast on the same unit
+#
+# THE STACKING BEHAVIOUR OF THE PAIR, WHICH NOTHING ELSE IN THIS FILE PINS. Both halves rely on
+# `multiple_copies_can_stack` defaulting false (buff.gd:131) while ActionSystemApplyBuff's
+# `can_reapply` defaults TRUE (action_system_apply_buff.gd:17) - so a second blast on the same unit
+# is allowed, and today refreshes rather than adds: apply_buff_alt clears an existing copy with the
+# same compcon_id, from_gear, `to` and `until` before appending the new one
+# (unit_condition.gd:739-746). Setting the stack flag on ONE half later would give +2 armor with -1
+# mitigation, or the reverse, with the whole rest of this suite green.
+
+func test_a_second_blast_refreshes_the_pair_rather_than_stacking_it() -> void:
+	var hostile := Fixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
+	var before:int = hostile.get_armor()
+
+	await blast_at(CENTRE)
+	assert_eq(count_buff(hostile, BUFF_ID), 1, 'fixture: one copy of the display half landed.')
+	assert_eq(count_buff(hostile, REDUCTION_BUFF_ID), 1, 'fixture: and one of the reduction half.')
+
+	# A TURN BOUNDARY IS REQUIRED, and it is not scene-setting. Action.get_per_turn_soft_limit
+	# (action.gd:161-163) returns 1 for anything costing more than a free action, so a second QUICK
+	# activation of the same gear in the same turn is refused outright by
+	# UnitAction.is_under_per_turn_limit (unit_action.gd:167-168) and this test would then be
+	# asserting that a no-op changes nothing. event_turn_end.gd:72 is what clears uses_this_turn.
+	# The first pair SURVIVES this boundary - clear_owners_turn_statuses skips a buff whose own
+	# turn_count is still 0 (unit_condition.gd:55-66), and turn_count ticks only at the start of the
+	# turn of the unit WEARING it, which this hostile never takes - so the second blast really does
+	# land on a unit that already carries both halves, which is the whole point.
+	await SpecFactory.end_turn(game, fitz)
+	await SpecFactory.start_turn(game, fitz)
+	assert_eq(count_buff(hostile, BUFF_ID), 1, 'fixture: the first pair is still on the unit...')
+	assert_eq(count_buff(hostile, REDUCTION_BUFF_ID), 1, '...both halves of it.')
+
+	await blast_at(CENTRE)
+
+	assert_eq(count_buff(hostile, BUFF_ID), 1, 'The display half was refreshed, not stacked.')
+	assert_eq(count_buff(hostile, REDUCTION_BUFF_ID), 1, 'And so was the reduction half.')
+	assert_eq(hostile.get_armor(), before + 1, 'Two blasts are still exactly one armor, not two.')
+	var loss := await take(hostile, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(loss, FIXED_HIT - 1, 'And still exactly one point of mitigation, to match.')
+
+# ------------------------------------------------- the blast arms this mod's own Ripper Mod
+#
+# AN INTENDED INTERACTION THAT SPANS TWO CHANNELS NO SINGLE SPEC OTHERWISE BINDS, ruled intended by
+# the author on 2026-09-14 and pinned here at their request.
+#
+# buff_ripper_mod_bonus.gd:42 gates the Ripper Mod's +1d6 on `context.target_unit.get_armor() >= 1`,
+# and the DISPLAY half of this pair raises exactly that getter by 1 on every character in the blast,
+# hostiles included (ruling 23: "all characters" has no ally filter). So firing REINFORCEMENT BLAST
+# at enemies hands the Fitzgerald's own Ripper-modded weapon +1d6 against them while the blast blunts
+# only 1 - a net +5 on a d6 pinned to 6. That is the ruling, not a bug.
+#
+# WHY IT LIVES HERE AND NOT IN spec/test_ripper_mod.gd. That file's test_temporary_armor_counts
+# builds its STATBLOCK buff BY HAND, on purpose, so the rank II mod's spec does not depend on rank
+# III content loading - and its assertions are the executable proof of the SP4 blocker and must not
+# be touched. The consequence is that nothing tied the SHIPPED buff_reinforcement_blast to the
+# Ripper gate. This test is that tie, and it owns it because this file owns the blast.
+
+## Fire a weapon's solo profile once at `target` and return the health it cost. Same shape as
+## spec/test_ripper_mod.gd's shoot() - read that file for why the dice buffer is oversized and why
+## event_gear_activate is driven directly - but takes the target as an argument, because this test
+## shoots two different units.
+func shoot(weapon:GearCore, target:Unit, die:int) -> int:
+	var before:int = target.core.current.health
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	Dice.cheat_attack([19], [die, die, die, die, die, die, die, die])
+	await game.execute_event(&'event_gear_activate', {
+		action = weapon.get_solo_action(),
+		gear = weapon,
+		unit = fitz,
+		target_unit = target,
+	})
+	return before - target.core.current.health
+
+func test_the_blast_arms_this_mods_own_ripper_mod_against_the_units_it_catches() -> void:
+	# Both dummies carry armor 0 from the fixture, so the Ripper gate can only be opened by the
+	# blast - and the control, one tile outside it, is never opened at all.
+	var control := Fixture.create_dummy(game, ONE_TILE_OUT, -10)
+	var caught := Fixture.create_dummy(game, IN_BLAST_HOSTILE, -10)
+	assert_eq(control.get_armor(), 0, 'fixture: the control has no armor of its own.')
+	assert_eq(caught.get_armor(), 0, 'fixture: nor does the unit the blast will catch.')
+
+	# EXACTLY spec/test_ripper_mod.gd's equip_modded(), in its order, and the order is load-bearing.
+	# LoadoutCore.equip_weapon_mod (loadout_core.gd:343-363) appends the mod kit AND patches a
+	# hand-made GearCore into `systems`, but GearCore.get_weapon_mod (gear_core.gd:377-380) only
+	# returns a mod that get_equipped_systems() reports - which it does not until the loadout has
+	# been rebuilt. The full_repair() inside SpecFactory.apply_passive_buffs is that rebuild.
+	# Measured: asking for the mod BEFORE this line returns null, and the test then reads as
+	# "the blast did nothing" rather than "the mod was never fitted" (first run, 2026-09-14).
+	#
+	# THIS IS A SECOND apply_passive_buffs PASS on a unit before_each already ran one over - which
+	# test_it_blunts_a_real_weapon_hit above deliberately avoids. It is safe HERE because the pass is
+	# needed for the mod at all, and because no buff anywhere in this mod sets
+	# multiple_copies_can_stack, so apply_buff_alt clears the matching old copy before appending
+	# (unit_condition.gd:739-746) and the frame's traits are refreshed rather than doubled. The
+	# control shot below is the guard on that: a doubled trait buff would move its number off 6.
+	var rifle := fitz.core.equip_system(PLAIN_RIFLE)
+	fitz.core.loadout.equip_weapon_mod(RIPPER_MOD_ID, rifle)
+	SpecFactory.apply_passive_buffs(fitz)
+	var mod:GearCore = rifle.get_weapon_mod(fitz.core.loadout)
+	assert_true(GearCore.is_valid(mod), 'fixture: the Ripper Mod really is fitted to the rifle.')
+
+	# THE CONTROL IS A REAL SHOT FROM THE SAME MODDED WEAPON, not a number written down here. The
+	# assertion at the foot is a DIFFERENCE against it, so this test fails if EITHER channel stops
+	# working: kill the blast's STATBLOCK half and the caught unit stops opening the gate; kill the
+	# Ripper gate and neither shot gets the die. A raw expected number would not say which.
+	var unblasted := await shoot(rifle, control, RIFLE_DIE)
+	assert_eq(unblasted, RIFLE_DIE,
+		'fixture: against 0 armor the modded rifle is just its die - no bonus, nothing blunted.')
+
+	# A fresh turn, for the per-turn soft limit reason spelled out in the stacking test above: the
+	# rifle has been fired once, and a second shot inside the same turn would be refused and read as
+	# a suspiciously effective reduction.
+	await SpecFactory.end_turn(game, fitz)
+	await SpecFactory.start_turn(game, fitz)
+
+	await blast_at(CENTRE)
+	assert_eq(caught.get_armor(), 1, 'fixture: the display half raised the getter the mod reads.')
+
+	var blasted := await shoot(rifle, caught, RIFLE_DIE)
+
+	assert_eq(blasted - unblasted, RIFLE_DIE - 1,
+		'The blast is worth the mod\'s whole bonus die less the 1 it blunts: +1d6 in, -1 out.')
+	assert_eq(blasted, RIFLE_DIE + RIFLE_DIE - 1,
+		'Spelled out: the weapon\'s 6, the Ripper Mod\'s 6, less the reduction half\'s 1.')
 
 # ---------------------------------------------------------------- fixtures
 
