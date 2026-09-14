@@ -33,7 +33,7 @@
 # HOW A TILE-TARGETED BLAST IS DRIVEN FROM A SPEC. ActionSystemApplyBuff.activate, when its
 # target_requirements_override carries a non-BURST RangePattern, takes the chosen tile, expands the
 # AoE and reassigns target_units to map.get_all_units_at_tiles(aoe_tiles, specific.unit) filtered
-# through can_target_unit (action_system_apply_buff.gd:118-124). That second argument is a VISIBILITY
+# through can_target_unit (action_system_apply_buff.gd:113-118). That second argument is a VISIBILITY
 # ASKER, not an exclusion - self is in the list when self is in the blast. Supplying target_tiles to
 # event_gear_activate sets player_decides = false in ask_for_targets_alt
 # (target_action_util.gd:194-195), so the supplied tile is used automatically and no prompt is
@@ -48,6 +48,8 @@ const FrameIsolation := preload('res://testkit/frame_isolation.gd')
 const SYSTEM_ID := &'ms_grit_latch_magnets'
 const ACTION_ID := &'action_reinforcement_blast'
 const BUFF_ID := &'buff_reinforcement_blast'
+
+const OUR_TRANSLATION := 'res://unpacked/Reag-TheSixthVoice/localization/localizations.en.translation'
 
 ## The vanilla Jericho cover: an OBJECT, so Unit.is_actor() is false for it (unit.gd:117) and
 ## ActionSystemApplyBuff.can_target_unit refuses it outright ("cannot apply buffs to drones /
@@ -81,6 +83,9 @@ func before_each() -> void:
 	await Fixture.open_turn(game, fitz)
 
 func after_each() -> void:
+	# Nothing in TASK 3 queues a roll, so this clear is currently a no-op. Kept deliberately: Task 4's
+	# mitigation tests fix rolls with Dice.CHEAT_ROLL_QUEUE to measure the damage reduction, and a
+	# queue left populated by an aborted test leaks into the next one.
 	Dice.CHEAT_ROLL_QUEUE.clear()
 
 ## Fire REINFORCEMENT BLAST centred on a tile. See the file header for why a bare tile is enough.
@@ -114,6 +119,33 @@ func test_the_buff_is_player_visible() -> void:
 	if buff == null: return
 	assert_false(buff.hide_from_player, 'It shows as a chip on every unit that gained armor.')
 	assert_eq(buff.to, Buff.TO.STATBLOCK, 'It is a STATBLOCK buff - the display channel.')
+
+func test_the_system_and_its_buff_have_display_text() -> void:
+	# Asserted against the compiled ARTIFACT rather than the csv, because Translate loads
+	# localizations.en.translation and never reads the csv beside it: an edited csv that was never
+	# re-scanned leaves a correct-looking source file next to an artifact that has never heard of
+	# these keys, with the whole suite still green. (filesystem_manage(op="reimport") does NOT
+	# regenerate it; only op="scan" and the headless --import do.) Same shape as
+	# test_rapier_carronade.gd's test_the_carronade_has_display_text.
+	#
+	# THE BUFF'S KEYS ARE UNDER `gear.`, NOT `buff.`. Translate.buff (translate.gd:49-79) looks the
+	# buff up as Translate.key(['gear', buff_id, property]) at :57 and has no buff.* branch anywhere,
+	# so a `buff.buff_reinforcement_blast.name` row would compile fine and never be read - and this
+	# buff's chip is by design the only on-map signal that the blast landed, so blank text there
+	# costs the mechanic its entire player-facing half.
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation,
+		'This mod has a compiled translation (run the headless --import if this is a fresh clone).')
+	if translation == null: return
+	for key:String in [
+		'gear.%s.name' % SYSTEM_ID,
+		'gear.%s.effect' % SYSTEM_ID,
+		'gear.%s.%s.name' % [SYSTEM_ID, ACTION_ID],
+		'gear.%s.%s.effect' % [SYSTEM_ID, ACTION_ID],
+		'gear.%s.name' % BUFF_ID,
+		'gear.%s.effect' % BUFF_ID,
+	]:
+		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
 
 # ---------------------------------------------------------------- who the blast catches
 
@@ -149,10 +181,22 @@ func test_the_blast_may_centre_on_empty_ground() -> void:
 	# can_target_empty_tiles. Without it the action could only be aimed at a tile that already holds a
 	# targetable unit, which is not what "choose a Blast 1 area" means - and the neighbour below would
 	# never be reached.
+	#
+	# THE ACTIVATION BELOW DOES NOT OBSERVE THAT FLAG, so it cannot be the whole test. Handing
+	# target_tiles to event_gear_activate sends ask_for_targets_alt down its `elif
+	# was_supplied_a_target:` branch (target_action_util.gd:230-242), which filters the supplied tiles
+	# through Tile.is_valid alone (:171) and returns them verbatim. can_target_empty_tiles is read in
+	# exactly one place repo-wide - UnitTargeting.get_tiles_targetable (unit_targeting.gd:84) - and
+	# that branch never calls it, so a build with the flag OFF would still armour the neighbour here.
+	# The targetable-set assertion is what actually pins the flag; the activation pins that the buff
+	# then reaches a unit the centre tile does not hold. Same technique as the sensor-range test below.
 	var empty_centre := Vector2i(8, 4)
 	var neighbour := Fixture.create_dummy(game, empty_centre + Vector2i(1, 0), 10)
 	assert_eq(game.map.get_all_units_at_tile(empty_centre).size(), 0,
 		'fixture: the chosen centre really is bare ground.')
+	var targetable:Array[Vector2i] = UnitTargeting.get_tiles_targetable(_specific())
+	assert_true(targetable.has(empty_centre),
+		'Bare ground is an offerable centre: the player really can "choose a Blast 1 area".')
 	var before:int = neighbour.get_armor()
 
 	await blast_at(empty_centre)
@@ -160,7 +204,7 @@ func test_the_blast_may_centre_on_empty_ground() -> void:
 	assert_eq(neighbour.get_armor(), before + 1, 'Aimed at nobody, it still armoured the neighbour.')
 
 func test_an_object_in_the_blast_gains_nothing() -> void:
-	# can_target_unit refuses anything that is not is_actor() (action_system_apply_buff.gd:65), so the
+	# can_target_unit refuses anything that is not is_actor() (action_system_apply_buff.gd:64), so the
 	# card's "all characters" excludes cover, drones and other objects with no work on our side. This
 	# pins that the exclusion is real rather than an accident of where things were standing.
 	var cover := make_deployable(IN_BLAST_ALLY)
@@ -220,7 +264,18 @@ func test_the_armor_is_gone_at_the_end_of_the_fitzgeralds_next_turn() -> void:
 	assert_eq(ally.get_armor(), ally_before + 1, 'fixture: the blast landed.')
 
 	await SpecFactory.pass_turn(game, ally) # ticks the ally's copy of the buff to turn_count 1
-	await SpecFactory.pass_turn(game, fitz) # the Fitzgerald's next turn, and its end
+
+	# NOT SpecFactory.pass_turn(game, fitz): that starts AND ends the turn in one call
+	# (spec_factory.gd:212-220), so the assertion below could never tell END_OF_OWNERS_NEXT_TURN (7)
+	# from its immediate neighbour START_OF_OWNERS_TURN (6) - a 6-build clears at
+	# event_turn_start.gd:77, before pass_turn returns, and still reads "gone" afterwards. Splitting
+	# the call and asserting in the MIDDLE is what closes that neighbour: on a 6-build the armor is
+	# already gone here, and the card promises it for the whole of this turn.
+	await SpecFactory.start_turn(game, fitz)
+	assert_eq(ally.get_armor(), ally_before + 1,
+		'Still armoured through the Fitzgerald\'s next turn: it expires at that turn\'s END, not its start.')
+
+	await SpecFactory.end_turn(game, fitz)
 
 	assert_eq(ally.get_armor(), ally_before, 'The ally\'s armor expired with the Fitzgerald\'s turn.')
 	assert_eq(fitz.get_armor(), fitz_before, 'And so did the Fitzgerald\'s own.')

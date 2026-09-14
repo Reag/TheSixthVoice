@@ -17,7 +17,7 @@ value = 1
 ; action_remote_cloud_support.tres): a TargetRequirements carrying the RangePattern, handed to
 ; target_requirements_override. That is what makes ActionSystemApplyBuff.activate take the chosen
 ; TILE, expand the AoE and reassign target_units to everyone standing in it
-; (action_system_apply_buff.gd:118-124) instead of buffing one picked unit.
+; (action_system_apply_buff.gd:113-118) instead of buffing one picked unit.
 ;
 ; can_target_empty_tiles is the "choose a Blast 1 AREA" clause: without it the centre would have to
 ; be a tile that already holds a targetable unit.
@@ -38,7 +38,7 @@ buffs = Array[ExtResource("1_buff")]([ExtResource("5_armor")])
 apply_to_sensors = true
 ; Ruling 23: "all characters" is hostiles, allies AND the Fitzgerald itself. So no
 ; apply_only_to_allies / _to_enemies filter, and can_apply_to_self is on - can_target_unit refuses
-; self without it (action_system_apply_buff.gd:60). OBJECTS need no exclusion of ours: the same
+; self without it (action_system_apply_buff.gd:61). OBJECTS need no exclusion of ours: the same
 ; function refuses anything that is not is_actor().
 can_apply_to_self = true
 ; QUICK (Lancer.ACTION.QUICK == 1, lancer.gd:27).
