@@ -18,12 +18,12 @@
 # (event_gear_activate.gd:100-111), so an aborted attack pays nothing and stays loaded.
 #
 # THE DICE STRATEGY IS "EVERY DIE THE SAME NUMBER", not a lined-up queue, and that is not laziness.
-# Dice.CHEAT_ROLL_QUEUE is ONE global FIFO (dice.gd:9, :32-35) and the heat d3 is rolled LAST, after
+# Dice.CHEAT_ROLL_QUEUE is ONE global FIFO (dice.gd:9, :33-35) and the heat d3 is rolled LAST, after
 # the attack has popped its d20, its accuracy die and however many damage dice the weapon rolls - a
 # count this file must not have to know. Filling the queue with one repeated value makes the d3 come
 # back that value whatever the attack consumed first, so the heat assertions can name an exact
 # number. The same trick, for the same reason, as test_hybridized_shot.cheat_every_die_to_six().
-# NEVER 1: Overkill rerolls damage dice that come up 1 (which is why dice.gd:30 picks 2 for its own
+# NEVER 1: Overkill rerolls damage dice that come up 1 (which is why dice.gd:32 picks 2 for its own
 # CHEAT_ROLL_LOW), and a rerolling damage die would drain the queue unpredictably.
 #
 # AND THE TWO HEAT TESTS USE DIFFERENT NUMBERS ON PURPOSE. A single test asserting "3" passes just as
@@ -47,10 +47,23 @@ const PLAIN_HEAVY := &'mw_heavy_machine_gun'
 ## test_two_loading_shots_pay_twice does not have to fire one weapon twice.
 const LOADING_AUX := &'mw_missile_rack'
 
+## The key the engine resolves Hybridized Shot's accuracy line through - the BUFF's compcon_id, not
+## the trait's. test_hybridized_shot.gd's test_the_bonus_is_labelled_with_the_traits_name records in
+## full why the difference is invisible by coincidence and must not be "simplified" to the trait key.
+const HYBRIDIZED_NAME_KEY := 'gear.buff_hybridized_shot.name'
+
 const START := Vector2i(2, 2)
 const TARGET_TILE := Vector2i(7, 2)
 ## Well clear of the M/K2 and its target, for the one test that needs a third unit taking its own turn.
 const ENEMY_TILE := Vector2i(2, 6)
+## A tile that is not on the 15x9 fixture map, so an activation aimed at it ABORTS mid-flight rather
+## than being refused up front. Tile.is_valid bounds-checks it away inside
+## TargetActionUtil.ask_for_targets_alt (target_action_util.gd:171), leaving a plan with no tiles and
+## no units, which CompconPlan.is_valid_with_targets_alt refuses (compcon_plan.gd:45-52) and
+## ActionAttack.activate aborts on at action_attack.gd:236 - BEFORE spend_actions at :262, which is
+## the line that would have dropped is_loaded and moved the usage counter. Same constant, same
+## reasoning, as test_swivel_gun.gd:67.
+const OFF_MAP := Vector2i(99, 99)
 
 var game:Gamemaster
 var mk2:Unit
@@ -83,11 +96,54 @@ func cheat_every_die_to(every_die:int) -> void:
 
 ## Fire once at the punching bag, with every die in the activation fixed to `every_die` - so the
 ## heat d3 the buff rolls afterwards comes back `every_die` too.
-func shoot(weapon:GearCore, every_die:int = 2) -> void:
+##
+## `flags` exists for AS_FREEBIE, and that flag buys past exactly one thing: the repeat-action rule.
+## can_activate_gear returns early for a freebie (unit_action.gd:113-114) and so skips the per-turn
+## SOFT limit of 1 (unit_action.gd:116, action.gd:161-163) and affordability - but is_gear_available
+## has already run above it (:112), so REASON.UNLOADED still refuses a freebie. That is what makes a
+## freebie a legitimate way to ask this file's question twice in one turn without weakening it.
+func shoot(weapon:GearCore, every_die:int = 2, flags:Array = []) -> void:
 	cheat_every_die_to(every_die)
 	await game.execute_event(&'event_gear_activate', {
 		action = weapon.get_solo_action(), gear = weapon, unit = mk2, target_unit = target,
+		flags = flags,
 	})
+
+## Fire once for real and hand back the DeclaredAttackSummary the attack resolved through - the one
+## object that remembers what each per-target roll was actually given.
+##
+## BUILDS THE EVENT BLOCK BY HAND instead of calling game.execute_event(), for the reason
+## test_hybridized_shot.gd's own fire_and_capture() sets out at length: the summary is created inside
+## the activation (action_attack.gd:253) and written onto the event's OWN context (:259), so the only
+## way to see it afterwards is to hold the EventCore. level.gd:97 creates that core internally and
+## returns void. core.context is re-read rather than cached because the variant-action path REPLACES
+## it (event_gear_activate.gd:90-91).
+func fire_and_capture(weapon:GearCore, flags:Array = []) -> DeclaredAttackSummary:
+	var core := EventCore.create(&'event_gear_activate', {
+		action = weapon.get_solo_action(), gear = weapon, unit = mk2, target_unit = target,
+		flags = flags,
+	})
+	var cores:Array[EventCore] = [core]
+	await game.execute_event_block(EventBlock.create_multiple(cores))
+	return core.context.resource as DeclaredAttackSummary
+
+## Did any roll of this resolved attack carry Hybridized Shot's +1?
+##
+## Reads the MOD LIST rather than accuracy_mods_total(), the way test_hybridized_shot.gd's
+## got_the_bonus() does: cover is an accuracy mod like any other (attack_roll.gd:168-169), so a total
+## can move without anything about the trait changing. The title is the buff's own name_text(), which
+## is what attack_roll.gd:189 puts on the breakdown line.
+func any_roll_got_hybridized_shot(declared:DeclaredAttackSummary) -> bool:
+	for roll:AttackRoll in declared.attack_rolls:
+		for mod:AttackRoll.AccuracyMod in roll.pre.accuracy_mods:
+			if mod.title_key == tr(HYBRIDIZED_NAME_KEY) and mod.mod == 1: return true
+	return false
+
+## This weapon's round-usage counter - the number event_gear_activate.gd:100-104 compares against the
+## value it took before the activation, to decide whether the UNIT_ACTION POST (and so this whole
+## ability) runs at all. Unchanged means the activation never got as far as spend_actions.
+func round_uses(weapon:GearCore) -> int:
+	return weapon.get_uses_this_round_alt(weapon.get_usage_group_for_action(weapon.get_solo_action()))
 
 ## Fire once from some OTHER unit, at us.
 func shoot_from(shooter:Unit, weapon:GearCore, every_die:int = 2) -> void:
@@ -116,7 +172,7 @@ func test_the_control_weapon_really_fires() -> void:
 	var hmg := equip(PLAIN_HEAVY)
 	await MK2Fixture.open_turn(game, mk2)
 	await shoot(hmg)
-	assert_gt(hmg.get_uses_this_round_alt(hmg.get_usage_group_for_action(hmg.get_solo_action())), 0,
+	assert_gt(round_uses(hmg), 0,
 		'The HMG activation moved its round usage counter, so it really went off.')
 
 # ---------------------------------------------------------------- the protocol
@@ -229,14 +285,225 @@ func test_an_enemys_loading_shot_neither_heats_us_nor_reloads_them() -> void:
 	assert_eq(mk2.core.current.heat, before, "Somebody else's Loading shot does not heat us.")
 	assert_false(enemy_amr.is_loaded, 'And it does not reload their weapon either.')
 
-# ---------------------------------------------------------------- integration
+# ---------------------------------------------------------------- the aborted activation
 
-func test_hybridized_shot_still_applies_under_hypercharge() -> void:
-	# The card's own synergy: Hypercharge does not remove the LOADING tag, so the +1 keeps applying.
+## RULING 7's OTHER HALF: an activation that ABORTS neither heats nor reloads. Two project rulings
+## rest on it, and until now nothing in this file reached it.
+##
+## THE ABORT IS REAL, NOT A REFUSAL, and the two are not the same branch. A refused activation
+## (REASON.UNLOADED, REASON.PROTOCOL) never enters event_gear_activate.execute at all, so it could
+## never have reached the POST gate; an OFF_MAP shot does enter, runs all the way to
+## ActionAttack.activate's is_valid_with_targets guard (action_attack.gd:236) and returns from THERE,
+## one line short of spend_actions at :262. That is the case event_gear_activate.gd:100-104 exists
+## for: the event executed, the usage counter did not move, so no UNIT_ACTION POST is queued and this
+## buff is never asked. The counter assertion below is what says which of the two branches was taken.
+##
+## THE CONTROL AT THE BOTTOM IS NOT DECORATION. "No heat" is what a completely dead buff also reads
+## like. Firing for real straight afterwards, in the same turn, with the same weapon, proves the heat
+## was reachable from exactly this state - and it is reachable only because the aborted attempt cost
+## nothing at all, not even the turn's action.
+func test_an_aborted_activation_neither_heats_nor_reloads() -> void:
 	var amr := equip(AMR)
 	await MK2Fixture.open_turn(game, mk2)
 	await hypercharge()
-	var specific := SpecificAction.create(mk2, amr, amr.get_solo_action())
-	var context := Context.clone(specific.to_context(), {target_unit = target})
-	assert_eq(AttackRoll.PreAttack.create(context).accuracy_mods_total(), 2,
-		'Hybridized Shot is untouched by Hypercharge.')
+
+	var before:int = mk2.core.current.heat
+	var uses_before:int = round_uses(amr)
+	cheat_every_die_to(3)
+	await SpecFactory.use_solo(game, mk2, AMR, OFF_MAP)
+
+	assert_eq(round_uses(amr), uses_before,
+		'Fixture: the activation aborted before spend_actions - its round counter never moved, which'
+		+ ' is exactly the condition event_gear_activate.gd:100-104 gates the POST on.')
+	assert_eq(mk2.core.current.heat, before, 'A shot that was never fired costs no heat.')
+
+	await shoot(amr, 3)
+	assert_eq(mk2.core.current.heat - before, 3,
+		'control: a real shot from that same state, same turn, same weapon, does charge the d3 - so'
+		+ ' the assertion above measured the abort and not a dead buff.')
+
+## The reload half of the same ruling, and it has to be staged differently because the engine will
+## not let the two halves meet. A weapon can only be unloaded going INTO an activation if that
+## activation is then refused for REASON.UNLOADED (unit_action.gd:151, checked inside
+## is_gear_available before anything a freebie can skip) - so "unloaded AND aborts at the plan" is
+## unreachable, and this asserts the refusal branch instead.
+##
+## THE HAND-SET FLAG IS THE ENGINE'S OWN MOVE, not spec licence: unit_action.gd:276 is a bare
+## `gear.is_loaded = false`, and this stages the state that line produces. It also records something
+## true about the design that no other test says: Hypercharge does NOT grant
+## can_be_used_while_unloaded, so a weapon that somehow reaches an unloaded state stays unusable -
+## the ability works by restoring the flag after each firing, never by waiving the check.
+func test_a_refused_activation_does_not_reload_the_weapon() -> void:
+	var amr := equip(AMR)
+	await MK2Fixture.open_turn(game, mk2)
+	await hypercharge()
+	assert_true(amr.is_loaded, 'Fixture: ruling 6 readied it on activation.')
+
+	amr.is_loaded = false
+	var before:int = mk2.core.current.heat
+	cheat_every_die_to(3)
+	await shoot(amr, 3)
+
+	assert_false(amr.is_loaded,
+		'An activation the engine refused did not reload the weapon behind its back.')
+	assert_eq(mk2.core.current.heat, before, 'And charged no heat for it.')
+
+# ---------------------------------------------------------------- integration
+
+## THE ONE READING NO OTHER CONFIGURATION CAN PRODUCE: the SAME Loading weapon fired TWICE in one
+## turn, the first shot carrying Hybridized Shot's +1 and the second not.
+##
+## This test replaces a vacuous one. The version this branch shipped built a preview through
+## SpecificAction.create + Context.clone and asserted accuracy_mods_total() == 2 without firing a
+## shot - a number made entirely of the AMR's own attack_accuracy = "1"
+## (mw_anti_materiel_rifle.tres:17) and Hybridized Shot's +1, neither of which Hypercharge touches.
+## It passed in the pre-implementation red run (.superpowers/sdd/mk2-sp1-task3-red.log) with the core
+## system and the frame's traits entry entirely absent, and no mutation pinned it.
+##
+## WHY THE SECOND SHOT IS THE PIN. Vanilla forbids it outright: unit_action.gd:276 drops is_loaded
+## inside the first shot's spend_actions, and unit_action.gd:151 then refuses the weapon for
+## REASON.UNLOADED inside is_gear_available - which a freebie does NOT skip (unit_action.gd:112 runs
+## before the freebie early-return at :114). Only this buff's restore makes a second activation
+## reachable at all, so the second summary coming back non-null is a direct reading of the restore.
+##
+## HYBRIDIZED SHOT IS THE RULER, and it is what makes the two shots distinguishable. It is once per
+## turn, charged by its own UNIT_ACTION POST reaction, so the first shot spends it and the second
+## cannot have it. "One shot with the bonus, one without, from one weapon in one turn" is a shape no
+## single shot and no pair of different weapons can fake.
+##
+## AS_FREEBIE ON THE SECOND SHOT, and only for the repeat-action rule: the per-turn SOFT limit is 1
+## for anything not free (action.gd:161-163 via unit_action.gd:116), and overcharge is the only other
+## thing that lifts it - which would drag overcharge heat into the picture. See shoot()'s header for
+## why that flag cannot weaken the Loading question this test is asking. The idiom is established:
+## test/gear/test_mw_autogun.gd:33 and test_blasting_powder.gd:133.
+##
+## READ OFF RESOLVED ATTACKS. A preview cannot answer this - it never spends anything, so two
+## previews taken before any shot both read +1 whatever the implementation does. Only the
+## DeclaredAttackSummary an attack really resolved through remembers what each roll was handed; see
+## fire_and_capture() above and, in full, test_hybridized_shot.gd's own copy of it.
+##
+## MUTATION-TESTED 2026-09-14, which is the thing the old test could not survive: deleting
+## `fired.gear.is_loaded = true` from buff_ors_hypercharge.activate turns this test red at both of
+## its structural assertions - the flag is not back after the first shot, and the second activation
+## is refused so fire_and_capture hands back null
+## (.superpowers/sdd/mk2-sp1-task3-mutation-no-restore.log, 13/16, taking
+## test_a_loading_weapon_stays_loaded and test_a_freebie_shot_pays_the_heat_too with it). The test
+## this replaced stayed GREEN with the entire core system deleted.
+func test_hypercharge_lets_one_loading_weapon_fire_twice_and_only_the_first_is_hybridized() -> void:
+	var amr := equip(AMR)
+	await MK2Fixture.open_turn(game, mk2)
+	await hypercharge()
+
+	cheat_every_die_to(2)
+	var first := await fire_and_capture(amr)
+	assert_true(amr.is_loaded,
+		'The buff put the flag back after the first shot - the only reason a second one exists.')
+
+	cheat_every_die_to(2)
+	var second := await fire_and_capture(amr, [Action.FLAG.AS_FREEBIE])
+
+	assert_true(DeclaredAttackSummary.is_valid(first), 'Fixture: the first shot really resolved.')
+	assert_true(DeclaredAttackSummary.is_valid(second),
+		'The SECOND shot of the SAME Loading weapon resolved in the same turn - which vanilla refuses'
+		+ ' outright, and only the restore in buff_ors_hypercharge.activate makes reachable.')
+	if not (DeclaredAttackSummary.is_valid(first) and DeclaredAttackSummary.is_valid(second)): return
+
+	assert_true(any_roll_got_hybridized_shot(first),
+		"The first shot's resolved roll carried Hybridized Shot's +1...")
+	assert_false(any_roll_got_hybridized_shot(second),
+		'...and the second did not: one +1 per turn, spent on the first of two shots that only'
+		+ ' Hypercharge could have made possible.')
+
+## RULING 7 says a freebie pays too ("each time you fire"). This is the half of that claim a spec can
+## reach: gear_core.gd:175-176 increments uses_this_round unconditionally and only gates the per-TURN
+## counter on the freebie flag, so a freebie moves the number event_gear_activate.gd:100-104 reads
+## and the POST fires exactly as it does for a paid action.
+##
+## The first shot is a normal activation on purpose: it is what spends the repeat-action allowance,
+## so the freebie is doing real work here rather than being an arbitrary flag on the only shot.
+func test_a_freebie_shot_pays_the_heat_too() -> void:
+	var amr := equip(AMR)
+	await MK2Fixture.open_turn(game, mk2)
+	await hypercharge()
+	await shoot(amr, 2)
+
+	var before:int = mk2.core.current.heat
+	await shoot(amr, 3, [Action.FLAG.AS_FREEBIE])
+	assert_eq(mk2.core.current.heat - before, 3,
+		'The freebie paid its own 1d3 - and the ROLLED value, not a constant.')
+
+# ---------------------------------------------------------------- attribution
+
+## A buff that answers "no" to everything and records what it was asked about.
+##
+## reaction_bus.trigger_occurred walks EVERY unit's buffs on every trigger and hands each of them the
+## triggering event (reaction_bus.gd:50, :61-62), and event_unit_damage puts the responsible gear and
+## action on its context for exactly this - "optionally put here (for reactions to inspect)",
+## event_unit_damage.gd:36-37. Returning false means does_buff_trigger (reaction_bus.gd:133-139)
+## builds no event block, so this observes the damage event without taking any part in it.
+##
+## Buff.new() as a spec fixture is vanilla's own idiom (test/event/test_event_unit_damage.gd:67,
+## test/event/test_event_turn_end.gd:39); the inner class only exists because triggers_on_event has
+## to be overridden, which a bare Buff cannot do. The name deliberately does not begin with `Test`,
+## GUT's inner-class prefix, so the scan never collects it as a test class.
+class HeatSourceSpy extends Buff:
+	## [kit compcon_id, action id] for every HEAT damage event that landed on the holder.
+	var heat_sources:Array = []
+
+	func triggers_on_event(_core:BuffCore, unit:Unit, triggering_event:EventCore) -> bool:
+		var context:Context = triggering_event.context
+		if context.unit == unit and context.category_int == Lancer.DAMAGE_TYPE.HEAT:
+			heat_sources.append([
+				context.gear.kit.compcon_id if GearCore.is_valid(context.gear) else &'',
+				context.action.get_id() if Action.is_valid(context.action) else &'',
+			])
+		return false
+
+## POST rather than PRE so the recording happens on a damage event that actually resolved; the PRE
+## pass at event_unit_damage.gd:59 runs before the invulnerable/zero-damage aborts.
+func install_heat_spy() -> HeatSourceSpy:
+	var spy := HeatSourceSpy.new()
+	var triggers:Array[StringName] = [ReactionBus.TRIGGER.DAMAGE]
+	spy.triggers_on = triggers
+	spy.trigger_timing = ReactionBus.TIMING.POST
+	spy.hide_from_player = true
+	UnitCondition.apply_buff_alt(
+		SpecFactory.dummy_event({number = 0, map = game.map}), mk2, BuffCore.create(spy))
+	return spy
+
+## THE HEAT IS THE ABILITY'S, NOT THE GUN'S - the claim buff_ors_hypercharge.gd makes in a prominent
+## comment and, until now, nothing checked.
+##
+## It is real, and it is fragile in a specific way: UnitAction.gain_self_heat_alt copies
+## specific.gear and specific.action straight into the event_unit_damage context (unit_action.gd:305-306),
+## and the buff hands it a SpecificAction built by hand around the CORE SYSTEM's own gear and its
+## protocol action. The obvious tidy-up - SpecificAction.from_context(activation.context) - looks
+## equivalent and is not: a reacting buff runs as event_buff_activate, whose context carries no gear
+## and no action at all (content/events/event_buff_activate.gd:7-11), so the damage would arrive
+## anonymous. Nothing about the heat NUMBER would change, and every other test in this file would
+## stay green.
+##
+## MEASURED, not reasoned: making exactly that substitution leaves the heat NUMBER untouched, turns
+## this test red on both of its assertions with an empty gear id and an empty action id, and leaves
+## the other 15 tests in this file green
+## (.superpowers/sdd/mk2-sp1-task3-mutation-attribution.log, 15/16).
+##
+## Note what this does NOT claim. The heat line in the battle log is
+## event.unit_damage.heated_self.log, which formats only an amount and a damage-type icon
+## (event_unit_damage.gd:108-115) - it names no source either way. What the attribution reaches is
+## the damage context itself: reactions inspecting it, and anything downstream that asks what caused
+## the heat.
+func test_the_heat_is_attributed_to_the_core_system_not_the_weapon() -> void:
+	var amr := equip(AMR)
+	var spy := install_heat_spy()
+	await MK2Fixture.open_turn(game, mk2)
+	await hypercharge()
+	await shoot(amr, 3)
+
+	assert_eq(spy.heat_sources.size(), 1,
+		'Fixture: exactly one HEAT damage event landed on the M/K2 - the ability charging its d3.')
+	if spy.heat_sources.size() != 1: return
+	assert_eq(spy.heat_sources[0][0], CORE_ID,
+		'The heat names the CORE SYSTEM as its gear, not the gun that fired.')
+	assert_eq(spy.heat_sources[0][1], PROTOCOL_ID,
+		'And the protocol the player pressed as its action, not the weapon attack.')

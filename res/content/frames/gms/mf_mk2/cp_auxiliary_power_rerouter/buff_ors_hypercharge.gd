@@ -8,12 +8,31 @@
 ## flag - so the gear bar never greys the weapon, Stabilize never offers a Reload for it
 ## (UnitAction.get_unloaded_weapons, unit_action.gd:411-416), and it fires again next action.
 ##
-## RULING 7 FALLS OUT OF THE TRIGGER, it is not enforced here. UNIT_ACTION POST fires exactly once per
-## gear activation that moved its usage counter, so a Blast pays one 1d3, a two-weapon Skirmish pays
-## twice, and an Overwatch or a freebie pays too - the ROUND counter is incremented even for
-## AS_FREEBIE (gear_core.gd:170-178). An ABORTED activation never fires the POST at all
-## (event_gear_activate.gd:100-104 gates it on pre_activate_uses having actually moved), so it neither
-## heats nor reloads.
+## RULING 7 FALLS OUT OF THE TRIGGER, it is not enforced here. UNIT_ACTION POST is queued exactly once
+## per gear activation that moved its usage counter (event_gear_activate.gd:110-111, gated at
+## :100-104 on pre_activate_uses having actually changed), so the cardinality of the heat is the
+## cardinality of the activation, whatever the attack did inside it.
+##
+## WHICH HALVES OF THAT ARE MEASURED, AND WHICH ARE READ OFF THE ENGINE. The distinction matters:
+## only the measured ones would go red if this stopped being true.
+##
+## - MEASURED, in spec/test_ors_hypercharge.gd:
+##   - two separate activations pay two separate 1d3s, at the value each one ROLLED
+##     (test_two_loading_shots_pay_twice);
+##   - a FREEBIE activation pays its own (test_a_freebie_shot_pays_the_heat_too) - which is the claim
+##     gear_core.gd:175-176 carries, incrementing uses_this_round unconditionally and gating only the
+##     per-TURN counter on the freebie flag;
+##   - an activation that ABORTS mid-flight pays nothing, and its round counter proves it aborted
+##     rather than merely finding a dead buff (test_an_aborted_activation_neither_heats_nor_reloads);
+##   - an activation the engine REFUSES up front does not reload the weapon behind its back
+##     (test_a_refused_activation_does_not_reload_the_weapon).
+## - ENGINE-DERIVED, asserted by nothing here: that a Blast pays ONE 1d3 however many targets it
+##   sweeps, and that an Overwatch or a Skirmish followup pays as any other activation does. Both
+##   follow from the same gate - the POST is queued on the ACTIVATION at event_gear_activate.gd:111,
+##   after all of the attack's own per-target work, and a reaction is itself an event_gear_activate
+##   (reaction_bus.gd:54-59). Staging a Skirmish followup or an Overwatch in a spec costs a mounted
+##   loadout and an enemy movement respectively, and neither would be testing THIS file. Treat them
+##   as reasoning, not as coverage.
 ##
 ## THE WEAPON IS READ OFF THE TRIGGERING EVENT, NOT OFF THIS ACTIVATION'S OWN CONTEXT. A reacting
 ## buff runs as event_buff_activate, whose context carries only `buff`, `unit` (the HOLDER) and
@@ -24,11 +43,20 @@
 ## triggers_on_event is handed that same virtual core directly, which is why the two halves of this
 ## file reach the weapon by different routes.
 ##
-## THE HEAT IS ATTRIBUTED TO THE CORE SYSTEM, NOT TO THE WEAPON, so the battle log and any
-## damage-source inspection name the ability the player chose rather than the gun.
+## THE HEAT IS ATTRIBUTED TO THE CORE SYSTEM, NOT TO THE WEAPON, so anything inspecting the damage
+## finds the ability the player chose rather than the gun.
 ## UnitAction.gain_self_heat_alt queues event_unit_damage HEAT with SELF_INFLICTED and
 ## SKIP_CONSUMING_RESIST_BUFFS (unit_action.gd:297-307), the same path every self-heat weapon takes -
 ## so a weapon fired at heat cap still pays and can push the M/K2 into stress, which is the card.
+## The attribution rides on gain_self_heat_alt copying specific.gear and specific.action straight into
+## that damage context (unit_action.gd:305-306), which is why the SpecificAction below is built by
+## hand rather than taken from the activation - see the comment at the call itself. Asserted by
+## test_the_heat_is_attributed_to_the_core_system_not_the_weapon, which reads the gear and action off
+## the damage event through a spy buff; without it the tidy-up to SpecificAction.from_context() would
+## rename the damage source and leave every other test in the file green.
+## What it does NOT buy is a named source in the battle log: the heat line is
+## event.unit_damage.heated_self.log, which formats an amount and an icon and nothing else
+## (event_unit_damage.gd:108-115).
 ##
 ## Dice.roll_d3 goes through roll_and_sum -> roll_dice (dice.gd:93, :22-38), so CHEAT_ROLL_QUEUE fixes
 ## it in specs.
@@ -81,10 +109,19 @@ func activate(core:BuffCore, activation:EventCore) -> void:
 
 	var core_gear:GearCore = core.get_owner_gear(unit.map)
 	if not GearCore.is_valid(core_gear): return
-	# The PROTOCOL action, not null. SpecificAction.create is happy to hold a null action
-	# (specific_action.gd:32-37), but gain_self_heat_alt copies specific.action straight into the
-	# event_unit_damage context (unit_action.gd:306), and the damage log reads it - so naming the
-	# action the player actually pressed is both safer and the better attribution.
+	# BUILT BY HAND, AND NOT SpecificAction.from_context(activation.context). This is the whole of the
+	# attribution: gain_self_heat_alt copies specific.gear and specific.action straight into the
+	# event_unit_damage context (unit_action.gd:305-306), and that context is what anything asking
+	# what caused the heat reads. Taking the SpecificAction off the activation instead looks
+	# equivalent and is not - a reacting buff runs as event_buff_activate, whose context carries no
+	# gear and no action at all (content/events/event_buff_activate.gd:7-11), so the damage would
+	# arrive anonymous with the number unchanged. Measured: that substitution turns
+	# test_the_heat_is_attributed_to_the_core_system_not_the_weapon red on both of its assertions
+	# (empty gear id, empty action id) and leaves the other 15 tests in the file green
+	# (.superpowers/sdd/mk2-sp1-task3-mutation-attribution.log).
+	# The PROTOCOL action, not null: SpecificAction.create is happy to hold one
+	# (specific_action.gd:32-37), and naming the thing the player actually pressed is the better
+	# attribution as well as the safer value.
 	UnitAction.gain_self_heat_alt(
 		Dice.roll_d3(),
 		SpecificAction.create(unit, core_gear, core_gear.get_action(&'action_ors_hypercharge')),
