@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="UnlockTree" format=3]
 
 [ext_resource type="Script" uid="uid://dq0jowvw37x6i" path="res://engine/character/unit_core/unlock_tree.gd" id="1_unlocktree"]
-[ext_resource type="Texture2D" uid="uid://dygcj7y0qg504" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/placeholder/mf_placeholder.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ipsn/mf_fitzgerald/ipsn_fitzgerald.png" id="2_icon"]
 [ext_resource type="Script" uid="uid://ctb1pfqlfgmni" path="res://engine/character/unit_core/unlock_rank.gd" id="3_unlockrank"]
 [ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="4_frame"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_fitzgerald/mf_fitzgerald.tres" id="5_mf_fitzgerald"]

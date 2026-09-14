@@ -37,6 +37,13 @@ static func is_modded_weapon(weapon:GearCore, holder:Unit, from_gear:StringName)
 ## fallback, withdrawn when Spike 10 proved the strip (design 4.2).
 func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 	if not super.check_if_passive_applies(core, context): return false
-	if not is_modded_weapon(context.gear, context.unit, core.from_gear): return false
+	# get_attacker(context), not context.unit: on a RELAYED attack (Buff.TO.SET_ATTACK_RELAY, the
+	# Ghast's nexus) context.unit is the relay, not the mech carrying the loadout - and
+	# is_modded_weapon looks the mod up in holder.core.loadout, which a relay does not have. The
+	# engine itself resolves the same way one line before it queries this buff
+	# (event_unit_attack_declared.gd:274), and the sibling strip buff already passes the buff HOLDER
+	# (buff_ripper_mod_strip_ap.gd), so this is the two halves agreeing rather than a new rule.
+	if not Unit.is_valid(context.unit): return false
+	if not is_modded_weapon(context.gear, context.unit.get_attacker(context), core.from_gear): return false
 	if not Unit.is_valid(context.target_unit): return false
 	return context.target_unit.get_armor() >= 1

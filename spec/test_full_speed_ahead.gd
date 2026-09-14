@@ -222,6 +222,26 @@ func test_a_hostile_beside_the_path_is_caught_too() -> void:
 	await dash_to(START + Vector2i(SPEED, 0))
 	assert_true(victim.has_status(Lancer.STATUS.PRONE), 'Becoming adjacent is enough.')
 
+## Every test above (and every dash_to() call in this file) runs due east - a hardcoded direction
+## vector would be implausible since dash_to resolves direction from the two endpoints at runtime,
+## but ruling 7's Chebyshev adjacency off a DIAGONAL ray was still genuinely untested. This repeats
+## test_a_hostile_beside_the_path_is_caught_too's shape on a diagonal.
+##
+## GEOMETRY, checked against the 15x9 map (FitzgeraldFixture.DEFAULT_MAP_SIZE, valid tiles x 0-14,
+## y 0-8) and START (2, 4): a southeast dash of Speed 4 lands on START + (4, 4) = (6, 8), still in
+## bounds (row 8 is the map's last row, not off it). Entered tiles are START + (1,1), (2,2), (3,3)
+## and (4,4) (the section header's AoeCalculator.line note applies the same way on a diagonal - the
+## start tile itself is never entered). START + (3, 2) is Chebyshev distance 1 from the entered
+## tile at START + (2, 2) (dx=1, dy=0, Tile.distance = max(dx,dy)) - it is not itself one of the
+## four entered tiles, and its distance from START is max(3,2) = 3, so it cannot be mistaken for
+## "adjacent to the start tile only" the way test_a_hostile_beside_only_the_start_tile_is_not_caught
+## pins for the eastward ray.
+func test_a_hostile_beside_a_diagonal_path_is_caught_too() -> void:
+	var victim := make_victim(START + Vector2i(3, 2))
+	cheat_failed_saves()
+	await dash_to(START + Vector2i(SPEED, SPEED))
+	assert_true(victim.has_status(Lancer.STATUS.PRONE), 'Becoming adjacent on a diagonal ray is enough too.')
+
 func test_a_hostile_beside_only_the_start_tile_is_not_caught() -> void:
 	# Directly WEST of where the Fitzgerald was standing - behind the dash, and the only direction
 	# from which a tile touches the start tile and nothing on the eastward ray. See the Chebyshev

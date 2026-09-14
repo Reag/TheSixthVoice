@@ -58,6 +58,12 @@ func activate(context:Context, activation:EventCore) -> void:
 	var occupied_crossed := count_occupied_crossed(unit, entered)
 
 	var specific := SpecificAction.from_context(context)
+	# Guarded like every sibling in this frame (action_bizarre_cannon.gd:28,
+	# action_swivel_single_shot.gd:44, action_heaer_detonate.gd:161): context.gear is valid in any
+	# real gear-activate context, so this is consistency rather than a reachable crash - but the
+	# persistent_id read below is the one place in this file that would take the whole dash down
+	# with it.
+	if not GearCore.is_valid(context.gear): return
 	for victim:Unit in caught:
 		if not Unit.is_valid(victim): continue
 		var passed:bool = await UnitHasecheck.make_hull_save(activation, victim, specific, [Lancer.STATUS.PRONE])

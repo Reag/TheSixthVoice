@@ -1,13 +1,13 @@
 {
 	"authors": [
-		"Reag",
+		"Mr_Reag",
 		"//Bela//"
 	],
 	"compatible_game_version": [
 		"1.4.3"
 	],
 	"dependencies": [],
-	"description": "Is normal technology too understandable? Have you ever wanted to perform feats that are nigh indistinguishable from magic? Do you like using technology taken from strange sources that has been turned into pure killing power by corporate giants? If so, that's kind of weird, but The Sixth Voice has you covered!",
+	"description": "Is normal technology too understandable? Have you ever wanted to perform feats that are nigh indistinguishable from magic? Do you like using technology taken from strange sources that has been turned into pure killing power by corporate giants? If so, that's kind of weird, but The Sixth Voice has you covered!\n\nThis release ships the Fitzgerald, IPS-N's blindfire gunner, with its full three-rank licence built out top to bottom. The rest of the roster is coming, one release at a time. The Seraphim can't be built yet: it's a Lich alt, and nothing currently brings the Lich itself to Lancer Tactics for it to sit alongside. Six Sky and Black Mountain are waiting on someone else's work too - they need the ha-sunzi and ssc-emperor mods to give them a frame to alt before they can stand on this engine.",
 	"image": "thumbnail.png",
 	"incompatibilities": [],
 	"load_before": [],
@@ -32,6 +32,6 @@
 		"Systems and weapons"
 	],
 	"title": "The Sixth Voice",
-	"version_number": "0.0.1",
+	"version_number": "0.1.0",
 	"website_url": "https://belram.itch.io/the-sixth-voice"
 }

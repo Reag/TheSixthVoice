@@ -234,6 +234,46 @@ func test_the_base_profile_carries_its_tags() -> void:
 	assert_eq(action.reliable_damage, '2', 'Reliable 2.')
 	assert_eq(action.self_heat_dice, '1', 'Heat 1 (self).')
 
+## THE INACCURATE TAG ABOVE PROVES NOTHING ABOUT THE ROLL, which is why this test exists.
+##
+## The tag array and the accuracy modifier are two independent halves in this engine, and only the
+## second one reaches the dice. attack_roll.gd:145-151 reads action.get_attack_accuracy(gear) - the
+## @export on action_attack.gd:12 - and DERIVES the Accurate/Inaccurate breakdown line from that
+## number; it never looks at `tags`. Going the other way, action_attack_weapon.gd:150-154 derives a
+## display chip from the number. So a profile can carry &"inaccurate" in `tags`, render the chip,
+## and roll at full accuracy - which is exactly what this one did until the frame close found it.
+## Every vanilla Inaccurate weapon sets both halves (mw_howitzer.tres:25/27,
+## mw_heavy_machine_gun.tres:19/20).
+##
+## Asserted on the whole accuracy total rather than on the export, so the shipped -1 has to survive
+## the real PreAttack path. The target stands in the open at AIM_EAST, so Hole Puncher contributes
+## nothing here (it only pays out against an unseen target - see test_hole_puncher.gd) and the -1
+## is the base profile's own.
+func test_the_base_profile_actually_rolls_inaccurate() -> void:
+	var specific := _specific(ACTION_ID)
+	assert_true(SpecificAction.is_valid(specific), 'fixture: the base profile resolves.')
+	if not SpecificAction.is_valid(specific): return
+
+	var pre := AttackRoll.PreAttack.create(specific.to_context({target_unit = target}))
+	assert_eq(pre.accuracy_mods_total(), -1,
+		'The base profile rolls at -1: its Inaccurate chip is backed by attack_accuracy = "-1".'
+		+ ' A tag with no accuracy number renders the chip and rolls at full accuracy.')
+
+## ...and MORE BLACK POWDER trades that away. The sheet drops INACCURATE from the second profile,
+## and ruling 8 keeps both profiles firable, so the accuracy difference is half of what makes the
+## choice between them real - the other half being 3 self-damage against 2.
+func test_the_second_profile_drops_the_inaccuracy() -> void:
+	await SpecFactory.use(game, unit, KIT_ID, MBP_PROTOCOL_ID)
+
+	var specific := _specific(MBP_ACTION_ID)
+	assert_true(SpecificAction.is_valid(specific), 'fixture: the second profile resolves.')
+	if not SpecificAction.is_valid(specific): return
+
+	var pre := AttackRoll.PreAttack.create(specific.to_context({target_unit = target}))
+	assert_eq(pre.accuracy_mods_total(), 0,
+		'MORE BLACK POWDER rolls at full accuracy - it carries no Inaccurate tag and no'
+		+ ' attack_accuracy, so the base profile is the one that pays.')
+
 func test_the_kit_and_its_profile_have_display_text() -> void:
 	# A named action on a multi-action kit is keyed gear.<kit>.<action>.* - the Apocalypse Rail's
 	# gear.cp_apocalypse_rail.action_charge_rail.name is the vanilla precedent - and a missing row
@@ -489,6 +529,26 @@ func test_the_second_profile_costs_exactly_three_ap_kinetic_self_damage() -> voi
 	# would land as 6.
 	assert_eq(unit.current_damage(), MBP_SELF_DAMAGE,
 		'The Fitzgerald took 3 AP kinetic from its own cannon: once, at this profile number.')
+
+## The +1d6 explosive was pinned only STRUCTURALLY - additional_damage_values[0].dice == '1d6' and
+## .type == EXPLOSIVE, up in test_the_second_profiles_stats - and nothing fired the profile and
+## counted. Every other damage number in this suite is measured exactly (SINGLE_SHOT_DAMAGE,
+## GRAPESHOT_DAMAGE, CARRONADE_DAMAGE), so this was the one profile getting the weaker treatment:
+## an additional_damage_values entry that stopped being applied would leave the structural
+## assertions green.
+##
+## 18 is deterministic here: cheat_a_hit() queues six sixes, the dummy has armor 0
+## (fitzgerald_fixture.gd:89), and Blasting Powder pays +0 to the FIRST character hit in a line
+## (ruling 5), so the three dice - 2d6 kinetic plus 1d6 explosive - are the whole number. Against
+## the base profile's two dice the same setup reads 12, which is what makes this discriminate.
+func test_the_second_profile_lands_its_extra_explosive_die() -> void:
+	cheat_a_hit()
+	await use_protocol()
+	await fire_more_black_powder_at(AIM_EAST)
+
+	assert_eq(target.current_damage(), 18,
+		'2d6 kinetic + 1d6 explosive, all sixes, through armor 0. A dropped additional damage value'
+		+ ' would read 12 here - the base profile\'s two dice - and pass every structural assertion.')
 
 func test_the_second_profile_knocks_back_three_spaces_in_any_direction() -> void:
 	# Fired NORTH on purpose. The base profile recoil cone opens AWAY from the fired line, which from

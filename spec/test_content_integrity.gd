@@ -29,6 +29,12 @@ const MOD_LIBRARY := 'res://engine/mod/mod_library.gd'
 ## guard so a new index cannot be added without the guards noticing.
 const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses']
 
+## The version this release ships. Bumped deliberately, once per release - it is not meant to track
+## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
+## is the source of truth for which release is current, and this const is just that number copied
+## into a place a spec can see it.
+const EXPECTED_VERSION := '0.1.0'
+
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
 	assert_true(Compat.is_mod_active(MOD_ID), '%s is loaded and active.' % MOD_ID)
@@ -74,6 +80,18 @@ func test_the_manifest_names_the_running_engine():
 		mod_util.is_mod_likely_compatible_with_game_version(manifest),
 		'The engine agrees this mod is compatible with %s.' % Compat.version_label()
 	)
+
+func test_the_manifest_version_matches_the_release_this_mod_claims_to_be():
+	# Nothing else in this file reads version_number, which is exactly how "0.0.1" - the SP0
+	# skeleton placeholder - survived five sub-projects and several reviews unnoticed. This guard
+	# exists so the next stale version fails a test instead of shipping quietly on a store listing
+	# that claims something newer.
+	var library = load(MOD_LIBRARY)
+	var manifest = library.get_manifest(StringName(MOD_ID))
+	assert_not_null(manifest, '%s has a manifest.' % MOD_ID)
+	if manifest == null: return
+	assert_eq(manifest.version_number, EXPECTED_VERSION,
+		'manifest.json version_number matches EXPECTED_VERSION - bump both together next release.')
 
 func test_this_mods_translation_reached_the_translation_server():
 	# NOT a test of what Mod Manage displays. Mod Manage shows ModCore.tr_label()
@@ -271,12 +289,14 @@ func test_every_visible_buff_has_a_real_icon():
 		_assert_real_icon(buff.icon, buff.compcon_id)
 
 func test_the_mod_reports_what_it_contributed():
-	# Not an assertion about content - a report, so a run that goes quietly green because nothing
-	# loaded is visible in the log rather than mistaken for a pass. Grows into a real count check as
-	# soon as SP1 lands the frame.
+	# SP1 through SP5 have all landed, so this is no longer just a report: every index this mod
+	# claims in OUR_INDEXES must actually carry at least one resource. The gut.p census is kept - it
+	# is still useful for eyeballing a run - but the pass/fail now rides on the counts it prints,
+	# not only on the mod being active.
 	for index_name:StringName in OUR_INDEXES:
-		gut.p('  %-10s %d' % [index_name, ModResources.our_paths_in(MOD_ID, index_name).size()])
-	assert_true(Compat.is_mod_active(MOD_ID), 'Reported against a mod that is actually installed.')
+		var count:int = ModResources.our_paths_in(MOD_ID, index_name).size()
+		gut.p('  %-10s %d' % [index_name, count])
+		assert_gt(count, 0, '%s has at least one of ours in the %s index.' % [MOD_ID, index_name])
 
 ## An icon has to exist AND not be a stand-in. Shared by the kit, action and buff guards.
 func _assert_real_icon(icon:Texture2D, label:String) -> void:

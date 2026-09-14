@@ -13,7 +13,7 @@ Art never blocks a release (roadmap §6). A sprite drop-in needs no session: rep
 the headless import, commit the regenerated `.import` sidecar.
 
 ```
-"D:/DEV/Godot_v4.7.2-stable_win64_console.exe" --headless --path D:/DEV/lancer-tactics-modkit --import
+<godot console binary> --headless --path <modkit root> --import
 ```
 
 **The sidecar has to be committed.** It names a `.ctex` under `res://.godot/imported/`, and

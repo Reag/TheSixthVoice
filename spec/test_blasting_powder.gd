@@ -409,18 +409,21 @@ func test_an_object_in_the_line_takes_no_bonus_damage() -> void:
 		'The far character is the 2nd CHARACTER hit and took +1 - the object neither took a bonus'
 		+ ' nor consumed its place in the order.')
 
-## "CLOSEST-FIRST" IS THE ENGINE'S SORT ORDER, NOT DISTANCE ORDER - pinned here deliberately, and
-## NOT a ruling.
+## "CLOSEST-FIRST" MEANS DISTANCE ORDER, AND THE TRAIT TAKES IT BACK FROM THE ENGINE.
+## Author ruling, frame close 2026-09-14, replacing the pin this test used to carry.
 ##
 ## action_attack.gd:174 sorts a Line's targets through
 ## CommonActionUtil.sort_deployables_and_grunts_to_back (common_action_util.gd:474-480), whose second
-## clause (:477) pushes npct_grunt units to the BACK. Grunts ARE characters, so "the next character
-## hit" is not the next one along the line: a grunt standing NEAREST the firer is the LAST character
-## hit and therefore collects the LARGEST bonus, while the mech standing behind it is paid as though
-## the grunt were not there at all. That falls straight out of vanilla's sort, it is what the trait
-## does today, and THE AUTHOR HAS NOT RULED ON WHETHER IT IS WANTED. This test exists so a later
-## ruling has something to edit rather than something to discover; if the ruling goes the other way,
-## this is the test to change, not a bug report to file.
+## clause (:477) pushes npct_grunt units to the BACK. Grunts ARE characters, so in ENGINE order a
+## grunt standing NEAREST the firer is the LAST character hit, and would collect the LARGEST bonus
+## while the mech behind it was paid as though the grunt were not there. That reverses ruling 5
+## ("targets resolve closest-first") and the card's "down the line", and a grunt screen is easy to
+## walk into, so the author ruled the card wins: buff_blasting_powder.hit_index re-sorts by distance
+## from the shot's origin before taking the index.
+##
+## This test is the proof, and it is the ONLY test in the file that can be: every other line in here
+## stands mechs in a row, where engine order and distance order agree. Deleting the sort_custom from
+## hit_index turns the three numbers below back into 12 / 13 / 14.
 ##
 ## THE GRUNT TEMPLATE IS APPENDED WITHOUT A full_repair(), on purpose and not as a dodge. The sort's
 ## only question is UnitPrinter.has_template(core, &'npct_grunt') (:477), which reads core.templates
@@ -428,7 +431,7 @@ func test_an_object_in_the_line_takes_no_bonus_damage() -> void:
 ## structure override reaches a unit through core.bonus instead, and bonus is rebuilt only by
 ## UnitPrinter.recalculate_bonuses, which nothing in an attack calls. A genuinely 1-HP grunt would
 ## die to the shot and take the damage readout this test is built on with it.
-func test_a_grunt_nearest_the_firer_is_the_last_character_hit() -> void:
+func test_a_grunt_nearest_the_firer_is_still_paid_first() -> void:
 	make_grunt(near)
 	assert_true(UnitPrinter.has_template(near.core, &'npct_grunt'),
 		'fixture: the nearest target is a grunt as far as the target sort is concerned.')
@@ -438,12 +441,23 @@ func test_a_grunt_nearest_the_firer_is_the_last_character_hit() -> void:
 	cheat_every_die_to_six()
 	await fire_at(FAR_TILE)
 
-	assert_eq(mid.current_damage(), BASE_DAMAGE,
-		'The MIDDLE target is the 1st character hit and takes +0 - though the grunt is closer.')
-	assert_eq(far.current_damage(), BASE_DAMAGE + 1, 'The far target is the 2nd character hit: +1.')
-	assert_eq(near.current_damage(), BASE_DAMAGE + 2,
-		'And the NEAREST character, the grunt, is the 3rd and takes the biggest bonus: +2.')
+	assert_eq(near.current_damage(), BASE_DAMAGE,
+		'The NEAREST character is paid first and takes +0, grunt or not. In raw engine order it'
+		+ ' would be last and take +2.')
+	assert_eq(mid.current_damage(), BASE_DAMAGE + 1,
+		'The middle target is the 2nd character along the line: +1. In engine order it would be 1st,'
+		+ ' at +0.')
+	assert_eq(far.current_damage(), BASE_DAMAGE + 2,
+		'And the far target is the 3rd: +2. In engine order it would be 2nd, at +1.')
 	assert_eq(_uses(), 1, 'The attack spent the round like any other.')
+
+	# The grunt's PLACE is what moved, not the size of the payout: the escalation is still exactly
+	# +0/+1/+2 over three characters, so the ruling re-orders the line without making the trait
+	# worth more or less against a screen than against three mechs.
+	assert_eq(
+		near.current_damage() + mid.current_damage() + far.current_damage(),
+		(BASE_DAMAGE * 3) + 0 + 1 + 2,
+		'Three characters still share exactly +0, +1 and +2 between them.')
 
 ## Ruling 5 again: the round is spent by an attack that hits at least one CHARACTER. A line that
 ## only broke some scenery has not used the trait up.

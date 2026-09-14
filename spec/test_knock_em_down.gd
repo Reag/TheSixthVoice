@@ -119,11 +119,27 @@ func force_save_to_pass() -> void:
 ## (event_unit_attack.gd's execute() runs once per attacked unit), so 30 is queued twice up front.
 ## The buffer is doubled too, since two attack rolls and the shared damage roll between them pop
 ## more dice than a single shot does.
+## THE ACCURACY DIE IS INTERLEAVED, NOT APPENDED, AND THAT IS THE WHOLE POINT OF THE PAIRS.
+##
+## Dice.CHEAT_ROLL_QUEUE is ONE global FIFO (dice.gd:13-17 appends both of cheat_attack's arrays
+## into it end to end), and an attack pops its d20 and then IMMEDIATELY its accuracy die from the
+## same front. The Bizarre Cannon is Inaccurate for real since the frame close gave it
+## attack_accuracy = "-1" - the tag alone never reached the roll - so each of the two attack rolls
+## now eats TWO values, not one.
+##
+## A bare [30, 30] therefore fed attack 1 a d20 of 30 and an accuracy die of 30 (total 0, a hit but
+## nowhere near attack_roll.gd:73's `>= 20` crit), and attack 2 a d20 of 6. Neither target crit, the
+## trait never fired, and this file's ruling-17 test failed on a weapon change rather than on
+## anything to do with Knock 'em down. test_blasting_powder.gd:25-27 predicted exactly this exposure.
+##
+## 30 - 6 = 24 still clears the crit threshold twice over, so both targets crit and the gate is
+## genuinely exercised. Both attack rolls complete before any damage is rolled, which is why the two
+## pairs sit ahead of the damage buffer rather than being interleaved with it.
 func cheat_two_crits() -> void:
 	Dice.CHEAT_ROLL_QUEUE.clear()
 	var buffer:Array[int] = []
 	for i:int in 40: buffer.append(6)
-	Dice.cheat_attack([30, 30], buffer)
+	Dice.cheat_attack([30, 6, 30, 6], buffer)
 
 # ---------------------------------------------------------------- the trait
 

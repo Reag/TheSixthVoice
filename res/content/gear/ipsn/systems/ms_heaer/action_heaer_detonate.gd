@@ -171,15 +171,30 @@ func activate(context:Context, activation:EventCore) -> void:
 	gear.state.erase(tile_key(victim))
 	gear.state.erase(size_key(victim))
 
-	# ALSO SWEEP ANY OTHER heaer_-PREFIXED KEY LEFT ON THE GEAR (whole-branch review, finding 10):
-	# triggers_on_event's capture_victim() writes are not guaranteed to ever reach an activate() call
-	# at all - the reaction is collected as an EventBlock, and an aborted block or a level exit
-	# between collection and execution leaves that kill's pair with no other code path to erase them.
-	# THIS activation, for whichever kill actually gets here, is the next best place to catch that
-	# orphaned pair, so it is cleared here rather than left to accumulate toward a save file.
-	for stale_key in gear.state.keys():
-		if stale_key is String and stale_key.begins_with('heaer_'): gear.state.erase(stale_key)
-
+	# THE TWO ERASES ABOVE ARE PER-VICTIM, AND THAT IS DELIBERATE. DO NOT SWEEP THE heaer_ PREFIX.
+	#
+	# An earlier whole-branch review added a blanket `for stale_key in gear.state.keys()` sweep here
+	# to reclaim orphaned captures (a capture whose activation is refused at
+	# event_gear_activate.gd:51 leaves its pair behind). The frame close measured what that costs:
+	# it silently destroyed every detonation after the first whenever ONE attack destroyed TWO
+	# hostiles, which a Line 15 Bizarre Cannon makes routine.
+	#
+	# The ordering is the whole story. event_unit_attack_declared.gd:199 runs an attack's damage
+	# events as ONE EventBlock, and event_block.gd:101-126 executes every event_core in a block to
+	# completion BEFORE walking any child block (:128-132). Each damage event ends by queueing its
+	# DAMAGE/POST reactions, which only add_child. So victim A and victim B are both captured while
+	# the parent block is still running, and only then does activation A begin. A sweep in A wipes
+	# B's pair; B then reads Tile.INVALID out of gear.get_state_tile and returns at the guard below -
+	# before the prompt, before spend_actions. No log line, no charge, no explosion.
+	# recheck_trigger_before_execution is false on the .tres, so event_gear_activate.gd:39-42 never
+	# re-runs triggers_on_event and there is no re-capture.
+	#
+	# The leak the sweep was reclaiming is bounded and harmless by comparison: keys are per
+	# persistent_id and capture_victim overwrites idempotently, so a unit can contribute at most one
+	# stale pair. If it ever needs reclaiming, scope it to a scene or combat boundary - never to
+	# another kill's activation.
+	#
+	# test_two_hostiles_destroyed_by_one_attack_detonate_twice is the guard.
 	if center == Tile.INVALID: return
 
 	# "you MAY expend a charge". The AI always says yes - it has no way to weigh the friendly fire,
@@ -222,6 +237,11 @@ func activate(context:Context, activation:EventCore) -> void:
 		# Allies and the Fitzgerald itself are NOT skipped (design §3.2: "the pilot chose it").
 		var passed_save:bool = await UnitHasecheck.make_agility_save(activation, caught, specific)
 		if activation.abort_without_unit(unit): return
+		# abort_without_unit checks the FIRER; this re-checks the victim, which the await could have
+		# seen off (a reaction to the save, a chained death). A freed unit here would be caught
+		# downstream by event_unit_damage's is_context_valid, so this is consistency rather than a
+		# live bug - action_full_speed_ahead.gd:62-64 guards both sides of its save the same way.
+		if not Unit.is_valid(caught): continue
 		if passed_save: continue
 		blast_events.append(EventCore.create(&'event_unit_damage', {
 			unit = caught,

@@ -340,6 +340,50 @@ func test_a_destroyed_deployable_counts() -> void:
 	assert_eq(doomed.core.current.health, 40 - BLAST_DAMAGE, 'And the burst went off around it.')
 	assert_eq(spared.core.current.health, 40, 'Save still rolled.')
 
+## FRAME CLOSE, the heaer_ sweep. ONE attack destroying TWO hostiles must detonate TWICE.
+##
+## This is the test that was missing while an earlier review's orphan-key sweep sat in activate():
+## every capture on the gear was erased by whichever detonation ran first, so the second read
+## Tile.INVALID and returned before its prompt and before spend_actions - no offer, no charge, no
+## explosion, and no error anywhere. Every other test in this file kills exactly one hostile, so the
+## whole suite stayed green.
+##
+## Both captures land before either activation runs: event_unit_attack_declared.gd:199 executes an
+## attack's damage events as one EventBlock, and event_block.gd:101-126 finishes every event in a
+## block before walking its child blocks (:128-132), which is where the queued reactions live.
+##
+## GRAPESHOT, NOT SINGLE SHOT: a Line 10 profile is the cheapest way to have one attack destroy two
+## characters, and it is a Cannon, so it is one of the three weapon types HEAER answers to. Fired
+## down y = 4 at a tile past both victims. The two bursts are disjoint (x 7..9 and x 11..13), so
+## each bystander can only have been hurt by its OWN detonation - one shared bystander would be
+## damaged twice by a working pair and once by a broken one, which reads the same as a halved
+## blast.
+func test_two_hostiles_destroyed_by_one_attack_detonate_twice() -> void:
+	var near := make_victim(Vector2i(8, 4))
+	var far := make_victim(Vector2i(12, 4))
+	# Off the firing line at y = 3, so the shot itself cannot touch them and they cannot give the
+	# victims cover. agi -30: each fails its Agility save, so a detonation that happened is visible
+	# as damage and one that did not is visible as full health.
+	var near_bystander := make_bystander(Vector2i(8, 3), -30)
+	var far_bystander := make_bystander(Vector2i(12, 3), -30)
+
+	cheat_a_hit()
+	await FitzgeraldFixture.open_turn(game, unit)
+	await SpecFactory.use(game, unit, GUN_ID, &'action_swivel_grapeshot', Vector2i(13, 4))
+
+	assert_false(Unit.is_valid(near), 'The near hostile was destroyed by the volley.')
+	assert_false(Unit.is_valid(far), 'And so was the far one.')
+
+	assert_eq(heaer_offers().size(), 2,
+		'BOTH kills offered the charge. One offer means the second capture was erased before its'
+		+ ' activation could read it - the heaer_ prefix sweep this test exists to keep deleted.')
+	assert_eq(charges_left(), CHARGES - 2, 'Two charges spent, one per body.')
+	assert_eq(near_bystander.core.current.health, 40 - BLAST_DAMAGE,
+		'The near body went off around its own burst.')
+	assert_eq(far_bystander.core.current.health, 40 - BLAST_DAMAGE,
+		'And so did the far one: the two bursts are disjoint, so this damage can only be the'
+		+ ' SECOND detonation.')
+
 ## WHOLE-BRANCH REVIEW, FINDING 4, gate 3 (action_heaer_detonate.gd:94,
 ## `if not UnitRelation.are_enemies(unit, victim): return false`). "Whenever you destroy a HOSTILE
 ## character" - a Fitzgerald that guns down its own ally must not be offered the charge. Every other

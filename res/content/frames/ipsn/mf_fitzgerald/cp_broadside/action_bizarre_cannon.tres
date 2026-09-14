@@ -18,6 +18,7 @@ weapon_size = 2
 weapon_type = 1
 aim_range = 0
 tags = Array[StringName]([&"ap", &"inaccurate", &"reliable"])
+attack_accuracy = "-1"
 reliable_damage = "2"
 range_pattern = SubResource("Resource_line15")
 self_heat_dice = "1"

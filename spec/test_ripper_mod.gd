@@ -34,7 +34,6 @@
 extends GutTest
 
 const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
-const FrameIsolation := preload('res://testkit/frame_isolation.gd')
 
 const MOD_ID := &'wm_ripper_mod'
 
@@ -111,6 +110,28 @@ func test_it_fits_a_rifle_and_a_cannon() -> void:
 
 func test_it_refuses_a_launcher() -> void:
 	assert_false(fits(LAUNCHER), 'A Launcher is not on the list.')
+
+## WHOLE-BRANCH REVIEW FINDING: every fits() test above equips a MAIN weapon
+## (mw_assault_rifle/mw_thermal_rifle/mw_breech_loading_swivel_gun/mw_missile_rack are all MAIN,
+## per their own .tres files), and none of them is a CQB weapon - so CQB never actually appeared in
+## the sample even though it heads allowed_types (wm_ripper_mod.tres:13,
+## Array[int]([1, 3, 0]) = CANNON, RIFLE, CQB). Deleting the 0 (CQB) from that array would pass
+## every other test in this file while the mod silently stopped fitting its own card's CQB clause.
+func test_it_fits_a_cqb_weapon() -> void:
+	# mw_pistol.tres:14-15: weapon_type 0 (CQB). Confirmed against Lancer.WEAPON_TYPE
+	# (lancer.gd:107: CQB, CANNON, MELEE, RIFLE, LAUNCHER, NEXUS).
+	assert_true(fits(&'mw_pistol'), 'A CQB weapon (the Pistol) takes the mod.')
+
+## WHOLE-BRANCH REVIEW FINDING: wm_ripper_mod.tres never sets allowed_sizes, which
+## PassiveWeaponMod.is_applicable_to (passive_weapon_mod.gd:34) reads as "any size" - but every
+## other fit test in this file happens to equip a MAIN weapon too, so pinning allowed_sizes to
+## [Lancer.WEAPON_SIZE.MAIN] in the .tres would still pass all of them. This is the control for
+## that deliberate emptiness.
+func test_it_fits_a_non_main_sized_weapon() -> void:
+	# mw_howitzer.tres:22-23: weapon_type 1 (CANNON, an allowed type), weapon_size 2 (HEAVY, not
+	# MAIN = 1). Confirmed against Lancer.WEAPON_SIZE (lancer.gd:104: AUX, MAIN, HEAVY, SUPERHEAVY,
+	# NONE).
+	assert_true(fits(&'mw_howitzer'), 'A Heavy Cannon - not MAIN-sized - still takes the mod.')
 
 func test_it_fits_an_ap_weapon() -> void:
 	# Ruling confirmed 2026-09-13: ruling 9's fallback is withdrawn, so an AP weapon is legal and

@@ -83,14 +83,38 @@ func get_values(core:BuffCore, context:Context) -> Context:
 ## push the mech behind it up a bonus step. Filtering here makes the index mean what the gate means,
 ## whatever vanilla sorts.
 ##
-## What the filter deliberately does NOT do is re-order. Resolution order is the engine's, and it is
-## only roughly closest-first: the same sort pushes npct_grunt units to the BACK (:477), and grunts
-## ARE characters - so a grunt standing nearest is the LAST character hit and collects the LARGEST
-## bonus. spec/test_blasting_powder.gd pins that; the author has not yet ruled on whether it is
-## wanted.
+## AND IT RE-SORTS, CLOSEST-FIRST (author ruling, frame close 2026-09-14). Engine resolution order
+## is NOT closest-first: CommonActionUtil.sort_deployables_and_grunts_to_back (action_attack.gd:174,
+## common_action_util.gd:477) pushes npct_grunt units to the BACK, and grunts ARE characters - so a
+## grunt standing nearest was the LAST character hit and collected the LARGEST bonus, while the mech
+## behind it got +0. That reverses both ruling 5 ("targets resolve closest-first") and the card's
+## "down the line", and a grunt screen is common enough to reach in ordinary play. The author ruled
+## the card and the ruling win, so the order is taken back from the engine here.
+##
+## MEASURED FROM THE ATTACK'S ORIGIN, NOT FROM THE FIRER'S CURRENT TILE. source_voxels is where the
+## shot came FROM, captured at declaration (declared_attack_summary.gd:12) - and the Fitzgerald's own
+## Bizarre Cannon knocks it backwards on firing, so its live position is not where the line started.
+## Tile.from_voxels is the engine's own conversion for exactly this, used for knockback direction at
+## action_attack_weapon.gd:341.
+##
+## Ties keep engine order: sort_custom is not stable in Godot, but two characters at equal distance
+## from the origin have no "nearer" between them, so any order is as faithful as another - what
+## matters is that a nearer one is never behind a further one.
 static func hit_index(context:Context) -> int:
 	if not DeclaredAttackSummary.is_valid(context.resource): return 0
 	if not Unit.is_valid(context.target_unit): return 0
 	var characters_hit:Array[Unit] = context.resource.get_all_hit_units().filter(
 		func(hit_unit:Unit) -> bool: return hit_unit.is_character())
+
+	var origin:Array[Vector2i] = Tile.from_voxels(context.resource.source_voxels)
+	if not origin.is_empty():
+		characters_hit.sort_custom(
+			func(a:Unit, b:Unit) -> bool: return range_from(origin, a) < range_from(origin, b))
+
 	return maxi(0, characters_hit.find(context.target_unit))
+
+## Spaces from the shot's origin to the nearest tile this unit occupies. A big-unit target is
+## measured from its closest space, which is how the engine measures range everywhere else.
+static func range_from(origin:Array[Vector2i], target:Unit) -> int:
+	if not Unit.is_valid(target): return 1000
+	return Tile.get_closest_pair_between(origin, target.occupied_tiles()).distance
