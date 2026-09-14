@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
 [ext_resource type="Resource" uid="uid://ccriqun3t2j3" path="res://content/frames/gms/mf_standard_pattern_i_everest/mt_replaceable_parts.tres" id="9_replaceableparts"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/gms/mf_mk2/mt_rapid_stabilization_jets/mt_rapid_stabilization_jets.tres" id="10_jets"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/gms/mf_mk2/mt_hybridized_shot/mt_hybridized_shot.tres" id="11_hybridized"]
 
 [sub_resource type="Resource" id="Resource_statblock"]
 script = ExtResource("7_statblock")
@@ -37,5 +38,5 @@ sprites = Array[Texture2D]([ExtResource("2_sprite")])
 mount_types = Array[ExtResource("3_mounttype")]([ExtResource("4_mountflex"), ExtResource("5_mountmain"), ExtResource("6_mountheavy")])
 stat = SubResource("Resource_statblock")
 role_primary = 4
-traits = Array[ExtResource("8_kit")]([ExtResource("9_replaceableparts"), ExtResource("10_jets")])
+traits = Array[ExtResource("8_kit")]([ExtResource("9_replaceableparts"), ExtResource("10_jets"), ExtResource("11_hybridized")])
 metadata/_custom_type_script = "uid://daycu0mqh1rbq"

@@ -86,3 +86,7 @@ gear.mt_rapid_stabilization_jets.action_rapid_stabilization_jets.name,Rapid Stab
 gear.mt_rapid_stabilization_jets.action_rapid_stabilization_jets.effect,"Ignore the |Ordnance| tag until the end of this turn."
 gear.buff_rapid_stabilization_jets.name,Rapid Stabilization Jets
 gear.buff_rapid_stabilization_jets.effect,"|Ordnance| weapons may be fired this turn after moving or acting."
+gear.mt_hybridized_shot.name,Hybridized Shot
+gear.mt_hybridized_shot.effect,"Gain +1 |Accuracy| on the first attack you make on your turn with a |Loading| weapon that is not |Superheavy|."
+gear.buff_hybridized_shot.name,Hybridized Shot
+gear.buff_hybridized_shot.effect,"+1 |Accuracy| on this attack."
