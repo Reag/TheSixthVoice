@@ -191,6 +191,10 @@ const ICON_TARGETS := {
 	# the action, and an action with no icon_override falls back to a generic, which is what this
 	# guard exists to catch.
 	&'mw_rapier_class_carronade': [&'action_rapier_carronade'],
+	# SP4 Task 3. A system whose one action is a QUICK the player presses on the gear bar, so it wears
+	# its own icon as well as the Kit's - the ms_hull_break_thrusters reasoning exactly, not the
+	# ms_heaer one (HEAER's only action is a hidden reaction that never reaches the gear bar).
+	&'ms_grit_latch_magnets': [&'action_reinforcement_blast'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -217,7 +221,15 @@ const ICON_TARGETS := {
 ## CSV rows of their own - Translate.buff (translate.gd:65-77) falls through to the owner gear's
 ## keys, so the chip reads "Weak Computer" off gear.mt_weak_computer.name exactly as it did while the
 ## buff was inline.
-const VISIBLE_BUFFS:Array[StringName] = [&'buff_more_black_powder', &'buff_weak_computer']
+## SP4 Task 3 is the FIRST TIME THIS ARRAY HAS MOVED SINCE SP1. buff_reinforcement_blast is
+## deliberately player-visible (it is SP4's only visible buff): the armor chip on each unit in the
+## blast is the sole on-map signal that REINFORCEMENT BLAST landed, since the system draws nothing
+## else. Its sibling buff_reinforcement_blast_reduction, added by Task 4, is hidden and must NOT be
+## listed here - the two together are one mechanic, and showing both would put two chips on every
+## target for one effect.
+const VISIBLE_BUFFS:Array[StringName] = [
+	&'buff_more_black_powder', &'buff_weak_computer', &'buff_reinforcement_blast',
+]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
 	# A kit or action without icon_override falls back to the generic glyph, which reads as "this

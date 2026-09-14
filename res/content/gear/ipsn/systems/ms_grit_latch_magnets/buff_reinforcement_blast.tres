@@ -1,0 +1,15 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_grit_latch_magnets/buff_reinforcement_blast.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+; Buff.TO.STATBLOCK - the DISPLAY channel. See the script header: this half reduces no damage.
+to = &"statblock"
+; Lancer.UNTIL.END_OF_OWNERS_NEXT_TURN. SEVEN, not six - six is START_OF_OWNERS_TURN
+; (lancer.gd:46-54). "until the end of YOUR next turn": the clock is the Fitzgerald's, not the
+; target's, which is what END_OF_NEXT_TURN (1) would have meant.
+until = 7
+; hide_from_player is deliberately LEFT AT ITS FALSE DEFAULT. This is SP4's one player-visible buff:
+; the armor chip is the only signal on the map that the blast landed. test_content_integrity.gd's
+; VISIBLE_BUFFS lists it for that reason, and the SP5 icon pass owes it an icon.

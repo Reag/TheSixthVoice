@@ -11,6 +11,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_hull_break_thrusters/ms_hull_break_thrusters.tres" id="9_thrusters"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/wm_ripper_mod/wm_ripper_mod.tres" id="10_ripper"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/weapons/mw_rapier_class_carronade/mw_rapier_class_carronade.tres" id="11_carronade"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_grit_latch_magnets/ms_grit_latch_magnets.tres" id="12_magnets"]
 
 [sub_resource type="Resource" id="Resource_rank1"]
 script = ExtResource("3_unlockrank")
@@ -25,7 +26,7 @@ metadata/_custom_type_script = "uid://ctb1pfqlfgmni"
 
 [sub_resource type="Resource" id="Resource_rank3"]
 script = ExtResource("3_unlockrank")
-granted_gear = Array[ExtResource("6_kit")]([ExtResource("11_carronade")])
+granted_gear = Array[ExtResource("6_kit")]([ExtResource("11_carronade"), ExtResource("12_magnets")])
 metadata/_custom_type_script = "uid://ctb1pfqlfgmni"
 
 [resource]

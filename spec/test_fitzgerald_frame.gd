@@ -148,8 +148,14 @@ func test_the_licence_grants_the_frame_at_rank_2():
 
 ## SP2 Task 1 replaced SP1's test_the_licence_grants_no_gear_yet, which pinned a frame-only licence
 ## and was never meant to stay true: rank 1 now grants the Breech-loading Swivel Gun and, since SP2
-## Task 4, HEAER. SP3 Task 1 gives rank 2 its first piece of gear too (Hull-break Thrusters); rank 3
-## is still empty and stays asserted, so a rank-3 item cannot arrive unannounced.
+## Task 4, HEAER. SP3 Task 1 gives rank 2 its first piece of gear too (Hull-break Thrusters); SP4
+## Tasks 1 and 3 fill rank 3 with the Rapier Class Carronade and the Grit Latch Magnets, which
+## completes the licence - all three ranks are now asserted exactly, so nothing can arrive in any of
+## them unannounced.
+##
+## RENAMED IN SP4 TASK 3 from test_the_licence_grants_the_rank_1_gear. It has asserted all three
+## ranks since SP3 Task 1 and the old name had been wrong since SP2; nothing about what it checks
+## changed with the rename.
 ##
 ## ASSERTED AS AN EXACT LIST, NOT AS MEMBERSHIP, matching the deliberate order assertion in
 ## test_the_frame_carries_all_five_traits above: granted_gear order is player-visible in the catalog's
@@ -157,7 +163,7 @@ func test_the_licence_grants_the_frame_at_rank_2():
 ## or a second item landing in the wrong rank. Each item's own behaviour is specced beside it
 ## (test_swivel_gun.gd, test_heaer.gd, test_full_speed_ahead.gd); this only pins where the licence
 ## hands it out.
-func test_the_licence_grants_the_rank_1_gear():
+func test_the_licence_grants_its_gear_at_the_right_ranks():
 	var license := _license()
 	assert_not_null(license, 'fixture: the licence loads.')
 	if license == null: return
@@ -176,13 +182,14 @@ func test_the_licence_grants_the_rank_1_gear():
 	# SP4 Task 1 filled rank 3, which until then was asserted to be EMPTY - this line used to read
 	# `assert_true(license.rank_3.granted_gear.is_empty(), 'Rank 3 grants no gear yet.')`, and it
 	# going red is what a correctly-wired rank 3 looks like from here. It is pinned exactly, in the
-	# same order-sensitive shape as the two ranks above, rather than relaxed to "contains": SP4 Task 3
-	# appends ms_grit_latch_magnets beside the Carronade, and an exact list is what makes that second
-	# edit visible here instead of silently satisfying a loosened assertion.
+	# same order-sensitive shape as the two ranks above, rather than relaxed to "contains". That paid
+	# off immediately: SP4 Task 3 appended ms_grit_latch_magnets beside the Carronade, and this line
+	# went red and had to be amended deliberately, instead of a second kit sliding into rank 3
+	# unnoticed behind a loosened assertion.
 	var rank_3_gear:Array = license.rank_3.granted_gear.map(
 		func(kit:Kit) -> StringName: return kit.compcon_id)
-	assert_eq(rank_3_gear, [&'mw_rapier_class_carronade'],
-		'Rank 3 grants exactly the Rapier Class Carronade.')
+	assert_eq(rank_3_gear, [&'mw_rapier_class_carronade', &'ms_grit_latch_magnets'],
+		'Rank 3 grants exactly the Rapier Class Carronade and the Grit Latch Magnets, in that order.')
 
 # ---------------------------------------------------------------- display text
 

@@ -57,3 +57,10 @@ gear.mw_rapier_class_carronade.name,Rapier Class Carronade
 gear.mw_rapier_class_carronade.effect,"A short, wide-bore gun bolted through the Fitzgerald's flank. It fires a solid shot straight down its own barrel line, and it does not much care what is standing in the way of it."
 gear.mw_rapier_class_carronade.action_rapier_carronade.name,Rapier Class Carronade
 gear.mw_rapier_class_carronade.action_rapier_carronade.effect,"Main Cannon, |AP|, |Heat 2| (Self). |Line 8|, 1d6+1 kinetic. This attack ignores cover, and deals 10 |AP| kinetic damage to all objects and terrain within the line."
+,
+gear.ms_grit_latch_magnets.name,Grit Latch Magnets
+gear.ms_grit_latch_magnets.effect,"|Limited| 3, |Unique|. Salvaged hull-plate magnets, flung out on a spread charge and slapped flat against whatever they land on."
+gear.ms_grit_latch_magnets.action_reinforcement_blast.name,REINFORCEMENT BLAST
+gear.ms_grit_latch_magnets.action_reinforcement_blast.effect,"Spend a charge and choose a |Blast 1| area within |Sensors|. All characters within the area gain 1 armor until the end of your next turn."
+gear.buff_reinforcement_blast.name,Reinforcement Blast
+gear.buff_reinforcement_blast.effect,"Plated in grit latch magnets: 1 armor until the end of the Fitzgerald's next turn."
