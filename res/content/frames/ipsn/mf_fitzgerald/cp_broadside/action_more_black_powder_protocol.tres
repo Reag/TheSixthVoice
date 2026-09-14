@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ActionSystemApplyBuff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_fitzgerald/cp_broadside/buff_more_black_powder.tres" id="2_marker"]
+[ext_resource type="Script" uid="uid://cm50wdj5g8syg" path="res://engine/character/gear_action/archtypes/action_system_apply_buff.gd" id="3_applybuff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_more_black_powder_protocol.svg" id="4_icon"]
+
+[resource]
+script = ExtResource("3_applybuff")
+icon_override = ExtResource("4_icon")
+buffs = Array[ExtResource("1_buff")]([ExtResource("2_marker")])
+apply_only_to_self = true
+can_apply_to_self = true
+can_reapply = false
+action_type = 4
+consumes_cp = true
+usage_group = &"more_black_powder"
+metadata/_custom_type_script = "uid://cm50wdj5g8syg"

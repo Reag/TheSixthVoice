@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="2_passive"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="3_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/weapons/mw_breech_loading_swivel_gun/action_swivel_single_shot.tres" id="4_singleshot"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/weapons/mw_breech_loading_swivel_gun/passive_swivel_rounds.tres" id="5_swivelrounds"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/weapons/mw_breech_loading_swivel_gun/action_swivel_grapeshot.tres" id="6_grapeshot"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/weapons/mw_breech_loading_swivel_gun/action_swivel_reload_refill.tres" id="7_reloadrefill"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_breech_loading_swivel_gun.svg" id="8_icon"]
+
+[resource]
+script = ExtResource("3_kit")
+icon_override = ExtResource("8_icon")
+actions = Array[ExtResource("1_action")]([ExtResource("4_singleshot"), ExtResource("6_grapeshot"), ExtResource("7_reloadrefill")])
+passives = Array[ExtResource("2_passive")]([ExtResource("5_swivelrounds")])
+sp_cost = 0
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

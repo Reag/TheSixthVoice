@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_fitzgerald/mt_blasting_powder/buff_blasting_powder.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+inherit_type_from_attack = true
+require_hit = true
+to = &"bonus_damage_specific"
+hide_from_player = true

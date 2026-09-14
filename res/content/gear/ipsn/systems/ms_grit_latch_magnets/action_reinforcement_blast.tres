@@ -1,0 +1,55 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Script" uid="uid://cm50wdj5g8syg" path="res://engine/character/gear_action/archtypes/action_system_apply_buff.gd" id="2_applybuff"]
+[ext_resource type="Script" uid="uid://c0yv6pnw2be6l" path="res://engine/character/gear_action/resources/range_pattern.gd" id="3_rangepattern"]
+[ext_resource type="Script" uid="uid://df1yicp7kbf3x" path="res://engine/character/gear_action/resources/target_requirements.gd" id="4_targetreqs"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_grit_latch_magnets/buff_reinforcement_blast.tres" id="5_armor"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_grit_latch_magnets/buff_reinforcement_blast_reduction.tres" id="6_reduction"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_reinforcement_blast.svg" id="7_icon"]
+
+; Blast 1: Lancer.AOE_TYPE.BLAST is 1 (lancer.gd:96-100), and AoeCalculator.blast is a
+; -radius..radius BOX, so this is the 3x3 square centred on the chosen tile, not a plus-shape.
+[sub_resource type="Resource" id="Resource_blast1"]
+script = ExtResource("3_rangepattern")
+pattern = 1
+value = 1
+
+; The shape is vanilla's Remote Cloud (content/frames/npc/npcc_support/remote_cloud/
+; action_remote_cloud_support.tres): a TargetRequirements carrying the RangePattern, handed to
+; target_requirements_override. That is what makes ActionSystemApplyBuff.activate take the chosen
+; TILE, expand the AoE and reassign target_units to everyone standing in it
+; (action_system_apply_buff.gd:113-118) instead of buffing one picked unit.
+;
+; can_target_empty_tiles is the "choose a Blast 1 AREA" clause: without it the centre would have to
+; be a tile that already holds a targetable unit.
+[sub_resource type="Resource" id="Resource_targeting"]
+script = ExtResource("4_targetreqs")
+count = 1
+range_pattern = SubResource("Resource_blast1")
+can_target_empty_tiles = true
+
+[resource]
+script = ExtResource("2_applybuff")
+icon_override = ExtResource("7_icon")
+; THE PAIR IS THE MECHANIC, AND THIS ARRAY IS THE ONLY PLACE THE TWO HALVES ARE JOINED.
+; buff_reinforcement_blast is the display/gate half (Buff.TO.STATBLOCK, armor 1) and reduces no
+; damage at all; buff_reinforcement_blast_reduction is the mitigating half (Buff.TO.RESIST_DAMAGE)
+; and is invisible. Buff.to holds a single value, so one resource cannot be both. Dropping either
+; entry silently ships half an ability - and dropping the reduction leaves every unit.get_armor()
+; assertion in spec/test_reinforcement_blast.gd green, which is exactly how the SP4 blocker was
+; missed. Author's ruling, 2026-09-14; both buff scripts' headers carry the derivation.
+; ActionSystemApplyBuff.apply_buffs_to_targets applies the whole array to every unit in the blast
+; (action_system_apply_buff.gd:157), so the two always arrive and depart together.
+buffs = Array[ExtResource("1_buff")]([ExtResource("5_armor"), ExtResource("6_reduction")])
+; "within Sensors": get_target_range returns the unit's own sensor range when this is set
+; (action_system_apply_buff.gd:48-49), so apply_range is left unused rather than hardcoded to 10.
+apply_to_sensors = true
+; Ruling 23: "all characters" is hostiles, allies AND the Fitzgerald itself. So no
+; apply_only_to_allies / _to_enemies filter, and can_apply_to_self is on - can_target_unit refuses
+; self without it (action_system_apply_buff.gd:61). OBJECTS need no exclusion of ours: the same
+; function refuses anything that is not is_actor().
+can_apply_to_self = true
+; QUICK (Lancer.ACTION.QUICK == 1, lancer.gd:27).
+action_type = 1
+target_requirements_override = SubResource("Resource_targeting")
