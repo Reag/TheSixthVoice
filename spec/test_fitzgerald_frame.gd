@@ -173,7 +173,16 @@ func test_the_licence_grants_the_rank_1_gear():
 		func(kit:Kit) -> StringName: return kit.compcon_id)
 	assert_eq(rank_2_gear, [&'ms_hull_break_thrusters', &'wm_ripper_mod'],
 		'Rank 2 grants exactly Hull-break Thrusters and the Ripper Mod, in that order.')
-	assert_true(license.rank_3.granted_gear.is_empty(), 'Rank 3 grants no gear yet.')
+	# SP4 Task 1 filled rank 3, which until then was asserted to be EMPTY - this line used to read
+	# `assert_true(license.rank_3.granted_gear.is_empty(), 'Rank 3 grants no gear yet.')`, and it
+	# going red is what a correctly-wired rank 3 looks like from here. It is pinned exactly, in the
+	# same order-sensitive shape as the two ranks above, rather than relaxed to "contains": SP4 Task 3
+	# appends ms_grit_latch_magnets beside the Carronade, and an exact list is what makes that second
+	# edit visible here instead of silently satisfying a loosened assertion.
+	var rank_3_gear:Array = license.rank_3.granted_gear.map(
+		func(kit:Kit) -> StringName: return kit.compcon_id)
+	assert_eq(rank_3_gear, [&'mw_rapier_class_carronade'],
+		'Rank 3 grants exactly the Rapier Class Carronade.')
 
 # ---------------------------------------------------------------- display text
 

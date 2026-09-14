@@ -52,3 +52,8 @@ gear.ms_hull_break_thrusters.action_full_speed_ahead.effect,"Expend a charge: fl
 ,
 gear.wm_ripper_mod.name,RIPPER MOD
 gear.wm_ripper_mod.effect,"This weapon deals +1d6 bonus damage against targets with at least 1 Armor. Attacks made with this weapon lose |AP| and cannot gain |AP| by any means."
+,
+gear.mw_rapier_class_carronade.name,Rapier Class Carronade
+gear.mw_rapier_class_carronade.effect,"A short, wide-bore gun bolted through the Fitzgerald's flank. It fires a solid shot straight down its own barrel line, and it does not much care what is standing in the way of it."
+gear.mw_rapier_class_carronade.action_rapier_carronade.name,Rapier Class Carronade
+gear.mw_rapier_class_carronade.action_rapier_carronade.effect,"Main Cannon, |AP|, |Heat 2| (Self). |Line 8|, 1d6+1 kinetic. This attack ignores cover, and deals 10 |AP| kinetic damage to all objects and terrain within the line."

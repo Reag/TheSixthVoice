@@ -185,6 +185,12 @@ const ICON_TARGETS := {
 	# SP3 Task 3. A weapon mod: no actions at all, so nothing but the Kit's own icon is ever shown -
 	# it appears in the weapon-mod dropdown and on the modded weapon's card.
 	&'wm_ripper_mod': [],
+	# SP4 Task 1. A weapon Kit with a single profile, and that profile still earns its own row: it is
+	# a separately pressable button on the gear bar, exactly the mw_breech_loading_swivel_gun
+	# reasoning. Having only one profile does not merge the button into the Kit - the gear bar draws
+	# the action, and an action with no icon_override falls back to a generic, which is what this
+	# guard exists to catch.
+	&'mw_rapier_class_carronade': [&'action_rapier_carronade'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
