@@ -19,8 +19,7 @@
 #     transcribed, so a modkit update that reshuffles a rank shows red HERE, in one place, rather
 #     than as a confusing failure inside whichever alt happened to be built that week.
 #
-# ALT_FRAMES is empty until M/K2 (frame 2). The baseline pin below is what this file asserts in the
-# meantime, and it keeps asserting it afterwards.
+# The baseline pin below is asserted alongside the alts themselves.
 #
 #   godot --resolution 800x600 --position 20,20 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-dir=res://unpacked/Reag-TheSixthVoice/spec
 extends GutTest
@@ -30,8 +29,10 @@ const OUR_MOD_MAIN := 'res://unpacked/Reag-TheSixthVoice/mod_main.gd'
 
 ## Our alt frames, by the licence they attach to. Each entry is
 ##   <base licence id> : { frame = <our mf_ id>, rank = <1|2> }
-## Filled in as each alt ships. Empty is correct in SP0: no alt exists yet.
-const ALT_FRAMES := {}
+## Filled in as each alt ships.
+const ALT_FRAMES := {
+	&'li_gms': {frame = &'mf_mk2', rank = 1}, # M/K2, the Everest alt (spike 2, 2026-09-14)
+}
 
 ## The vanilla licences the alts extend, with the rank each alt attaches to, and the frame that
 ## licence grants there today. Ten of the thirteen alts; the other three have no base in this
@@ -86,7 +87,19 @@ func _license_paths_by_id() -> Dictionary:
 ## ALT_FRAMES row. It is the tripwire for an alt silently dropping out of the table - a frame that
 ## stops being granted would otherwise just make the loop below shorter, and a shorter loop reads
 ## exactly like a pass.
-const ALTS_BUILT := 0
+const ALTS_BUILT := 1
+
+## The same tripwire for BASE_LICENSES, which ALTS_BUILT does not cover. Three tests below loop over
+## it, and emptying it ENTIRELY is caught indirectly (test_every_alt_frame_reaches_its_licence
+## asserts its own licence is present) - but SHRINKING it from ten rows to one is caught by nothing:
+## all three loops simply get quieter, and GUT marks a zero-assert test RISKY rather than FAILED
+## (gut.gd:581, :821), so the suite still reads green while the baseline it pins has evaporated.
+## Bump this only when a row is added or removed deliberately.
+const BASE_LICENSES_PINNED := 10
+
+func test_the_baseline_table_is_intact():
+	assert_eq(BASE_LICENSES.size(), BASE_LICENSES_PINNED,
+		'%d base licences pinned, %d in the table.' % [BASE_LICENSES_PINNED, BASE_LICENSES.size()])
 
 func test_every_alt_frame_reaches_its_licence():
 	assert_eq(ALT_FRAMES.size(), ALTS_BUILT, '%d alt frames built, %d in the table.' % [ALTS_BUILT, ALT_FRAMES.size()])

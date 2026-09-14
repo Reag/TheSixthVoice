@@ -12,6 +12,10 @@ frame.mf_fitzgerald.flavor,"""Some manufactures ask stupid questions such as ""h
 
 The Fitzgerald is not named for some daring brigand, terror of the high seas, or fearless rebel fighting against impossible odds. It is named after a tragedy, because for the longest time, that's all the Fitzgerald ever was. Originally a casualty of corporate reorganization and mismanagement, it bounced between team after team, each one being disbanded for one reason or another. Eventually, it was relegated to the lowest tier of development. Being sent to work on it was almost synonymous for being fired. And yet, after decades of rotting away as IPS-N's reject pile, the unthinkable happened. It was complete. To this day it stands as a testament to hard work, persevering and toiling away at thankless labor for the slightest chance at glory. Those who choose to pilot the Fitzgerald embody this, because it doesn't matter how many times you've been knocked down, how often you get turned into a heap of slag, or exploded into shrapnel. What matters is that you have a cannon nearly as big as you are, and there is nowhere for them to hide."
 ,
+frame.mf_mk2.name,M/K2
+frame.mf_mk2.flavor.short,Archival Artillerist
+frame.mf_mk2.flavor,"One of the earliest prototypes for mechanized combat the M/K2 heralds from a time before the integration of ammo feeds and every weapon needed to be manually reloaded. Because of this, the frame was entirely focused around trying to get around this major limitation through jury-rigged hybridized reloads or just straight up swapping to a new gun. This approach was ultimately a failure, however, as there was simply no way to deal with the high temperatures and the fragility of the O.R.S replenishment system. GMS scrapped the project entirely to focus on more reliable alternatives as was befitting their brand. The M/K2 was later rediscovered by janitorial staff during an archival purge and was spread on the Omninet among enthusiasts. Some brave pilots even choose to take updated versions into battle, trying to make use of its unique abilities with a modern arsenal."
+,
 gear.mt_weak_computer.name,Weak Computer
 gear.mt_weak_computer.effect,The Fitzgerald receives |+1 Difficulty| on all SYSTEMS saves and checks.
 ,
@@ -75,3 +79,20 @@ gear.ms_grit_latch_magnets.action_reinforcement_blast.name,REINFORCEMENT BLAST
 gear.ms_grit_latch_magnets.action_reinforcement_blast.effect,"Spend a charge and choose a |Blast 1| area within |Sensors|. All characters within the area gain 1 armor until the end of your next turn."
 gear.buff_reinforcement_blast.name,Reinforcement Blast
 gear.buff_reinforcement_blast.effect,"Plated in grit latch magnets: 1 armor until the end of the Fitzgerald's next turn."
+,
+gear.mt_rapid_stabilization_jets.name,Rapid Stabilization Jets
+gear.mt_rapid_stabilization_jets.effect,"1/scene, the M/K2 may fire |Ordnance| weapons after moving or acting for the rest of the current turn. Their other restrictions are unchanged: still no firing at targets in |engagement| with the M/K2, and still no |overwatch|."
+gear.mt_rapid_stabilization_jets.action_rapid_stabilization_jets.name,Rapid Stabilization Jets
+gear.mt_rapid_stabilization_jets.action_rapid_stabilization_jets.effect,"|Ordnance| weapons may be fired this turn after moving or acting. Their |engagement| and |overwatch| restrictions are unchanged."
+gear.buff_rapid_stabilization_jets.name,Rapid Stabilization Jets
+gear.buff_rapid_stabilization_jets.effect,"|Ordnance| weapons may be fired this turn after moving or acting."
+gear.mt_hybridized_shot.name,Hybridized Shot
+gear.mt_hybridized_shot.effect,"Gain +1 |Accuracy| on the first attack you make on your turn with a |Loading| weapon that is not |Superheavy|."
+gear.buff_hybridized_shot.name,Hybridized Shot
+gear.buff_hybridized_shot.effect,"+1 |Accuracy| on this attack."
+gear.cp_auxiliary_power_rerouter.name,Auxiliary Power Rerouter
+gear.cp_auxiliary_power_rerouter.effect,"The M/K2's O.R.S replenishment system can be forced to run hot, feeding every |Loading| weapon on the chassis at the cost of waste heat."
+gear.cp_auxiliary_power_rerouter.action_ors_hypercharge.name,O.R.S HYPERCHARGE
+gear.cp_auxiliary_power_rerouter.action_ors_hypercharge.effect,"For the rest of the scene, ignore the |Loading| property of your weapons, but gain 1d3 |heat| each time you fire a |Loading| weapon. Activating this immediately reloads your |Loading| weapons. As a |Protocol| it must be used first, before you move, act, or press RAPID STABILIZATION JETS."
+gear.buff_ors_hypercharge.name,O.R.S Hypercharge
+gear.buff_ors_hypercharge.effect,"|Loading| weapons do not need reloading, but each firing costs 1d3 |heat|."

@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="Frame" format=3 uid="uid://ct7hsk3u8chm4"]
+
+[ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="1_frame"]
+[ext_resource type="Script" uid="uid://djuk56crywqss" path="res://engine/character/unit_core/mount_type.gd" id="3_mounttype"]
+[ext_resource type="Resource" uid="uid://bsktp4ushq6g1" path="res://content/mounts/mount_flex.tres" id="4_mountflex"]
+[ext_resource type="Resource" uid="uid://dvhgasnfwqbym" path="res://content/mounts/mount_main.tres" id="5_mountmain"]
+[ext_resource type="Resource" uid="uid://dj0bl2ve85q5o" path="res://content/mounts/mount_heavy.tres" id="6_mountheavy"]
+[ext_resource type="Texture2D" uid="uid://dyfp8p8c0v3q4" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/gms/mf_mk2/mk2_bombard.png" id="7_scfjh"]
+[ext_resource type="Script" uid="uid://bxpc46igtsmvw" path="res://engine/character/unit/statblock.gd" id="7_statblock"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
+[ext_resource type="Texture2D" uid="uid://bjxkgvs4cswe7" path="res://assets/frames/gms/mf_standard_pattern_i_everest/gms_everest.png" id="8_xdlbd"]
+[ext_resource type="Resource" uid="uid://ccriqun3t2j3" path="res://content/frames/gms/mf_standard_pattern_i_everest/mt_replaceable_parts.tres" id="9_replaceableparts"]
+[ext_resource type="Texture2D" uid="uid://clpe4iuh2esu5" path="res://assets/frames/npc/npcc_sniper/npc_sniper.png" id="9_yoxeb"]
+[ext_resource type="Texture2D" uid="uid://yaynrykc77mi" path="res://assets/frames/npc/npcc_engineer/npc_engineer.png" id="10_e4g1v"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/gms/mf_mk2/mt_rapid_stabilization_jets/mt_rapid_stabilization_jets.tres" id="10_jets"]
+[ext_resource type="Texture2D" uid="uid://bako83utkjf6d" path="res://assets/frames/gms/mf_standard_pattern_i_everest/everest_alt_sentinel.png" id="11_7jooc"]
+[ext_resource type="Resource" uid="uid://c2sta1dscmxl7" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/gms/mf_mk2/mt_hybridized_shot/mt_hybridized_shot.tres" id="11_hybridized"]
+[ext_resource type="Texture2D" uid="uid://de858qkj6liy8" path="res://assets/frames/npc/npcc_priest/npc_priest.png" id="12_iuc4j"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/gms/mf_mk2/cp_auxiliary_power_rerouter/cp_auxiliary_power_rerouter.tres" id="12_rerouter"]
+[ext_resource type="Texture2D" uid="uid://srgk8h0s40am" path="res://assets/frames/npc/npcc_witch/npc_witch.png" id="13_1u6le"]
+[ext_resource type="Texture2D" uid="uid://ctx3vwpna0wxl" path="res://assets/frames/npc/npcc_assault/npc_assault.png" id="14_buto2"]
+[ext_resource type="Texture2D" uid="uid://cvxsm30vtivbd" path="res://assets/frames/npc/npcc_archer/npc_archer.png" id="15_drjv7"]
+[ext_resource type="Texture2D" uid="uid://11icbkcych5u" path="res://assets/frames/npc/npcc_ace/npc_ace.png" id="16_sltjx"]
+
+[sub_resource type="Resource" id="Resource_statblock"]
+script = ExtResource("7_statblock")
+size = 1
+structure = 4
+stress = 4
+health = 6
+armor = 1
+evasion = 8
+edef = 8
+speed = 4
+heat = 7
+save_target = 10
+sensor_range = 10
+repairs = 6
+systems_points = 5
+reactions = 1
+activations = 1
+metadata/_custom_type_script = "uid://bxpc46igtsmvw"
+
+[resource]
+script = ExtResource("1_frame")
+sprites = Array[Texture2D]([ExtResource("7_scfjh"), ExtResource("8_xdlbd"), ExtResource("9_yoxeb"), ExtResource("10_e4g1v"), ExtResource("11_7jooc"), ExtResource("12_iuc4j"), ExtResource("13_1u6le"), ExtResource("14_buto2"), ExtResource("15_drjv7"), ExtResource("16_sltjx")])
+traits = Array[ExtResource("8_kit")]([ExtResource("9_replaceableparts"), ExtResource("10_jets"), ExtResource("11_hybridized"), ExtResource("12_rerouter")])
+mount_types = Array[ExtResource("3_mounttype")]([ExtResource("4_mountflex"), ExtResource("5_mountmain"), ExtResource("6_mountheavy")])
+stat = SubResource("Resource_statblock")
+role_primary = 4
+metadata/_custom_type_script = "uid://daycu0mqh1rbq"
