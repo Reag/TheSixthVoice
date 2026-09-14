@@ -27,7 +27,7 @@ const BUFF_ID:StringName = &'buff_rapid_stabilization_jets'
 ## "Nonexistent function" the moment a player ever declined the confirm, i.e. never in a spec and
 ## always in play. Asking whether the buff is on the unit is also the stronger question: this
 ## action's whole contract is "apply the chip, then open the window", and every path that fails to
-## apply it - a declined confirm (action_system_apply_buff.gd:263), an invalid unit, a buff the
+## apply it - a declined confirm (action_system_apply_buff.gd:105-107), an invalid unit, a buff the
 ## engine refused - must not leave the window open behind it. It is measurable from the spec, which
 ## is why the brief preferred it.
 func activate(context:Context, activation:EventCore) -> void:

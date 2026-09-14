@@ -29,7 +29,7 @@
 ## on every action costs the M/K2 nothing.
 extends Buff
 
-## The holder only. reaction_bus.trigger_occurred (reaction_bus.gd:59-65) polls EVERY unit's buffs on
+## The holder only. reaction_bus.trigger_occurred (reaction_bus.gd:61-67) polls EVERY unit's buffs on
 ## every trigger, so without this an enemy's Boost would re-open our window - harmlessly today, but
 ## it would also mean the spec could not tell a working trait from a broken one.
 func triggers_on_event(_core:BuffCore, unit:Unit, triggering_event:EventCore) -> bool:
@@ -39,3 +39,10 @@ func activate(_core:BuffCore, activation:EventCore) -> void:
 	var unit:Unit = activation.context.unit
 	if not Unit.is_valid(unit): return
 	unit.state.is_firing_ordnance = true
+
+## Restores the shape this trait was measured with (spec/test_spike_mk2_reaction_timing.gd, since
+## deleted): without this, Buff.check_required_triggering_context (buff.gd, bottom of file) lets
+## this buff be evaluated against trigger events carrying no unit at all, and triggers_on_event
+## above would compare against a null context.unit instead of refusing cleanly.
+func get_required_triggering_context() -> Array[Context.PROP]:
+	return [Context.PROP.unit]

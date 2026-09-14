@@ -3,8 +3,9 @@
 #
 # WHAT ORDNANCE IS IN THIS ENGINE, and therefore what this trait actually does. The timing rule is
 # ONE unit-state flag, unit.state.is_firing_ordnance: set at turn start (event_turn_start.gd:83),
-# cleared by any non-protocol non-reaction action (unit_action.gd:269) and by any voluntary move
-# (event_unit_move.gd:88-90), and read in exactly one place - unit_action.gd:146, which refuses an
+# cleared by any non-protocol non-reaction action (unit_action.gd:269) and by any move that SPENDS
+# MOVEMENT - NOT any voluntary move; see the move_to() helper's docstring below for the citation
+# and why that distinction matters - and read in exactly one place - unit_action.gd:146, which refuses an
 # Ordnance attack with REASON.ORDNANCE when it is false. So every assertion below is about that
 # reason code, not about whether damage landed: the reason names the gate, and a test that only
 # watched for a shot could pass for six different reasons.
@@ -21,7 +22,6 @@ extends GutTest
 const MK2Fixture := preload('res://unpacked/Reag-TheSixthVoice/spec/mk2_fixture.gd')
 
 const TRAIT_ID := &'mt_rapid_stabilization_jets'
-const ACTION_ID := &'action_rapid_stabilization_jets'
 const BUFF_ID := &'buff_rapid_stabilization_jets'
 
 ## Vanilla GMS Heavy: accurate, ap, LOADING, ORDNANCE (content/gear/gms/weapons/mw_anti_materiel_rifle.tres:16).
@@ -102,7 +102,7 @@ func test_the_window_stays_open_across_a_later_action() -> void:
 	#
 	# ms_boost, NOT ms_stabilize. Task 0 measured Stabilize aborting at its unanswered cool-or-repair
 	# prompt, and an aborted activation fires no UNIT_ACTION POST at all
-	# (event_gear_activate.gd:96-101) - so a Stabilize here would fail for a reason that has nothing
+	# (event_gear_activate.gd:100-104) - so a Stabilize here would fail for a reason that has nothing
 	# to do with this trait. Boost is prompt-free and was measured firing the POST.
 	await MK2Fixture.open_turn(game, mk2)
 	await fire_the_jets()
@@ -159,3 +159,8 @@ func test_an_engaged_target_is_still_refused() -> void:
 	var specific := SpecificAction.create(mk2, amr, amr.get_solo_action())
 	assert_false(amr.get_solo_action().can_target_unit(adjacent, specific),
 		'An engaged target is still off limits under the Jets.')
+	# The positive control. can_target_unit is also false for self, hidden, out-of-range and
+	# banned units, so a change that broke targeting entirely would leave the assertion above
+	# green while the weapon could not be fired at anyone at all.
+	assert_true(amr.get_solo_action().can_target_unit(target, specific),
+		'A legitimate, unengaged target is still targetable under the Jets.')
