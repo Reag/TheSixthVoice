@@ -137,9 +137,18 @@ func test_the_system_and_its_buff_have_display_text() -> void:
 	assert_not_null(translation,
 		'This mod has a compiled translation (run the headless --import if this is a fresh clone).')
 	if translation == null: return
+	#
+	# `gear.<system>.effect` IS DELIBERATELY ABSENT and is not listed below. The LCP gives this system
+	# an EMPTY `effect` - its rules live in the action's `detail`, which is the action row, and its
+	# flavour in `description`, which is the `.flavor` row. Its only other content was the Limited 3 /
+	# Unique tags, which the engine already renders as chips. So a kit row here could only be
+	# invention, and the author's 2026-09-14 localization directive removed it. This is NOT the
+	# cp_broadside case: that kit's row survives because it carries a real rule (an integrated weapon
+	# takes no mount and no weapon mod) that the LCP encodes as `no_mods: true` rather than as prose,
+	# and that the game renders nowhere else. Measured at the same time: 189 of vanilla's 431 kits
+	# have a name row and no effect row, so omitting one is house style, not a gap.
 	for key:String in [
 		'gear.%s.name' % SYSTEM_ID,
-		'gear.%s.effect' % SYSTEM_ID,
 		'gear.%s.%s.name' % [SYSTEM_ID, ACTION_ID],
 		'gear.%s.%s.effect' % [SYSTEM_ID, ACTION_ID],
 		'gear.%s.name' % BUFF_ID,

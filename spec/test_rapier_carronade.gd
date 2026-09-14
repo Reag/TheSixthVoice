@@ -895,5 +895,10 @@ func test_the_rules_text_promises_the_damage_the_code_deals() -> void:
 	assert_not_null(translation, 'fixture: this mod has a compiled translation.')
 	if translation == null: return
 	var effect := str(translation.get_message('gear.%s.%s.effect' % [KIT_ID, ACTION_ID]))
-	assert_string_contains(effect, '%d |AP| kinetic damage to all objects and terrain' % LINE_DAMAGE,
+	# "objects OR terrain", which is the LCP's own conjunction. This read "and terrain" until
+	# 2026-09-14, when the card was swept back to the LCP's wording under the author's localization
+	# directive and this assertion went red - correctly, and for the wrong reason: the conjunction
+	# was never what it is here to pin. What it pins is the NUMBER, which is why LINE_DAMAGE is
+	# interpolated rather than written out. Match the source's phrasing, keep the number binding.
+	assert_string_contains(effect, '%d |AP| kinetic damage to all objects or terrain' % LINE_DAMAGE,
 		'The rules text promises exactly the number the code deals.')
