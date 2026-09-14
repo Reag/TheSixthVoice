@@ -337,9 +337,11 @@ func test_it_is_refused_with_no_charges_left() -> void:
 # .superpowers/sdd/sp4-task-4-report.md.
 
 ## Vanilla Main Rifle, 1d6 KINETIC, no AP (content/gear/gms/weapons/mw_assault_rifle.tres). Chosen
-## because its damage type is on the reduction's list and its profile carries nothing else - no AP,
-## no second damage type, no on-hit effect - so the number the target loses is the die minus the
-## blast and nothing more.
+## because its damage type is on the reduction's list and it carries no second damage type and no
+## on-hit effect. It DOES carry RELIABLE 2 - but that only substitutes a guaranteed 2 damage on a
+## MISS (attack_util.gd:126, get_miss() vs get_hits()); a HIT rolls its die untouched, and this shot
+## cannot miss at 19 accuracy against -10 evasion. So the number the target loses is the die minus
+## the blast and nothing more.
 const PLAIN_RIFLE := &'mw_assault_rifle'
 const RIFLE_DIE := 6
 
@@ -387,6 +389,14 @@ func test_the_blast_actually_blunts_damage() -> void:
 	var buffed := await take(hostile, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC)
 	assert_eq(buffed, FIXED_HIT - 1, 'One less, measured on core.current.health - not on get_armor().')
 	assert_eq(unbuffed - buffed, 1, 'Exactly one point, and the blast is what changed between them.')
+
+	# damage_types names all three types armor covers - KINETIC, ENERGY and EXPLOSIVE - not just the
+	# one every other positive test in this file happens to fire with. Without these two, mutating the
+	# .tres array down to [KINETIC] alone would leave every mitigation test here green.
+	var energy := await take(hostile, FIXED_HIT, Lancer.DAMAGE_TYPE.ENERGY)
+	assert_eq(energy, FIXED_HIT - 1, 'ENERGY is blunted too.')
+	var explosive := await take(hostile, FIXED_HIT, Lancer.DAMAGE_TYPE.EXPLOSIVE)
+	assert_eq(explosive, FIXED_HIT - 1, 'So is EXPLOSIVE.')
 
 func test_it_blunts_a_real_weapon_hit() -> void:
 	# The counterweight to the direct damage events everything else here uses. A weapon attack puts an
@@ -444,6 +454,7 @@ func test_an_ap_hit_is_not_blunted() -> void:
 	var witness := Fixture.create_dummy(game, ONE_TILE_OUT, 10)
 	witness.core.frame.stat.armor = 2
 	witness.core.full_repair()
+	assert_eq(witness.core.current.armor, 2, 'fixture: the witness really has 2 armor.')
 
 	await blast_at(CENTRE)
 

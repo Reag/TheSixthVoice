@@ -49,7 +49,7 @@
 ##
 ## WHY is_onetime IS NOT SET. damage_modifications.gd:113 assigns EVERY RESIST_DAMAGE buff it
 ## consulted into `buffs_to_consume`, so this buff is handed to the consumer on every hit it blunts.
-## It survives because UnitCondition.consume_buffs (unit_condition.gd:937-938) filters that list down
+## It survives because UnitCondition.consume_buffs (unit_condition.gd:938) filters that list down
 ## to `buff.base.is_onetime` before clearing anything, and the export defaults false. Real armor is
 ## not spent by being used; setting is_onetime would make this a one-shot shield.
 ##
@@ -59,10 +59,17 @@
 ## other_reduction for it). So the convenient flag would quietly blunt burn. The .tres therefore
 ## names KINETIC, ENERGY and EXPLOSIVE and leaves HEAT and BURN off the list.
 ##
-## THREE DIVERGENCES FROM TRUE ARMOR REMAIN. All three are narrow, all three favour the defender, and
-## all three were accepted by the same ruling rather than worked around. They are pinned here rather
-## than by a spec, deliberately - each would need a contrived fixture to exercise and none is worth a
-## test that would then have to be maintained as a description of a known imperfection:
+## A SECOND, INDEPENDENT REASON TO KEEP BURN OFF THE LIST: burn stacks using the POST-REDUCTION
+## amount. event_unit_damage.gd:84 reads `damage_amount = context.number`, which execute_preblock
+## already overwrote with `final_modified.damage` at :66; :121-122 then does `unit.state.burn +=
+## damage_amount`. So a REDUCE buff covering BURN would shrink both the immediate hit AND the burn
+## stack that ticks later - silently worth more than the one point it claims.
+##
+## FOUR DIVERGENCES FROM TRUE ARMOR REMAIN. Three are narrow and mechanical; the fourth is purely
+## cosmetic. All four favour the defender or are invisible to them, and all four were accepted by the
+## same ruling rather than worked around. They are pinned here rather than by a spec, deliberately -
+## each would need a contrived fixture to exercise and none is worth a test that would then have to
+## be maintained as a description of a known imperfection:
 ##
 ##   1. ORDER AGAINST RESISTANCE. True armor is subtracted BEFORE resistance halves the damage
 ##      (damage_modifications.gd:104, then :107-108); `other_reduction` is subtracted AFTER
@@ -75,6 +82,16 @@
 ##   3. NO ARMOR MULTIPLIER. `ActionAttack.get_armor_multiplier()` (damage_modifications.gd:98) scales
 ##      real armor; its only user in the game is the Specter's monowire sword. It does not scale
 ##      this.
+##   4. COSMETIC: THE BATTLE LOG NAMES THE WRONG SOURCE. damage_modifications.gd:67 appends this
+##      buff to `other_reduction_sources`, and event_unit_damage.gd:143 folds
+##      `get_other_reduction_names()` into the log's reduction reasons - where TRUE armor instead
+##      contributes `tr('lancer.stat.armor')` at :136. So a blunted hit logs "reduced from 10:
+##      reinforcement blast" rather than "...: armor". It resolves to a real string rather than a raw
+##      id: from_gear is set (action.gd:371), so Translate.buff falls through to the owning gear's
+##      solo action (gear_core.gd:338 - the kit has exactly one action) and yields
+##      gear.ms_grit_latch_magnets.action_reinforcement_blast.name. (telegraph_when_relevant is also
+##      unset, so unit_condition.gd:1051 never telegraphs this hidden buff - no display bug there,
+##      just this cosmetic log line.)
 ##
 ## SHREDDED IS NOT A DIVERGENCE, and that is worth knowing because it looks like one. The Shredded
 ## early return (damage_modifications.gd:73-77) happens after `other_reduction` has been accumulated
