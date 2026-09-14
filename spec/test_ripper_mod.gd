@@ -10,8 +10,25 @@
 # WHY THE TARGET'S ARMOR IS SET TWO DIFFERENT WAYS. unit.get_armor() is
 # core.get_armor() + state.stat_bonus.armor (unit.gd:309). The frame's own armor is the ordinary
 # case; stat_bonus is what a Buff.TO.STATBLOCK buff writes, which is how SP4's Reinforcement Blast
-# will grant armor - so the "temporary armor counts" test sets stat_bonus directly rather than
-# waiting for SP4 to exist.
+# grants armor - so the "temporary armor counts" test sets stat_bonus directly rather than
+# depending on SP4's content.
+#
+# THAT INTERACTION IS NOW LIVE, AND IT IS A REAL ONE. SP4 shipped ms_grit_latch_magnets, whose
+# REINFORCEMENT BLAST applies buff_reinforcement_blast - a Buff.TO.STATBLOCK buff with armor = 1, in
+# res/content/gear/ipsn/systems/ms_grit_latch_magnets/. So a character standing in a Reinforcement
+# Blast is a "target with at least 1 Armor" for this mod's purposes and DOES take the +1d6, even
+# when its frame has no armor of its own. test_temporary_armor_counts is the proof of that clause,
+# built by hand so it does not depend on SP4's content loading.
+#
+# IT IS ALSO THE EXECUTABLE PROOF OF THE SP4 BLOCKER, AND ITS ASSERTIONS MUST NOT BE "FIXED".
+# The number it expects (6 + 6, unreduced) is the whole finding: a STATBLOCK buff satisfies every
+# unit.get_armor() gate and blunts nothing, because the damage pipeline reads core.current.armor
+# and never calls get_armor(). That is why SP4's Reinforcement Blast ships as a PAIR of buffs - the
+# visible STATBLOCK one this test's hand-built buff imitates, plus a hidden BuffResistDamage sibling
+# that does the mitigating (author's ruling, 2026-09-14). If the engine ever changed so that a
+# STATBLOCK buff DID reduce incoming damage, this test would go red at exactly the right moment and
+# SP4's second buff would become double mitigation - so a red here is a signal to re-derive §5.2,
+# never to adjust the expected number.
 #
 #   godot --resolution 800x600 --position 20,20 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_ripper_mod.gd
 extends GutTest

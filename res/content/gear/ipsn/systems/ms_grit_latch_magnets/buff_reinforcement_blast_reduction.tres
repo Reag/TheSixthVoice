@@ -1,0 +1,40 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_grit_latch_magnets/buff_reinforcement_blast_reduction.gd" id="1_reduction"]
+
+[resource]
+script = ExtResource("1_reduction")
+; Buff.TO.RESIST_DAMAGE - the MITIGATING channel, and the only buff channel the damage pipeline
+; reads (damage_modifications.gd:62). Its sibling buff_reinforcement_blast holds the STATBLOCK half.
+to = &"resist_damage"
+; REDUCE, not resist and not cap: BuffResistDamage.get_values turns this flag into
+; BuffResistDamage.FLAG.REDUCE, which damage_modifications.gd:65-67 adds to `other_reduction` - a
+; flat subtraction, which is what armor is. Plain resistance HALVES, and `cap_instead_of_resist`
+; sets a maximum; neither is 1 armor.
+reduce_instead_of_resist = true
+; Rolled through Dice.roll_string (buff_resist_damage.gd:73), so a literal is a constant 1.
+reduction_amount = "1"
+; Lancer.DAMAGE_TYPE = { KINETIC, ENERGY, EXPLOSIVE, HEAT, BURN } (lancer.gd:110), so this is
+; KINETIC, ENERGY, EXPLOSIVE - the three armor reduces - and deliberately NOT heat or burn.
+; SPELLED OUT RATHER THAN resist_everything, which excludes HEAT but NOT burn: see the script header.
+damage_types = Array[int]([0, 1, 2])
+; Real armor reduces self-inflicted non-AP damage too - nothing in damage_modifications.gd's armor
+; branch looks at DAMAGE_FLAG.SELF_INFLICTED - so without this, buff_resist_damage.gd:44 would make
+; the Fitzgerald's own self-damage (FULL SPEED AHEAD, MORE BLACK POWDER's second profile) the one
+; case its own armor did not cover.
+resist_self_inflicted = true
+; The reduction is invisible on purpose: the STATBLOCK half already wears the chip, and two chips for
+; one effect would read as two effects. test_content_integrity.gd's VISIBLE_BUFFS therefore does NOT
+; list this file, and must not - the guard counts buffs without hide_from_player.
+hide_from_player = true
+; Lancer.UNTIL.END_OF_OWNERS_NEXT_TURN. SEVEN, not six - six is START_OF_OWNERS_TURN
+; (lancer.gd:46-54). THIS MUST STAY IDENTICAL TO buff_reinforcement_blast.tres's `until`: if the two
+; halves ever disagree the mechanic tears in half, blunting hits with no chip to explain it or
+; showing a chip that no longer blunts anything. test_both_halves_expire_together_with_the_
+; fitzgeralds_next_turn and test_the_reduction_buff_is_hidden_and_permanent_for_its_lifetime are the
+; two guards on that.
+until = 7
+; is_onetime IS DELIBERATELY ABSENT, and its false default is load-bearing. damage_modifications.gd:113
+; hands every RESIST_DAMAGE buff it consulted to the consumer; UnitCondition.consume_buffs
+; (unit_condition.gd:937-938) then filters that list to `buff.base.is_onetime` before clearing
+; anything. Setting it true here turns 1 armor into a single-use shield.

@@ -5,28 +5,32 @@
 #
 # ================================ READ THIS BEFORE TRUSTING A GREEN ================================
 #
-# TASK 3 SHIPS ONLY HALF THE MECHANIC, AND EVERY ASSERTION IN THIS FILE PASSES AGAINST THAT HALF.
+# THE MECHANIC IS A PAIR OF BUFFS, AND unit.get_armor() IS PROOF OF ONLY ONE OF THEM.
 #
 # The engine has no channel that grants real armor. Incoming damage reads unit.core.current.armor
 # (damage_modifications.gd:97), which is assigned in exactly two places repo-wide (unit_printer.gd:35
 # and :73, both = core.get_armor() = frame.stat.armor + core.bonus.armor) and rebuilt only by
 # UnitPrinter.recalculate_bonuses from pilot HASE, stat_override, NPC tier blocks and the
-# PassiveStatIncrease passives of EQUIPPED GEAR. No buff channel writes it. So the mechanic is a
-# PAIR of buffs, ruled by the author 2026-09-14 (rulings.md row 37, design §5.2's RESOLVED block):
+# PassiveStatIncrease passives of EQUIPPED GEAR. No buff channel writes it. So the card's one line of
+# rules text is two resources, ruled by the author 2026-09-14 (rulings.md row 37, design §5.2's
+# RESOLVED block), applied together by the one action:
 #
-#   buff_reinforcement_blast            Task 3, this file. Buff.TO.STATBLOCK, armor = 1, VISIBLE.
-#                                       What the unit readout shows and what every unit.get_armor()
-#                                       gate reads - this mod's own Ripper Mod included.
+#   buff_reinforcement_blast            Task 3. Buff.TO.STATBLOCK, armor = 1, VISIBLE. What the unit
+#                                       readout shows and what every unit.get_armor() gate reads -
+#                                       this mod's own Ripper Mod included, so a unit under
+#                                       REINFORCEMENT BLAST does take the Ripper Mod's bonus die.
 #                                       IT REDUCES NO INCOMING DAMAGE WHATSOEVER.
-#   buff_reinforcement_blast_reduction  Task 4. A BuffResistDamage subclass. The half that actually
-#                                       blunts the hit.
+#   buff_reinforcement_blast_reduction  Task 4. A BuffResistDamage subclass, hidden. The half that
+#                                       actually blunts the hit.
 #
-# EVERY ARMOR ASSERTION BELOW IS THROUGH unit.get_armor(), AND get_armor() ALONE IS NOT PROOF THE
-# ARMOR WORKS. It passed on the STATBLOCK-only build that mitigated nothing, which is precisely how
-# the SP4 blocker was found (SP3's spec/test_ripper_mod.gd test_temporary_armor_counts is the
-# executable proof of it). The assertions that would catch a one-channel build are Task 4's, and they
-# are appended to the bottom of this file - test_the_blast_actually_blunts_damage above all. Until
-# they exist, this file proves TARGETING, LIFETIME and CHARGES, and nothing about mitigation.
+# THE TWO HALVES ARE TESTED THROUGH TWO DIFFERENT GETTERS, ON PURPOSE. Every test above the "TASK 4"
+# divider reads unit.get_armor(), and get_armor() ALONE IS NOT PROOF THE ARMOR WORKS: every one of
+# them passed against the STATBLOCK-only build that mitigated nothing, which is precisely how the SP4
+# blocker was found (SP3's spec/test_ripper_mod.gd test_temporary_armor_counts is the executable
+# proof of it, and its RED log for this file is .superpowers/sdd/sp4-t4-red.log). Every test BELOW
+# that divider reads core.current.health (or core.current.heat) after a real hit and never touches an
+# armor getter. Do not "simplify" a mitigation test into an armor assertion: it would go green
+# against a build with no reduction buff at all.
 #
 # ===================================================================================================
 #
@@ -48,6 +52,8 @@ const FrameIsolation := preload('res://testkit/frame_isolation.gd')
 const SYSTEM_ID := &'ms_grit_latch_magnets'
 const ACTION_ID := &'action_reinforcement_blast'
 const BUFF_ID := &'buff_reinforcement_blast'
+## The hidden half. Task 4; see the banner above and the buff's own header.
+const REDUCTION_BUFF_ID := &'buff_reinforcement_blast_reduction'
 
 const OUR_TRANSLATION := 'res://unpacked/Reag-TheSixthVoice/localization/localizations.en.translation'
 
@@ -83,9 +89,9 @@ func before_each() -> void:
 	await Fixture.open_turn(game, fitz)
 
 func after_each() -> void:
-	# Nothing in TASK 3 queues a roll, so this clear is currently a no-op. Kept deliberately: Task 4's
-	# mitigation tests fix rolls with Dice.CHEAT_ROLL_QUEUE to measure the damage reduction, and a
-	# queue left populated by an aborted test leaks into the next one.
+	# Task 4's test_it_blunts_a_real_weapon_hit pins its damage die with Dice.CHEAT_ROLL_QUEUE, and a
+	# queue left populated by an aborted test leaks into the next one - where it would quietly feed
+	# the NEXT test's rolls from the wrong buffer. Every other test in the file rolls nothing.
 	Dice.CHEAT_ROLL_QUEUE.clear()
 
 ## Fire REINFORCEMENT BLAST centred on a tile. See the file header for why a bare tile is enough.
@@ -305,6 +311,260 @@ func test_it_is_refused_with_no_charges_left() -> void:
 	await blast_at(CENTRE)
 	assert_eq(hostile.get_armor(), before, 'An empty system armours nobody.')
 
+# ============================== TASK 4: THE HALF THAT ACTUALLY MITIGATES ============================
+#
+# EVERYTHING BELOW THIS LINE ASSERTS ON core.current.health (or core.current.heat) AFTER A REAL HIT.
+# Not one of these tests calls an armor getter, and that is the whole reason they exist: the ruling
+# that produced buff_reinforcement_blast_reduction was taken because the tests ABOVE this line passed
+# in full against a build that blunted nothing.
+#
+# HOW THE HITS ARE DELIVERED. Most of these go through SpecFactory.damage, which fires
+# event_unit_damage directly (spec_factory.gd:228-235) with unit / number / category / flags and
+# nothing else. That is the SAME event a weapon's damage arrives on - DamageModifications.create is
+# called from its execute_preblock (event_unit_damage.gd:52 and again at :63) either way - but with
+# no gear, no action and no AttackRoll on the context, which makes the damage type and the flags the
+# only variables in play. It also has no attack roll to miss and no action economy to run out of, so
+# a test can land three separate hits on one unit inside one turn. test_it_blunts_a_real_weapon_hit
+# is the counterweight: it fires an actual weapon, so the gate takes its ActionAttackWeapon branch
+# and the context carries a real AttackRoll.
+#
+# WHY SO MANY "fixture:" CONTROL ASSERTIONS. Three of these tests are trivially passable:
+# "an AP hit is not blunted" passes if the flag never reached the pipeline; "heat and burn are not
+# blunted" passes if the damage never landed; "the reduction is not consumed" passes if the second
+# hit was blunted by something else. Each one therefore carries a control that fails loudly in
+# exactly that case. Task 2 of this sub-project shipped a test that stayed green under its own
+# mutation and Task 3 found three more; the mutation checks for this task are recorded in
+# .superpowers/sdd/sp4-task-4-report.md.
+
+## Vanilla Main Rifle, 1d6 KINETIC, no AP (content/gear/gms/weapons/mw_assault_rifle.tres). Chosen
+## because its damage type is on the reduction's list and its profile carries nothing else - no AP,
+## no second damage type, no on-hit effect - so the number the target loses is the die minus the
+## blast and nothing more.
+const PLAIN_RIFLE := &'mw_assault_rifle'
+const RIFLE_DIE := 6
+
+## A flat hit big enough that a 1-point reduction cannot be confused with a rounding artefact of the
+## halving at damage_modifications.gd:52/108, and small enough that nothing here dies: the fixture
+## dummies carry 200 HP.
+const FIXED_HIT := 10
+## Heat, kept well under the heat capacity make_heat_target() gives - see that helper.
+const HEAT_HIT := 4
+
+## Deal a flat hit of one damage type and return the health it actually cost.
+##
+## Returns the LOSS rather than asserting on an absolute, so a test that lands several hits on one
+## unit reads as a list of independent measurements instead of a running total.
+func take(unit:Unit, amount:int, type:Lancer.DAMAGE_TYPE, flags:Array = []) -> int:
+	var before:int = unit.core.current.health
+	await SpecFactory.damage(game, unit, amount, type, flags)
+	return before - unit.core.current.health
+
+## The same for HEAT, which never touches health: event_unit_damage.gd:102-103 routes it to
+## EventUnitDamage.heat() and into core.current.heat instead.
+func take_heat(unit:Unit, amount:int) -> int:
+	var before:int = unit.core.current.heat
+	await SpecFactory.damage(game, unit, amount, Lancer.DAMAGE_TYPE.HEAT)
+	return unit.core.current.heat - before
+
+## How many copies of a buff a unit is wearing. Used as an "is it still there" probe rather than a
+## boolean, so a build that stacked a second copy would also show up.
+func count_buff(unit:Unit, buff_id:StringName) -> int:
+	return unit.state.buffs.filter(
+		func(core:BuffCore) -> bool: return core.base.compcon_id == buff_id).size()
+
+# ---------------------------------------------------------------- it blunts the hit
+
+func test_the_blast_actually_blunts_damage() -> void:
+	# THE TEST THE WHOLE RULING EXISTS FOR. Its control is the SAME unit before the blast, so the
+	# buff pair is the only thing that differs between the two measurements - no second frame, no
+	# second faction, no second roll, nothing else that could account for the 1.
+	var hostile := Fixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
+	var unbuffed := await take(hostile, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(unbuffed, FIXED_HIT, 'fixture: nothing blunts this unit before the blast.')
+
+	await blast_at(CENTRE)
+
+	var buffed := await take(hostile, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(buffed, FIXED_HIT - 1, 'One less, measured on core.current.health - not on get_armor().')
+	assert_eq(unbuffed - buffed, 1, 'Exactly one point, and the blast is what changed between them.')
+
+func test_it_blunts_a_real_weapon_hit() -> void:
+	# The counterweight to the direct damage events everything else here uses. A weapon attack puts an
+	# ActionAttackWeapon on the context, so BuffResistDamage.check_if_passive_applies takes its
+	# weapon branch (buff_resist_damage.gd:47-55) before ever reaching the damage_types line - our
+	# weapon_sizes and weapon_types are both empty, so it must fall THROUGH that branch rather than
+	# return early - and the context carries a real AttackRoll, which is what
+	# damage_modifications.gd:100-101 uses to track armor across an attack roll.
+	var hostile := Fixture.create_dummy(game, IN_BLAST_HOSTILE, -10) # -10 evasion: the shot lands
+	# NOT followed by another SpecFactory.apply_passive_buffs(fitz). equip_system() calls
+	# full_repair(), which empties every equipped gear's state dictionary - harmless here, nothing has
+	# been used yet - but re-running the passive-buff pass would stack a second copy of the frame's
+	# trait buffs on a unit that already has them from before_each. The rifle grants no passive buffs
+	# of its own, so there is nothing to apply.
+	fitz.core.equip_system(PLAIN_RIFLE)
+	var unbuffed := await take(hostile, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(unbuffed, FIXED_HIT, 'fixture: nothing blunts this unit before the blast.')
+
+	await blast_at(CENTRE)
+
+	# One QUICK for the blast and one for the shot; a mech has two. If the shot were ever refused for
+	# action economy the assertion below would read 0, which is why it is an exact number and not a
+	# "less than" - a refusal cannot be mistaken for a very effective reduction.
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	Dice.cheat_attack([19], [RIFLE_DIE, RIFLE_DIE, RIFLE_DIE, RIFLE_DIE])
+	var before:int = hostile.core.current.health
+	await SpecFactory.use_solo(game, fitz, PLAIN_RIFLE, hostile)
+
+	assert_eq(before - hostile.core.current.health, RIFLE_DIE - 1,
+		'1d6 pinned to 6, less the blast\'s 1 - the reduction reaches a real attack.')
+
+func test_a_unit_outside_the_blast_is_not_blunted() -> void:
+	var inside := Fixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
+	var outside := Fixture.create_dummy(game, ONE_TILE_OUT, 10)
+
+	await blast_at(CENTRE)
+
+	var in_loss := await take(inside, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(in_loss, FIXED_HIT - 1, 'fixture: the blast did go off.')
+	var out_loss := await take(outside, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(out_loss, FIXED_HIT, 'One tile past the edge takes it in full.')
+
+# ---------------------------------------------------------------- what it deliberately does NOT blunt
+
+func test_an_ap_hit_is_not_blunted() -> void:
+	# The reason buff_reinforcement_blast_reduction.gd overrides check_if_passive_applies at all:
+	# damage_modifications.gd:103 guards only the ARMOR branch with the AP flag, so a plain
+	# BuffResistDamage would happily reduce an AP hit that real armor could not touch.
+	var hostile := Fixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
+	# CONTROL A, AND IT IS NOT DECORATION: this test passes trivially against an AP flag that never
+	# reached the pipeline at all. This witness stands OUTSIDE the blast, so neither of our buffs is
+	# on it, and carries two points of REAL frame armor - which the engine bypasses only when the
+	# flag is genuinely set (damage_modifications.gd:103). If it takes the hit in full, the flag is
+	# real, and it is an engine channel of its own saying so rather than anything of ours.
+	var witness := Fixture.create_dummy(game, ONE_TILE_OUT, 10)
+	witness.core.frame.stat.armor = 2
+	witness.core.full_repair()
+
+	await blast_at(CENTRE)
+
+	var through_armor := await take(
+		witness, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC, [EventService.DAMAGE_FLAG.AP])
+	assert_eq(through_armor, FIXED_HIT, 'fixture: the AP flag is live - it walked past 2 real armor.')
+
+	var ap := await take(hostile, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC, [EventService.DAMAGE_FLAG.AP])
+	assert_eq(ap, FIXED_HIT, 'AP goes through the reduction exactly as it goes through armor.')
+
+	# CONTROL B: the same buffed unit, the same amount, no flag. Without it the assertion above passes
+	# against a build where the blast never reached this unit in the first place.
+	var plain := await take(hostile, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(plain, FIXED_HIT - 1, 'fixture: the reduction IS live on this unit - the flag is what stops it.')
+
+func test_heat_is_not_blunted() -> void:
+	# HEAT is off damage_types because armor ignores it. resist_everything would have got this one
+	# right by itself (buff_resist_damage.gd:60 excludes HEAT) - it is BURN that it gets wrong, which
+	# is why the export is spelled out; see the burn test below.
+	var hostile := make_heat_target(IN_BLAST_HOSTILE)
+
+	await blast_at(CENTRE)
+
+	var gained := await take_heat(hostile, HEAT_HIT)
+	assert_eq(gained, HEAT_HIT, 'Every point of heat landed.')
+	# The control: without it, "heat is not blunted" is satisfied by heat that never arrived.
+	var plain := await take(hostile, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(plain, FIXED_HIT - 1, 'fixture: the reduction IS live on this unit.')
+
+func test_burn_is_not_blunted() -> void:
+	# THE TEST THAT PINS damage_types AGAINST resist_everything. resist_everything excludes HEAT and
+	# NOT BURN (buff_resist_damage.gd:60), and burn damage does reach the reduction branch
+	# (damage_modifications.gd:93-94 subtracts other_reduction for burn), so a build that used the
+	# convenient flag instead of the explicit list would quietly blunt burn - which armor never does.
+	var hostile := Fixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
+
+	await blast_at(CENTRE)
+
+	var burned := await take(hostile, FIXED_HIT, Lancer.DAMAGE_TYPE.BURN)
+	assert_eq(burned, FIXED_HIT, 'Burn lands in full.')
+	# The control, and it doubles as proof the damage was really typed BURN: event_unit_damage.gd:121
+	# stacks burn on the unit for exactly that damage type and no other.
+	assert_eq(hostile.state.burn, FIXED_HIT, 'fixture: it really was burn, not kinetic wearing its name.')
+	var plain := await take(hostile, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(plain, FIXED_HIT - 1, 'fixture: the reduction IS live on this unit.')
+
+# ---------------------------------------------------------------- it is not used up
+
+func test_the_reduction_survives_the_hit_it_blunted() -> void:
+	# is_onetime is deliberately left at its false default. damage_modifications.gd:113 hands EVERY
+	# RESIST_DAMAGE buff it consulted to buffs_to_consume, and UnitCondition.consume_buffs
+	# (unit_condition.gd:937-938) then filters that list down to buff.base.is_onetime before clearing
+	# anything - so a non-one-time buff is collected and dropped. Real armor is not spent by being
+	# used, and neither is this.
+	var hostile := Fixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
+
+	await blast_at(CENTRE)
+	assert_eq(count_buff(hostile, REDUCTION_BUFF_ID), 1, 'fixture: exactly one reduction buff landed.')
+
+	var first := await take(hostile, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(first, FIXED_HIT - 1, 'The first hit was blunted...')
+	# THE ASSERTION THAT MAKES THE SECOND HIT MEAN SOMETHING. Without it, "both hits were reduced by
+	# 1" is also what you would see if the buff had been consumed and something else were doing the
+	# reducing; with it, the thing still standing on the unit is named.
+	assert_eq(count_buff(hostile, REDUCTION_BUFF_ID), 1,
+		'...and blunting it did not use it up.')
+
+	var second := await take(hostile, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(second, FIXED_HIT - 1, 'So the second hit is blunted by the same 1.')
+
+# ---------------------------------------------------------------- both halves, one clock
+
+func test_both_halves_expire_together_with_the_fitzgeralds_next_turn() -> void:
+	# The two buffs are one mechanic, so they must share a lifetime exactly: a reduction that outlived
+	# its chip would blunt hits with nothing on screen to explain it, and a chip that outlived its
+	# reduction would promise armor the engine no longer honours. Both carry until = 7
+	# (END_OF_OWNERS_NEXT_TURN); this is what proves they actually move together.
+	var ally := Fixture.create_dummy(game, IN_BLAST_ALLY, 10, Faction.AI_ALLY)
+	var armor_before:int = ally.get_armor()
+
+	await blast_at(CENTRE)
+	assert_eq(ally.get_armor(), armor_before + 1, 'fixture: the display half landed.')
+	assert_eq(count_buff(ally, REDUCTION_BUFF_ID), 1, 'fixture: and so did the reduction half.')
+
+	await SpecFactory.pass_turn(game, ally) # ticks the ally's copies to turn_count 1
+
+	# START AND END SPLIT, not SpecFactory.pass_turn(game, fitz), for the reason
+	# test_the_armor_is_gone_at_the_end_of_the_fitzgeralds_next_turn gives in full: pass_turn does
+	# both halves in one call, so an assertion after it could not tell END_OF_OWNERS_NEXT_TURN from
+	# START_OF_OWNERS_TURN. Task 3 measured that this hid a lifetime bug.
+	await SpecFactory.start_turn(game, fitz)
+	var mid_turn := await take(ally, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(mid_turn, FIXED_HIT - 1, 'Still blunting through the whole of the Fitzgerald\'s next turn.')
+
+	await SpecFactory.end_turn(game, fitz)
+
+	assert_eq(ally.get_armor(), armor_before, 'The display half expired...')
+	assert_eq(count_buff(ally, REDUCTION_BUFF_ID), 0, '...and the reduction half is off the unit too.')
+	var after := await take(ally, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(after, FIXED_HIT, 'Full damage again: both halves went at the same moment.')
+
+# ---------------------------------------------------------------- the hidden half's own wiring
+
+func test_the_reduction_buff_is_hidden_and_permanent_for_its_lifetime() -> void:
+	# Properties rather than behaviour, and each one is load-bearing somewhere else in the file:
+	# hide_from_player keeps it out of test_content_integrity.gd's VISIBLE_BUFFS (two chips for one
+	# effect would be a display bug, not a feature); is_onetime false is what
+	# test_the_reduction_survives_the_hit_it_blunted depends on; and the two halves' `until` values
+	# must be identical or the mechanic tears in half.
+	var reduction:Buff = ContentLibrary.get_buff(REDUCTION_BUFF_ID)
+	assert_not_null(reduction, 'buff_reinforcement_blast_reduction is in the buffs index.')
+	if reduction == null: return
+	assert_true(reduction is BuffResistDamage, 'It is a BuffResistDamage, the mitigating channel.')
+	assert_eq(reduction.to, Buff.TO.RESIST_DAMAGE, 'Registered to the channel the damage pipeline reads.')
+	assert_true(reduction.hide_from_player, 'Hidden: the visible half already wears the chip.')
+	assert_false(reduction.is_onetime, 'Not consumed by the hit it blunts.')
+	var visible:Buff = ContentLibrary.get_buff(BUFF_ID)
+	assert_not_null(visible, 'fixture: the visible half is indexed too.')
+	if visible == null: return
+	assert_eq(reduction.until, visible.until, 'Both halves run on exactly the same clock.')
+
 # ---------------------------------------------------------------- fixtures
 
 ## The vanilla Jericho cover, hostile, armor 0 so the number below is the buff's or nothing. Lifted
@@ -319,3 +579,16 @@ func make_deployable(tile:Vector2i) -> Unit:
 	dep.core.full_repair()
 	assert_false(dep.is_actor(), 'fixture: the Jericho cover really is a non-actor object.')
 	return dep
+
+## A dummy that can actually HOLD heat. EventUnitDamage.heat (event_unit_damage.gd:201-208) only adds
+## to core.current.heat when get_heat_max() > 0 and otherwise CONVERTS the damage to ENERGY - which is
+## on the reduction's damage_types list, so on a heat_max of 0 the heat test would silently become a
+## test of energy damage and go red for entirely the wrong reason. The shared fixture leaves heat at
+## the isolated frame's default; 20 is the same number test_blasting_powder.gd's _make_target uses,
+## for the same reason. HEAT_HIT is far below it, so nothing here overheats.
+func make_heat_target(tile:Vector2i) -> Unit:
+	var target := Fixture.create_dummy(game, tile, 10)
+	target.core.frame.stat.heat = 20
+	target.core.full_repair()
+	assert_true(target.get_heat_max() > 0, 'fixture: this dummy can hold heat at all.')
+	return target
