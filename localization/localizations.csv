@@ -31,7 +31,7 @@ gear.mt_knock_em_down.name,Knock 'em down
 gear.mt_knock_em_down.effect,"1/round, when the Fitzgerald critically hits a character with a |cannon|, that character must succeed on a |hull save| or be knocked |Prone|."
 ,
 gear.mw_breech_loading_swivel_gun.name,Breech-loading Swivel Gun
-gear.mw_breech_loading_swivel_gun.effect,"|Loading| (3 rounds). The gun holds three rounds and is reloaded as a whole: every profile draws on the same three, and when the last one is spent the gun is empty until it is reloaded."
+gear.mw_breech_loading_swivel_gun.effect,"|Loading| (3 rounds). The gun holds three rounds and is reloaded as a whole: every profile draws on the same three, and a reload always fills it back to three. You can top it up at any time — it does not have to run dry first."
 gear.mw_breech_loading_swivel_gun.swivel_rounds,Rounds
 gear.mw_breech_loading_swivel_gun.action_swivel_single_shot.name,Single Shot
 gear.mw_breech_loading_swivel_gun.action_swivel_single_shot.effect,"Fire one of the gun's three rounds."

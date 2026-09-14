@@ -246,7 +246,7 @@ func test_a_fresh_gun_starts_with_three_rounds() -> void:
 	var gear := _gear()
 	assert_true(gear != null and gear.is_loaded, 'And it is loaded.')
 
-func test_one_single_shot_leaves_two_rounds_and_the_gun_still_loaded() -> void:
+func test_one_single_shot_leaves_two_rounds_and_the_gun_still_firable() -> void:
 	# THE TAG ASSERTION IS THE POINT OF PUTTING IT HERE. If the action carried the engine's LOADING
 	# tag, UnitAction.spend (unit_action.gd:276) would set is_loaded false after this very shot and the
 	# "still firable" half below would fail - so this is where the missing tag is load-bearing, and
@@ -262,14 +262,30 @@ func test_one_single_shot_leaves_two_rounds_and_the_gun_still_loaded() -> void:
 
 	assert_gt(target.current_damage(), 0, 'Fixture: the shot actually landed.')
 	assert_eq(rounds_left(), 2, 'One shot spent exactly one round.')
+
+	# PARTIAL RELOAD (author ruling, 2026-09-14). is_loaded is now FALSE at two rounds, and that is
+	# deliberate: it is the only flag Stabilize's Reload variant reads
+	# (UnitAction.get_unloaded_weapons -> action_stabilize.gd:85), so a part-spent gun has to carry it
+	# to be offered a top-up. It no longer means "cannot fire" for this weapon - both profiles
+	# override can_be_used_while_unloaded, leaving the round counter as the only firing gate.
 	var gear := _gear()
-	assert_true(gear != null and gear.is_loaded, 'The gun is still loaded with two rounds in it.')
-	# And still firable on a fresh turn, which is the claim "still loaded" is standing in for.
+	assert_not_null(gear, 'fixture: the gun is still on the unit.')
+	if gear == null: return
+	assert_false(gear.is_loaded,
+		'Two rounds is short of a full magazine, so is_loaded drops - which is what puts the gun in'
+		+ ' front of Reload. This asserted TRUE before the partial-reload ruling.')
+
+	# ...and the half that matters: it is still perfectly firable. If can_be_used_while_unloaded were
+	# missing from the profile, the assertion above would make this one fail with REASON.UNLOADED -
+	# the exact trap that makes "just drop is_loaded early" the wrong fix on its own.
 	await new_turn()
 	assert_true(UnitAction.can_activate_gear(_specific(SINGLE_SHOT_ID)),
-		'And it can be fired again next turn.')
+		'And it can still be fired next turn, on two rounds, despite reading unloaded.')
+	assert_ne(UnitAction.get_gear_unavailable_reason(_specific(SINGLE_SHOT_ID)),
+		UnitAction.REASON.UNLOADED,
+		'And the engine does not refuse it as UNLOADED: the counter is the gate, not the flag.')
 
-func test_three_single_shots_empty_the_gun_and_the_fourth_is_refused_as_unloaded() -> void:
+func test_three_single_shots_empty_the_gun_and_the_fourth_is_refused() -> void:
 	for shot_number:int in STARTING_ROUNDS:
 		cheat_a_hit()
 		await fire_single_shot_at(target)
@@ -288,9 +304,17 @@ func test_three_single_shots_empty_the_gun_and_the_fourth_is_refused_as_unloaded
 	# THE REFUSAL IS ASSERTED THROUGH THE ENGINE'S OWN REASON, not merely as "nothing happened". A
 	# spec that only checked for no damage would pass just as well against a unit that had simply run
 	# out of actions - the trap memory lancer-tactics-spec-harness-traps names.
+	#
+	# THE REASON IS NOW *SPECIFIC*, NOT UNLOADED, and the change is the partial-reload ruling working
+	# as designed. can_be_used_while_unloaded() is true on this profile, so unit_action.gd:151 no
+	# longer speaks for it at all; the refusal comes one branch further down (:156) from
+	# is_available_to_activate, i.e. from the gun's own round counter reading 0. The gun is still
+	# flagged unloaded for Reload's benefit - asserted just above - and it still cannot fire. Only
+	# the reason string moved.
 	assert_eq(UnitAction.get_gear_unavailable_reason(_specific(SINGLE_SHOT_ID)),
-		UnitAction.REASON.UNLOADED,
-		'A fourth shot is refused, and the engine refuses it for being UNLOADED.')
+		UnitAction.REASON.SPECIFIC,
+		'A fourth shot is refused, by the ROUND COUNTER (REASON.SPECIFIC) rather than by the'
+		+ ' is_loaded flag - which this weapon no longer lets speak for firing.')
 
 	var damage_before:int = target.current_damage()
 	cheat_a_hit()
@@ -599,6 +623,47 @@ func test_reloading_the_gun_refills_all_three_rounds_and_it_is_firable_again() -
 	await fire_single_shot_at(target)
 	assert_gt(target.current_damage(), 0, 'And firing the refilled gun actually works.')
 	assert_eq(rounds_left(), STARTING_ROUNDS - 1, 'One shot spent one of the freshly refilled rounds.')
+
+## THE PARTIAL RELOAD ITSELF (author ruling, 2026-09-14, superseding ruling 22/33).
+##
+## The lockout this replaces: `is_loaded` dropped only at 0 rounds, and Reload is offered ONLY for
+## unloaded weapons (`event_gear_reload.gd:39-41` filters on exactly that, and Stabilize builds its
+## Reload variant from `UnitAction.get_unloaded_weapons`). So one Single Shot left the gun at 2,
+## un-toppable, and Grapeshot - which needs exactly 3 - could not be reached again until the other
+## two rounds had been fired off one turn at a time.
+##
+## Asserted end to end through the real `event_gear_reload`, not by poking `is_loaded`: the whole
+## point is that the ENGINE's reload path now picks this gun up mid-magazine, which is a fact about
+## `get_weapons_to_reload`'s filter seeing our flag, not about our own reaction in isolation.
+func test_a_part_spent_gun_can_be_topped_up_and_grapeshot_comes_back() -> void:
+	cheat_a_hit()
+	await fire_single_shot_at(target)
+	await new_turn()
+
+	var gear := _gear()
+	assert_not_null(gear, 'fixture: the gun is still equipped.')
+	if gear == null: return
+	assert_eq(rounds_left(), 2, 'fixture: one shot left two rounds in it.')
+
+	# Grapeshot is the reason the lockout mattered: it is the profile a part-spent gun cannot reach.
+	assert_false(_weapon(GRAPESHOT_ID).is_available_to_activate(unit, gear),
+		'fixture: Grapeshot needs the full magazine, so at two rounds it is unavailable.')
+
+	# The gun must be VISIBLE to the engine's reload path at two rounds - this is the assertion that
+	# would have failed before the ruling, and the one that fails again if is_loaded ever goes back
+	# to dropping only at 0.
+	assert_true(UnitAction.get_unloaded_weapons(unit).has(gear),
+		'A part-spent gun is offered a reload: it is on get_unloaded_weapons, which is the list'
+		+ " Stabilize's Reload variant is built from (action_stabilize.gd:85).")
+
+	await game.execute_event(&'event_gear_reload', {unit = unit, gear = gear})
+
+	assert_eq(rounds_left(), STARTING_ROUNDS, 'Reloading a part-spent gun tops it back up to three.')
+	assert_true(gear.is_loaded, 'And a full magazine reads loaded again.')
+	assert_false(UnitAction.get_unloaded_weapons(unit).has(gear),
+		'So it drops off the reload list - a full gun must not still be offered a top-up.')
+	assert_true(_weapon(GRAPESHOT_ID).is_available_to_activate(unit, gear),
+		'And Grapeshot is reachable again, which is the whole point of the ruling.')
 
 func test_reloading_a_different_weapon_does_not_refill_the_swivel_gun() -> void:
 	var gear := _gear()

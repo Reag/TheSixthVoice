@@ -39,6 +39,28 @@ const ROUNDS_PER_SHOT := 1
 ## shot - is what refuses the button, which is the state a reader of this weapon expects to be
 ## authoritative. It also covers the window in which something else sets is_loaded true without
 ## refilling the magazine.
+## PARTIAL RELOAD (author ruling, 2026-09-14, superseding ruling 22/33's "no partial reload").
+##
+## `is_loaded` does DOUBLE DUTY in this engine and that is the whole difficulty. `unit_action.gd:151`
+## turns a false into REASON.UNLOADED - the gun cannot fire at all - while
+## `UnitAction.get_unloaded_weapons` (`:411-416`) uses the SAME flag to decide whether Stabilize
+## offers Reload for it (`action_stabilize.gd:85`). So the obvious way to let a part-spent gun be
+## topped up - drop `is_loaded` below a full magazine - would also make a 2-round gun unfireable,
+## which is far worse than the lockout it was meant to fix.
+##
+## This override is the seam that splits the two meanings apart. `can_be_used_while_unloaded` is a
+## plain overridable on `action.gd:120` (vanilla `ActionReaction` already overrides it at
+## `action_reaction.gd:65`), and it is checked in the same breath as the flag - so with it true, a
+## false `is_loaded` no longer refuses THIS profile, and the round counter in
+## `is_available_to_activate` below becomes the sole firing gate. The tooltip reads it too
+## (`tooltip_organ_action.gd:163`), so a part-loaded gun does not render an "unloaded" warning while
+## it is still perfectly fireable.
+##
+## The file header's own note - that this profile's counter check "covers the window in which
+## something else sets is_loaded true without refilling the magazine" - is now the load-bearing
+## direction as well: the counter is authoritative for firing, `is_loaded` only for offering Reload.
+func can_be_used_while_unloaded() -> bool: return true
+
 func is_available_to_activate(unit:Unit, gear:GearCore) -> bool:
 	if not super.is_available_to_activate(unit, gear): return false
 	if not GearCore.is_valid(gear): return false
@@ -57,7 +79,14 @@ func on_resolution(activation:EventCore) -> void:
 	var counter:PassiveDieCounter = gear.get_die_counter_passive()
 	if counter == null: return
 	counter.decrease(unit, gear, ROUNDS_PER_SHOT)
-	if counter.get_current(gear) > 0: return
-	# Out of rounds. Dropping is_loaded is what surfaces the gun to Stabilize's Reload variant; the
-	# reload itself refills the counter (SP2 Task 3).
+	# ANY round short of a full magazine now surfaces the gun to Stabilize's Reload variant, not just
+	# an empty one (author ruling, 2026-09-14 - see can_be_used_while_unloaded above). Before this,
+	# `is_loaded` dropped only at 0, and since Reload is offered exclusively for unloaded weapons a
+	# gun sitting at 2 could not be topped up - so Grapeshot, which needs exactly 3, was unreachable
+	# until the other two rounds had been fired off one turn at a time.
+	#
+	# Read against the counter's own max rather than a literal 3, so the magazine size lives in one
+	# place (passive_swivel_rounds.tres). max_value is the plain export; the Leader-talent
+	# max_value_with_kits path (passive_die_counter.gd:63-65) does not apply to this gear.
+	if counter.get_current(gear) >= counter.max_value: return
 	gear.is_loaded = false

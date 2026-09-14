@@ -15,6 +15,18 @@ extends ActionAttackWeapon
 ## action_swivel_single_shot.gd names ROUNDS_PER_SHOT: the two profiles read alike.
 const ROUNDS_PER_SHOT := 3
 
+## Paired with Single Shot's override of the same name - read that file's long note for why. In
+## short: since the author's 2026-09-14 partial-reload ruling, `is_loaded` goes false at any
+## magazine short of full, purely so Stabilize will offer Reload. That flag must therefore stop
+## speaking for whether a profile can FIRE, and the round counter below must be the only gate.
+##
+## For Grapeshot the two happen to agree - it needs a full magazine, and a full magazine is exactly
+## when `is_loaded` is true - so this override changes nothing observable today. It is here so the
+## two profiles cannot drift: without it, Grapeshot's availability would still be answered by a flag
+## that no longer means what it says, and the next change to the counter's max or to the reload path
+## would silently make this profile behave differently from its sibling.
+func can_be_used_while_unloaded() -> bool: return true
+
 ## Requires the FULL magazine - "fire all three shots at once" is not available with one or two
 ## rounds left. Belt and braces beside the engine's own UNLOADED gate, same reasoning as
 ## action_swivel_single_shot.gd's own override.
