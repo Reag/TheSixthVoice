@@ -213,6 +213,15 @@ const ICON_TARGETS := {
 	# its own icon as well as the Kit's - the ms_hull_break_thrusters reasoning exactly, not the
 	# ms_heaer one (HEAER's only action is a hidden reaction that never reaches the gear bar).
 	&'ms_grit_latch_magnets': [&'action_reinforcement_blast'],
+	# SP1 Task 1 (M/K2). A 1/scene trait whose single FREE action is a separately pressable button on
+	# the gear bar, so it wears its own icon as well as the Kit's - the ms_hull_break_thrusters
+	# reasoning, not the ms_heaer one.
+	&'mt_rapid_stabilization_jets': [&'action_rapid_stabilization_jets'],
+	# SP1 Task 2 (M/K2). A pure passive: no action of its own, so it wears the Kit's icon.
+	&'mt_hybridized_shot': [],
+	# SP1 Task 3 (M/K2). The core system, one pressable protocol - cp_broadside's shape with one
+	# button instead of three.
+	&'cp_auxiliary_power_rerouter': [&'action_ors_hypercharge'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -247,6 +256,9 @@ const ICON_TARGETS := {
 ## target for one effect.
 const VISIBLE_BUFFS:Array[StringName] = [
 	&'buff_more_black_powder', &'buff_weak_computer', &'buff_reinforcement_blast',
+	# SP1 Task 1 and Task 3 (M/K2) - deliberately player-visible, and they are the only on-map signal
+	# that either ability is running.
+	&'buff_rapid_stabilization_jets', &'buff_ors_hypercharge',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -287,6 +299,28 @@ func test_every_visible_buff_has_a_real_icon():
 		assert_true(VISIBLE_BUFFS.has(buff.compcon_id),
 			'%s is listed in VISIBLE_BUFFS.' % buff.resource_path.get_file())
 		_assert_real_icon(buff.icon, buff.compcon_id)
+
+## Buffs that are hidden from the chip list but STILL need an icon, because something other than the
+## status bar draws them.
+##
+## The case this exists for is an accuracy or difficulty buff: attack_roll.gd:189 passes
+## `buff_core.base.icon` RAW into the roll breakdown - not through Buff.get_icon(), so
+## BuffBonus's accuracy-svg fallback is never consulted on that path - and a null there draws a blank
+## beside the +1 while every other guard in this file stays green.
+##
+## Unlike the two tables above, this one is NOT size-checked against a mod index: "hidden" is the
+## normal case for trait plumbing (Hole Puncher ships three hidden buffs that draw nothing anywhere)
+## and a count assertion here would demand a row for every one of them. The entries are therefore
+## added by hand, by whoever builds a hidden buff that something draws. SP1 Task 2 is the first.
+const HIDDEN_BUFFS_NEEDING_ICONS:Array[StringName] = [&'buff_hybridized_shot']
+
+func test_every_hidden_buff_that_is_still_drawn_has_a_real_icon():
+	var by_id := {}
+	for buff:Buff in ModResources.load_ours(MOD_ID, &'buffs'): by_id[buff.compcon_id] = buff
+	for buff_id:StringName in HIDDEN_BUFFS_NEEDING_ICONS:
+		assert_true(by_id.has(buff_id), "%s is one of this mod's buffs." % buff_id)
+		if not by_id.has(buff_id): continue
+		_assert_real_icon(by_id[buff_id].icon, buff_id)
 
 func test_the_mod_reports_what_it_contributed():
 	# SP1 through SP5 have all landed, so this is no longer just a report: every index this mod
