@@ -427,10 +427,11 @@ func test_an_enemy_blind_firing_a_cannon_does_not_strip_the_fitzgeralds_own_cove
 	assert_eq(outgoing.cover, Lancer.COVER.NONE, 'control: the trait IS live - our own blind shot erases cover.')
 	assert_eq(trait_mods(outgoing), [-1], 'control: and takes its -1.')
 
-# SP4: the Carronade goes here. It is a Cannon that ignores cover in its own right, so
-# buff_hole_puncher_soft_cover's `not context.action.ignores_cover(context)` clause must leave it at
-# no penalty against an unseen target. The weapon does not exist yet - add the test to THIS file
-# rather than starting a second one.
+# SP4: the Carronade's Hole Puncher interaction is covered in spec/test_rapier_carronade.gd, by
+# test_on_the_fitzgerald_it_blindfires_and_still_takes_no_penalty - it asserts the trait's -1 "soft
+# cover" penalty does NOT appear against an unseen target, because the Carronade already ignores
+# cover in its own right. That file has its own fixture (the weapon and its map), so the test lives
+# there rather than here.
 
 # ---------------------------------------------------------------- blindness
 

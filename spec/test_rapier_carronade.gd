@@ -24,9 +24,10 @@
 # WHY THE HOLE PUNCHER TEST IS HERE AND NOT IN test_hole_puncher.gd. SP1 left a marker in that file
 # saying the Carronade's test would be added there. The SP4 plan moved it: the claim is about THIS
 # weapon (that it ignores cover, and so drops out of the trait's gate), the fixture it needs is this
-# file's, and Task 2 grows the same subject. test_hole_puncher.gd keeps the trait-side half - the
-# `ignores_cover` early return in buff_hole_puncher_soft_cover.gd's check_if_passive_applies - and
-# its marker comment now points here.
+# file's, and Task 2 grows the same subject. test_hole_puncher.gd's marker comment now points here
+# instead of holding the coverage itself - the `ignores_cover` early return in
+# buff_hole_puncher_soft_cover.gd's check_if_passive_applies is exercised only by this file's
+# test_on_the_fitzgerald_it_blindfires_and_still_takes_no_penalty.
 #
 # DICE. The all-sixes buffer trick is SP1's, and its reasoning is in test_bizarre_cannon.gd:155-164:
 # Dice.cheat_attack APPENDS, so every helper clears the queue first, and the buffer is longer than

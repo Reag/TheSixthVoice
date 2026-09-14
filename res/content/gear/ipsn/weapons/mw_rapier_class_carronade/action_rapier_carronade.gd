@@ -8,51 +8,16 @@
 ## ActionAttackWeapon already has. This script exists for the one clause the resource format cannot
 ## express.
 ##
-## WHY "IGNORES COVER" IS A METHOD OVERRIDE AND NOT A TAG. There is no "ignores cover" entry in
-## Lancer.WEAPON_TAG - the nearest thing is SEEKING, and SEEKING is not what this weapon is: it also
-## waives line of sight, changes how the shot is previewed, and would make the Hole Puncher trait's
-## ARCING grant redundant in a way the design does not intend. What the engine actually consults is
-## a plain method. attack_roll.gd:153-157 gates the ENTIRE cover block -
-##
-##     if action is ActionAttackWeapon and not action.ignores_cover(context) and ignore_cover_buffs.is_empty():
-##
-## - so an attacker that answers true never runs CoverCalculator.determine_cover at all. The
-## consequences are therefore negative and quiet: PreAttack.cover stays NONE, cover_sources stays
-## empty, and no cover line is ever added to the accuracy breakdown. Nothing announces itself, which
-## is why the spec's cover test fires a vanilla Cannon at the same target from the same tile as a
-## control.
-##
-## The base implementation (action_attack_weapon.gd:206-212) is true only for SEEKING and for a
-## melee weapon with threat; neither describes a Main Cannon, so there is nothing to fall through to
-## and super() is not called.
-##
-## WHO ELSE READS THIS FUNCTION. buff_hole_puncher_soft_cover.gd's check_if_passive_applies calls it
-## BY NAME:
-##
-##     if context.action.ignores_cover(context): return false
-##
-## That early return is the whole of the Hole Puncher interaction. On the Fitzgerald this weapon is
-## both a Cannon and a Line weapon, so the trait hands it ARCING and it can be fired at a target
-## nobody can see - but the trait's -1 "soft cover" is the price of shooting blind, and a weapon that
-## ignores cover in its own right has no cover for that -1 to be "exactly" equal to. Delete the
-## override below and the trait silently starts charging the Carronade for a penalty it is immune to;
-## nothing would fail to compile. That is what the blindfire test in spec/test_rapier_carronade.gd
-## pins.
-##
-## CONTEXT IS IGNORED ON PURPOSE. The answer must not depend on target, gear or geometry: the trait's
-## gate above asks with one context and attack_roll.gd asks with another, and a conditional answer
-## would let the two disagree - the trait standing aside while the cover calculation still ran, or
-## the reverse.
-##
 ## THE .tres CARRIES A target_requirements_override, AND THAT IS NOT DECORATION - recorded here
 ## because a .tres cannot hold a comment that survives an editor save. The flag the weapon actually
 ## needs is can_target_breakable_interiors, and the generated block has no room for it:
 ## get_target_requirements (action_attack_weapon.gd:216-223) builds a fresh TargetRequirements with
 ## count / range_pattern / can_target_setpieces / can_target_empty_tiles and never sets that one.
 ## An interior wall this weapon may not target is an interior wall that TRUNCATES the fired line,
-## which would take the ruling ("the line reaches through interior walls" - SP4 plan, ruling 2) away
-## before Task 2's demolition clause ever got to fire. The flag is declared in Task 1 even though
-## nothing exercises it until Task 2: it is part of the weapon's declaration, not of the clause.
+## which would take the ruling ("the line reaches through interior walls" - rulings.md, 2026-09-14,
+## "Rapier Class Carronade (SP4)") away before Task 2's demolition clause ever got to fire. The flag
+## is declared in Task 1 even though nothing exercises it until Task 2: it is part of the weapon's
+## declaration, not of the clause.
 ##
 ## An override REPLACES the generated block wholesale - the function returns on its first line, it
 ## does not merge. So can_target_setpieces and can_target_empty_tiles, which every AOE weapon gets
@@ -81,4 +46,42 @@
 ## the activation.aborted guard such an override needs.
 extends ActionAttackWeapon
 
+## WHY "IGNORES COVER" IS A METHOD OVERRIDE AND NOT A TAG. There is no "ignores cover" entry in
+## Lancer.WEAPON_TAG - the nearest thing is SEEKING, and SEEKING is not what this weapon is: it also
+## waives line of sight, changes how the shot is previewed, and would make the Hole Puncher trait's
+## ARCING grant redundant in a way the design does not intend. What the engine actually consults is
+## a plain method. attack_roll.gd:153-157 gates the ENTIRE cover block -
+##
+##     if action is ActionAttackWeapon and not action.ignores_cover(context) and ignore_cover_buffs.is_empty():
+##
+## - so an attacker that answers true never runs CoverCalculator.determine_cover at all. The
+## consequences are therefore negative and quiet: PreAttack.cover stays NONE, cover_sources stays
+## empty, and no cover line is ever added to the accuracy breakdown. Nothing announces itself, which
+## is why the spec's cover test fires a vanilla Cannon at the same target from the same tile as a
+## control.
+##
+## The base implementation (action_attack_weapon.gd:206-212) is true only for SEEKING and for a
+## melee weapon with threat; neither describes a Main Cannon, so there is nothing to fall through to
+## and super() is not called. Two vanilla weapons make the identical override, for the identical
+## reason (an unconditional true, no tag fits): ms_stasis_bolt's
+## action_interdiction_point_weapon.gd:10 and npcc_assassin's
+## action_explosive_knives_assassin_weapon.gd:10. This override is idiomatic, not novel.
+##
+## WHO ELSE READS THIS FUNCTION. buff_hole_puncher_soft_cover.gd's check_if_passive_applies calls it
+## BY NAME:
+##
+##     if context.action.ignores_cover(context): return false
+##
+## That early return is the whole of the Hole Puncher interaction. On the Fitzgerald this weapon is
+## both a Cannon and a Line weapon, so the trait hands it ARCING and it can be fired at a target
+## nobody can see - but the trait's -1 "soft cover" is the price of shooting blind, and a weapon that
+## ignores cover in its own right has no cover for that -1 to be "exactly" equal to. Delete the
+## override below and the trait silently starts charging the Carronade for a penalty it is immune to;
+## nothing would fail to compile. That is what the blindfire test in spec/test_rapier_carronade.gd
+## pins.
+##
+## CONTEXT IS IGNORED ON PURPOSE. The answer must not depend on target, gear or geometry: the trait's
+## gate above asks with one context and attack_roll.gd asks with another, and a conditional answer
+## would let the two disagree - the trait standing aside while the cover calculation still ran, or
+## the reverse.
 func ignores_cover(context:Context) -> bool: return true
