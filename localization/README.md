@@ -28,6 +28,27 @@ hit is not evidence of anything. Use mtime and size, or a spec.
 | `gear.<buff_id>.name` / `.effect` | a player-facing buff |
 | `lancer.term.<term>` + `lancer.term.<term>.desc` | a glossary term |
 
+## Flavour comes from the LCP. Do not write your own.
+
+Established 2026-09-14, after the Fitzgerald shipped with invented flavour while Bel's own text sat
+unused in the source book. The rules sheets in `specs/sixth-voice/` now print every flavour string
+verbatim, labelled with the key it belongs in, so there is nothing to go looking for.
+
+| LCP field | Key |
+|---|---|
+| `frame["description"]` | `frame.<mf_id>.flavor` |
+| `frame["core_system"]["description"]` | `gear.<cp_id>.flavor` |
+| weapon / system / mod `["description"]` | `gear.<kit_id>.flavor` |
+
+**A frame TRAIT is the exception.** It has no `effect` field, so its `description` is the RULES text
+and goes in `gear.<trait_id>.effect`.
+
+`gear.<id>.flavor` is currently near-dead - its only live reader is the text-to-speech voice preview
+in audio settings (`setting_volume.gd:118-126`), which falls back to `effect` then `name`. Write it
+regardless: it costs nothing, it is the author's own prose, and nothing has to be revisited if the
+engine starts rendering it. **Never fold flavour into the `.effect` row** - vanilla keeps rules and
+prose in separate keys, and mixing them makes the rules text impossible to check against the source.
+
 The id is the resource's **filename without extension**, which is also what decides its
 ContentLibrary index — so a renamed `.tres` is a renamed localization key.
 
