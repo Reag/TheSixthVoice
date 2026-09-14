@@ -471,20 +471,42 @@ func test_the_shot_is_ap() -> void:
 # An ActionAttack whose range pattern is not NONE returns true from apply_damage_to_ground
 # (action_attack.gd:187-191), and event_unit_attack_declared.gd:180-196 then queues an
 # event_map_damage of its own over the SAME swept tiles, carrying FLAG.AP because this weapon's
-# damage is armour-piercing. Measured in this section's RED run (.superpowers/sdd/sp4-t2-red.log),
-# with Task 2's activate() not yet written:
+# damage is armour-piercing.
 #
-#   a shot that HIT      -> event_map_damage number 20, flags [AP]  -> every standard block in the
-#                           line destroyed outright, by the base attack alone
-#   a shot that MISSED   -> event_map_damage number 7,  flags [AP]  -> nothing destroyed; a standard
-#                           block is health 15, armor 2, and two missed shots got it only to 14
+# HOW MUCH, AND WHY IT DOES NOT DEPEND ON WHETHER THE SHOT LANDED. The number is
+# get_damage_to_terrain_and_objects(specific, base_damage) (event_unit_attack_declared.gd:183) =
+# DamageRollSummary.get_non_heat_amount(damage_data.get_hits()) (action_attack.gd:57-69).
+# get_hits() reads each roll's own `hit` value (attack_util.gd:127); it is never told whether the
+# attack connected, and the per-attack-roll bonus damage that WOULD vary is rolled into a DUPLICATE
+# summary (event_unit_attack_declared.gd:142, roll_specific_bonus_damage at :288) that never reaches
+# base_damage. So for this weapon - 1d6+1, no reliable, no bonus damage - a hit and a miss put the
+# SAME 7 into the ground, with the damage die cheated to a 6.
 #
-# So "I fired and the terrain fell over" is a VACUOUS assertion on a hit and a real one on a miss,
-# and that is why every terrain test below misses on purpose. On a miss the clause's 10 is added to
-# the incidental 7 - GamemasterCore.tile_damage accumulates across events
-# (landscape_node.gd:813) - which reaches 17, past the block's 15, in ONE shot. The RED log is the
-# other half of the claim: without the clause the same shot stops at 7 and a SECOND missed shot
-# stops at 14.
+#   the base attack      -> event_map_damage number 7, flags [AP]  -> a standard block (health 15,
+#                           armor 2) survives; two shots without the clause reach only 14
+#   plus the clause      -> +10 -> 17, past the 15, in ONE firing. GamemasterCore.tile_damage
+#                           accumulates across events (landscape_node.gd:813).
+#
+# CORRECTION, 2026-09-14. An earlier version of this banner said the base attack did 20 on a hit and
+# 7 on a miss, and claimed a terrain assertion was therefore VACUOUS on a hit. That is false. The 20
+# was a cheat-dice artefact: Dice.CHEAT_ROLL_QUEUE is a single FIFO (dice.gd:9, 33-35) and
+# cheat_a_hit() loads [19, 6x8]; in the one RED test with nothing in the line to attack there was no
+# attack roll to eat the 19, so the DAMAGE d6 popped it and 1d6+1 read 20 (sp4-t2-red.log:1252,
+# which prints "if hit:20 ... if maximized:7" - 7 being the true maximum of 1d6+1, so 20 was
+# impossible from a legitimate roll). Three Task 1 tests in that same log genuinely hit and read
+# "if hit:7" (:701, :784, :867). The terrain tests below and their RED evidence are unaffected; only
+# the reason given for them was wrong.
+#
+# WHAT ACTUALLY KEEPS THE TERRAIN TESTS HONEST - AND IT IS FRAGILE. See something_to_miss(). With
+# the clause the margin is 7 + 10 = 17 against 15 (+2); without it, 7 against 15 (-8), so a SMALLER
+# roll fails loudly, which is the safe direction. The one silent-pass direction is the base
+# contribution rising to >= 15, and the cheat queue does exactly that - 7 jumps to 20 in one step -
+# the moment no attack roll consumes the leading 19. So something_to_miss() standing IN the swept
+# line, eating the 19, is load-bearing. Move it off the row, delete it, or aim a NEW terrain test at
+# bare ground with nothing in the line, and the base damage silently becomes 20, the block dies
+# without the clause, and the test passes for the engine's reason. The residual assertion in
+# test_a_miss_still_cracks_the_terrain_in_its_line (TERRAIN_RESIDUAL) is the guard against that: it
+# pins the exact arithmetic and moves the instant the base contribution changes.
 #
 # Neither of the other two halves of the clause is reachable by the base attack at all, so the
 # object and interior tests need no such care: event_unit_attack_declared never sets
@@ -524,10 +546,30 @@ const ROCK_LAYER := 2
 const ROCK_OFF_THE_LINE := Vector2i(7, 1)
 
 ## Landscape.DEFAULT_BLOCK_NAME is block_grass_yellow, whose terraindata_standard_block has health 15
-## and armor 2. Named because the whole terrain arithmetic in the section header turns on it, and
-## because a modkit release that retuned it would make these tests lie rather than fail.
+## and armor 2. The whole terrain arithmetic in the section header turns on these two numbers, so
+## place_rocks() ASSERTS them against the TerrainBlockData the landscape actually hands back - a
+## const on its own cannot fail, and GDScript does not warn on an unreferenced one, so naming them
+## without checking them would have been decoration. With the check, a modkit release that retuned
+## the default block fails at the fixture instead of quietly changing what every test below means.
 const STANDARD_BLOCK_HEALTH := 15
 const STANDARD_BLOCK_ARMOR := 2
+
+## What the BASE ATTACK alone puts into every swept tile, hit or miss - see the section header for
+## why it does not vary. Numerically the same as CARRONADE_DAMAGE (1d6+1 with the die cheated to a
+## 6) but arrived at by a different route: this one is get_hits() read without an attack roll.
+const BASE_GROUND_DAMAGE := 7
+
+## What LandscapeNode leaves on the tile once the block has come down, and the assertion that keeps
+## the terrain tests from going silently vacuous.
+##
+## damage_tile() subtracts the destroyed block's health from the running total and stashes the
+## remainder back on the tile (landscape_node.gd:922-923), cascading whatever is left onto the block
+## below - which is a standard block too, and survives. So the tile ends the shot holding exactly
+## 7 + 10 - 15 = 2. Written as the arithmetic rather than as "2" because that is the point: if the
+## base contribution ever changes - a retuned die, a bonus-damage buff, or the cheat-queue artefact
+## in the section header putting 20 there - this number moves and the test says so, instead of the
+## block dying for a reason that has nothing to do with the clause.
+const TERRAIN_RESIDUAL := BASE_GROUND_DAMAGE + LINE_DAMAGE - STANDARD_BLOCK_HEALTH
 
 ## A hostile object in the swept row. dep_jericho_cover is a real vanilla deployable (entity OBJECT,
 ## is_deployable true) - the same frame test_heaer.gd uses, and for the same reason: it is a genuine
@@ -562,6 +604,14 @@ const MISSED_MECH_TILE := Vector2i(9, 4)
 ## `is_playable` OR, when that flag is on, `is_playable_or_breakable`, and map_shape.gd:41-47 lets a
 ## BREAKABLE interior through the second test while an ordinary forbidden one fails both.
 const BREAKABLE_TILE := Vector2i(6, 4)
+
+## The same breakable interior, three rows north of the firing row and therefore in no sweep in this
+## file. THIS is what pins event_map_damage's scoping of REMOVE_BREAKABLE_INTERIORS: the flag is not
+## "remove every breakable interior on the map", it filters the event's own tile list
+## (event_map_damage.gd:47). Nothing else in the suite tests that - the forbidden-interior control
+## below asserts a tile AoeCalculator dropped from the sweep before the event ever saw it, so it
+## pins the targeting side rather than this one.
+const BREAKABLE_OFF_THE_LINE := Vector2i(6, 1)
 
 ## The "left alone" half, and there is only one place it can stand. A plain forbidden interior can
 ## NEVER be inside a fired line - it fails both playability tests above, so AoeCalculator.line drops
@@ -600,10 +650,19 @@ func place_rocks(tiles:Array[Vector2i]) -> void:
 	SpecFactory.add_blocks_to_landscape(game.get_landscape_node(), Landscape.DEFAULT_BLOCK_NAME, voxels)
 	assert_true(game.core.destroyed_blocks.is_empty(), 'fixture: nothing is destroyed yet.')
 	for tile:Vector2i in tiles:
-		assert_true(game.get_landscape_node().get_terrain_for_voxel(voxel_of(tile)).is_obstruction(),
+		var terrain:TerrainBlockData = game.get_landscape_node().get_terrain_for_voxel(voxel_of(tile))
+		assert_true(terrain.is_obstruction(),
 			'fixture: the rock at %s is standing.' % tile)
 		assert_eq(game.core.get_current_damage_to_tile(tile), 0,
 			'fixture: and it is undamaged.')
+		# The two numbers the whole section's arithmetic is built on, read off the block the
+		# landscape actually returns rather than trusted from terraindata_standard_block.tres. A
+		# modkit release that retuned the default block fails HERE, saying so, instead of leaving
+		# every "the rock came down" assertion below meaning something else.
+		assert_eq(terrain.get_health(), STANDARD_BLOCK_HEALTH,
+			'fixture: a standard block still has 15 health - the number the clause has to carry.')
+		assert_eq(terrain.get_armor(), STANDARD_BLOCK_ARMOR,
+			'fixture: and still 2 armor, which the AP flag is what waives.')
 
 func rock_is_gone(tile:Vector2i) -> bool:
 	return (
@@ -624,7 +683,21 @@ func make_deployable(tile:Vector2i, armor:int) -> Unit:
 	dep.core.full_repair()
 	return dep
 
-## Something in the line for the shot to miss. See UNHITTABLE and the section header.
+## Something in the line for the shot to miss - and the thing that makes every terrain test in this
+## section non-vacuous. DO NOT MOVE IT OFF THE ROW, AND DO NOT WRITE A TERRAIN TEST WITHOUT IT.
+##
+## It is not decoration and it is not only about missing. Dice.CHEAT_ROLL_QUEUE is a single FIFO
+## (dice.gd:9, 33-35) and cheat_a_hit() loads [19, 6x8]. This mech, standing IN the swept line at
+## UNHITTABLE evasion, is what forces an attack roll to be made at all - and that roll is what
+## CONSUMES the leading 19, leaving a plain 6 for the damage die and so BASE_GROUND_DAMAGE = 7.
+## Take it away (move it off y=4, delete it, or aim a new terrain test at bare ground with nothing
+## in the line) and the 19 falls through to the damage roll instead: 1d6+1 reads 20, the base
+## attack's own ground damage alone flattens a 15-health block, and the terrain test passes whether
+## or not the clause exists. That is measured, not theoretical - it is exactly what happened in the
+## RED run and what the section header's CORRECTION note is about.
+##
+## Being a CHARACTER rather than an object is a second, smaller job: it doubles as the assertion
+## that the clause spares characters (event_map_damage.gd:63 skips anything not is_object()).
 func something_to_miss() -> Unit:
 	return FitzgeraldFixture.create_dummy(game, MISSED_MECH_TILE, UNHITTABLE)
 
@@ -642,11 +715,12 @@ func fire_down_the_row(at:Vector2i = AIM_DOWN_THE_ROW) -> void:
 
 # ---------------------------------------------------------------- terrain
 
-## THE TEST THAT DISTINGUISHES activate() FROM AN OnHitEffect, and the only shape in which a terrain
-## assertion about this weapon says anything at all - see the section header for why a shot that HITS
-## flattens standard terrain on its own. The shot here is aimed through a mech it CANNOT hit, so an
-## attack was declared, rolled and missed; the base attack put 7 into the terrain, the block needs
-## 15, and it comes down anyway.
+## THE TEST THAT DISTINGUISHES activate() FROM AN OnHitEffect. The shot is aimed through a mech it
+## CANNOT hit, so an attack was declared, rolled and missed; the base attack put its 7 into the
+## terrain, the block needs 15, and it comes down anyway.
+##
+## The mech is also what holds the arithmetic still - see something_to_miss(). The residual
+## assertion at the bottom is what makes that failure loud rather than silent.
 func test_a_miss_still_cracks_the_terrain_in_its_line() -> void:
 	place_rocks([ROCK_TILE])
 	var dodgy := something_to_miss()
@@ -662,6 +736,14 @@ func test_a_miss_still_cracks_the_terrain_in_its_line() -> void:
 		'...and the terrain there stops being an obstruction. 7 from the attack plus 10 from the'
 		+ ' clause is 17, past the block\'s 15; the attack alone stopped at 7, and a second missed'
 		+ ' shot without the clause only reached 14 (RED log).')
+	# AND EXACTLY HOW IT CAME DOWN, not merely that it did. "The rock is gone" is true of any
+	# oversized number, including the 20 the cheat queue produces when nothing in the line eats the
+	# leading 19 - which would destroy the block WITHOUT the clause and pass the two assertions
+	# above. Pinning the leftover to 7 + 10 - 15 makes that case fail here instead. See
+	# TERRAIN_RESIDUAL and something_to_miss().
+	assert_eq(game.core.get_current_damage_to_tile(ROCK_TILE), TERRAIN_RESIDUAL,
+		'And it came down by exactly the expected arithmetic: 7 from the attack plus the clause\'s'
+		+ ' 10 is 17, 15 of which destroyed the block, leaving 2 on the tile.')
 
 ## The clause damages the LINE, not the map. Without this, an implementation that lost its tile list
 ## and fell back to something wider - the whole aoe, the firer's own tiles, every tile it could find -
@@ -735,6 +817,36 @@ func test_a_breakable_interior_in_the_line_is_removed_and_a_forbidden_one_is_not
 	assert_true(Tile.in_bitwise_array(game.map.shape.forbidden_interiors, FORBIDDEN_CONTROL),
 		'And left the forbidden one exactly where it was.')
 
+## The demolition is SCOPED TO THE FIRED LINE, and this is the only test that says so about interior
+## walls. REMOVE_BREAKABLE_INTERIORS filters the event's own tile list
+## (event_map_damage.gd:46-48) - it is not a map-wide "knock down every breakable wall" - and an
+## implementation that handed the event a wider list, or that reached for
+## map.shape.breakable_interiors directly instead of the swept tiles, would pass the test above and
+## fail here. The control at the top is what stops it passing vacuously: the wall IN the line, in
+## the same shot, does come down.
+func test_a_breakable_interior_off_the_line_is_left_standing() -> void:
+	SpecFactory.add_setpieces_to_landscape(
+		game.get_landscape_node(), CommonActionUtil.BREAKABLE_INTERIOR_SETPIECE,
+		[BREAKABLE_TILE, BREAKABLE_OFF_THE_LINE])
+	game.map.calculate_los_blockers()
+
+	assert_true(Tile.in_bitwise_array(game.map.shape.breakable_interiors, BREAKABLE_TILE),
+		'fixture: a breakable interior in the firing row...')
+	assert_true(Tile.in_bitwise_array(game.map.shape.breakable_interiors, BREAKABLE_OFF_THE_LINE),
+		'fixture: ...and an identical one three rows north of it.')
+
+	await fire_down_the_row()
+
+	# The breached half is asserted through forbidden_interiors, exactly as the test above does it:
+	# a breakable interior sits in BOTH arrays, and leaving forbidden_interiors is what "the wall is
+	# gone" means for movement and sight.
+	assert_false(Tile.in_bitwise_array(game.map.shape.forbidden_interiors, BREAKABLE_TILE),
+		'control: the wall IN the line was breached by this very shot...')
+	assert_true(Tile.in_bitwise_array(game.map.shape.breakable_interiors, BREAKABLE_OFF_THE_LINE),
+		'...and the one off the line is untouched: the flag reaches the fired tiles, not the map.')
+	assert_true(Tile.in_bitwise_array(game.map.shape.forbidden_interiors, BREAKABLE_OFF_THE_LINE),
+		'And it still blocks movement and sight - it was not quietly half-removed.')
+
 # ---------------------------------------------------------------- the shot that was never fired
 
 ## An activation that aborts before the attack is declared must queue NO map damage. The control at
@@ -745,9 +857,12 @@ func test_a_breakable_interior_in_the_line_is_removed_and_a_forbidden_one_is_not
 ## MUTATION-TESTED 2026-09-14, AND THE RESULT IS WORTH KNOWING. Moving activate()'s
 ## `if activation.aborted: return` to BELOW the queue_event left this test GREEN
 ## (.superpowers/sdd/sp4-t2-mutation-b-abort-guard-below-queue.log, 18/18) - not because the test is
-## weak but because that guard is unreachable-by-itself: every abort path in ActionAttack.activate
-## happens before context.resource is assigned (action_attack.gd:252-258), so swept_tiles() comes
-## back empty and the OTHER guard refuses first. What this test actually pins is the pair of them
+## weak but because that guard is unreachable by the abort THIS test reaches: the off-map plan is
+## refused at action_attack.gd:236, before context.resource is assigned at :259, so swept_tiles()
+## comes back empty and the OTHER guard refuses first. (It is NOT true that every abort in
+## ActionAttack.activate precedes that assignment - :266, :201 and :227 all follow it, and the
+## aborted guard is the only thing covering those. The action script's header has the detail.)
+## What this test actually pins is the pair of them
 ## together, against the realistic wrong implementation - reconstructing the line from
 ## context.target_tiles when the declared attack is missing, which is the fallback
 ## action_bizarre_cannon.gd's header warns about. With both guards dropped and that fallback in

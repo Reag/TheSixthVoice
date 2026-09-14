@@ -111,24 +111,52 @@ const LINE_TERRAIN_DAMAGE:int = 10
 ## (landscape_node.gd:813): the 10 is added to whatever the shot itself already did to those tiles,
 ## which is the reading the rules text wants.
 ##
+## HOW MUCH THE SHOT ITSELF ALREADY DID, AND WHY IT IS THE SAME ON A HIT AND A MISS. The incidental
+## ground damage is get_damage_to_terrain_and_objects(specific, base_damage)
+## (event_unit_attack_declared.gd:183), which returns
+## DamageRollSummary.get_non_heat_amount(damage_data.get_hits()) (action_attack.gd:57-69).
+## get_hits() reads each roll's own `hit` value (attack_util.gd:127) and is ROLL-INDEPENDENT: it is
+## never asked whether the attack landed, and the per-attack-roll bonus damage that WOULD vary goes
+## into a duplicate summary instead (event_unit_attack_declared.gd:142, roll_specific_bonus_damage
+## at :288) and never reaches base_damage. So for this weapon - 1d6+1, no reliable, no bonus damage
+## - the base attack puts the SAME number into the ground whether it hit or missed: 7 with the
+## damage die at a 6. That is what the clause's 10 is carrying over a standard block's 15 health
+## (terraindata_standard_block.tres): 7 + 10 = 17 destroys it, 7 alone never does.
+## (An earlier note here and in the spec claimed the base attack did 20 on a hit and 7 on a miss.
+## It was a cheat-dice artefact, not engine behaviour - see the spec's section header.)
+##
 ## THE ABORT GUARD. An aborted activation is a shot that was never fired: ActionAttack.activate
 ## bails before spend_actions when targeting is cancelled, so there is no cost, no attack and there
 ## must be no demolition either. Vanilla guards its own followup attacks the same way
-## (action_attack_weapon.gd:62), and the frame's Bizarre Cannon guards its recoil the same way.
-## On every abort path reachable today this guard is belt-and-braces, and that was MEASURED rather
-## than assumed: moving it below the queue_event left the whole spec green
-## (.superpowers/sdd/sp4-t2-mutation-b-abort-guard-below-queue.log, 2026-09-14). Every abort in
-## ActionAttack.activate happens BEFORE context.resource is assigned (action_attack.gd:252-258), so
-## swept_tiles() comes back empty and the guard below catches it first. Keep this one anyway: the
-## two answer different questions ("was this fired?" versus "do we know where?"), an abort added
-## after the summary exists would be caught only by this one, and vanilla states the same intent in
-## the same place. Do NOT read the green mutation as permission to delete it - read it with the
-## second mutation beside it, which removed BOTH and reconstructed the line from the targeting hint,
-## and did put 10 AP into terrain the shot never swept
+## (action_attack_weapon.gd:61), and the frame's Bizarre Cannon guards its recoil the same way.
+##
+## IT IS UNREACHABLE BY THE ABORTS THE SPEC EXERCISES, AND LOAD-BEARING FOR THE REST. That was
+## MEASURED rather than assumed: moving it below the queue_event left the whole spec green
+## (.superpowers/sdd/sp4-t2-mutation-b-abort-guard-below-queue.log, 2026-09-14). The reason is that
+## every abort spec/test_rapier_carronade.gd can reach - the cancelled or invalid targeting plan
+## (action_attack.gd:236), the friendly-fire and aoe-no-targets confirms (:247, :249) and the
+## mid-choice unit check (:250) - happens BEFORE context.resource is assigned the
+## DeclaredAttackSummary (action_attack.gd:259). In those states swept_tiles() comes back empty and
+## the is_empty() guard below catches it first.
+##
+## THE ABORTS AFTER THAT ASSIGNMENT ARE WHAT THIS GUARD IS FOR, and they exist in the engine today:
+## action_attack.gd:266 (abort_without_unit, immediately after run_attack_effects) and the two
+## inside run_attack_effects itself (:201, :227), which are handed this same activation and set
+## aborted through abort_when -> set_aborted (event_core.gd:26-32). In any of those states the
+## declared summary is valid and non-empty, so this guard is the ONLY thing standing between an
+## aborted shot and a queued demolition. Do NOT read the green mutation as permission to delete it -
+## read it with the second mutation beside it, which removed BOTH and reconstructed the line from
+## the targeting hint, and did put 10 AP into terrain the shot never swept
 ## (.superpowers/sdd/sp4-t2-mutation-b2-line-from-the-hint.log).
 func activate(context:Context, activation:EventCore) -> void:
 	await super.activate(context, activation) # make the attack
 	if activation.aborted: return
+	# NO Unit.is_valid(context.unit) / GearCore.is_valid(context.gear) guard here, unlike the sibling
+	# action_bizarre_cannon.gd:28. That weapon's recoil() dereferences both (it knocks the FIRER
+	# back, off the firer's own tiles). Nothing below touches either one: the tile list comes off
+	# context.resource and the event is addressed to tiles, so a firer that died or was unequipped
+	# mid-activation still leaves a well-formed demolition. Adding the guard would not be wrong, only
+	# inert - and the abort guard above already covers the case where the engine noticed.
 
 	var swept := swept_tiles(context)
 	# A shot whose line cannot be reconstructed must damage NOTHING. Handing event_map_damage an
@@ -142,7 +170,8 @@ func activate(context:Context, activation:EventCore) -> void:
 		number = LINE_TERRAIN_DAMAGE,
 		flags = [
 			# AP: the rules text says AP, and it does two separate jobs here. It waives the
-			# terrain's own armor in LandscapeNode.damage_tile (:889 - a standard block has 2), and
+			# terrain's own armor in LandscapeNode.damage_tile (landscape_node.gd:890, the `if not
+			# is_ap` line - a standard block has 2), and
 			# it is the flag event_map_damage.gd:59 turns into DAMAGE_FLAG.AP on every object damage
 			# event it spawns.
 			EventMapDamage.FLAG.AP,
@@ -160,7 +189,8 @@ func activate(context:Context, activation:EventCore) -> void:
 			# option, because without can_target_breakable_interiors on the targeting side the line
 			# is truncated at the first interior wall anyway.
 			EventMapDamage.FLAG.REMOVE_BREAKABLE_INTERIORS,
-			# NOT BURN. BURN marks the tiles as burnt (event_map_damage.gd:798) and is what the
+			# NOT BURN. BURN marks the tiles as burnt (landscape_node.gd:798 - event_map_damage.gd
+				# is only 91 lines long and merely forwards the flag) and is what the
 			# Thermal Grenade sets, because a thermal grenade sets fires. This is a solid shot of
 			# kinetic; it knocks a hole in things and starts nothing. The engine agrees with that
 			# reading elsewhere: event_unit_attack_declared.gd:188 adds BURN to a weapon's own ground
@@ -190,9 +220,14 @@ func activate(context:Context, activation:EventCore) -> void:
 ## itself swept, the interior walls the .tres's can_target_breakable_interiors admitted are in this
 ## list, and the tiles ARCING kept in it (no line-of-sight filter, Action.get_aoe_tiles_with_targets)
 ## are too. Recomputing the line here instead would quietly answer a different question.
+##
+## THE RESULT IS DUPLICATED, AND THAT IS DELIBERATE. all_attacked_tiles is the summary's own live
+## array, and the caller hands what comes back to a QUEUED event that runs later - so returning it
+## by reference would let anything that mutated the summary in between silently change which tiles
+## get demolished. Nothing mutates it today; the duplicate makes the question not worth asking.
 func swept_tiles(context:Context) -> Array[Vector2i]:
 	if not DeclaredAttackSummary.is_valid(context.resource): return []
 	var declared:DeclaredAttackSummary = context.resource
 	var fired:Array[Vector2i] = declared.all_attacked_tiles
 	if fired.is_empty(): fired = declared.directly_attacked_tiles
-	return fired
+	return fired.duplicate()

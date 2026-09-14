@@ -23,7 +23,7 @@ func activate(context:Context, activation:EventCore) -> void:
 	# An aborted activation is a shot that was never fired: ActionAttack.activate bails before
 	# spend_actions when the targeting is cancelled, so there is no cost and there must be no
 	# recoil either. Vanilla guards its own followup attacks the same way
-	# (action_attack_weapon.gd:62).
+	# (action_attack_weapon.gd:61, the `(not activation.aborted) and` line).
 	if activation.aborted: return
 	if not Unit.is_valid(context.unit) or not GearCore.is_valid(context.gear): return
 	recoil(context, activation, recoil_damage_dice, recoil_knockback, recoil_origin_tiles(context))
