@@ -55,11 +55,6 @@ const SINGLE_SHOT_ID := &'action_swivel_single_shot'
 ## action is inline on the Kit, so it is fired through SpecFactory.use_solo rather than by action id.
 const MELEE_ID := &'mw_tactical_melee_weapon'
 
-## A real vanilla deployable (entity OBJECT, is_deployable true, 10 HP): the structureless branch of
-## ruling 6. dep_attack_ground_proxy is deliberately NOT used - it is a MARKER-ish object with
-## is_deployable false, and the gun spawns one of its own whenever a shot is aimed at bare ground.
-const DEPLOYABLE_FRAME := &'dep_jericho_cover'
-
 const CHARGES := 3
 
 ## 1d6+1 AP kinetic with the die cheated to a 6, against a bystander the fixture gives armor 0. The
@@ -182,17 +177,6 @@ func make_bystander(
 	bystander.core.frame.hase = HaseBlock.create(0, agi, 0, 0)
 	bystander.core.full_repair()
 	return bystander
-
-## The vanilla Jericho cover, hostile, cut down to 5 HP so one Single Shot destroys it.
-func make_deployable(tile:Vector2i) -> Unit:
-	var dep := SpecFactory.create_unit(game.map, tile, Faction.AI_ENEMY)
-	dep.core.frame = ContentLibrary.get_mech_frame(DEPLOYABLE_FRAME)
-	FrameIsolation.isolate_frame(dep)
-	dep.core.frame.stat.health = 5
-	dep.core.frame.stat.armor = 0
-	dep.core.frame.stat.evasion = -10
-	dep.core.full_repair()
-	return dep
 
 ## Fire SINGLE SHOT at a UNIT, never at a tile. Single Shot has no range_pattern, so a supplied tile
 ## is taken as an aimed-at-the-ground shot: the engine spawns a dep_attack_ground_proxy and the
@@ -343,7 +327,7 @@ func test_at_zero_charges_nothing_is_offered() -> void:
 func test_a_destroyed_deployable_counts() -> void:
 	# Ruling 6's structureless branch: a non-mech has no structure to lose, so
 	# queue_structure_or_stress_if_necessary sends it straight to event_unit_die at 0 HP.
-	var dep := make_deployable(VICTIM_TILE)
+	var dep := FitzgeraldFixture.create_deployable(game, VICTIM_TILE, 5, 0, -10)
 	var doomed := make_bystander(DOOMED_TILE, -30)
 	var spared := make_bystander(SPARED_TILE, 30)
 

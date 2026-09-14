@@ -39,11 +39,6 @@
 extends GutTest
 
 const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
-## Task 2 only, for the deployable the line damage has to find. The PATTERN is lifted from
-## test_heaer.gd's make_deployable(); the helper itself is re-typed here rather than imported,
-## because a spec file importing another spec file's helpers couples two suites that are meant to be
-## runnable one at a time.
-const FrameIsolation := preload('res://testkit/frame_isolation.gd')
 
 const KIT_ID := &'mw_rapier_class_carronade'
 const ACTION_ID := &'action_rapier_carronade'
@@ -571,10 +566,10 @@ const BASE_GROUND_DAMAGE := 7
 ## block dying for a reason that has nothing to do with the clause.
 const TERRAIN_RESIDUAL := BASE_GROUND_DAMAGE + LINE_DAMAGE - STANDARD_BLOCK_HEALTH
 
-## A hostile object in the swept row. dep_jericho_cover is a real vanilla deployable (entity OBJECT,
-## is_deployable true) - the same frame test_heaer.gd uses, and for the same reason: it is a genuine
-## object rather than the marker-ish dep_attack_ground_proxy the engine spawns for ground shots.
-const DEPLOYABLE_FRAME := &'dep_jericho_cover'
+## A hostile object in the swept row. FitzgeraldFixture.create_deployable spawns dep_jericho_cover,
+## a real vanilla deployable (entity OBJECT, is_deployable true) - the same frame test_heaer.gd and
+## test_reinforcement_blast.gd use, and for the same reason: it is a genuine object rather than the
+## marker-ish dep_attack_ground_proxy the engine spawns for ground shots.
 const OBJECT_TILE := Vector2i(8, 4)
 
 ## More than 10, so every object assertion is on the thing's HEALTH and not on whether it died -
@@ -670,19 +665,6 @@ func rock_is_gone(tile:Vector2i) -> bool:
 		not game.get_landscape_node().get_terrain_for_voxel(voxel_of(tile)).is_obstruction()
 	)
 
-## A hostile object, at more HP than the clause deals. The pattern is test_heaer.gd's
-## make_deployable(): a real deployable frame, FrameIsolation'd so rewriting its statblock cannot
-## reach the shared ContentLibrary copy, then full_repair()'d so current.* picks the new numbers up.
-func make_deployable(tile:Vector2i, armor:int) -> Unit:
-	var dep := SpecFactory.create_unit(game.map, tile, Faction.AI_ENEMY)
-	dep.core.frame = ContentLibrary.get_mech_frame(DEPLOYABLE_FRAME)
-	FrameIsolation.isolate_frame(dep)
-	dep.core.frame.stat.health = OBJECT_HEALTH
-	dep.core.frame.stat.armor = armor
-	dep.core.frame.stat.evasion = UNHITTABLE # the shot must not ALSO hit it; see UNHITTABLE
-	dep.core.full_repair()
-	return dep
-
 ## Something in the line for the shot to miss - and the thing that makes every terrain test in this
 ## section non-vacuous. DO NOT MOVE IT OFF THE ROW, AND DO NOT WRITE A TERRAIN TEST WITHOUT IT.
 ##
@@ -762,7 +744,7 @@ func test_the_line_damage_stops_at_the_edge_of_the_line() -> void:
 # ---------------------------------------------------------------- objects
 
 func test_an_object_in_the_line_takes_ten_with_no_attack_roll_of_its_own() -> void:
-	var dep := make_deployable(OBJECT_TILE, 0)
+	var dep := FitzgeraldFixture.create_deployable(game, OBJECT_TILE, OBJECT_HEALTH, 0, UNHITTABLE)
 	assert_true(dep.is_object(), 'fixture: a deployable is an OBJECT, which is what the clause names.')
 	assert_eq(dep.core.current.health, OBJECT_HEALTH, 'fixture: and it starts at 20 health.')
 
@@ -778,7 +760,7 @@ func test_an_object_in_the_line_takes_ten_with_no_attack_roll_of_its_own() -> vo
 		'The object took exactly 10, from a shot that could not hit it: no attack roll of its own.')
 
 func test_the_object_damage_is_ap() -> void:
-	var dep := make_deployable(OBJECT_TILE, OBJECT_ARMOR)
+	var dep := FitzgeraldFixture.create_deployable(game, OBJECT_TILE, OBJECT_HEALTH, OBJECT_ARMOR, UNHITTABLE)
 	assert_eq(dep.core.current.armor, OBJECT_ARMOR,
 		'fixture: the object really has 2 armor - without this the AP claim is unfalsifiable.')
 

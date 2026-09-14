@@ -33,7 +33,7 @@
 #   godot --resolution 800x600 --position 20,20 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_ripper_mod.gd
 extends GutTest
 
-const Fixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
+const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 const FrameIsolation := preload('res://testkit/frame_isolation.gd')
 
 const MOD_ID := &'wm_ripper_mod'
@@ -53,9 +53,9 @@ var fitz:Unit
 var target:Unit
 
 func before_each() -> void:
-	game = Fixture.create_game(self)
-	fitz = Fixture.create_fitzgerald(game, START)
-	target = Fixture.create_dummy(game, TARGET_TILE, -10) # every shot hits; the dice fix the numbers
+	game = FitzgeraldFixture.create_game(self)
+	fitz = FitzgeraldFixture.create_fitzgerald(game, START)
+	target = FitzgeraldFixture.create_dummy(game, TARGET_TILE, -10) # every shot hits; the dice fix the numbers
 	target.core.frame.stat.health = 200
 	target.core.full_repair()
 

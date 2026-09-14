@@ -9,26 +9,26 @@ frame.mf_fitzgerald.flavor.short,Blindfire Gunner
 frame.mf_fitzgerald.flavor,"Barely larger than the cannon bolted through it, the Fitzgerald is what happens when a shipyard is asked for artillery and answers with a recoil problem. Its gunners do not need to see what they are shooting at, and its chassis does not expect to survive doing so."
 ,
 gear.mt_weak_computer.name,Weak Computer
-gear.mt_weak_computer.effect,The Fitzgerald receives +1 Difficulty on all SYSTEMS saves and checks.
+gear.mt_weak_computer.effect,The Fitzgerald receives |+1 Difficulty| on all SYSTEMS saves and checks.
 ,
 gear.cp_broadside.name,Broadside
 gear.cp_broadside.effect,"The BIZARRE CANNON is built through the Fitzgerald's chassis rather than mounted on it: it occupies no weapon mount and cannot take a weapon mod. Its active MORE BLACK POWDER protocol grants the cannon a second profile."
 gear.cp_broadside.action_bizarre_cannon.name,Bizarre Cannon
-gear.cp_broadside.action_bizarre_cannon.effect,"On attack: you take 2 AP kinetic damage and are knocked back 2 spaces, away from the direction of fire."
+gear.cp_broadside.action_bizarre_cannon.effect,"On attack: you take 2 |AP| kinetic damage and are knocked back 2 spaces, away from the direction of fire."
 gear.cp_broadside.action_more_black_powder_protocol.name,MORE BLACK POWDER
-gear.cp_broadside.action_more_black_powder_protocol.effect,"For the rest of this scene, the BIZARRE CANNON gains a second profile: Heavy Cannon, AP, Reliable 3, Heat 1 (Self). [Line 15] [2d6 kinetic + 1d6 explosive damage]. The original profile remains available."
+gear.cp_broadside.action_more_black_powder_protocol.effect,"For the rest of this scene, the BIZARRE CANNON gains a second profile: Heavy Cannon, |AP|, |Reliable 3|, |Heat 1| (Self). [|Line 15|] [2d6 kinetic + 1d6 explosive damage]. The original profile remains available."
 gear.cp_broadside.action_more_black_powder.name,Bizarre Cannon (More Black Powder)
-gear.cp_broadside.action_more_black_powder.effect,"On attack: you take 3 AP kinetic damage and are knocked back 3 spaces, in any direction. On hit: targets must succeed on a Hull save or become prone."
+gear.cp_broadside.action_more_black_powder.effect,"On attack: you take 3 |AP| kinetic damage and are knocked back 3 spaces, in any direction. On hit: targets must succeed on a |hull save| or become |prone|."
 gear.buff_more_black_powder.name,More Black Powder
 gear.buff_more_black_powder.effect,"The BIZARRE CANNON has a second, heavier profile for the rest of this scene."
 ,
 gear.mt_hole_puncher.name,Hole Puncher
-gear.mt_hole_puncher.effect,"The Fitzgerald may ignore line of sight when attacking with Cannon or Line weapons. Targets attacked this way have soft cover."
+gear.mt_hole_puncher.effect,"The Fitzgerald may ignore line of sight when attacking with |cannon| or |Line| weapons. Targets attacked this way have |soft cover|."
 gear.buff_hole_puncher_soft_cover.name,Soft cover (Hole Puncher)
 gear.buff_hole_puncher_soft_cover.effect,"Attacked without being seen: the shot treats this target as having soft cover."
 ,
 gear.mt_knock_em_down.name,Knock 'em down
-gear.mt_knock_em_down.effect,"1/round, when the Fitzgerald critically hits a character with a Cannon, that character must succeed on a Hull save or be knocked Prone."
+gear.mt_knock_em_down.effect,"1/round, when the Fitzgerald critically hits a character with a |cannon|, that character must succeed on a |hull save| or be knocked |Prone|."
 ,
 gear.mw_breech_loading_swivel_gun.name,Breech-loading Swivel Gun
 gear.mw_breech_loading_swivel_gun.effect,"|Loading| (3 rounds). The gun holds three rounds and is reloaded as a whole: every profile draws on the same three, and when the last one is spent the gun is empty until it is reloaded."
@@ -43,7 +43,7 @@ gear.ms_heaer.effect,"|Limited| 3, |Unique|. Whenever you destroy a hostile char
 gear.ms_heaer.action_heaer_detonate.confirm,Expend a HEAER charge?
 ,
 gear.mt_blasting_powder.name,Blasting Powder
-gear.mt_blasting_powder.effect,"1/round, when the Fitzgerald makes a successful ranged attack with a Line weapon, it deals additional bonus damage to each character hit after the first: +1 to the second, +2 to the third, and so on down the line."
+gear.mt_blasting_powder.effect,"1/round, when the Fitzgerald makes a successful ranged attack with a |Line| weapon, it deals additional bonus damage to each character hit after the first: +1 to the second, +2 to the third, and so on down the line."
 ,
 gear.ms_hull_break_thrusters.name,Hull-break Thrusters
 gear.ms_hull_break_thrusters.effect,"|Limited| 3, |Unique|. Thrusters bolted along the spine, meant for shifting cargo hulls and used here to shift the Fitzgerald."

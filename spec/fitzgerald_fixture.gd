@@ -105,3 +105,27 @@ static func create_dummy(
 ## the protocol and then fires does not re-open a turn it is already in.
 static func open_turn(game:Gamemaster, unit:Unit) -> void:
 	if not unit.state.is_taking_turn: await SpecFactory.start_turn(game, unit)
+
+## The vanilla Jericho cover (entity OBJECT, is_deployable true, 10 HP by default): a real
+## deployable rather than the MARKER-ish dep_attack_ground_proxy the engine spawns for a shot aimed
+## at bare ground. FrameIsolation'd so rewriting its statblock cannot reach the shared
+## ContentLibrary copy, then full_repair()'d so current.* picks the new numbers up.
+##
+## SP5 Task: hand-typed identically in test_heaer.gd, test_reinforcement_blast.gd and
+## test_rapier_carronade.gd (each also carrying its own copy of DEPLOYABLE_FRAME_ID) - the rule of
+## three was met, but the three bodies genuinely differ (health 5/40/OBJECT_HEALTH, evasion
+## -10/the frame's own default 5/UNHITTABLE), so every difference survives here as a required
+## argument rather than a chosen default. THIS IS A PURE REFACTOR: test_reinforcement_blast.gd's
+## own `assert_false(dep.is_actor(), ...)` fixture self-check is NOT folded in here, since the
+## other two callers never had it - it stays at that one call site.
+const DEPLOYABLE_FRAME_ID := &'dep_jericho_cover'
+
+static func create_deployable(game:Gamemaster, tile:Vector2i, health:int, armor:int, evasion:int) -> Unit:
+	var dep := SpecFactory.create_unit(game.map, tile, Faction.AI_ENEMY)
+	dep.core.frame = ContentLibrary.get_mech_frame(DEPLOYABLE_FRAME_ID)
+	FrameIsolation.isolate_frame(dep)
+	dep.core.frame.stat.health = health
+	dep.core.frame.stat.armor = armor
+	dep.core.frame.stat.evasion = evasion
+	dep.core.full_repair()
+	return dep

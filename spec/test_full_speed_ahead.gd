@@ -16,7 +16,7 @@
 #   godot --resolution 800x600 --position 20,20 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_full_speed_ahead.gd
 extends GutTest
 
-const Fixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
+const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 
 const SYSTEM_ID := &'ms_hull_break_thrusters'
 const ACTION_ID := &'action_full_speed_ahead'
@@ -30,11 +30,11 @@ var fitz:Unit
 var thrusters:GearCore
 
 func before_each() -> void:
-	game = Fixture.create_game(self)
-	fitz = Fixture.create_fitzgerald(game, START)
+	game = FitzgeraldFixture.create_game(self)
+	fitz = FitzgeraldFixture.create_fitzgerald(game, START)
 	thrusters = fitz.core.equip_system(SYSTEM_ID)
 	SpecFactory.apply_passive_buffs(fitz)
-	await Fixture.open_turn(game, fitz)
+	await FitzgeraldFixture.open_turn(game, fitz)
 
 func after_each() -> void:
 	Dice.CHEAT_ROLL_QUEUE.clear()
@@ -123,13 +123,13 @@ func test_it_is_refused_with_no_charges_left() -> void:
 	assert_eq(fitz.tile(), START, 'An uncharged system moves nobody.')
 
 func test_it_flies_through_a_hostile_character() -> void:
-	Fixture.create_dummy(game, START + Vector2i(2, 0), 10)
+	FitzgeraldFixture.create_dummy(game, START + Vector2i(2, 0), 10)
 	await dash_to(START + Vector2i(SPEED, 0))
 	assert_eq(fitz.tile(), START + Vector2i(SPEED, 0), 'The hostile in the way was passed through.')
 
 func test_an_engaged_fitzgerald_leaves_without_provoking_overwatch() -> void:
 	# Adjacent hostile: engagement would normally hold it, and leaving would provoke a reaction.
-	var blocker := Fixture.create_dummy(game, START + Vector2i(1, 0), 10)
+	var blocker := FitzgeraldFixture.create_dummy(game, START + Vector2i(1, 0), 10)
 	var blocker_health:int = blocker.core.current.health
 	# TASK 2 AMENDED THIS TEST, AND ONLY THIS LINE. The blocker stands on a tile the dash enters, so
 	# once the path walk below existed it started forcing a Hull save on it - and an uncheated d20
@@ -179,10 +179,10 @@ func cheat_passed_saves() -> void:
 	Dice.CHEAT_ROLL_QUEUE.append_array([20, 20, 20, 20])
 
 ## A dummy that can actually be hurt and shoved: 20 HP, 1 armor so the AP on the damage is visible,
-## and the frame's own HULL so the cheated save die decides the outcome. Fixture.create_dummy has
+## and the frame's own HULL so the cheated save die decides the outcome. FitzgeraldFixture.create_dummy has
 ## already FrameIsolation'd it, so these writes are to its own copy of the frame, not a shared one.
 func make_victim(tile:Vector2i) -> Unit:
-	var victim := Fixture.create_dummy(game, tile, 10)
+	var victim := FitzgeraldFixture.create_dummy(game, tile, 10)
 	victim.core.frame.stat.health = 20
 	victim.core.frame.stat.armor = 1
 	victim.core.full_repair()
@@ -253,7 +253,7 @@ func test_crossing_an_ally_still_costs_self_damage_but_spares_the_ally() -> void
 	# count_occupied_crossed's and caught_hostiles' headers. That asymmetry was, until now, only a
 	# comment: nothing distinguished it from a future refactor that unified the two helpers onto one
 	# hostiles-only definition of "occupied", which would still make every other test above pass.
-	var ally := Fixture.create_dummy(game, START + Vector2i(2, 0), 10, Faction.AI_ALLY)
+	var ally := FitzgeraldFixture.create_dummy(game, START + Vector2i(2, 0), 10, Faction.AI_ALLY)
 	assert_true(UnitRelation.are_allies(fitz, ally),
 		'Sanity: PLAYER (the Fitzgerald) and AI_ALLY are actually allied, not two enemies.')
 	var fitz_before:int = fitz.core.current.health

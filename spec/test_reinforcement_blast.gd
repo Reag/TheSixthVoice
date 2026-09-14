@@ -46,8 +46,7 @@
 #   godot --resolution 800x600 --position 20,20 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_reinforcement_blast.gd
 extends GutTest
 
-const Fixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
-const FrameIsolation := preload('res://testkit/frame_isolation.gd')
+const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 
 const SYSTEM_ID := &'ms_grit_latch_magnets'
 const ACTION_ID := &'action_reinforcement_blast'
@@ -56,11 +55,6 @@ const BUFF_ID := &'buff_reinforcement_blast'
 const REDUCTION_BUFF_ID := &'buff_reinforcement_blast_reduction'
 
 const OUR_TRANSLATION := 'res://unpacked/Reag-TheSixthVoice/localization/localizations.en.translation'
-
-## The vanilla Jericho cover: an OBJECT, so Unit.is_actor() is false for it (unit.gd:117) and
-## ActionSystemApplyBuff.can_target_unit refuses it outright ("cannot apply buffs to drones /
-## objects").
-const DEPLOYABLE_FRAME := &'dep_jericho_cover'
 
 # Blast 1 is AoeCalculator.blast(centre, 1, ...) - a 3x3 square centred on the chosen tile
 # (aoe_calculator.gd:13-15, a -radius..radius box), NOT a plus-shape. Every tile below is measured
@@ -82,11 +76,11 @@ var fitz:Unit
 var magnets:GearCore
 
 func before_each() -> void:
-	game = Fixture.create_game(self)
-	fitz = Fixture.create_fitzgerald(game, FITZ_TILE)
+	game = FitzgeraldFixture.create_game(self)
+	fitz = FitzgeraldFixture.create_fitzgerald(game, FITZ_TILE)
 	magnets = fitz.core.equip_system(SYSTEM_ID)
 	SpecFactory.apply_passive_buffs(fitz)
-	await Fixture.open_turn(game, fitz)
+	await FitzgeraldFixture.open_turn(game, fitz)
 
 func after_each() -> void:
 	# Task 4's test_it_blunts_a_real_weapon_hit pins its damage die with Dice.CHEAT_ROLL_QUEUE, and a
@@ -158,8 +152,8 @@ func test_the_system_and_its_buff_have_display_text() -> void:
 func test_everybody_in_the_blast_gains_one_armor() -> void:
 	# Ruling 23: "all characters" is hostiles, allies AND the Fitzgerald itself. No ally/enemy filter
 	# on the action, can_apply_to_self = true, and objects fall out for free (see the object test).
-	var ally := Fixture.create_dummy(game, IN_BLAST_ALLY, 10, Faction.AI_ALLY)
-	var hostile := Fixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
+	var ally := FitzgeraldFixture.create_dummy(game, IN_BLAST_ALLY, 10, Faction.AI_ALLY)
+	var hostile := FitzgeraldFixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
 	assert_true(UnitRelation.are_allies(fitz, ally), 'fixture: the ally really is allied.')
 	assert_true(UnitRelation.are_enemies(fitz, hostile), 'fixture: the hostile really is hostile.')
 	var fitz_before:int = fitz.get_armor()
@@ -173,8 +167,8 @@ func test_everybody_in_the_blast_gains_one_armor() -> void:
 	assert_eq(fitz.get_armor(), fitz_before + 1, 'And so did the Fitzgerald, standing in its own blast.')
 
 func test_a_unit_one_tile_outside_the_blast_gains_nothing() -> void:
-	var inside := Fixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
-	var outside := Fixture.create_dummy(game, ONE_TILE_OUT, 10)
+	var inside := FitzgeraldFixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
+	var outside := FitzgeraldFixture.create_dummy(game, ONE_TILE_OUT, 10)
 	var inside_before:int = inside.get_armor()
 	var outside_before:int = outside.get_armor()
 
@@ -197,7 +191,7 @@ func test_the_blast_may_centre_on_empty_ground() -> void:
 	# The targetable-set assertion is what actually pins the flag; the activation pins that the buff
 	# then reaches a unit the centre tile does not hold. Same technique as the sensor-range test below.
 	var empty_centre := Vector2i(8, 4)
-	var neighbour := Fixture.create_dummy(game, empty_centre + Vector2i(1, 0), 10)
+	var neighbour := FitzgeraldFixture.create_dummy(game, empty_centre + Vector2i(1, 0), 10)
 	assert_eq(game.map.get_all_units_at_tile(empty_centre).size(), 0,
 		'fixture: the chosen centre really is bare ground.')
 	var targetable:Array[Vector2i] = UnitTargeting.get_tiles_targetable(_specific())
@@ -213,8 +207,9 @@ func test_an_object_in_the_blast_gains_nothing() -> void:
 	# can_target_unit refuses anything that is not is_actor() (action_system_apply_buff.gd:64), so the
 	# card's "all characters" excludes cover, drones and other objects with no work on our side. This
 	# pins that the exclusion is real rather than an accident of where things were standing.
-	var cover := make_deployable(IN_BLAST_ALLY)
-	var witness := Fixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
+	var cover := FitzgeraldFixture.create_deployable(game, IN_BLAST_ALLY, 40, 0, 5) # 5: the frame's own unmodified evasion
+	assert_false(cover.is_actor(), 'fixture: the Jericho cover really is a non-actor object.')
+	var witness := FitzgeraldFixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
 	var cover_before:int = cover.get_armor()
 	var witness_before:int = witness.get_armor()
 
@@ -252,7 +247,7 @@ func test_it_reaches_the_fitzgeralds_sensor_range_and_no_further() -> void:
 # these go red, stop and report rather than swapping the enum.
 
 func test_the_armor_survives_the_targets_own_next_turn() -> void:
-	var ally := Fixture.create_dummy(game, IN_BLAST_ALLY, 10, Faction.AI_ALLY)
+	var ally := FitzgeraldFixture.create_dummy(game, IN_BLAST_ALLY, 10, Faction.AI_ALLY)
 	var before:int = ally.get_armor()
 	await blast_at(CENTRE)
 	assert_eq(ally.get_armor(), before + 1, 'fixture: the blast landed.')
@@ -263,7 +258,7 @@ func test_the_armor_survives_the_targets_own_next_turn() -> void:
 	assert_eq(ally.get_armor(), before + 1, 'Still armoured: the clock is the FITZGERALD\'s turn.')
 
 func test_the_armor_is_gone_at_the_end_of_the_fitzgeralds_next_turn() -> void:
-	var ally := Fixture.create_dummy(game, IN_BLAST_ALLY, 10, Faction.AI_ALLY)
+	var ally := FitzgeraldFixture.create_dummy(game, IN_BLAST_ALLY, 10, Faction.AI_ALLY)
 	var ally_before:int = ally.get_armor()
 	var fitz_before:int = fitz.get_armor()
 	await blast_at(CENTRE)
@@ -296,7 +291,7 @@ func test_a_charge_is_spent() -> void:
 func test_it_is_refused_with_no_charges_left() -> void:
 	# Set AFTER before_each's equips: full_repair() refills charges, so an earlier write is undone.
 	magnets.charges_current = 0
-	var hostile := Fixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
+	var hostile := FitzgeraldFixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
 	var before:int = hostile.get_armor()
 
 	# The armor assertion below would also pass against an action that silently did nothing - it does
@@ -385,7 +380,7 @@ func test_the_blast_actually_blunts_damage() -> void:
 	# THE TEST THE WHOLE RULING EXISTS FOR. Its control is the SAME unit before the blast, so the
 	# buff pair is the only thing that differs between the two measurements - no second frame, no
 	# second faction, no second roll, nothing else that could account for the 1.
-	var hostile := Fixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
+	var hostile := FitzgeraldFixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
 	var unbuffed := await take(hostile, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC)
 	assert_eq(unbuffed, FIXED_HIT, 'fixture: nothing blunts this unit before the blast.')
 
@@ -410,7 +405,7 @@ func test_it_blunts_a_real_weapon_hit() -> void:
 	# weapon_sizes and weapon_types are both empty, so it must fall THROUGH that branch rather than
 	# return early - and the context carries a real AttackRoll, which is what
 	# damage_modifications.gd:100-101 uses to track armor across an attack roll.
-	var hostile := Fixture.create_dummy(game, IN_BLAST_HOSTILE, -10) # -10 evasion: the shot lands
+	var hostile := FitzgeraldFixture.create_dummy(game, IN_BLAST_HOSTILE, -10) # -10 evasion: the shot lands
 	# NOT followed by another SpecFactory.apply_passive_buffs(fitz). equip_system() calls
 	# full_repair(), which empties every equipped gear's state dictionary - harmless here, nothing has
 	# been used yet - but re-running the passive-buff pass would stack a second copy of the frame's
@@ -434,8 +429,8 @@ func test_it_blunts_a_real_weapon_hit() -> void:
 		'1d6 pinned to 6, less the blast\'s 1 - the reduction reaches a real attack.')
 
 func test_a_unit_outside_the_blast_is_not_blunted() -> void:
-	var inside := Fixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
-	var outside := Fixture.create_dummy(game, ONE_TILE_OUT, 10)
+	var inside := FitzgeraldFixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
+	var outside := FitzgeraldFixture.create_dummy(game, ONE_TILE_OUT, 10)
 
 	await blast_at(CENTRE)
 
@@ -450,13 +445,13 @@ func test_an_ap_hit_is_not_blunted() -> void:
 	# The reason buff_reinforcement_blast_reduction.gd overrides check_if_passive_applies at all:
 	# damage_modifications.gd:103 guards only the ARMOR branch with the AP flag, so a plain
 	# BuffResistDamage would happily reduce an AP hit that real armor could not touch.
-	var hostile := Fixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
+	var hostile := FitzgeraldFixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
 	# CONTROL A, AND IT IS NOT DECORATION: this test passes trivially against an AP flag that never
 	# reached the pipeline at all. This witness stands OUTSIDE the blast, so neither of our buffs is
 	# on it, and carries two points of REAL frame armor - which the engine bypasses only when the
 	# flag is genuinely set (damage_modifications.gd:103). If it takes the hit in full, the flag is
 	# real, and it is an engine channel of its own saying so rather than anything of ours.
-	var witness := Fixture.create_dummy(game, ONE_TILE_OUT, 10)
+	var witness := FitzgeraldFixture.create_dummy(game, ONE_TILE_OUT, 10)
 	witness.core.frame.stat.armor = 2
 	witness.core.full_repair()
 	assert_eq(witness.core.current.armor, 2, 'fixture: the witness really has 2 armor.')
@@ -494,7 +489,7 @@ func test_burn_is_not_blunted() -> void:
 	# NOT BURN (buff_resist_damage.gd:60), and burn damage does reach the reduction branch
 	# (damage_modifications.gd:93-94 subtracts other_reduction for burn), so a build that used the
 	# convenient flag instead of the explicit list would quietly blunt burn - which armor never does.
-	var hostile := Fixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
+	var hostile := FitzgeraldFixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
 
 	await blast_at(CENTRE)
 
@@ -514,7 +509,7 @@ func test_the_reduction_survives_the_hit_it_blunted() -> void:
 	# (unit_condition.gd:937-938) then filters that list down to buff.base.is_onetime before clearing
 	# anything - so a non-one-time buff is collected and dropped. Real armor is not spent by being
 	# used, and neither is this.
-	var hostile := Fixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
+	var hostile := FitzgeraldFixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
 
 	await blast_at(CENTRE)
 	assert_eq(count_buff(hostile, REDUCTION_BUFF_ID), 1, 'fixture: exactly one reduction buff landed.')
@@ -537,7 +532,7 @@ func test_both_halves_expire_together_with_the_fitzgeralds_next_turn() -> void:
 	# its chip would blunt hits with nothing on screen to explain it, and a chip that outlived its
 	# reduction would promise armor the engine no longer honours. Both carry until = 7
 	# (END_OF_OWNERS_NEXT_TURN); this is what proves they actually move together.
-	var ally := Fixture.create_dummy(game, IN_BLAST_ALLY, 10, Faction.AI_ALLY)
+	var ally := FitzgeraldFixture.create_dummy(game, IN_BLAST_ALLY, 10, Faction.AI_ALLY)
 	var armor_before:int = ally.get_armor()
 
 	await blast_at(CENTRE)
@@ -592,7 +587,7 @@ func test_the_reduction_buff_is_hidden_and_permanent_for_its_lifetime() -> void:
 # mitigation, or the reverse, with the whole rest of this suite green.
 
 func test_a_second_blast_refreshes_the_pair_rather_than_stacking_it() -> void:
-	var hostile := Fixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
+	var hostile := FitzgeraldFixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
 	var before:int = hostile.get_armor()
 
 	await blast_at(CENTRE)
@@ -657,8 +652,8 @@ func shoot(weapon:GearCore, target:Unit, die:int) -> int:
 func test_the_blast_arms_this_mods_own_ripper_mod_against_the_units_it_catches() -> void:
 	# Both dummies carry armor 0 from the fixture, so the Ripper gate can only be opened by the
 	# blast - and the control, one tile outside it, is never opened at all.
-	var control := Fixture.create_dummy(game, ONE_TILE_OUT, -10)
-	var caught := Fixture.create_dummy(game, IN_BLAST_HOSTILE, -10)
+	var control := FitzgeraldFixture.create_dummy(game, ONE_TILE_OUT, -10)
+	var caught := FitzgeraldFixture.create_dummy(game, IN_BLAST_HOSTILE, -10)
 	assert_eq(control.get_armor(), 0, 'fixture: the control has no armor of its own.')
 	assert_eq(caught.get_armor(), 0, 'fixture: nor does the unit the blast will catch.')
 
@@ -708,19 +703,6 @@ func test_the_blast_arms_this_mods_own_ripper_mod_against_the_units_it_catches()
 
 # ---------------------------------------------------------------- fixtures
 
-## The vanilla Jericho cover, hostile, armor 0 so the number below is the buff's or nothing. Lifted
-## from test_heaer.gd's make_deployable rather than imported across spec files, matching the house
-## rule that each spec owns its fixtures.
-func make_deployable(tile:Vector2i) -> Unit:
-	var dep := SpecFactory.create_unit(game.map, tile, Faction.AI_ENEMY)
-	dep.core.frame = ContentLibrary.get_mech_frame(DEPLOYABLE_FRAME)
-	FrameIsolation.isolate_frame(dep)
-	dep.core.frame.stat.health = 40
-	dep.core.frame.stat.armor = 0
-	dep.core.full_repair()
-	assert_false(dep.is_actor(), 'fixture: the Jericho cover really is a non-actor object.')
-	return dep
-
 ## A dummy that can actually HOLD heat. EventUnitDamage.heat (event_unit_damage.gd:201-208) only adds
 ## to core.current.heat when get_heat_max() > 0 and otherwise CONVERTS the damage to ENERGY - which is
 ## on the reduction's damage_types list, so on a heat_max of 0 the heat test would silently become a
@@ -728,7 +710,7 @@ func make_deployable(tile:Vector2i) -> Unit:
 ## the isolated frame's default; 20 is the same number test_blasting_powder.gd's _make_target uses,
 ## for the same reason. HEAT_HIT is far below it, so nothing here overheats.
 func make_heat_target(tile:Vector2i) -> Unit:
-	var target := Fixture.create_dummy(game, tile, 10)
+	var target := FitzgeraldFixture.create_dummy(game, tile, 10)
 	target.core.frame.stat.heat = 20
 	target.core.full_repair()
 	assert_true(target.get_heat_max() > 0, 'fixture: this dummy can hold heat at all.')

@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="4_buff"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/wm_ripper_mod/buff_ripper_mod_bonus.tres" id="5_bonus"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/wm_ripper_mod/buff_ripper_mod_strip_ap.tres" id="6_strip"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/wm_ripper_mod.svg" id="7_icon"]
 
 [sub_resource type="Resource" id="Resource_rippermod"]
 script = ExtResource("3_weaponmod")
@@ -14,6 +15,7 @@ applied_buffs = Array[ExtResource("4_buff")]([ExtResource("5_bonus"), ExtResourc
 
 [resource]
 script = ExtResource("1_kit")
+icon_override = ExtResource("7_icon")
 passives = Array[ExtResource("2_passive")]([SubResource("Resource_rippermod")])
 sp_cost = 2
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

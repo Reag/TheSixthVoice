@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://df1yicp7kbf3x" path="res://engine/character/gear_action/resources/target_requirements.gd" id="4_targetreqs"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_grit_latch_magnets/buff_reinforcement_blast.tres" id="5_armor"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_grit_latch_magnets/buff_reinforcement_blast_reduction.tres" id="6_reduction"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_reinforcement_blast.svg" id="7_icon"]
 
 ; Blast 1: Lancer.AOE_TYPE.BLAST is 1 (lancer.gd:96-100), and AoeCalculator.blast is a
 ; -radius..radius BOX, so this is the 3x3 square centred on the chosen tile, not a plus-shape.
@@ -30,6 +31,7 @@ can_target_empty_tiles = true
 
 [resource]
 script = ExtResource("2_applybuff")
+icon_override = ExtResource("7_icon")
 ; THE PAIR IS THE MECHANIC, AND THIS ARRAY IS THE ONLY PLACE THE TWO HALVES ARE JOINED.
 ; buff_reinforcement_blast is the display/gate half (Buff.TO.STATBLOCK, armor 1) and reduces no
 ; damage at all; buff_reinforcement_blast_reduction is the mitigating half (Buff.TO.RESIST_DAMAGE)
