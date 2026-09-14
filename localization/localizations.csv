@@ -81,18 +81,18 @@ gear.buff_reinforcement_blast.name,Reinforcement Blast
 gear.buff_reinforcement_blast.effect,"Plated in grit latch magnets: 1 armor until the end of the Fitzgerald's next turn."
 ,
 gear.mt_rapid_stabilization_jets.name,Rapid Stabilization Jets
-gear.mt_rapid_stabilization_jets.effect,"1/scene, the M/K2 may fire |Ordnance| weapons after moving or acting for the rest of the current turn. Their other restrictions are unchanged: still no firing at targets in |engagement| with the M/K2, and still no |overwatch|."
+gear.mt_rapid_stabilization_jets.effect,"1/scene the M/K2 may ignore the |Ordnance| tag until the end of the current turn."
 gear.mt_rapid_stabilization_jets.action_rapid_stabilization_jets.name,Rapid Stabilization Jets
-gear.mt_rapid_stabilization_jets.action_rapid_stabilization_jets.effect,"|Ordnance| weapons may be fired this turn after moving or acting. Their |engagement| and |overwatch| restrictions are unchanged."
+gear.mt_rapid_stabilization_jets.action_rapid_stabilization_jets.effect,"Ignore the |Ordnance| tag until the end of this turn."
 gear.buff_rapid_stabilization_jets.name,Rapid Stabilization Jets
 gear.buff_rapid_stabilization_jets.effect,"|Ordnance| weapons may be fired this turn after moving or acting."
 gear.mt_hybridized_shot.name,Hybridized Shot
-gear.mt_hybridized_shot.effect,"Gain +1 |Accuracy| on the first attack you make on your turn with a |Loading| weapon that is not |Superheavy|."
+gear.mt_hybridized_shot.effect,"Gain +1 |Accuracy| on the first attack you make with a |Loading| weapon that is not |Superheavy| on your turn."
 gear.buff_hybridized_shot.name,Hybridized Shot
 gear.buff_hybridized_shot.effect,"+1 |Accuracy| on this attack."
 gear.cp_auxiliary_power_rerouter.name,Auxiliary Power Rerouter
 gear.cp_auxiliary_power_rerouter.effect,"The M/K2's O.R.S replenishment system can be forced to run hot, feeding every |Loading| weapon on the chassis at the cost of waste heat."
 gear.cp_auxiliary_power_rerouter.action_ors_hypercharge.name,O.R.S HYPERCHARGE
-gear.cp_auxiliary_power_rerouter.action_ors_hypercharge.effect,"For the rest of the scene, ignore the |Loading| property of your weapons, but gain 1d3 |heat| each time you fire a |Loading| weapon. Activating this immediately reloads your |Loading| weapons. As a |Protocol| it must be used first, before you move, act, or press RAPID STABILIZATION JETS."
+gear.cp_auxiliary_power_rerouter.action_ors_hypercharge.effect,"For the rest of the scene, you ignore the |Loading| property of your weapons but gain 1d3 |heat| each time you fire a |Loading| weapon."
 gear.buff_ors_hypercharge.name,O.R.S Hypercharge
 gear.buff_ors_hypercharge.effect,"|Loading| weapons do not need reloading, but each firing costs 1d3 |heat|."
