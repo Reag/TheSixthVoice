@@ -2,10 +2,24 @@
 ## READIES every intact Loading weapon on the spot.
 ##
 ## RULING 6 IS WHY THE RELOAD IS HERE AND NOT IN THE BUFF. "Ignore the Loading property" means the
-## weapon behaves as if it never had it, so a weapon already fired and empty this turn is loaded when
-## the protocol resolves - otherwise the ability would punish the obvious order of play (shoot, then
-## hypercharge) for no reason the card gives. The heat cost applies only to shots fired AFTERWARDS,
-## which is the buff's job: it only ever reacts to a firing, so it could not do this one.
+## weapon behaves as if it never had it, so an empty Loading weapon is readied the moment the protocol
+## resolves. The buff could not do this one whatever we wanted: it only ever reacts to a FIRING, and
+## this reload has to land before the first shot under the protocol. The heat cost, by contrast,
+## applies only to shots fired AFTERWARDS, which is exactly what a reacting buff is for.
+##
+## WHAT THE RELOAD IS ACTUALLY WORTH, NARROWLY: it readies a weapon left empty on a PREVIOUS turn,
+## saving the M/K2 a Stabilize. That is the whole of it, because the protocol can only ever be
+## activated before this turn's first shot.
+##
+## IT IS NOT, as an earlier version of this comment claimed, protection against "punishing the obvious
+## order of play (shoot, then hypercharge)". Shoot-then-hypercharge in one turn is not punished, it is
+## REFUSED: firing is a non-protocol, non-reaction action, so it ends the protocol phase
+## (unit_action.gd:268 via does_action_end_protocol_phase, :309-314), and unit_action.gd:144 then
+## refuses the protocol outright with REASON.PROTOCOL. spec/test_ors_hypercharge.gd:180
+## (test_the_protocol_is_refused_outside_the_protocol_window) asserts that refusal, and it was
+## measured on the way in: written as shoot-then-hypercharge inside one turn,
+## test_activating_it_reloads_an_empty_weapon aborted with `[ Gear not available ] reason : protocol`
+## (.superpowers/sdd/task3-green-1.log) - which is why that test flips the turn in the middle.
 ##
 ## HUNG ON apply_additional_effect RATHER THAN ON activate(). That is the hook
 ## ActionSystemApplyBuff declares for exactly this ("OVERRIDE",

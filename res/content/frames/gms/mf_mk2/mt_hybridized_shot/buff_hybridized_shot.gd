@@ -14,7 +14,7 @@
 ## The Roland Chamber's declared-attack stamp is the other precedent and is a trap here: the attack
 ## PREVIEW builds a virtual DeclaredAttackSummary (attack_preview.gd:40-46), so any bookkeeping taken
 ## inside a roll is also taken while the player is merely hovering a target. A counter that only the
-## POST reaction moves cannot be reached by a preview - and event_gear_activate.gd:99-104 gates that
+## POST reaction moves cannot be reached by a preview - and event_gear_activate.gd:100-104 gates that
 ## POST on the gear's usage having actually moved, so an ABORTED attack neither pays nor charges.
 ##
 ## THE VALUE IS CONSTANT AND THE GATE DOES ALL THE WORK. attack_roll.gd:183-184 calls
@@ -32,6 +32,11 @@ extends BuffBonus
 ## The once-per-turn counter's key on the trait Kit's own GearCore. Declared here because both halves
 ## read it.
 const USAGE_KEY:StringName = &'hybridized_shot'
+
+## [Context.PROP.unit], for the reason recorded ONCE at buff_rapid_stabilization_jets.gd:64-79. All
+## three of the frame's reacting buffs declare this and none of the other two restate why.
+func get_required_triggering_context() -> Array[Context.PROP]:
+	return [Context.PROP.unit]
 
 ## The card's three clauses, asked once. context.action is the action the attack was declared
 ## through; a non-weapon action casts to null and is refused.

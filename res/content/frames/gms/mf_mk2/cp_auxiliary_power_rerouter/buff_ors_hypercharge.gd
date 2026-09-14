@@ -65,10 +65,8 @@
 ## the scene.
 extends Buff
 
-## Restores the guarantee triggers_on_event below relies on: without it,
-## Buff.check_required_triggering_context lets this buff be evaluated against trigger events carrying
-## no unit at all, and the holder comparison would be made against a null context.unit instead of
-## refusing cleanly. Same reasoning, and the same list, as buff_rapid_stabilization_jets.gd:47-48.
+## [Context.PROP.unit], for the reason recorded ONCE at buff_rapid_stabilization_jets.gd:64-79. All
+## three of the frame's reacting buffs declare this and none of the other two restate why.
 func get_required_triggering_context() -> Array[Context.PROP]:
 	return [Context.PROP.unit]
 
@@ -105,7 +103,19 @@ func activate(core:BuffCore, activation:EventCore) -> void:
 	var fired:Context = triggering.context
 	if not GearCore.is_valid(fired.gear): return
 
-	fired.gear.is_loaded = true
+	# INTACTNESS, ASKED THE SAME WAY THE PROTOCOL ASKS IT (action_ors_hypercharge.gd:25). A destroyed
+	# weapon is wreckage, not a readied gun, and the two halves of one ability must not hand the next
+	# author two different rulings on one question.
+	#
+	# NOTHING PLAYER-VISIBLE TURNS ON IT, and the comment is here so nobody "simplifies" it back out
+	# believing it was load-bearing: unit_action.gd:149 refuses a destroyed weapon with
+	# REASON.DESTROYED two lines before :151 ever looks at is_loaded, so a wrecked gun is unusable
+	# whatever this flag says. The check makes the ruling legible; it fixes no bug.
+	#
+	# IT GUARDS ONLY THE RELOAD, NOT THE HEAT. The card charges "each time you fire a Loading weapon",
+	# and a shot that went off and then lost its gun was still fired - so the d3 below is unconditional
+	# and an early return here would be a behaviour change this file has no mandate for.
+	if fired.gear.is_intact(): fired.gear.is_loaded = true
 
 	var core_gear:GearCore = core.get_owner_gear(unit.map)
 	if not GearCore.is_valid(core_gear): return

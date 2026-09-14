@@ -15,7 +15,8 @@
 # RULING 7: the heat is PER FIRING ACTION. One 1d3 per Blast, two per two-weapon Skirmish, and
 # reactions and freebies pay too ("each time you fire"). That falls straight out of the trigger:
 # UNIT_ACTION POST fires once per gear activation that actually moved its usage counter
-# (event_gear_activate.gd:100-111), so an aborted attack pays nothing and stays loaded.
+# (event_gear_activate.gd:110-111, gated at :100-104), so an aborted attack pays nothing and stays
+# loaded.
 #
 # THE DICE STRATEGY IS "EVERY DIE THE SAME NUMBER", not a lined-up queue, and that is not laziness.
 # Dice.CHEAT_ROLL_QUEUE is ONE global FIFO (dice.gd:9, :33-35) and the heat d3 is rolled LAST, after
@@ -39,6 +40,9 @@ const CORE_ID := &'cp_auxiliary_power_rerouter'
 const PROTOCOL_ID := &'action_ors_hypercharge'
 const BUFF_ID := &'buff_ors_hypercharge'
 
+## The frame's third ability, for the one test that runs all three at once.
+const JETS_ID := &'mt_rapid_stabilization_jets'
+
 ## Heavy, LOADING, Ordnance (mw_anti_materiel_rifle.tres:14,16).
 const AMR := &'mw_anti_materiel_rifle'
 ## Heavy, NOT loading (mw_heavy_machine_gun.tres:16,19) - the control for the LOADING gate.
@@ -56,6 +60,10 @@ const START := Vector2i(2, 2)
 const TARGET_TILE := Vector2i(7, 2)
 ## Well clear of the M/K2 and its target, for the one test that needs a third unit taking its own turn.
 const ENEMY_TILE := Vector2i(2, 6)
+## Two tiles along the row from START, so a standard move is available and the M/K2 ends up three
+## tiles from TARGET_TILE - well inside the AMR's aim_range 20 and well outside engagement, which the
+## Jets famously do NOT waive (see test_rapid_stabilization_jets.test_an_engaged_target_is_still_refused).
+const MOVED_TILE := Vector2i(4, 2)
 ## A tile that is not on the 15x9 fixture map, so an activation aimed at it ABORTS mid-flight rather
 ## than being refused up front. Tile.is_valid bounds-checks it away inside
 ## TargetActionUtil.ask_for_targets_alt (target_action_util.gd:171), leaving a plan with no tiles and
@@ -154,6 +162,21 @@ func shoot_from(shooter:Unit, weapon:GearCore, every_die:int = 2) -> void:
 
 func has_the_chip() -> bool:
 	return mk2.state.buffs.any(func(core:BuffCore) -> bool: return core.base.compcon_id == BUFF_ID)
+
+## Why this weapon is unavailable right now, as a REASON enum value. The ordnance window is readable
+## in exactly one place - unit_action.gd:146 turning it into REASON.ORDNANCE - so this is how the
+## three-way test below says "open" and "shut" without inferring it from whether a shot happened.
+func reason_for(weapon:GearCore) -> UnitAction.REASON:
+	return UnitAction.get_gear_unavailable_reason(
+		SpecificAction.create(mk2, weapon, weapon.get_solo_action()))
+
+## A STANDARD move - the only kind that shuts the ordnance window. NOT SpecFactory.move()'s default
+## MovementType, whose second argument is is_voluntary and not spend_move (movement_type.gd:34-44),
+## while event_unit_move.gd:88-90 gates end_ordnance_phase() on spend_move. Only
+## create_for_standard_move sets it (movement_type.gd:58-61). The same trap, with the same citation,
+## as test_rapid_stabilization_jets.move_to() - which measured it going wrong.
+func move_to(tile:Vector2i) -> void:
+	await SpecFactory.move(game, mk2, tile, MovementType.create_for_standard_move(mk2))
 
 # ---------------------------------------------------------------- the control
 
@@ -413,6 +436,65 @@ func test_hypercharge_lets_one_loading_weapon_fire_twice_and_only_the_first_is_h
 	assert_false(any_roll_got_hybridized_shot(second),
 		'...and the second did not: one +1 per turn, spent on the first of two shots that only'
 		+ ' Hypercharge could have made possible.')
+
+## ALL THREE OF THE FRAME'S ABILITIES ON ONE SHOT, which nothing else on this branch does. The AMR is
+## the reason one test can cover them: Ordnance AND Loading AND not Superheavy
+## (mw_anti_materiel_rifle.tres:14,16), so it is simultaneously the only weapon the Jets matter to,
+## the only one Hypercharge matters to, and a legal subject for Hybridized Shot.
+##
+## THE ORDER IS FORCED BY THE ENGINE, not chosen for convenience, and getting it wrong is how this
+## test would quietly become a test of nothing:
+##  - HYPERCHARGE FIRST. It is a protocol, and ANY non-protocol non-reaction action shuts the protocol
+##    window (unit_action.gd:268 via does_action_end_protocol_phase, :309-314), after which
+##    unit_action.gd:144 refuses it with REASON.PROTOCOL. Both the move and the Jets would close it.
+##  - THEN THE MOVE. A protocol does not shut the ordnance window - does_action_end_ordnance_phase
+##    (:316-318) defers to does_action_end_protocol_phase, which returns false for a protocol - so
+##    Hypercharge leaves the window as it found it, and the move is what actually shuts it.
+##  - THEN THE JETS, which re-open it. Their own activation shuts it on the way in (a free action is
+##    non-protocol and non-reaction), which is why action_rapid_stabilization_jets sets the flag again
+##    after super().
+##
+## FOUR READINGS, ONE SHOT, and each belongs to a different ability:
+##  - the window was SHUT after the move and OPEN after the Jets, read as REASON.ORDNANCE then
+##    REASON.NONE rather than inferred from whether a shot landed - a shot can fail for six reasons;
+##  - the AMR is still LOADED after firing, which only buff_ors_hypercharge's restore can produce
+##    (unit_action.gd:276 drops the flag inside the attack's own spend_actions);
+##  - the heat moved by exactly the rolled d3, which is the other half of Hypercharge;
+##  - the resolved roll carried Hybridized Shot's +1, read off the DeclaredAttackSummary the attack
+##    really went through rather than off a preview.
+##
+## THE FIXTURE ASSERTIONS ARE NOT DECORATION. Without the REASON.ORDNANCE check after the move, a
+## build where moving never shut the window would still show REASON.NONE afterwards and the Jets would
+## be getting credit for nothing; and without DeclaredAttackSummary.is_valid the accuracy assertion
+## would be reading an empty roll list, which is trivially "no bonus" and would flip the wrong way.
+func test_the_three_abilities_compose_on_one_amr_shot() -> void:
+	var amr := equip(AMR)
+	await MK2Fixture.open_turn(game, mk2)
+
+	await hypercharge()
+	assert_true(has_the_chip(), 'Fixture: the protocol landed, before anything could shut its window.')
+
+	await move_to(MOVED_TILE)
+	assert_eq(reason_for(amr), UnitAction.REASON.ORDNANCE,
+		'Fixture: a standard move shut the ordnance window - so the Jets below have work to do.')
+
+	await SpecFactory.use_solo(game, mk2, JETS_ID)
+	assert_eq(reason_for(amr), UnitAction.REASON.NONE,
+		'The Jets re-opened the ordnance window after the move, with Hypercharge already running.')
+
+	var before:int = mk2.core.current.heat
+	cheat_every_die_to(3)
+	var declared := await fire_and_capture(amr)
+
+	assert_true(DeclaredAttackSummary.is_valid(declared),
+		'The Ordnance, Loading, non-Superheavy shot resolved with all three abilities live.')
+	if not DeclaredAttackSummary.is_valid(declared): return
+	assert_true(any_roll_got_hybridized_shot(declared),
+		"...and it was the turn's first qualifying attack, so it carried Hybridized Shot's +1.")
+	assert_true(amr.is_loaded,
+		'...and Hypercharge put the Loading flag straight back, so the gun is ready again.')
+	assert_eq(mk2.core.current.heat - before, 3,
+		'...and charged exactly the rolled d3 for it.')
 
 ## RULING 7 says a freebie pays too ("each time you fire"). This is the half of that claim a spec can
 ## reach: gear_core.gd:175-176 increments uses_this_round unconditionally and only gates the per-TURN

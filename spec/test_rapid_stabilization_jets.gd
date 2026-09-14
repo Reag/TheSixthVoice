@@ -27,6 +27,11 @@ const BUFF_ID := &'buff_rapid_stabilization_jets'
 ## Vanilla GMS Heavy: accurate, ap, LOADING, ORDNANCE (content/gear/gms/weapons/mw_anti_materiel_rifle.tres:16).
 const AMR := &'mw_anti_materiel_rifle'
 
+## Vanilla GMS Heavy, NOT Ordnance (mw_heavy_machine_gun.tres:19) and aim_range 8 (:18), which covers
+## START -> TARGET_TILE. Used by the turn-guard test below as a gun whose own activation can never be
+## the thing that opens the ordnance window.
+const PLAIN_HEAVY := &'mw_heavy_machine_gun'
+
 const START := Vector2i(2, 2)
 const DESTINATION := Vector2i(4, 2)
 const TARGET_TILE := Vector2i(9, 2)
@@ -149,6 +154,65 @@ func test_the_next_turns_move_closes_the_window_again() -> void:
 	await move_to(START)
 	assert_eq(amr_reason(), UnitAction.REASON.ORDNANCE,
 		'The effect did not leak into the next turn.')
+
+## THE TURN GUARD, and the only test in this file about a moment when the M/K2 is not taking a turn.
+##
+## THE LEAK IT CLOSES IS REAL AND NARROW. event_turn_end.execute calls handle_ending_unit at :36,
+## which clears is_taking_turn (:64) and shuts the ordnance window (:66) - but this trait's chip is
+## not cleared until end_turn_for_statuses at :40, which runs only once handle_ending_unit has
+## RETURNED. In between, handle_ending_unit is still running falling damage (:76-78),
+## dangerous-terrain damage (:82-89) and the burn save and burn damage (:93-106). A gear reaction
+## provoked by any of those is an event_gear_activate like any other, so it queues UNIT_ACTION POST
+## (event_gear_activate.gd:110-111, gated at :100-104); the chip is still on the unit to hear it; and
+## without the guard the buff puts is_firing_ordnance back. The M/K2 could then Overwatch with an
+## Ordnance weapon during the enemy round, which unit_action.gd:146 refuses with REASON.ORDNANCE
+## whenever the flag is false. It self-heals at our own next turn start (event_turn_start.gd:83).
+##
+## WHAT IS STAGED AND WHAT IS REAL - the difference is the whole value of the test.
+## STAGED: the two lines handle_ending_unit has already executed by :66, written by hand.
+## REAL: the chip is still applied (which is exactly what ":40 runs after :36" buys in the engine),
+## the activation below is a genuine event_gear_activate that moves its round-usage counter, and the
+## UNIT_ACTION POST, the reaction-bus poll and this buff's own triggers_on_event and activate all run
+## for real. The guard is reached through the engine, not called directly.
+##
+## WHAT IS NOT STAGED, AND WHY. Provoking that POST from inside a real event_turn_end needs a gear
+## reaction on the M/K2 that fires on burn or falling damage; the frame carries none, and standing one
+## up means a spy buff executing a nested activation from inside a damage reaction - a test of the
+## harness rather than of this trait. The hand-set prefix reaches the same buff entry point with the
+## same unit state, which is what the guard reads.
+##
+## THE HMG, NOT THE AMR: a non-Ordnance gun, so the activation itself can never be the thing that
+## opens the window (unit_action.gd:317 exempts only Ordnance attacks from ending the phase). And
+## AS_FREEBIE because turn end took the M/K2's actions and speed (event_turn_end.gd:69-70): a freebie
+## skips affordability (unit_action.gd:113-114) while is_gear_available still runs above it (:112), so
+## nothing about the availability question this test asks is weakened. It also means the shot does not
+## re-close the window on its way through - :268-269 sit inside the `if not as_freebie` block at :242
+## - so the ONLY thing that could flip the flag in this test is the buff.
+func test_the_window_does_not_reopen_once_the_turn_has_ended() -> void:
+	var hmg:GearCore = mk2.core.equip_system(PLAIN_HEAVY)
+	SpecFactory.apply_passive_buffs(mk2)
+	await MK2Fixture.open_turn(game, mk2)
+	await fire_the_jets()
+	assert_eq(amr_reason(), UnitAction.REASON.NONE,
+		'Fixture: the Jets opened the window while the turn was ours.')
+
+	# handle_ending_unit, as far as :66.
+	mk2.state.is_taking_turn = false
+	mk2.state.end_ordnance_phase()
+	assert_true(has_the_chip(),
+		'Fixture: the chip outlives handle_ending_unit - end_turn_for_statuses (event_turn_end.gd:40)'
+		+ ' has not run. Without this the test could not reach the leak at all.')
+	assert_eq(amr_reason(), UnitAction.REASON.ORDNANCE, 'Fixture: the engine shut the window.')
+
+	await game.execute_event(&'event_gear_activate', {
+		action = hmg.get_solo_action(), gear = hmg, unit = mk2, target_unit = target,
+		flags = [Action.FLAG.AS_FREEBIE],
+	})
+	assert_gt(hmg.get_uses_this_round_alt(hmg.get_usage_group_for_action(hmg.get_solo_action())), 0,
+		'Fixture: the activation really went off, so a UNIT_ACTION POST really was queued. Without'
+		+ ' this the assertion below would pass against a shot that never happened.')
+	assert_eq(amr_reason(), UnitAction.REASON.ORDNANCE,
+		'The Jets did not re-open the ordnance window once the turn had ended.')
 
 func test_an_engaged_target_is_still_refused() -> void:
 	# RULING 5, the accepted divergence. A red here means the engine gained a channel to the engaged
