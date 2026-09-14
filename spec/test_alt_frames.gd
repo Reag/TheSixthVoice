@@ -19,8 +19,7 @@
 #     transcribed, so a modkit update that reshuffles a rank shows red HERE, in one place, rather
 #     than as a confusing failure inside whichever alt happened to be built that week.
 #
-# ALT_FRAMES is empty until M/K2 (frame 2). The baseline pin below is what this file asserts in the
-# meantime, and it keeps asserting it afterwards.
+# The baseline pin below is asserted alongside the alts themselves.
 #
 #   godot --resolution 800x600 --position 20,20 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-dir=res://unpacked/Reag-TheSixthVoice/spec
 extends GutTest
@@ -30,8 +29,10 @@ const OUR_MOD_MAIN := 'res://unpacked/Reag-TheSixthVoice/mod_main.gd'
 
 ## Our alt frames, by the licence they attach to. Each entry is
 ##   <base licence id> : { frame = <our mf_ id>, rank = <1|2> }
-## Filled in as each alt ships. Empty is correct in SP0: no alt exists yet.
-const ALT_FRAMES := {}
+## Filled in as each alt ships.
+const ALT_FRAMES := {
+	&'li_gms': {frame = &'mf_mk2', rank = 1}, # M/K2, the Everest alt (spike 2, 2026-09-14)
+}
 
 ## The vanilla licences the alts extend, with the rank each alt attaches to, and the frame that
 ## licence grants there today. Ten of the thirteen alts; the other three have no base in this
@@ -86,7 +87,7 @@ func _license_paths_by_id() -> Dictionary:
 ## ALT_FRAMES row. It is the tripwire for an alt silently dropping out of the table - a frame that
 ## stops being granted would otherwise just make the loop below shorter, and a shorter loop reads
 ## exactly like a pass.
-const ALTS_BUILT := 0
+const ALTS_BUILT := 1
 
 func test_every_alt_frame_reaches_its_licence():
 	assert_eq(ALT_FRAMES.size(), ALTS_BUILT, '%d alt frames built, %d in the table.' % [ALTS_BUILT, ALT_FRAMES.size()])

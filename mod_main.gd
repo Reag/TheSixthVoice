@@ -2,11 +2,23 @@ extends Node
 
 const MOD_ID := "Reag-TheSixthVoice" ## Name of the directory that this file is in
 
-## Vanilla resources this mod extends with a `.tres_ext.gd`, by the VANILLA path.
+## Vanilla resources this mod extends with a `.tres_ext.gd`, by the VANILLA path. The extension
+## script lives at the mirror path inside this mod: `res/<vanilla path minus res://>_ext.gd`.
 ##
-## Empty until the first alt frame (M/K2 appends its frame to li_gms rank 1). Listed here rather
-## than discovered, because the entry is only half the job - see retain_extended_resources().
-const EXTENDED_RESOURCES:Array[String] = []
+## Listed here rather than discovered, because the file on disk is only half the job - see
+## apply_resource_extensions_directly(). spec/test_alt_frames.gd checks every alt's licence is here.
+const EXTENDED_RESOURCES:Array[String] = [
+	'res://content/licenses/gms/li_gms.tres', # M/K2, the Everest alt, appended to rank 1
+]
+
+## Stamped on each resource INSTANCE we have edited, so a re-activation never edits it twice. On the
+## instance rather than on this node: a resource still in cache from a previous activation already
+## carries our edit, and a freshly reloaded vanilla one does not.
+const APPLIED_META := &'reag_sixth_voice_extended'
+
+## The engine's mod library, by path: class_name ModLibrary exists only on 1.4.x, and nothing in
+## this mod spells a version-specific class name.
+const MOD_LIBRARY := 'res://engine/mod/mod_library.gd'
 
 ## Autoloads this mod extends with a `.gd_ext.gd`, by autoload name => vanilla script path.
 ##
@@ -19,9 +31,9 @@ const EXTENDED_AUTOLOADS := {}
 const GLOSSARY_TERMS:Array[StringName] = [&'lancer.term.efficient']
 
 ## Holds every resource named in EXTENDED_RESOURCES alive for the life of the mod. Load-bearing;
-## see retain_extended_resources(). An instance var, not static: this node lives exactly as long as
-## the mod is active, and ModApplier.execute_unload_all_mods queue_free()s every embassy node, so
-## the array dies with the mod and needs no explicit release.
+## see apply_resource_extensions_directly(). An instance var, not static: this node lives exactly as
+## long as the mod is active, and ModApplier.execute_unload_all_mods queue_free()s every embassy
+## node, so the array dies with the mod and needs no explicit release.
 var _retained_resources:Array[Resource] = []
 
 # Runs when this mod is activated (whenever active mods are changed).
@@ -32,8 +44,9 @@ var _retained_resources:Array[Resource] = []
 # own comment there - "the mod will not show up as installed during its _ready()" - as meaning
 # _ready falls outside the window. It means the opposite: the mod is still marked INSTALLING then.)
 #
-# What actually matters for retain_extended_resources() is only that this runs before
-# apply_installed_queued_extensions, which happens after every mod is installed. Both hooks clear that.
+# What actually matters for apply_resource_extensions_directly() is only that this runs while the
+# mod is still INSTALLING - before apply_installed_queued_extensions, which happens after every mod
+# is installed. Both hooks clear that.
 func _init() -> void:
 	ModLoaderLog.info("Activating.", MOD_ID)
 
@@ -47,34 +60,67 @@ func _init() -> void:
 	# 3. Installs any SCRIPTS (.gd) that already existed as a script_extension. (Warning: cannot extend class_name scripts)
 	LancerTacticsMod.add_overwrite_extend_mod_resources(MOD_ID)
 
-	retain_extended_resources()
+	apply_resource_extensions_directly()
 	register_glossary_terms()
 
-## Keeps every resource we extend with a `.tres_ext.gd` alive, because the engine no longer does.
+## Applies every `.tres_ext.gd` in EXTENDED_RESOURCES ourselves, during install, and takes our
+## entries back OUT of the queue the engine would have applied them from. Two upstream bugs, both
+## unfixed as of 1.4.3, and both proven by spike 2 (specs/2026-09-14-license-extension-feasibility.md):
 ##
-## UPSTREAM BUG, unfixed as of 1.4.3. _ModLoaderResourceExtension._save_resource
-## (addons/mod_loader/internal/resource_extension.gd) dropped the line that retained the extended
-## resource - 1.3.3 appended it to ModLoaderStore.extended_resources, 1.4.x appends nothing. The
-## applier's own reference is a local, so the moment it goes out of scope the resource-cache entry
-## evaporates and the next load() reads the UNEXTENDED file straight off disk. The extension is
-## applied, reports success, and then silently un-happens. (Its scene twin, bug 6, is the same story
-## in _ModLoaderSceneExtension._save_scene; this mod extends no scenes yet.)
+## 1. THE QUEUE COLLISION. ModApplier.apply_installed_queued_extensions (mod_applier.gd:219-220)
+##    folds every installed mod's queued_resource_modifications into ONE Dictionary keyed by target
+##    resource path, with Dictionary.merge - which keeps the first value per key and throws the rest
+##    away. So when two mods extend the same .tres through the queue, only the FIRST-INSTALLED mod's
+##    callable ever runs: no warning, no log line. Every licence this mod's alt frames extend is
+##    contended in the real game - li_gms by gavstarb-gms_1st_party, fateofman-imi_alt_frames and
+##    our own Crisis Core Catalog; li_barbarossa and li_goblin by fateofman-imi_alt_frames - and a
+##    lost coin toss ships an alt frame that is registered, has a name and a sprite, and cannot be
+##    picked. Measured 2026-09-14: with a stock queue-path competitor installed one slot before us,
+##    the M/K2 was dropped from li_gms while the frame itself loaded fine.
 ##
-## The fix is to hold a real reference. Timing is the whole trick: this runs during install, BEFORE
-## ModApplier applies the queued modifications, so the extension mutates the very object held here
-## and the cache entry has something to survive on. Loading it afterwards would be too late - it
-## would cache a fresh, unextended copy and pin THAT.
+##    THE FIX: erase our key from our own queue, so the contended dictionary sees only the other
+##    mod's entry and applies it normally, and edit the resource here instead. Order stops
+##    mattering: whoever runs second calls load(path), gets the SAME cached instance, and appends to
+##    it. The engine's apply_extension also does a plain load(), so a queue-path mod after us edits
+##    our retained instance too.
 ##
-## Not CCC's other half. CCC also queues its extension by hand, because 1.4.0's extend_resource
-## stripped the wrong suffix and skipped it (bug 1). That was fixed in 1.4.1 and this mod is
-## 1.4.x-only, so the engine queues the extension correctly and only the retention is missing.
-func retain_extended_resources() -> void:
-	for path:String in EXTENDED_RESOURCES:
-		var resource:Resource = load(path)
+## 2. RETENTION. _ModLoaderResourceExtension._save_resource dropped the line that kept the extended
+##    resource alive (1.3.3 appended it to ModLoaderStore.extended_resources; 1.4.x appends nothing),
+##    so once the last reference goes the cache entry evaporates and the next load() reads the
+##    UNEXTENDED file off disk. _retained_resources holds the very instance we edit, for the life of
+##    this node. Timing is the whole trick: this runs during install, so the instance held here is
+##    the one every later load() - the engine's queue, ContentLibrary - returns.
+##
+## Same shape as Reag-CrisisCoreCatalogEvolved's apply_license_extension_directly(), generalised
+## over the list, and without CCC's 1.3.3 guard: this mod is 1.4.x-only.
+func apply_resource_extensions_directly() -> void:
+	var library = load(MOD_LIBRARY)
+	if not library.is_mod_being_installed(MOD_ID):
+		ModLoaderLog.error('Not installing; resource extensions were not applied.', MOD_ID)
+		return
+	var mod = library.get_mod_being_installed()
+	for vanilla_path:String in EXTENDED_RESOURCES:
+		var resource:Resource = load(vanilla_path)
 		if resource == null:
-			ModLoaderLog.error('Cannot retain %s: it did not load.' % path, MOD_ID)
+			ModLoaderLog.error('Cannot extend %s: it did not load.' % vanilla_path, MOD_ID)
 			continue
+		# Stand down from the shared queue whether or not the engine got as far as filling it.
+		mod.queued_resource_modifications.erase(vanilla_path)
 		_retained_resources.append(resource)
+		if resource.has_meta(APPLIED_META): continue
+		var extension_path := extension_script_path_for(vanilla_path)
+		var extender_script:Script = load(extension_path)
+		if extender_script == null:
+			ModLoaderLog.error('Cannot extend %s: %s did not load.' % [vanilla_path, extension_path], MOD_ID)
+			continue
+		extender_script.new().modify_resource(resource)
+		resource.set_meta(APPLIED_META, true)
+		ModLoaderLog.info('Applied %s directly, outside the shared extension queue.' % extension_path.get_file(), MOD_ID)
+
+## res://content/licenses/gms/li_gms.tres => res://unpacked/<this mod>/res/content/licenses/gms/li_gms.tres_ext.gd
+## The unpacked path is where a zip install lands too (ProjectSettings.load_resource_pack keeps it).
+static func extension_script_path_for(vanilla_path:String) -> String:
+	return 'res://unpacked/%s/res/%s_ext.gd' % [MOD_ID, vanilla_path.trim_prefix('res://')]
 
 ## Terms the mod uses in its rule text that the base game's glossary does not list.
 ##
