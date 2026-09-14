@@ -4,11 +4,12 @@
 #   Main Cannon, Heat 2 (self), AP. 1d6+1 kinetic, Line 8. Ignores cover and deals 10 AP kinetic
 #   damage to all objects or terrain within the line.
 #
-# THIS FILE COVERS THE FIRST CLAUSE ONLY: cover, heat, reach, the Hole Puncher interaction and the
-# weapon's own statistics. The 10 AP kinetic against objects, terrain and interior walls is SP4
-# Task 2, which appends its tests to THIS file rather than starting a second one - the two clauses
-# are one weapon and splitting them across files would hide the fact that both fire from the same
-# activation.
+# BOTH CLAUSES ARE HERE. Task 1 wrote the first (cover, heat, reach, the Hole Puncher interaction
+# and the weapon's own statistics); Task 2 appended the second (10 AP kinetic to every object,
+# terrain block and interior wall in the fired line) to THIS file rather than starting a second one -
+# the two clauses are one weapon and splitting them across files would hide the fact that both fire
+# from the same activation. Task 2's section starts at "the line's 10 AP kinetic" below and brings
+# its own constants and helpers with it.
 #
 # WHY "IGNORES COVER" IS A METHOD OVERRIDE AND NOT A TAG, stated here because it is what the two
 # cover tests below are shaped around. There is no "ignores cover" weapon tag in Lancer.WEAPON_TAG;
@@ -38,6 +39,11 @@
 extends GutTest
 
 const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
+## Task 2 only, for the deployable the line damage has to find. The PATTERN is lifted from
+## test_heaer.gd's make_deployable(); the helper itself is re-typed here rather than imported,
+## because a spec file importing another spec file's helpers couples two suites that are meant to be
+## runnable one at a time.
+const FrameIsolation := preload('res://testkit/frame_isolation.gd')
 
 const KIT_ID := &'mw_rapier_class_carronade'
 const ACTION_ID := &'action_rapier_carronade'
@@ -449,3 +455,348 @@ func test_the_shot_is_ap() -> void:
 	await fire_at(SEEN_SOUTH)
 	assert_eq(target.current_damage(), CARRONADE_DAMAGE,
 		'The full 1d6+1 landed through 2 armor: the shot is AP. (Without AP it would be 5.)')
+
+# ================================================== SP4 Task 2: the line's 10 AP kinetic
+#
+# Design §5.1, rules sheet "Rank III", second clause:
+#   "...and deals 10 |AP| kinetic damage to all objects and terrain within the line."
+#
+# WHY THIS CANNOT BE AN OnHitEffect, and what pins that. The clause fires on EVERY firing - hit or
+# miss, and whether or not there is anything to hit at all - so it hangs off activate(), exactly as
+# the frame's own Bizarre Cannon recoil does. An implementation wired to an on-hit effect would pass
+# nothing in this section: every terrain test here forces the shot to MISS, for the reason in the
+# next paragraph, and both object tests fire at an object the shot cannot hit.
+#
+# ==== READ THIS BEFORE ADDING A TERRAIN ASSERTION: THE BASE ATTACK ALREADY WRECKS TERRAIN. ====
+# An ActionAttack whose range pattern is not NONE returns true from apply_damage_to_ground
+# (action_attack.gd:187-191), and event_unit_attack_declared.gd:180-196 then queues an
+# event_map_damage of its own over the SAME swept tiles, carrying FLAG.AP because this weapon's
+# damage is armour-piercing. Measured in this section's RED run (.superpowers/sdd/sp4-t2-red.log),
+# with Task 2's activate() not yet written:
+#
+#   a shot that HIT      -> event_map_damage number 20, flags [AP]  -> every standard block in the
+#                           line destroyed outright, by the base attack alone
+#   a shot that MISSED   -> event_map_damage number 7,  flags [AP]  -> nothing destroyed; a standard
+#                           block is health 15, armor 2, and two missed shots got it only to 14
+#
+# So "I fired and the terrain fell over" is a VACUOUS assertion on a hit and a real one on a miss,
+# and that is why every terrain test below misses on purpose. On a miss the clause's 10 is added to
+# the incidental 7 - GamemasterCore.tile_damage accumulates across events
+# (landscape_node.gd:813) - which reaches 17, past the block's 15, in ONE shot. The RED log is the
+# other half of the claim: without the clause the same shot stops at 7 and a SECOND missed shot
+# stops at 14.
+#
+# Neither of the other two halves of the clause is reachable by the base attack at all, so the
+# object and interior tests need no such care: event_unit_attack_declared never sets
+# ALSO_DAMAGE_OBJECTS, and it sets REMOVE_BREAKABLE_INTERIORS only when the attacker carries a
+# Buff.TO.AUTODAMAGE_AGAINST_OBJECTS buff (:181, :191), which the Fitzgerald does not.
+#
+# EVERY SHOT IN THIS SECTION IS AIMED DOWN THE ROW y = 4, at AIM_DOWN_THE_ROW - a bare tile, not a
+# unit. A Line weapon sweeps its full 8 tiles in the aimed direction regardless of what it was aimed
+# at. Measured swept set, from the same RED log:
+#
+#   [(3,4), (4,4), (6,4), (7,4), (8,4), (9,4), (10,4)]
+#
+# - eight rings minus (5,4), which is a tile of before_each's forbidden-interior WALL and is dropped
+# by AoeCalculator.line (see FORBIDDEN_CONTROL). THE LINE IS NOT TRUNCATED BY ANY OF IT, and that is
+# not luck: the Hole Puncher trait hands this weapon ARCING
+# (test_on_the_fitzgerald_it_blindfires_and_still_takes_no_penalty, above), so
+# Action.get_aoe_tiles_with_targets' `if requires_line_of_sight(specific)` filter - the one that
+# would drop every LINE tile behind a sight blocker - never runs.
+
+## Exactly Line 8 east of FIRE_FROM. Aliased rather than re-typed so that "the tile the range test
+## calls the last one in range" and "the tile every damage test fires at" cannot drift apart.
+const AIM_DOWN_THE_ROW := IN_RANGE_AT_8
+
+## The clause's number, and the SAME value the action script gives its constant. Asserted against
+## that constant in test_the_rules_text_promises_the_damage_the_code_deals, so this is a restatement
+## of the rules text rather than a second source of truth.
+const LINE_DAMAGE := 10
+
+## A block of ordinary terrain in the swept row, and the layer vanilla's own terrain test puts one
+## at (test/gear/test_ms_bb_breach_blast_charges.gd:30).
+const ROCK_TILE := Vector2i(7, 4)
+const ROCK_LAYER := 2
+
+## The same block, three tiles north of the row and therefore outside every sweep in this file. The
+## clause has to reach the whole line and nothing else; a shot whose tile list could not be
+## reconstructed and fell back to "everywhere" or to the firer's own tile would show up here.
+const ROCK_OFF_THE_LINE := Vector2i(7, 1)
+
+## Landscape.DEFAULT_BLOCK_NAME is block_grass_yellow, whose terraindata_standard_block has health 15
+## and armor 2. Named because the whole terrain arithmetic in the section header turns on it, and
+## because a modkit release that retuned it would make these tests lie rather than fail.
+const STANDARD_BLOCK_HEALTH := 15
+const STANDARD_BLOCK_ARMOR := 2
+
+## A hostile object in the swept row. dep_jericho_cover is a real vanilla deployable (entity OBJECT,
+## is_deployable true) - the same frame test_heaer.gd uses, and for the same reason: it is a genuine
+## object rather than the marker-ish dep_attack_ground_proxy the engine spawns for ground shots.
+const DEPLOYABLE_FRAME := &'dep_jericho_cover'
+const OBJECT_TILE := Vector2i(8, 4)
+
+## More than 10, so every object assertion is on the thing's HEALTH and not on whether it died -
+## "it was destroyed" would be satisfied by 10 damage, by 12 damage, and by an attack roll that
+## happened to land.
+const OBJECT_HEALTH := 20
+## 2, not 1, so the non-AP reading (8 damage) cannot be mistaken for a mis-rolled anything.
+const OBJECT_ARMOR := 2
+
+## Evasion no roll in this file can reach. cheat_a_hit() fixes the d20 at 19 and then feeds SIXES to
+## every die behind it - the accuracy dice included - so the highest attack total available here is
+## 19 + 6 + grit. 40 is out of reach of that by a clear margin, which is what makes "the attack
+## missed" a property of the fixture rather than of the queue. (10, the evasion make_unseen_target()
+## uses, is NOT enough: 19 already beats it.) Measured in the RED log as
+## "rolled 19 against Enemy (40 Eva): miss."
+const UNHITTABLE := 40
+
+## The mech every terrain test aims through, so that the shot has something to miss. A CHARACTER,
+## not an object, so it doubles as the assertion that the clause spares characters:
+## event_map_damage's ALSO_DAMAGE_OBJECTS branch skips anything that is not is_object()
+## (event_map_damage.gd:63), and this unit taking zero is what shows the 10 is not simply sprayed
+## over everything in the line.
+const MISSED_MECH_TILE := Vector2i(9, 4)
+
+## A breakable interior in the swept row. It is in the swept set only because the weapon declares
+## can_target_breakable_interiors (Task 1): AoeCalculator.line (:155-157) admits a tile that is
+## `is_playable` OR, when that flag is on, `is_playable_or_breakable`, and map_shape.gd:41-47 lets a
+## BREAKABLE interior through the second test while an ordinary forbidden one fails both.
+const BREAKABLE_TILE := Vector2i(6, 4)
+
+## The "left alone" half, and there is only one place it can stand. A plain forbidden interior can
+## NEVER be inside a fired line - it fails both playability tests above, so AoeCalculator.line drops
+## it from the sweep - which means the vanilla model's "a forbidden interior BESIDE the breakable one
+## survives" is, for a LINE weapon, necessarily a tile the damage never saw. (4,4) is the strongest
+## placement available: it is in the aimed row, between the firer and the breakable wall, and the RED
+## log shows it in the swept set until it becomes forbidden, at which point the sweep steps over it.
+## Demolishing its neighbour and skipping it is exactly the discrimination the assertion wants.
+const FORBIDDEN_CONTROL := Vector2i(4, 4)
+
+## One tile past the east edge of a 15-wide map, aimed straight down the firing row.
+##
+## OFF-MAP IS THE ABORT, AND THE DIRECTION IS THE POINT. Tile.is_valid bounds-checks it away inside
+## TargetActionUtil.ask_for_targets_alt (target_action_util.gd:171), leaving a plan with no tiles,
+## which ActionAttack.activate refuses at its abort_when(not CompconPlan.is_valid_with_targets(...))
+## guard - the same branch a player cancelling the tile picker reaches, and the one
+## test_swivel_gun.gd's OFF_MAP already uses. Unlike that constant this one is COLLINEAR with the
+## rock: an implementation that reconstructed the line from context.target_tiles instead of from the
+## declared attack would sweep straight through ROCK_TILE and be caught here.
+const OFF_MAP_EAST := Vector2i(15, 4)
+
+# ---------------------------------------------------------------- Task 2 helpers
+
+func voxel_of(tile:Vector2i) -> Vector3i: return Tile.to_voxel(tile, ROCK_LAYER)
+
+func index_of(tile:Vector2i) -> int:
+	var voxel := voxel_of(tile)
+	return Landscape.voxel_to_block_index(voxel.x, voxel.y, voxel.z)
+
+## Put blocks of ordinary terrain down and assert they are really there. The fixture assertions are
+## not decoration: every terrain test below is a claim that something WAS destroyed, and a claim like
+## that reads identically when the thing was never placed.
+func place_rocks(tiles:Array[Vector2i]) -> void:
+	var voxels:Array[Vector3i] = []
+	for tile:Vector2i in tiles: voxels.append(voxel_of(tile))
+	SpecFactory.add_blocks_to_landscape(game.get_landscape_node(), Landscape.DEFAULT_BLOCK_NAME, voxels)
+	assert_true(game.core.destroyed_blocks.is_empty(), 'fixture: nothing is destroyed yet.')
+	for tile:Vector2i in tiles:
+		assert_true(game.get_landscape_node().get_terrain_for_voxel(voxel_of(tile)).is_obstruction(),
+			'fixture: the rock at %s is standing.' % tile)
+		assert_eq(game.core.get_current_damage_to_tile(tile), 0,
+			'fixture: and it is undamaged.')
+
+func rock_is_gone(tile:Vector2i) -> bool:
+	return (
+		index_of(tile) in game.core.destroyed_blocks and
+		not game.get_landscape_node().get_terrain_for_voxel(voxel_of(tile)).is_obstruction()
+	)
+
+## A hostile object, at more HP than the clause deals. The pattern is test_heaer.gd's
+## make_deployable(): a real deployable frame, FrameIsolation'd so rewriting its statblock cannot
+## reach the shared ContentLibrary copy, then full_repair()'d so current.* picks the new numbers up.
+func make_deployable(tile:Vector2i, armor:int) -> Unit:
+	var dep := SpecFactory.create_unit(game.map, tile, Faction.AI_ENEMY)
+	dep.core.frame = ContentLibrary.get_mech_frame(DEPLOYABLE_FRAME)
+	FrameIsolation.isolate_frame(dep)
+	dep.core.frame.stat.health = OBJECT_HEALTH
+	dep.core.frame.stat.armor = armor
+	dep.core.frame.stat.evasion = UNHITTABLE # the shot must not ALSO hit it; see UNHITTABLE
+	dep.core.full_repair()
+	return dep
+
+## Something in the line for the shot to miss. See UNHITTABLE and the section header.
+func something_to_miss() -> Unit:
+	return FitzgeraldFixture.create_dummy(game, MISSED_MECH_TILE, UNHITTABLE)
+
+## Fire down the row, at bare ground. Separate from fire_at() only in that it opens the turn's action
+## budget wide enough for a second shot: unit_action.gd:358 counts state.actions + overcharge_actions
+## and unit_action.gd:82 zeroes the latter at turn start, so this has to happen AFTER the turn opens.
+## Vanilla's own two-shot terrain test does the same thing for the same reason
+## (test_ms_bb_breach_blast_charges.gd:40). It is a budget, not a behaviour: nothing below asserts on
+## actions, and granting it cannot make a shot that was refused for any OTHER reason appear to work.
+func fire_down_the_row(at:Vector2i = AIM_DOWN_THE_ROW) -> void:
+	await FitzgeraldFixture.open_turn(game, unit)
+	unit.state.overcharge_actions = 2
+	cheat_a_hit() # fixes the numbers only; whether the shot lands is decided by the target's evasion
+	await SpecFactory.use(game, unit, KIT_ID, ACTION_ID, at)
+
+# ---------------------------------------------------------------- terrain
+
+## THE TEST THAT DISTINGUISHES activate() FROM AN OnHitEffect, and the only shape in which a terrain
+## assertion about this weapon says anything at all - see the section header for why a shot that HITS
+## flattens standard terrain on its own. The shot here is aimed through a mech it CANNOT hit, so an
+## attack was declared, rolled and missed; the base attack put 7 into the terrain, the block needs
+## 15, and it comes down anyway.
+func test_a_miss_still_cracks_the_terrain_in_its_line() -> void:
+	place_rocks([ROCK_TILE])
+	var dodgy := something_to_miss()
+
+	await fire_down_the_row()
+
+	assert_eq(dodgy.current_damage(), 0,
+		'fixture: the shot MISSED - so nothing here can be explained by a hit.'
+		+ ' (It also shows the 10 spares characters: event_map_damage damages only is_object() units.)')
+	assert_true(index_of(ROCK_TILE) in game.core.destroyed_blocks,
+		'The map records the swept voxel as destroyed...')
+	assert_false(game.get_landscape_node().get_terrain_for_voxel(voxel_of(ROCK_TILE)).is_obstruction(),
+		'...and the terrain there stops being an obstruction. 7 from the attack plus 10 from the'
+		+ ' clause is 17, past the block\'s 15; the attack alone stopped at 7, and a second missed'
+		+ ' shot without the clause only reached 14 (RED log).')
+
+## The clause damages the LINE, not the map. Without this, an implementation that lost its tile list
+## and fell back to something wider - the whole aoe, the firer's own tiles, every tile it could find -
+## would pass every other test in this section.
+func test_the_line_damage_stops_at_the_edge_of_the_line() -> void:
+	place_rocks([ROCK_TILE, ROCK_OFF_THE_LINE])
+	var _dodgy := something_to_miss()
+
+	await fire_down_the_row()
+
+	assert_true(rock_is_gone(ROCK_TILE), 'control: the rock IN the line came down.')
+	assert_false(rock_is_gone(ROCK_OFF_THE_LINE), 'The rock three tiles off the line did not...')
+	assert_eq(game.core.get_current_damage_to_tile(ROCK_OFF_THE_LINE), 0,
+		'...and took no damage at all: not a scratch, not a partial.')
+
+# ---------------------------------------------------------------- objects
+
+func test_an_object_in_the_line_takes_ten_with_no_attack_roll_of_its_own() -> void:
+	var dep := make_deployable(OBJECT_TILE, 0)
+	assert_true(dep.is_object(), 'fixture: a deployable is an OBJECT, which is what the clause names.')
+	assert_eq(dep.core.current.health, OBJECT_HEALTH, 'fixture: and it starts at 20 health.')
+
+	await fire_down_the_row()
+
+	# 10, from 20, in one shot. The object is UNHITTABLE, so the attack roll made against it missed -
+	# which is precisely how this shows the 10 is not the attack's damage wearing a hat: a hit would
+	# have added 1d6+1 on top, and an implementation that dealt the 10 through an attack roll of its
+	# own would have dealt nothing at all. The base attack's own ground damage cannot explain it
+	# either: event_unit_attack_declared never sets ALSO_DAMAGE_OBJECTS (see the section header), and
+	# the RED run measured this object at a full 20 health after the same shot.
+	assert_eq(dep.core.current.health, OBJECT_HEALTH - LINE_DAMAGE,
+		'The object took exactly 10, from a shot that could not hit it: no attack roll of its own.')
+
+func test_the_object_damage_is_ap() -> void:
+	var dep := make_deployable(OBJECT_TILE, OBJECT_ARMOR)
+	assert_eq(dep.core.current.armor, OBJECT_ARMOR,
+		'fixture: the object really has 2 armor - without this the AP claim is unfalsifiable.')
+
+	await fire_down_the_row()
+
+	assert_eq(dep.core.current.health, OBJECT_HEALTH - LINE_DAMAGE,
+		'The full 10 landed through 2 armor: the object damage is AP. (Without AP it would be 8.)')
+
+# ---------------------------------------------------------------- interior walls
+
+## Ruling, 2026-09-14: the Carronade breaches interior walls. Both halves of vanilla's
+## test_breaching_charge_breakable_interior are here - the breakable one goes, the forbidden one
+## stays - with the placement caveat recorded on FORBIDDEN_CONTROL. A breakable interior has health 0
+## and so is not destructable at all (terraindata_breakable_interior.tres); the only thing that can
+## remove it is the REMOVE_BREAKABLE_INTERIORS flag, which is unconditional demolition rather than
+## the 10 doing any work - the author ruled it in knowing that.
+func test_a_breakable_interior_in_the_line_is_removed_and_a_forbidden_one_is_not() -> void:
+	SpecFactory.add_setpieces_to_landscape(
+		game.get_landscape_node(), CommonActionUtil.BREAKABLE_INTERIOR_SETPIECE, [BREAKABLE_TILE])
+	SpecFactory.add_setpieces_to_landscape(
+		game.get_landscape_node(), &'setpiece_forbidden_interior', [FORBIDDEN_CONTROL])
+	game.map.calculate_los_blockers()
+
+	# A breakable interior is in forbidden_interiors TOO (map_shape.gd:41-47 is what separates them),
+	# so both fixture assertions read the same array and the test's whole claim is which of the two
+	# is still in it afterwards.
+	assert_true(Tile.in_bitwise_array(game.map.shape.breakable_interiors, BREAKABLE_TILE),
+		'fixture: there is a breakable interior in the row...')
+	assert_true(Tile.in_bitwise_array(game.map.shape.forbidden_interiors, FORBIDDEN_CONTROL),
+		'fixture: ...and an ordinary forbidden one beside it.')
+
+	await fire_down_the_row()
+
+	assert_false(Tile.in_bitwise_array(game.map.shape.forbidden_interiors, BREAKABLE_TILE),
+		'The Carronade breached the breakable interior.')
+	assert_true(Tile.in_bitwise_array(game.map.shape.forbidden_interiors, FORBIDDEN_CONTROL),
+		'And left the forbidden one exactly where it was.')
+
+# ---------------------------------------------------------------- the shot that was never fired
+
+## An activation that aborts before the attack is declared must queue NO map damage. The control at
+## the bottom is what stops this passing vacuously: the rock is not merely "not destroyed", it is in
+## a spot the very next shot of the very same test demolishes. (The control proves REACHABILITY only
+## - on a shot that connects, the base attack would have flattened that rock by itself.)
+##
+## MUTATION-TESTED 2026-09-14, AND THE RESULT IS WORTH KNOWING. Moving activate()'s
+## `if activation.aborted: return` to BELOW the queue_event left this test GREEN
+## (.superpowers/sdd/sp4-t2-mutation-b-abort-guard-below-queue.log, 18/18) - not because the test is
+## weak but because that guard is unreachable-by-itself: every abort path in ActionAttack.activate
+## happens before context.resource is assigned (action_attack.gd:252-258), so swept_tiles() comes
+## back empty and the OTHER guard refuses first. What this test actually pins is the pair of them
+## together, against the realistic wrong implementation - reconstructing the line from
+## context.target_tiles when the declared attack is missing, which is the fallback
+## action_bizarre_cannon.gd's header warns about. With both guards dropped and that fallback in
+## place, this test and only this test went red, at exactly the right assertion
+## ("[10] expected to equal [0]": sp4-t2-mutation-b2-line-from-the-hint.log, 17/18). OFF_MAP_EAST is
+## collinear with the rock precisely so that mutation could be caught.
+func test_an_aborted_shot_wrecks_nothing() -> void:
+	place_rocks([ROCK_TILE])
+	var _dodgy := something_to_miss()
+
+	await fire_down_the_row(OFF_MAP_EAST)
+
+	assert_eq(game.core.get_current_damage_to_tile(ROCK_TILE), 0,
+		'A shot that was never fired put no damage into the terrain...')
+	assert_false(rock_is_gone(ROCK_TILE), '...and destroyed nothing.')
+
+	await fire_down_the_row()
+	assert_true(rock_is_gone(ROCK_TILE),
+		'control: a real shot down the same row, in the same turn, wrecks that same rock.')
+
+# ---------------------------------------------------------------- the rules text
+
+## TASK 1 PROMISED THIS CLAUSE IN PROSE BEFORE ANY CODE KEPT IT. The localization row was written
+## whole in Task 1 (the rules text had to land as one sentence or not at all), and
+## test_the_carronade_has_display_text only asks that the row is non-empty - so the shipped weapon
+## could have advertised 10 AP kinetic against objects and terrain while doing nothing of the sort,
+## and nothing in the suite would have gone red. This test ties the promise to the code that keeps
+## it: the number in the player-facing sentence is read back out of the ACTION SCRIPT'S OWN constant,
+## so changing one without the other fails here.
+func test_the_rules_text_promises_the_damage_the_code_deals() -> void:
+	var action := _carronade()
+	assert_not_null(action, 'fixture: the profile loads.')
+	if action == null: return
+
+	# Read through get_script_constant_map() rather than naming the constant on the instance:
+	# GDScript resolves a `const` against the script the reference is WRITTEN in, and this spec is
+	# not that script.
+	var constants:Dictionary = action.get_script().get_script_constant_map()
+	assert_true(constants.has('LINE_TERRAIN_DAMAGE'),
+		'The action script declares its damage as a named constant.')
+	if not constants.has('LINE_TERRAIN_DAMAGE'): return
+	assert_eq(constants['LINE_TERRAIN_DAMAGE'], LINE_DAMAGE,
+		'And it is the 10 every test in this section fires at.')
+
+	# Against this mod's OWN compiled artifact, for the reason test_the_carronade_has_display_text
+	# records: tr() would answer out of whatever translation any sibling Reag-* mod loaded.
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation, 'fixture: this mod has a compiled translation.')
+	if translation == null: return
+	var effect := str(translation.get_message('gear.%s.%s.effect' % [KIT_ID, ACTION_ID]))
+	assert_string_contains(effect, '%d |AP| kinetic damage to all objects and terrain' % LINE_DAMAGE,
+		'The rules text promises exactly the number the code deals.')

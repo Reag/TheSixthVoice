@@ -39,11 +39,12 @@
 ## have changed which mount the gun fits and how the AI prices it, and nothing but this number says
 ## which it is.
 ##
-## SP4 TASK 2 ADDS activate() TO THIS FILE, for the second clause (10 AP kinetic to every object,
+## SP4 TASK 2 ADDED activate() TO THIS FILE, for the second clause (10 AP kinetic to every object,
 ## terrain block and interior wall in the fired line). It hangs off activate() rather than an
 ## OnHitEffect because the clause fires whether the shot hits or misses, exactly as
-## action_bizarre_cannon.gd's recoil does - see that file for the DeclaredAttackSummary lookup and
-## the activation.aborted guard such an override needs.
+## action_bizarre_cannon.gd's recoil does - that file is the direct precedent for the
+## DeclaredAttackSummary lookup and the activation.aborted guard, and its warning about
+## context.target_tiles is repeated below because it applies here word for word.
 extends ActionAttackWeapon
 
 ## WHY "IGNORES COVER" IS A METHOD OVERRIDE AND NOT A TAG. There is no "ignores cover" entry in
@@ -85,3 +86,113 @@ extends ActionAttackWeapon
 ## would let the two disagree - the trait standing aside while the cover calculation still ran, or
 ## the reverse.
 func ignores_cover(context:Context) -> bool: return true
+
+## The second clause: "deals 10 |AP| kinetic damage to all objects and terrain within the line."
+##
+## A FLAT NUMBER, NOT A DICE STRING. The rules text says 10, not 1d6+4 and not "as the shot": the
+## demolition is what the gun IS, not a consequence of how well it was aimed. Vanilla's own fixed
+## map damage is written the same way - action_thermal_grenade.gd declares
+## `const GRENADE_TERRAIN_DAMAGE:int = 10` and hands it straight to the event - so this is the
+## idiomatic shape, and it is a const rather than an @export because no second profile of this
+## weapon exists or is planned. (Contrast action_bizarre_cannon.gd, whose recoil magnitudes ARE
+## exports precisely because a second profile varies them.) spec/test_rapier_carronade.gd's
+## test_the_rules_text_promises_the_damage_the_code_deals reads this constant back out of the script
+## and compares it with the number in the player-facing localization row, so the prose and the code
+## cannot drift apart.
+const LINE_TERRAIN_DAMAGE:int = 10
+
+## Fire, then wreck the line.
+##
+## THE ORDER MATTERS AND IS NOT NEGOTIABLE. super.activate() is what declares the attack, and
+## declaring the attack is what puts the fired line on the context (see swept_tiles below) - so the
+## map damage cannot be queued first. It also means the attack's own incidental ground damage
+## (event_unit_attack_declared.gd:180-196, which an AOE weapon gets for free) has already landed by
+## the time this queues, and GamemasterCore.tile_damage ACCUMULATES across events
+## (landscape_node.gd:813): the 10 is added to whatever the shot itself already did to those tiles,
+## which is the reading the rules text wants.
+##
+## THE ABORT GUARD. An aborted activation is a shot that was never fired: ActionAttack.activate
+## bails before spend_actions when targeting is cancelled, so there is no cost, no attack and there
+## must be no demolition either. Vanilla guards its own followup attacks the same way
+## (action_attack_weapon.gd:62), and the frame's Bizarre Cannon guards its recoil the same way.
+## On every abort path reachable today this guard is belt-and-braces, and that was MEASURED rather
+## than assumed: moving it below the queue_event left the whole spec green
+## (.superpowers/sdd/sp4-t2-mutation-b-abort-guard-below-queue.log, 2026-09-14). Every abort in
+## ActionAttack.activate happens BEFORE context.resource is assigned (action_attack.gd:252-258), so
+## swept_tiles() comes back empty and the guard below catches it first. Keep this one anyway: the
+## two answer different questions ("was this fired?" versus "do we know where?"), an abort added
+## after the summary exists would be caught only by this one, and vanilla states the same intent in
+## the same place. Do NOT read the green mutation as permission to delete it - read it with the
+## second mutation beside it, which removed BOTH and reconstructed the line from the targeting hint,
+## and did put 10 AP into terrain the shot never swept
+## (.superpowers/sdd/sp4-t2-mutation-b2-line-from-the-hint.log).
+func activate(context:Context, activation:EventCore) -> void:
+	await super.activate(context, activation) # make the attack
+	if activation.aborted: return
+
+	var swept := swept_tiles(context)
+	# A shot whose line cannot be reconstructed must damage NOTHING. Handing event_map_damage an
+	# empty tile list would be harmless today (its check_specific_context refuses one), but any
+	# future fallback to "the unit's own tiles" - the mistake generate_knockback_events makes by
+	# design, see action_bizarre_cannon.gd - would put 10 AP under the firer's own feet.
+	if swept.is_empty(): return
+
+	activation.queue_event(&'event_map_damage', {
+		target_tiles = swept,
+		number = LINE_TERRAIN_DAMAGE,
+		flags = [
+			# AP: the rules text says AP, and it does two separate jobs here. It waives the
+			# terrain's own armor in LandscapeNode.damage_tile (:889 - a standard block has 2), and
+			# it is the flag event_map_damage.gd:59 turns into DAMAGE_FLAG.AP on every object damage
+			# event it spawns.
+			EventMapDamage.FLAG.AP,
+			# "...to all OBJECTS and terrain". Without this the event touches terrain only; with it,
+			# every is_object() unit standing in the line takes the 10 as a damage event of its own,
+			# with no attack roll involved (event_map_damage.gd:57-70). The attack's own incidental
+			# ground damage never sets it, which is why this flag is the whole of the object half of
+			# the clause.
+			EventMapDamage.FLAG.ALSO_DAMAGE_OBJECTS,
+			# The interior-wall half, ruled in on 2026-09-14. It is UNCONDITIONAL DEMOLITION and not
+			# the 10 doing the work: terraindata_breakable_interior.tres has health = 0, so
+			# TerrainBlockData.is_destructable() is false and no amount of map damage could ever
+			# touch it (event_map_damage.gd:46-53 removes the setpiece outright, before and
+			# independently of any damage). The author ruled it in knowing that - there was no middle
+			# option, because without can_target_breakable_interiors on the targeting side the line
+			# is truncated at the first interior wall anyway.
+			EventMapDamage.FLAG.REMOVE_BREAKABLE_INTERIORS,
+			# NOT BURN. BURN marks the tiles as burnt (event_map_damage.gd:798) and is what the
+			# Thermal Grenade sets, because a thermal grenade sets fires. This is a solid shot of
+			# kinetic; it knocks a hole in things and starts nothing. The engine agrees with that
+			# reading elsewhere: event_unit_attack_declared.gd:188 adds BURN to a weapon's own ground
+			# damage only when the damage type is not KINETIC.
+		],
+	})
+
+## The tiles the shot actually swept.
+##
+## READ OFF THE DECLARED ATTACK, NOT context.target_tiles. This is action_bizarre_cannon.gd's
+## recoil_origin_tiles() lookup and its warning applies here verbatim: context.target_tiles is only
+## an incoming targeting HINT (event_gear_activate.gd:22-23). A spec or the AI may supply it, but
+## when a player aims the shot the tiles are picked inside ActionAttack.get_attack_plan and land in
+## plan.target_tiles, never back on the context - so in real play context.target_tile is
+## Tile.INVALID and an implementation that trusted it would demolish nothing for the only user who
+## matters. What IS always set by the time super.activate() returns is context.resource, the
+## DeclaredAttackSummary (action_attack.gd:252-259).
+##
+## all_attacked_tiles is "all tiles directly targeted + caught in any AOE blasts"
+## (declared_attack_summary.gd:10), which for a Line weapon is the whole swept line - measured as
+## [(3,4), (4,4), (6,4), (7,4), (8,4), (9,4), (10,4)] for an eight-long line whose third ring was a
+## forbidden interior. directly_attacked_tiles (plan.target_tiles, the aimed-at tile alone) is the
+## fallback for an attack that somehow produced no AOE expansion; it is deliberately NOT a fallback
+## to the firer's position, and the caller above refuses to queue anything when both come back empty.
+##
+## THIS IS WHERE THE CLAUSE INHERITS THE WEAPON'S TARGETING. Because the summary is what the engine
+## itself swept, the interior walls the .tres's can_target_breakable_interiors admitted are in this
+## list, and the tiles ARCING kept in it (no line-of-sight filter, Action.get_aoe_tiles_with_targets)
+## are too. Recomputing the line here instead would quietly answer a different question.
+func swept_tiles(context:Context) -> Array[Vector2i]:
+	if not DeclaredAttackSummary.is_valid(context.resource): return []
+	var declared:DeclaredAttackSummary = context.resource
+	var fired:Array[Vector2i] = declared.all_attacked_tiles
+	if fired.is_empty(): fired = declared.directly_attacked_tiles
+	return fired
