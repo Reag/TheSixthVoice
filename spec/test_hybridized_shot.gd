@@ -11,6 +11,17 @@
 # tag is set, would pass while the +1 never reached a roll. accuracy_mods_total() is the number the
 # player sees on the breakdown.
 #
+# AND THE RULING-4 TEST READS THE RESOLVED ATTACK, NOT A PREVIEW. accuracy_for() below builds a
+# throwaway PreAttack against an unspent counter, so calling it twice only ever proves that the payer
+# ignores which target it is asked about - move the charge to a per-roll hook and two previews taken
+# BEFORE any attack still both read +1. The real question is whether the charge can land BETWEEN the
+# per-target rolls of one Blast, and only a resolved attack can answer it: every roll is appended to
+# the shared DeclaredAttackSummary as its own event resolves (event_unit_attack_declared.gd:67 runs
+# them all), and each AttackRoll keeps the PreAttack it was rolled with (attack_roll.gd:7, :29-33) -
+# so the summary remembers what EACH target was actually given. fire_and_capture() below gets hold of
+# that summary. Same measurement problem, and the same answer, as test_blasting_powder.gd's
+# test_a_line_hitting_three_targets_deals_plus_zero_one_two_in_distance_order.
+#
 # MIND THE CHEAT QUEUE. The AMR carries attack_accuracy = "1" (mw_anti_materiel_rifle.tres:17), so
 # each of its attacks pops a d20 AND an accuracy die from Dice.CHEAT_ROLL_QUEUE; so does the Cyclone
 # Pulse Rifle (accurate). Queue generously and clear in after_each.
@@ -22,6 +33,14 @@ const MK2Fixture := preload('res://unpacked/Reag-TheSixthVoice/spec/mk2_fixture.
 
 const TRAIT_ID := &'mt_hybridized_shot'
 const BUFF_ID := &'buff_hybridized_shot'
+## The once-per-turn counter's key on the trait Kit's own GearCore (buff_hybridized_shot.gd:34).
+## Restated here rather than preloaded, the way test_blasting_powder.gd:44 restates its own: the
+## counter is what the charger writes, and a spec that read the key off the script under test could
+## not notice the key being renamed out from under the content.
+const USAGE_KEY := &'hybridized_shot'
+## The key the engine ACTUALLY resolves the breakdown line through - see
+## test_the_bonus_is_labelled_with_the_traits_name.
+const BUFF_NAME_KEY := 'gear.%s.name' % BUFF_ID
 
 ## Heavy, LOADING, not superheavy: the qualifying case (mw_anti_materiel_rifle.tres:14,16).
 const AMR := &'mw_anti_materiel_rifle'
@@ -36,6 +55,8 @@ const RPG := &'mw_rocket_propelled_grenade'
 const START := Vector2i(2, 2)
 const TARGET_TILE := Vector2i(7, 2)
 const SECOND_TILE := Vector2i(7, 3)
+## Well clear of the two blast tiles, for the one test that needs a THIRD unit taking its own turn.
+const ENEMY_TILE := Vector2i(2, 6)
 
 var game:Gamemaster
 var mk2:Unit
@@ -69,6 +90,66 @@ func shoot(weapon:GearCore, against:Unit) -> void:
 		action = weapon.get_solo_action(), gear = weapon, unit = mk2, target_unit = against,
 	})
 
+## Fire once from some OTHER unit, hitting.
+func shoot_from(shooter:Unit, weapon:GearCore, against:Unit) -> void:
+	Dice.cheat_attack([19], [3, 3, 3, 3, 3, 3, 3, 3])
+	await game.execute_event(&'event_gear_activate', {
+		action = weapon.get_solo_action(), gear = weapon, unit = shooter, target_unit = against,
+	})
+
+## The M/K2's once-per-turn counter, read off the trait Kit's own GearCore. This is the charger's
+## ONLY output, so it is the only place a charge taken at the wrong moment is visible at the moment
+## it is taken - see test_an_enemys_loading_shot_does_not_spend_our_bonus for why that matters.
+## Returns -1 rather than 0 if the trait gear is missing, so a broken fixture cannot read as "no
+## charge taken".
+func trait_uses() -> int:
+	var trait_gear := mk2.get_gear(TRAIT_ID)
+	return -1 if not GearCore.is_valid(trait_gear) else trait_gear.get_uses_this_turn_alt(USAGE_KEY)
+
+## Every die in the run comes back a 6 until the queue runs dry - the strategy test_blasting_powder.gd
+## explains in full at its own cheat_every_die_to_six(). Dice.CHEAT_ROLL_QUEUE is ONE global FIFO
+## (dice.gd:9, :33-35), and a Blast fires an attack roll AND an accuracy die PER TARGET, so a queue of
+## named values cannot be lined up with the rolls it is meant to feed. With every die a 6 the order
+## stops mattering: base_roll 6 plus one accuracy die of 6 clears the fixture's -10 evasion and is
+## nowhere near attack_roll.gd:73's crit threshold. CLEARS FIRST, because cheat_attack only appends.
+func cheat_every_die_to_six() -> void:
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	var buffer:Array[int] = []
+	for i:int in 60: buffer.append(6)
+	Dice.cheat_attack([], buffer)
+
+## Fire the weapon for real at a TILE, and hand back the DeclaredAttackSummary the attack resolved
+## through - the one object that remembers what each per-target roll was handed.
+##
+## BUILDS THE EVENT BLOCK BY HAND instead of calling game.execute_event(). The summary is created
+## inside the activation (action_attack.gd:253) and written onto the event's OWN context
+## (action_attack.gd:259, reached through event_gear_activate.gd:80's
+## `await context.action.activate(context, core)` where context IS core.context) - so the only way to
+## see it afterwards is to hold the EventCore. level.gd:97 creates that core internally and returns
+## void, and the block frees itself at level.gd:105 - but the core is a RefCounted we hold, and its
+## context with it. core.context is re-read rather than cached because the variant-action path
+## REPLACES it (event_gear_activate.gd:90-91); the RPG has no variants today, and this is a line of
+## content away from having one.
+func fire_and_capture(weapon:GearCore, tile:Vector2i) -> DeclaredAttackSummary:
+	var tiles:Array[Vector2i] = [tile]
+	var core := EventCore.create(&'event_gear_activate', {
+		action = weapon.get_solo_action(), gear = weapon, unit = mk2, target_tiles = tiles,
+	})
+	var cores:Array[EventCore] = [core]
+	await game.execute_event_block(EventBlock.create_multiple(cores))
+	return core.context.resource as DeclaredAttackSummary
+
+## Did THIS resolved roll - the one this target actually got - carry Hybridized Shot's +1?
+##
+## Reads the MOD LIST rather than accuracy_mods_total() on purpose: cover is an accuracy mod like any
+## other (attack_roll.gd:168-169), so a target that happens to stand behind its neighbour would move
+## the total without anything being wrong with the trait, and the test would be measuring the map.
+## The title is the buff's own name_text(), which is what attack_roll.gd:189 puts on the line.
+func got_the_bonus(roll:AttackRoll) -> bool:
+	for mod:AttackRoll.AccuracyMod in roll.pre.accuracy_mods:
+		if mod.title_key == tr(BUFF_NAME_KEY) and mod.mod == 1: return true
+	return false
+
 # ---------------------------------------------------------------- the bonus
 
 func test_the_first_loading_attack_of_the_turn_gets_the_bonus() -> void:
@@ -77,16 +158,25 @@ func test_the_first_loading_attack_of_the_turn_gets_the_bonus() -> void:
 	assert_eq(accuracy_for(amr, target), 2,
 		'+1 from the AMR itself and +1 from Hybridized Shot.')
 
+## The breakdown line reads buff_core.name_text() (attack_roll.gd:189); a nameless line reads as a bug
+## to the player even when the arithmetic is right.
+##
+## THE KEY IS THE BUFF'S, NOT THE TRAIT'S, AND THE DIFFERENCE IS INVISIBLE HERE BY COINCIDENCE. The
+## resolution path is buff_core.name_text() -> Buff.name_text (buff.gd:184-185) -> Translate.buff
+## (translate.gd:49), which with no localization_key_override takes the BUFF's compcon_id and asks for
+## gear.buff_hybridized_shot.name (translate.gd:54-58). This trait ships that row AND
+## gear.mt_hybridized_shot.name holding the identical string ('Hybridized Shot',
+## localizations.csv:89,91), so asserting the trait's key passed while measuring a key the engine
+## never reads - and would have gone on passing if the buff row were renamed. Do not "simplify" this
+## back to the trait key.
 func test_the_bonus_is_labelled_with_the_traits_name() -> void:
-	# The breakdown line reads buff_core.name_text() (attack_roll.gd:189); a nameless line reads as a
-	# bug to the player even when the arithmetic is right.
 	var amr := equip(AMR)
 	await MK2Fixture.open_turn(game, mk2)
 	var specific := SpecificAction.create(mk2, amr, amr.get_solo_action())
 	var context := Context.clone(specific.to_context(), {target_unit = target})
 	var titles:Array = []
 	for mod in AttackRoll.PreAttack.create(context).accuracy_mods: titles.append(mod.title_key)
-	assert_has(titles, tr('gear.mt_hybridized_shot.name'), 'The +1 line names the trait.')
+	assert_has(titles, tr(BUFF_NAME_KEY), 'The +1 line names the trait.')
 
 func test_the_second_loading_attack_of_the_turn_does_not() -> void:
 	var amr := equip(AMR)
@@ -124,7 +214,6 @@ func test_a_superheavy_attack_does_not_spend_the_bonus() -> void:
 	# this, a charger that fired on every attack would look correct in every other test here.
 	var cyclone := equip(SUPERHEAVY_LOADING)
 	var amr := equip(AMR)
-	SpecFactory.apply_passive_buffs(mk2)
 	await MK2Fixture.open_turn(game, mk2)
 	await shoot(cyclone, target)
 	assert_eq(accuracy_for(amr, target), 2, 'The excluded shot charged nothing.')
@@ -140,14 +229,75 @@ func test_it_does_nothing_on_someone_elses_turn() -> void:
 	assert_false(mk2.state.is_taking_turn, 'The fixture has not opened our turn.')
 	assert_eq(accuracy_for(amr, target), 1, 'No bonus outside our own turn.')
 
+## THE HOLDER GUARD IN triggers_on_event, which nothing else in this file reaches.
+## reaction_bus.trigger_occurred polls EVERY unit's buffs on every trigger (reaction_bus.gd:50, :61-62)
+## and hands each of them the SAME triggering event, so our buff is asked about an enemy's Loading
+## shot on the enemy's own turn - where qualifies() is perfectly happy: the weapon is Loading, is not
+## SUPERHEAVY, and context.unit (the ENEMY) is indeed taking its turn.
+##
+## ASSERTED ON THE COUNTER, NOT ON THE NEXT TURN'S ACCURACY, AND THAT IS THE POINT. The counter is the
+## only place the wrong charge is visible at the moment it is taken. By the time our own turn opens,
+## UnitAction.every_new_turn_refresh has cleared uses_this_turn for EVERY unit on the map
+## (unit_action.gd:67-70, called from event_turn_start.gd:44), so a charge stolen during someone
+## else's turn would be wiped before we could feel it. See the guard's own comment in
+## buff_hybridized_shot.gd for what that means about how much defence this is: measured, deleting the
+## guard turns the FIRST assertion below red and leaves the second green.
+func test_an_enemys_loading_shot_does_not_spend_our_bonus() -> void:
+	var amr := equip(AMR)
+	var enemy := MK2Fixture.create_dummy(game, ENEMY_TILE, -10)
+	var enemy_amr:GearCore = enemy.core.equip_system(AMR)
+	SpecFactory.apply_passive_buffs(enemy)
+
+	await SpecFactory.start_turn(game, enemy)
+	assert_true(enemy.state.is_taking_turn,
+		'Fixture: it is the enemy that is taking a turn, so ITS shot passes qualifies().')
+	assert_false(mk2.state.is_taking_turn, 'Fixture: and we are not.')
+
+	await shoot_from(enemy, enemy_amr, mk2)
+	assert_eq(trait_uses(), 0, "An enemy's Loading shot did not spend OUR once-per-turn charge.")
+
+	await SpecFactory.end_turn(game, enemy)
+	await SpecFactory.start_turn(game, mk2)
+	assert_eq(accuracy_for(amr, target), 2, 'And our own first shot still gets the +1.')
+
 # ---------------------------------------------------------------- ruling 4
 
+## RULING 4, the whole point of the ruling, measured on a REAL resolved Blast.
+##
+## One shot, two targets, and what EACH of them was actually handed asserted separately off the
+## DeclaredAttackSummary the attack resolved through - which is what tells "the charge is spent once
+## per ATTACK" apart from "once per target". The counter assertion at the end is the other half: it is
+## what separates a correctly-once charge from a charger that never ran at all.
+##
+## THIS IS THE TEST THE NAIVE SHAPE FAILS, MEASURED. Move the increment into
+## check_if_passive_applies - the payer, which the engine calls once per target - guarded on
+## DeclaredAttackSummary.is_valid(context.resource) so a hovering preview cannot reach it, and this
+## file goes 10/11: everything else stays green, including the two accuracy_for() previews this test
+## used to consist of, and only the second target's assertion below goes red.
+##
+## If it ever goes red because the engine started handing get_values() a roll context, re-read design
+## §0.4 - the ruling would be revisitable, not broken.
 func test_a_blast_gives_the_bonus_against_every_target() -> void:
-	# RULING 4, the whole point of the ruling. If this ever goes red because the engine started
-	# handing get_values() a roll context, re-read design §0.4 - the ruling would be revisitable,
-	# not broken.
 	var second := MK2Fixture.create_dummy(game, SECOND_TILE, -10)
 	var rpg := equip(RPG)
 	await MK2Fixture.open_turn(game, mk2)
-	assert_eq(accuracy_for(rpg, target), 1, 'First target gets +1.')
-	assert_eq(accuracy_for(rpg, second), 1, 'So does the second, in the same attack.')
+
+	cheat_every_die_to_six()
+	var declared := await fire_and_capture(rpg, TARGET_TILE)
+
+	assert_true(DeclaredAttackSummary.is_valid(declared),
+		'Fixture: the shot actually resolved and handed back its declared attack.')
+	if not DeclaredAttackSummary.is_valid(declared): return
+
+	var bonused_targets:Array[Unit] = []
+	for roll:AttackRoll in declared.attack_rolls:
+		if got_the_bonus(roll): bonused_targets.append(roll.target_unit)
+
+	assert_eq(declared.attack_rolls.size(), 2,
+		'Fixture: one Blast, two per-target attack rolls in the same declared attack.')
+	assert_has(bonused_targets, target, "The first target's own roll carried the +1.")
+	assert_has(bonused_targets, second,
+		"And so did the second target's roll, inside that same attack - the charge did not land"
+		+ ' between them.')
+	assert_eq(trait_uses(), 1,
+		'The charge landed exactly once for the whole attack - not once per target, and not never.')

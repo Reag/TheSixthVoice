@@ -52,7 +52,23 @@ func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 	return trait_gear.get_uses_this_turn_alt(USAGE_KEY) == 0
 
 ## THE CHARGER. The triggering unit must be the holder: reaction_bus.trigger_occurred polls every
-## unit's buffs on every trigger, so without this an enemy's Loading shot would spend our bonus.
+## unit's buffs on every trigger (reaction_bus.gd:50, :61-62) and hands each of them the SAME event,
+## so without the first line this buff charges itself off somebody else's Loading shot - qualifies()
+## asks about context.unit, which is the SHOOTER, and is perfectly happy with an enemy taking its own
+## turn.
+##
+## IT IS DEFENCE IN DEPTH, WITH NO REACHABLE FAILURE TODAY, and the honest version of the claim this
+## comment used to make. A stolen charge cannot survive to bite us: UnitAction.every_new_turn_refresh
+## clears uses_this_turn for EVERY unit on the map at EVERY turn start (unit_action.gd:67-70, called
+## from event_turn_start.gd:44), so a charge taken during another unit's turn is wiped before ours
+## opens - and a shot taken during OUR turn is a reaction, whose shooter is not taking a turn, so
+## qualifies() refuses it on is_taking_turn before this line is reached. Measured, not reasoned:
+## deleting this line turns test_an_enemys_loading_shot_does_not_spend_our_bonus red on its counter
+## assertion and leaves its next-turn accuracy assertion green.
+##
+## It stays because it is the cheapest line in the file and both of the things masking it are
+## somebody else's code. Keep the spec's counter assertion with it - that is the only thing that
+## would notice this line going missing.
 func triggers_on_event(core:BuffCore, unit:Unit, triggering_event:EventCore) -> bool:
 	if triggering_event.context.unit != unit: return false
 	if not qualifies(triggering_event.context): return false
