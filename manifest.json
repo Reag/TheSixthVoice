@@ -7,18 +7,18 @@
 		"1.4.3"
 	],
 	"dependencies": [],
-	"description": "Is normal technology too understandable? Have you ever wanted to perform feats that are nigh indistinguishable from magic? Do you like using technology taken from strange sources that has been turned into pure killing power by corporate giants? If so, that's kind of weird, but The Sixth Voice has you covered!\n\nImplemented so far: the Fitzgerald (IPS-N, full three-rank license) and the M/K2 (GMS, an Everest alt frame). The supplement's other frames are still being built, one release at a time. Three cannot be built yet because Lancer Tactics ships no base frame for them: the Seraphim needs a mod adding the Lich, Six Sky needs the Sunzi, and Black Mountain needs the Emperor.",
+	"description": "Is normal technology too understandable? Have you ever wanted to perform feats that are nigh indistinguishable from magic? Do you like using technology taken from strange sources that has been turned into pure killing power by corporate giants? If so, that's kind of weird, but The Sixth Voice has you covered!\n\nImplemented so far: the Fitzgerald (IPS-N, full three-rank license) and the M/K2 (GMS, an Everest alt frame). The supplement's other frames are still being built, one release at a time.",
 	"image": "thumbnail.png",
 	"incompatibilities": [],
 	"load_before": [],
 	"mod_meta": {
 		"date_added": 1789382017,
-		"date_updated": 1789382026,
-		"file_id": 8213755,
+		"date_updated": 1789383177,
+		"file_id": 8214946,
 		"game_version": "1.4.3",
 		"modio_id": 6383598,
 		"name_id": "dgco-reag",
-		"revision": 2,
+		"revision": 3,
 		"user_id": 61561194,
 		"username": "Mr_Reag"
 	},
