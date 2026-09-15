@@ -97,3 +97,5 @@ gear.buff_ors_hypercharge.effect,"|Loading| weapons do not need reloading, but e
 frame.mf_subutai.name,Subutai
 frame.mf_subutai.flavor.short,Immovable Object
 frame.mf_subutai.flavor,"The Barbarossa has offers a simple choice: you kill it and get swarmed by its friends, or you don't kill it and you get the business end of a ship-class spool weapon. With the start of the broadcasts, Harrison Armory decided to take this principle to the next level; why even let them have the choice? The Subutai is the next step, armed with the experimental diversion rail, it locks down the battlefield leaving a trail of destruction in its wake. Now sure, you can't annihilate a bunker from a ridge over, but it's the price you pay for unparalleled defensive artillery. At the end of the day, you are still a solid block of metal, and ain't nothing gonna stand in your way."
+gear.mt_reinforced_chassis.name,Reinforced Chassis
+gear.mt_reinforced_chassis.effect,The Subutai reduces all Kinetic and Explosive damage by 1 before Armor and Resistances are calculated.

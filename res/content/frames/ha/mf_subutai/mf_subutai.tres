@@ -11,6 +11,7 @@
 [ext_resource type="Resource" uid="uid://cnx62bb0ihjrr" path="res://content/frames/shared/mt_guardian/mt_guardian.tres" id="9_guardian"]
 [ext_resource type="Resource" uid="uid://dggdfufbol2do" path="res://content/frames/shared/mt_slow.tres" id="10_slow"]
 [ext_resource type="Texture2D" uid="uid://ldxcx87fbf87" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/placeholder/mf_placeholder_160.png" id="11_sprite"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_subutai/mt_reinforced_chassis/mt_reinforced_chassis.tres" id="12_chassis"]
 
 [sub_resource type="Resource" id="Resource_colorscheme"]
 script = ExtResource("3_colorscheme")
@@ -42,7 +43,7 @@ activations = 1
 script = ExtResource("1_frame")
 default_color_scheme = SubResource("Resource_colorscheme")
 sprites = Array[Texture2D]([ExtResource("11_sprite")])
-traits = Array[ExtResource("8_kit")]([ExtResource("9_guardian"), ExtResource("10_slow")])
+traits = Array[ExtResource("8_kit")]([ExtResource("12_chassis"), ExtResource("9_guardian"), ExtResource("10_slow")])
 mount_types = Array[ExtResource("5_mounttype")]([ExtResource("6_mountmain"), ExtResource("7_mountheavy")])
 stat = SubResource("Resource_statblock")
 role_primary = 4
