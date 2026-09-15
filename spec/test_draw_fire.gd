@@ -622,17 +622,24 @@ func test_two_draws_in_one_round_are_refused() -> void:
 	assert_eq(subutai.core.current.reactions, 1, 'The reaction point came back at the turn start.')
 	# AND EVERY OTHER GATE IS OPEN for the second pair, so the refusal can only be the round counter.
 	assert_true(UnitRelation.can_see(subutai, enemy_b), 'fixture: the second attacker is in sight.')
-	assert_true(UnitRelation.distance_between(subutai, enemy_b) <= 15,
-		'fixture: and inside the Rail s Range 15.')
+	assert_true(UnitRelation.distance_between(subutai, enemy_b) <= rail_action().get_target_range(
+		SpecificAction.create(subutai, core_gear(), rail_action())),
+		'fixture: and inside the Rail s range.')
 	assert_true(UnitRelation.distance_between(subutai, ally_b) <= subutai.get_sensor_range(),
 		'fixture: the second ally is inside the Subutai s sensors.')
 	var second := await fire(enemy_b, rifle_b, ally_b, D20_HITS_BOTH)
 	assert_eq(rolled_against(second), [ally_b], 'The second is refused: one draw per round.')
 
 func test_firing_the_rail_does_not_spend_the_draw() -> void:
-	# THE USAGE-GROUP TEST. usage_group defaults to the KIT id, and this reaction shares
-	# cp_siege_engine with the protocol and the Rail - so without &'action_draw_fire' on the .tres,
-	# firing the Rail would spend the draw for the round (gear_core.gd:166-168).
+	# PINS THE BEHAVIOUR, NOT THE MECHANISM. A Rail shot fired on an earlier turn leaves the draw
+	# available on the turn that follows. That holds today because the protocol and the Rail each
+	# carry their OWN usage_group (cf56dfc) - so nothing on this Kit still falls into the default
+	# cp_siege_engine group Draw Fire's own group would otherwise collide with. Consequence, checked
+	# by hand rather than by this test: deleting &'action_draw_fire' from the .tres would NOT redden
+	# this test - the fallback group now collides with nothing here either. That field's VALUE is
+	# guarded elsewhere, by test_the_reaction_is_on_the_core_kit; its EFFECT (actually preventing a
+	# collision) is currently unguarded by any spec, because there is nothing left on the Kit for it
+	# to collide with.
 	#
 	# THE RAIL IS STILL FIRED ON A SECOND TURN, so the per-ROUND counter this test is about is
 	# provably the draw's own and not an artefact of a fresh turn. The protocol and the Rail now
@@ -806,7 +813,11 @@ func test_the_actions_are_in_the_cards_order():
 
 ## A SOURCE-ORDER PIN, not a behaviour test, because the race it guards is not reproducible in this
 ## harness: it needs a SECOND attack_declared PRE reaction to displace the Subutai or the ally while
-## confirm_use is awaited, and no such reaction exists to write one against. What activate() must
+## confirm_use is awaited. The harness CAN define one - this file's own inline TerrainRecorder is a
+## PRE reaction on a different trigger, and nothing stops a PRE reaction on ATTACK_DECLARED the same
+## way - but ORDERING it to actually run between Draw Fire's own trigger evaluation and its activate
+## is engine-controlled (reaction resolution order is not a knob a spec can turn), so the race cannot
+## be steered from here even though a second reaction to write is not the obstacle. What activate() must
 ## never do is spend the point before it knows the LIVE rebuild succeeded - rebuild() returns false
 ## without writing anything when the rebuilt area no longer contains us, and a spend on that path
 ## costs the point, leaves the attack undrawn AND still queues a free Rail shot. This was GREEN from

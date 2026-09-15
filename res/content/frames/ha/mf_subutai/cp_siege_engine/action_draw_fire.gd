@@ -21,13 +21,20 @@
 ## runs (ActionAttack.activate calls run_attack_effects at :265). Nothing in content precedes it. The
 ## confirm prompt's target line is the telegraph.
 ##
-## THE USAGE GROUP IS ITS OWN, AND IT IS LOAD-BEARING. usage_group defaults to the KIT id, and this
-## reaction shares cp_siege_engine with the GATHER ROUND protocol and the Diversion Rail - so
-## without &'action_draw_fire' on the .tres, firing the Rail would spend the draw for the round
-## (gear_core.gd:166-168). No get_per_round_hard_limit override is needed, unlike Juggernaut Drive's:
-## ActionReaction returns 1 for a reaction that DOES consume a point (action_reaction.gd:69), which
-## is the card's "1/round" already. Note that limit is stricter than the reaction point, which
-## refreshes every turn - so one draw per round however many enemies shoot (ruling 3).
+## THE USAGE GROUP IS ITS OWN, AND TODAY THAT IS DEFENCE IN DEPTH, NOT LOAD-BEARING. usage_group
+## defaults to the KIT id, which this reaction would otherwise share with the GATHER ROUND protocol
+## and the Diversion Rail. But cf56dfc gave both of those their OWN usage_groups too (vanilla's
+## per-action convention), so as of that commit NOTHING on this Kit still uses the default
+## cp_siege_engine group - Draw Fire's explicit group collides with nothing today. Re-measured at
+## head (2026-09-15): deleting &'action_draw_fire' from the .tres reddens only the value pin in
+## test_the_reaction_is_on_the_core_kit; it does not touch what firing the Rail spends. The line
+## stays because it is what stops a FUTURE action added to this Kit without its own group from
+## silently spending the draw - the field's VALUE is what test_the_reaction_is_on_the_core_kit pins,
+## and that pin is the only thing currently guarding it. No get_per_round_hard_limit override is
+## needed, unlike Juggernaut Drive's: ActionReaction returns 1 for a reaction that DOES consume a
+## point (action_reaction.gd:69), which is the card's "1/round" already. Note that limit is stricter
+## than the reaction point, which refreshes every turn - so one draw per round however many enemies
+## shoot (ruling 3).
 extends ActionReaction
 
 ## The Rail lives on the same Kit; both its reach (the trigger's range clause) and the follow-up shot
@@ -96,6 +103,9 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 func activate(context:Context, activation:EventCore) -> void:
 	var triggering_context:Context = context.event.context
 	var summary:DeclaredAttackSummary = triggering_context.resource
+	# A player who confirms the draw can still see nothing happen if the live rebuild below then
+	# refuses it - deliberate, and strictly better than spending the point on nothing.
+	#
 	# NOTHING IS SPENT UNTIL THE DRAW IS KNOWN TO HAVE LANDED. Two guards, both re-asking at LIVE time
 	# what triggers_on_event only answered when the event was queued:
 	#
