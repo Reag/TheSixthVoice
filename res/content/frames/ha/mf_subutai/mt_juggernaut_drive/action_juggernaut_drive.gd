@@ -30,10 +30,6 @@ extends ActionReactionMovement
 # and land on the SAME tile, so no endpoint is lost - but an off-axis Drive's travelled path must
 # never be asserted tile by tile. Landing tiles are safe.
 
-## The line's reach, in tiles. The card's "up to 3 spaces"; also set as movement_range_fixed on the
-## .tres, which is what the archetype's get_target_range returns.
-const DRIVE_RANGE := 3
-
 ## A reaction that consumes no reaction point has a per-round hard limit of 99
 ## (action_reaction.gd:69), which would let the Subutai Drive on every extra activation it is
 ## granted. The card says 1/round. (Base Action returns 1 for a naturally free action, so this is
@@ -71,7 +67,8 @@ func visible_allied_characters(unit:Unit) -> Array[Unit]:
 ## ONE picker over every line at once (ruling 9), rather than "pick an ally, then pick a tile".
 ##
 ## The candidate endpoints are the union, over every visible allied character, of the Line-pattern
-## tiles from the Subutai towards that ally, capped at DRIVE_RANGE and at the distance
+## tiles from the Subutai towards that ally, capped at get_target_range - the card's "up to 3
+## spaces", authored as movement_range_fixed on the .tres - and at the distance
 ## (CommonActionUtil.get_all_occupied_tiles_in_line, the Full Speed Ahead helper; the origin tile is
 ## excluded, because AoeCalculator.line builds from rings starting at distance 1).
 ##

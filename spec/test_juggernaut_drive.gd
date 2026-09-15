@@ -262,6 +262,34 @@ func test_an_immobilized_subutai_with_a_visible_ally_is_offered_exactly_the_thre
 	for tile:Vector2i in expected:
 		assert_true(offered.has(tile), '%s is offered.' % tile)
 
+func test_an_off_axis_ally_is_still_offered_all_three_tiles():
+	# RULING 17'S ONLY GUARD. Every other behavioural test here aims at a compass ray, and section 1
+	# measured the two line derivations to agree on all eight of those - so flipping
+	# allow_alternate_paths_to_those_tiles back to false leaves every one of them green and proves
+	# only the map. This is the shallow off-axis ally section 1 measured as DISAGREEING: the
+	# pathfinder reaches the third candidate (11, 9) via (9, 8), which is NOT one of the candidate
+	# tiles. With a narrow graph are_points_connected fails on that step,
+	# calculate_step_path_for_line returns an empty path, and the endpoint never enters
+	# valid_destinations (pathfinder.gd:503-504). Ruling 17 puts the intervening tile in the graph
+	# and all three survive.
+	#
+	# LANDING TILES ONLY. The section header says why the travelled path must not be asserted here.
+	SubutaiFixture.create_ally(game, START + Vector2i(7, 3))
+	await SubutaiFixture.open_turn(game, subutai)
+	immobilize(subutai)
+	# Computed before the turn ends, for the reason the compass-ray test above records: the responder
+	# answers the picker, so afterwards the Subutai is no longer standing at START.
+	var expected := candidates_towards(START + Vector2i(7, 3))
+	assert_eq(expected.size(), RANGE, 'The off-axis ally-line still has three candidates.')
+	var prompts := await end_turn()
+	assert_eq(prompts.size(), 1, 'One movement picker was opened.')
+	if prompts.is_empty(): return
+	var offered:Array = offered_by(prompts[0])
+	assert_eq(offered.size(), expected.size(),
+		'Every off-axis candidate survives the pathfinder, including the one it reaches off-line.')
+	for tile:Vector2i in expected:
+		assert_true(offered.has(tile), '%s is offered.' % tile)
+
 func test_the_picker_can_be_cancelled_because_the_card_says_may():
 	SubutaiFixture.create_ally(game, START + Vector2i(6, 0))
 	await SubutaiFixture.open_turn(game, subutai)
@@ -285,7 +313,11 @@ func test_declining_the_picker_leaves_it_in_place_and_spends_nothing():
 	responder.abort_all = true
 	await SubutaiFixture.open_turn(game, subutai)
 	immobilize(subutai)
-	await end_turn()
+	var prompts := await end_turn()
+	# Without this the test would pass just as well if the reaction stopped triggering at all: the
+	# unit is in the same place and nothing was spent either way. abort_all still OPENS the prompt
+	# and reports it to the watcher before cancelling it, so this is safe to assert here.
+	assert_eq(prompts.size(), 1, 'The picker did open - there was something to decline.')
 	assert_eq(subutai.tile(), START, 'It stayed put.')
 	assert_eq(uses_this_round(), 0, 'Declining costs nothing.')
 
@@ -324,9 +356,11 @@ func test_a_unit_standing_along_the_line_shortens_the_offer():
 	# one before it.
 	#
 	# AND IT IS NOT RULING 17 THAT LETS IT REACH THAT TILE. Flipping
-	# allow_alternate_paths_to_those_tiles back to false (mutation 4, run 2026-09-15) leaves this
-	# whole file 22/22 green: the far candidate survives either way, so a blocker on the line costs
-	# the Drive the near endpoints and not the far one, narrow graph or wide.
+	# allow_alternate_paths_to_those_tiles back to false (mutation 4, run 2026-09-15) leaves THIS
+	# test green: the ally is due east, section 1 measured the two line derivations to agree on every
+	# compass ray, so the far candidate survives either way - a blocker on the line costs the Drive
+	# the near endpoints and not the far one, narrow graph or wide. The one test that does discriminate
+	# on that flag is test_an_off_axis_ally_is_still_offered_all_three_tiles above.
 	SubutaiFixture.create_ally(game, START + Vector2i(6, 0))
 	SubutaiFixture.create_dummy(game, START + Vector2i(2, 0), 10)
 	await SubutaiFixture.open_turn(game, subutai)
