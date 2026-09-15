@@ -48,8 +48,26 @@ const DEFAULT_MAP_SIZE := Vector2i(15, 9)
 ## forbidden interior. That is safe, and Task 0's identical-totals success criterion is exactly what
 ## proves it - if the totals move, this is the line to revert to a `blocks_sight:bool = true`
 ## parameter instead.
+## RE-USES the gamemaster rather than building a fresh one per test (2026-09-15). The whole suite
+## runs on this one line, so it is worth saying why both halves of it are deliberate:
+##
+## make_fresh_gamemaster = true built an entire Gamemaster - nodes, map, landscape - for every test
+## and queue_free'd it again, because setup_gamemaster's fresh branch hands it to
+## test.add_child_autoqfree (spec_factory.gd:30). The re-use branch keeps ONE at the tree root and
+## resets it instead: cleanup(), a new core from the combat, map_node.clear(), map.clear(), then
+## load_landscape (:40-46). That is vanilla's own default by a wide margin - 322 of the 340
+## setup_gamemaster calls in res://test/ are the bare setup_gamemaster(self) - and passing a combat
+## alongside `false`, which is what carries our per-spec MAP_SIZE through load_landscape, is an
+## established vanilla form too (3 uses).
+##
+## IT ALSO FIXES SOMETHING. The fresh branch returns at spec_factory.gd:32, BEFORE the two lines
+## that build a CampaignCore and hang it on the map (:47-48) - and EventService.remove_unit_from_game
+## dereferences map.campaign_core with no guard (event_service.gd:80), one line above the
+## unit.remove_from_game() at :85. That is why test_heaer.gd and test_blasting_powder.gd each
+## hand-build a CampaignCore before anything is allowed to die. On this branch they get one for
+## free; their hand-built ones are now redundant, and harmless, so they stay where they are.
 static func create_game(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> Gamemaster:
-	var game := SpecFactory.setup_gamemaster(test, true,
+	var game := SpecFactory.setup_gamemaster(test, false,
 		SpecFactory.create_combat(Landscape.create_default(map_size)))
 	game.map.shape.forbidden_interiors_enabled = true
 	return game
