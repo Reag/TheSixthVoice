@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://dy4kg537rc55e" path="res://engine/character/gear_passive/passive_buff_applicator.gd" id="3_applicator"]
 [ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="4_buff"]
 [ext_resource type="Script" uid="uid://bym265b7dnjvc" path="res://engine/character/buff/archtypes/buff_resist_damage.gd" id="5_resistdamage"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_reinforced_chassis.svg" id="6_icon"]
 
 [sub_resource type="Resource" id="Resource_reduction"]
 script = ExtResource("5_resistdamage")
@@ -21,5 +22,6 @@ applied_buffs = Array[ExtResource("4_buff")]([SubResource("Resource_reduction")]
 
 [resource]
 script = ExtResource("1_kit")
+icon_override = ExtResource("6_icon")
 passives = Array[ExtResource("2_passive")]([SubResource("Resource_applicator")])
 is_trait = true
