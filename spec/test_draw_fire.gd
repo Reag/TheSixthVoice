@@ -100,6 +100,20 @@ const CYCLONE := &'mw_cyclone_pulse_rifle'
 ## A vanilla TECH attack that is the whole of its Kit, so get_solo_action() finds it
 ## (test_diversion_rail.gd:53-55).
 const TECH := &'ms_fragment_signal'
+## Vanilla SSC superheavy launcher: Blast 1, Range 20, Arcing - and the only vanilla weapon that takes
+## TWO direct target tiles (target_requirements_override count = 2), which is what the overlapping-
+## areas case needs. Its Kit carries two actions (the delayed variant's trigger is the other), so
+## get_solo_action() does not reach it and the action is named.
+const PINAKA := &'mw_pinaka_missiles'
+const PINAKA_ACTION := &'action_pinaka_missiles'
+## The Pinaka's SECOND aim tile, chosen so that its Blast 1 (9..10 is the Subutai's column pair)
+##  - does NOT overlap the blast aimed at the ally, which the engine's targeting forbids for a
+##    multipick AoE, and
+##  - does NOT already cover the Subutai's footprint at (9..10, 6..7), which would refuse the draw as
+##    an attack already covering us, and yet
+##  - DOES overlap the blast once it has been recentred on SUBUTAI_AIM: (8..10, 3..5) against
+##    (8..10, 5..7) shares the whole y = 5 row.
+const SECOND_AIM := Vector2i(9, 4)
 
 ## The Subutai's own evasion is the frame's, and is NOT settable: SubutaiFixture does not isolate the
 ## frame, so writing to stat.evasion would reach the shared ContentLibrary copy.
@@ -271,6 +285,17 @@ func fire_at_tile(shooter:Unit, weapon:GearCore, tile:Vector2i, d20:int) -> Decl
 	await game.execute_event_block(EventBlock.create_multiple(cores))
 	return core.context.resource as DeclaredAttackSummary
 
+## Fire at SEVERAL tiles with a NAMED action - the multipick case, which get_solo_action() cannot
+## reach because the Pinaka's Kit carries two actions.
+func fire_at_tiles(shooter:Unit, weapon:GearCore, action:Action, tiles:Array[Vector2i], d20:int) -> DeclaredAttackSummary:
+	queue_dice(d20)
+	var core := EventCore.create(&'event_gear_activate', {
+		action = action, gear = weapon, unit = shooter, target_tiles = tiles,
+	})
+	var cores:Array[EventCore] = [core]
+	await game.execute_event_block(EventBlock.create_multiple(cores))
+	return core.context.resource as DeclaredAttackSummary
+
 func rolled_against(summary:DeclaredAttackSummary) -> Array[Unit]:
 	var targets:Array[Unit] = []
 	for roll:AttackRoll in summary.attack_rolls: targets.append(roll.target_unit)
@@ -431,6 +456,10 @@ func test_the_blasts_ground_damage_lands_on_the_new_tiles() -> void:
 	subutai = SubutaiFixture.create_subutai(game, SUBUTAI_TILE)
 	install_recorder()
 	await SubutaiFixture.gather_round(game, subutai)
+	# make_subutai()'s own assertion, restored by hand: the fixture is inlined here only to get the
+	# recorder installed BEFORE the protocol is pressed, and inlining it dropped the one check that
+	# the protocol actually landed - without which this test would read the same if it had not.
+	assert_true(UnitCondition.has_buff(subutai, GATHER_ROUND_BUFF), 'fixture: GATHER ROUND is up.')
 	await end_subutai_turn()
 	var mortar := arm(enemy, MORTAR)
 	await fire_at_tile(enemy, mortar, ALLY_TILE, D20_HITS_BOTH)
@@ -521,6 +550,38 @@ func test_a_size_two_subutai_is_aimed_at_by_its_nearest_tile() -> void:
 	assert_eq(summary.directly_attacked_tiles.size(), 1, 'One aim tile.')
 	assert_eq(summary.directly_attacked_tiles[0].x, 9, 'Aimed at the near column, not the anchor column.')
 	assert_false(summary.all_attacked_tiles.has(Vector2i(11, 4)), 'The ally is spared.')
+
+func test_two_overlapping_blasts_do_not_double_up_the_attacked_tiles() -> void:
+	# THE REBUILD IS THE ONE THING IN THE GAME THAT ROUTINELY MAKES AOE AREAS OVERLAP: it drags one
+	# direct target onto our aim tile and leaves the others where they were. Vanilla appends its AoE
+	# tiles NON-DUPLICATE (action_attack.gd:165-166), and the rebuild does the same.
+	#
+	# IT DOES NOT DISCRIMINATE THAT LINE, and that is worth knowing before trusting it as a regression
+	# pin: the SP2 review expected duplicates without it, but get_aoe_tiles already ends in
+	# filter_valid_aoe_tiles -> Util.filter_and_remove_duplicates (range_pattern.gd:79-80), so the
+	# array is unique before the rebuild touches it (mutation, 2026-09-15: assigning it straight to
+	# new_tiles left this test GREEN). What this test pins is the BEHAVIOUR - an overlapping rebuilt
+	# area hands event_map_damage each tile once - across whichever layer happens to provide it.
+	place_enemy()
+	place_ally()
+	await make_subutai()
+	var pinaka := arm(enemy, PINAKA)
+	var action:Action = pinaka.get_action(PINAKA_ACTION)
+	assert_not_null(action, 'fixture: the Pinaka s own attack action, named past its Kit s two.')
+	if action == null: return
+	var aim:Array[Vector2i] = [ALLY_TILE, SECOND_AIM]
+	var summary := await fire_at_tiles(enemy, pinaka, action, aim, D20_HITS_BOTH)
+
+	assert_true(summary.directly_attacked_tiles.has(SUBUTAI_AIM), 'The ally s blast was recentred on us.')
+	assert_true(summary.directly_attacked_tiles.has(SECOND_AIM), 'The other blast stayed where it was aimed.')
+	# THE VACUITY GUARD: both 3x3s really are in the rebuilt area, and they really do share the y = 5
+	# row - so without the dedupe there would be duplicates to find.
+	for tile:Vector2i in [Vector2i(9, 7), Vector2i(9, 3), Vector2i(9, 5), Vector2i(8, 5), Vector2i(10, 5)]:
+		assert_true(summary.all_attacked_tiles.has(tile), 'The rebuilt area covers %s.' % tile)
+	var seen := {}
+	for tile:Vector2i in summary.all_attacked_tiles: seen[tile] = true
+	assert_eq(summary.all_attacked_tiles.size(), seen.size(),
+		'No tile appears twice: the rebuild keeps vanilla s non-duplicate append.')
 
 func test_an_ally_on_the_re_aimed_ray_is_still_caught() -> void:
 	# RECORDED BEHAVIOUR, NOT A FAILED DRAW. The shot IS made against the Subutai; whatever stands
@@ -629,6 +690,65 @@ func test_two_draws_in_one_round_are_refused() -> void:
 		'fixture: the second ally is inside the Subutai s sensors.')
 	var second := await fire(enemy_b, rifle_b, ally_b, D20_HITS_BOTH)
 	assert_eq(rolled_against(second), [ally_b], 'The second is refused: one draw per round.')
+
+func test_a_draw_is_available_again_after_the_subutais_own_turn() -> void:
+	# WHAT THE ENGINE DOES, NOT WHAT THE CARD SAYS, and the reaction's header now says so too. The
+	# per-round counter is cleared by UnitAction.new_turn_refresh -> reset_per_round_usage
+	# (unit_action.gd:75-78, :87-88), which runs only at the SUBUTAI'S OWN turn start, while the
+	# reaction POINT refreshes at every unit's turn start (every_new_turn_refresh, :67-70). So "1/round"
+	# is really "once since my last turn start": a draw is available once per enemy phase on either
+	# side of the Subutai's turn, and two draws can land inside one game round. Every vanilla 1/round
+	# reaction shares the property; this is a PIN on it, not an endorsement of it -
+	# test_two_draws_in_one_round_are_refused pins the other half, that the counter does bind within
+	# one enemy phase.
+	place_enemy()
+	place_ally()
+	var enemy_b := SubutaiFixture.create_dummy(game, Vector2i(2, 9), ENEMY_EVASION)
+	var ally_b := make_player_unit(Vector2i(5, 9))
+	await make_subutai()
+	var rifle_a := arm(enemy, RIFLE)
+	var rifle_b := arm(enemy_b, RIFLE)
+
+	var first := await fire(enemy, rifle_a, ally, D20_HITS_BOTH)
+	assert_eq(rolled_against(first), [subutai], 'The first shot was drawn.')
+
+	# The Subutai's OWN turn, opened and ended: this, and only this, clears uses_this_round.
+	await SubutaiFixture.open_turn(game, subutai)
+	await end_subutai_turn()
+
+	await SubutaiFixture.open_turn(game, enemy_b)
+	assert_eq(subutai.core.current.reactions, 1, 'The reaction point is there for the second shot.')
+	var second := await fire(enemy_b, rifle_b, ally_b, D20_HITS_BOTH)
+	assert_eq(rolled_against(second), [subutai],
+		'Drawn again: the per-round counter cleared at the Subutai s own turn start.')
+	assert_eq(subutai.core.current.reactions, 0, 'And the second point was spent.')
+
+func test_a_second_subutai_cannot_redraw_an_attack_already_drawn() -> void:
+	# A DECLARED ATTACK MAY BE DRAWN ONCE. Every reaction's gate is evaluated before any body runs, so
+	# two Subutais watching the same shot are both queued; the first to activate stamps the summary and
+	# the second aborts WITHOUT spending. The allies re-check cannot do this job - after the first draw
+	# all_attacked_units is [Subutai A], and A is an allied character inside B's sensors, so B's
+	# allies_under_fire is non-empty and B would redraw the attack onto itself.
+	place_enemy()
+	place_ally()
+	await make_subutai()
+	var first_subutai := subutai
+	var second_subutai := SubutaiFixture.create_subutai(game, Vector2i(9, 10))
+	await SubutaiFixture.gather_round(game, second_subutai)
+	assert_true(UnitCondition.has_buff(second_subutai, GATHER_ROUND_BUFF), 'fixture: the second Subutai pressed it too.')
+	await game.execute_event(&'event_turn_end', {unit = second_subutai})
+	assert_eq(second_subutai.core.current.reactions, 1, 'fixture: and it has its own point.')
+	assert_eq(first_subutai.core.current.reactions, 1, 'fixture: so does the first.')
+
+	var rifle := arm(enemy, RIFLE)
+	var summary := await fire(enemy, rifle, ally, D20_HITS_BOTH)
+
+	assert_eq(summary.attack_rolls.size(), 1, 'One roll: the shot was drawn once, not twice.')
+	var drawn := rolled_against(summary)
+	assert_false(drawn.has(ally), 'It was drawn off the ally.')
+	assert_true(drawn.has(first_subutai) or drawn.has(second_subutai), 'Onto ONE of the two Subutais.')
+	var spent:int = (1 - first_subutai.core.current.reactions) + (1 - second_subutai.core.current.reactions)
+	assert_eq(spent, 1, 'Exactly one reaction point went: the other aborted without spending.')
 
 func test_firing_the_rail_does_not_spend_the_draw() -> void:
 	# PINS THE BEHAVIOUR, NOT THE MECHANISM. A Rail shot fired on an earlier turn leaves the draw

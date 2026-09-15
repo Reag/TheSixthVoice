@@ -32,9 +32,17 @@
 ## silently spending the draw - the field's VALUE is what test_the_reaction_is_on_the_core_kit pins,
 ## and that pin is the only thing currently guarding it. No get_per_round_hard_limit override is
 ## needed, unlike Juggernaut Drive's: ActionReaction returns 1 for a reaction that DOES consume a
-## point (action_reaction.gd:69), which is the card's "1/round" already. Note that limit is stricter
-## than the reaction point, which refreshes every turn - so one draw per round however many enemies
-## shoot (ruling 3).
+## point (action_reaction.gd:69), which is the card's "1/round" as the engine spells it.
+##
+## RULING 3, AND WHAT "1/ROUND" ACTUALLY MEANS OFF-TURN. The engine's per-round counter is NOT a game
+## round: uses_this_round is cleared by UnitAction.new_turn_refresh -> reset_per_round_usage
+## (unit_action.gd:75-78 and :87-88), which runs only at the SUBUTAI'S OWN turn start, while the
+## reaction POINT refreshes at every unit's turn start (every_new_turn_refresh, :67-70). So the real
+## limit is "one draw since the Subutai's last turn start" - enemy A shoots and is drawn, the Subutai
+## takes its turn, enemy B shoots and is drawn again: two draws inside one game round, one on each
+## side of the Subutai's turn. Every vanilla 1/round reaction shares the property; it is recorded as a
+## ruling rather than fought, and pinned by test_draw_fire.test_a_draw_is_available_again_after_the_
+## subutais_own_turn. Within a single enemy phase the counter does bind, however many enemies shoot.
 extends ActionReaction
 
 ## The Rail lives on the same Kit; both its reach (the trigger's range clause) and the follow-up shot
@@ -43,6 +51,12 @@ const RAIL_ACTION_ID := &'action_diversion_rail'
 
 ## GATHER ROUND's chip. The reaction does not exist until the protocol has been pressed.
 const GATHER_ROUND_BUFF := &'buff_gather_round'
+
+## A DECLARED ATTACK MAY BE DRAWN ONCE. The stamp goes on the DeclaredAttackSummary itself, which is
+## the one object every reader of this attack shares by reference - so a second Subutai asking about
+## the same attack sees it. DeclaredAttackSummary is a Resource, so set_meta/has_meta are free and the
+## stamp dies with the summary at the end of the attack.
+const DRAWN_META := &'reag_draw_fire_drawn'
 
 func is_available_to_activate(unit:Unit, gear:GearCore) -> bool:
 	if not super.is_available_to_activate(unit, gear): return false
@@ -65,6 +79,12 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	var triggering_context:Context = triggering_event.context
 	var summary:DeclaredAttackSummary = triggering_context.resource
 	if not DeclaredAttackSummary.is_valid(summary): return false
+
+	# ONCE PER DECLARED ATTACK. Early, so a second Subutai whose gate is evaluated AFTER the first has
+	# already drawn is not even prompted. Note the engine evaluates every reaction's gate before any
+	# body runs, so on the common path this branch is not what refuses the second Subutai - the guard
+	# in activate() is. This one covers later re-evaluations of the same event.
+	if summary.has_meta(DRAWN_META): return false
 
 	# "A hostile CHARACTER": a drone's or deployable's shot counts as its owner's (ruling 5).
 	var attacker:Unit = triggering_context.unit.get_attacker(triggering_context)
@@ -106,22 +126,31 @@ func activate(context:Context, activation:EventCore) -> void:
 	# A player who confirms the draw can still see nothing happen if the live rebuild below then
 	# refuses it - deliberate, and strictly better than spending the point on nothing.
 	#
-	# NOTHING IS SPENT UNTIL THE DRAW IS KNOWN TO HAVE LANDED. Two guards, both re-asking at LIVE time
+	# NOTHING IS SPENT UNTIL THE DRAW IS KNOWN TO HAVE LANDED. Three guards, all re-asking at LIVE time
 	# what triggers_on_event only answered when the event was queued:
 	#
-	#  1. the allies. A second Subutai's Draw Fire queued on the same attack may already have moved
-	#     every ally out of the summary, at which point there is nothing left to draw - abort WITHOUT
-	#     spending rather than confirm a prompt about nobody.
-	#  2. the rebuild itself, run LIVE. rebuild() returns false without writing anything when the
+	#  1. the stamp, and it is THE guard that stops a second Subutai redrawing the same attack. Every
+	#     reaction's gate is evaluated before any body runs, so when two Subutais both see the shot
+	#     both are queued; the first to activate stamps the summary and the second aborts here,
+	#     WITHOUT spending. The allies check below cannot do this job - after the first draw
+	#     all_attacked_units is [Subutai A], and A is an allied character inside B's sensors, so B's
+	#     allies_under_fire is NOT empty and B would happily redraw the attack onto itself. (The old
+	#     comment here claimed the opposite; it was wrong, and this stamp is the fix.)
+	#  2. the allies. Kept: an attack whose every ally has left the summary for any other reason has
+	#     nothing left to draw, and a prompt about nobody is worse than a silent abort.
+	#  3. the rebuild itself, run LIVE. rebuild() returns false without writing anything when the
 	#     rebuilt area would not contain us, and the geometry it reads can have changed since the DRY
 	#     check in triggers_on_event - another attack_declared PRE reaction may have displaced the
 	#     Subutai or the ally while confirm_use was awaited. Checking its return before spend_actions
 	#     is what stops that costing the point, leaving the attack undrawn, and still queueing a free
 	#     Rail shot.
 	#
-	# ORDERING CONSEQUENCE, and it is safe: guard 2 rewrites the summary BEFORE the point is spent.
+	# ORDERING CONSEQUENCE, and it is safe: guard 3 rewrites the summary BEFORE the point is spent.
 	# spend_actions does not read the summary - it only touches the activation's own gear and reaction
-	# bookkeeping - so the earlier write changes nothing about what it does.
+	# bookkeeping - so the earlier write changes nothing about what it does. The stamp goes on at the
+	# same moment, for the same reason: it must be set only once the draw has actually landed, or a
+	# refused rebuild would lock every other Subutai out of an attack nobody drew.
+	if activation.abort_when(summary.has_meta(DRAWN_META)): return
 	var allies := allies_under_fire(context.unit, summary)
 	if activation.abort_when(allies.is_empty()): return
 
@@ -130,6 +159,7 @@ func activate(context:Context, activation:EventCore) -> void:
 	)
 	if activation.abort_when(not confirmed): return
 	if activation.abort_when(not rebuild(context.unit, triggering_context, true)): return
+	summary.set_meta(DRAWN_META, true)
 
 	spend_actions(activation)
 	queue_rail_follow_up(context, activation, triggering_context)
@@ -173,7 +203,10 @@ static func allies_under_fire(unit:Unit, summary:DeclaredAttackSummary) -> Array
 ## THE REBUILD. DRY (live = false) answers "would the rebuilt area contain us?"; LIVE writes the four
 ## summary arrays in place. Copies ActionAttack.get_attacked_tiles_and_units_from_plan
 ## (action_attack.gd:156-173) step for step, so the rebuilt area is exactly what the attacker would
-## have got by aiming there - with ONE deliberate departure.
+## have got by aiming there - with ONE deliberate departure. Everything else vanilla does is kept,
+## including its NON-DUPLICATE append of both the AoE tiles and the units in them - though for the
+## TILES that turns out to be parity rather than protection, since get_aoe_tiles already returns a
+## unique array (measured; see the comment at the append itself).
 ##
 ## THE DEPARTURE: vanilla seeds attacked_units from the plan's DIRECT targets before the AoE branch
 ## runs (`attacked_units.assign(plan.target_units)`, action_attack.gd:160); the AoE branch here starts
@@ -238,7 +271,18 @@ static func rebuild(unit:Unit, triggering_context:Context, live:bool) -> bool:
 		# which the generic reach check does not, and because it stops a future AoE-shape change
 		# from half-applying one.
 		if pattern.pattern == Lancer.AOE_TYPE.BURST: return false
-		new_tiles = specific.action.get_aoe_tiles_with_targets(pattern, new_targets, specific.unit.tile(), specific)
+		# NON-DUPLICATE, as vanilla appends them (action_attack.gd:165-166) - and MEASURED REDUNDANT,
+		# KEPT ANYWAY. The SP2 review expected duplicates here, because the rebuild is the one thing in
+		# the game that routinely makes two direct targets' areas overlap (it drags one onto our aim
+		# tile and leaves the others where they were) and RangePattern.get_aoe_tiles append_arrays each
+		# target's area (range_pattern.gd:54-65). They do not appear: get_aoe_tiles ends by calling
+		# filter_valid_aoe_tiles, which filters through Util.filter_and_remove_duplicates
+		# (range_pattern.gd:79-80), so the array comes back unique already. Measured 2026-09-15:
+		# assigning the result straight to new_tiles reddened nothing, test_two_overlapping_blasts_do_
+		# not_double_up_the_attacked_tiles included. The loop stays because it is what VANILLA does at
+		# this exact step, so the rebuild keeps matching it line for line if that filter ever moves.
+		for tile:Vector2i in specific.action.get_aoe_tiles_with_targets(pattern, new_targets, specific.unit.tile(), specific):
+			Util.append_nonduplicate(new_tiles, tile)
 		for aoe_unit:Unit in map.get_all_units_at_tiles(new_tiles, specific.unit):
 			Util.append_nonduplicate(new_units, aoe_unit)
 	else:

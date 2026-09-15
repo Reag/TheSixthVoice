@@ -158,6 +158,7 @@ func test_the_rail_carries_no_loading_and_no_other_tag():
 	# The card's tag line is AP and nothing else. Tags are add-only in this engine, so a stray one
 	# here can never be taken back off by a mod.
 	var action = rail_action()
+	assert_true(action is ActionAttackWeapon, 'The unit holds the Rail.')
 	if action is not ActionAttackWeapon: return
 	assert_eq(action.tags, [&'ap'] as Array[StringName], 'Exactly one tag: AP.')
 
@@ -166,6 +167,7 @@ func test_range_fifteen_is_what_the_targeting_actually_uses():
 	# Fire (Task 3) reads the Rail's reach with - if the two ever disagree, the reaction's range gate
 	# silently uses a different number from the weapon.
 	var action = rail_action()
+	assert_not_null(action, 'The unit holds the Rail.')
 	if action == null: return
 	var specific := SpecificAction.create(subutai, core_gear(), action)
 	assert_eq(action.get_target_range(specific), 15, 'The targeting range is 15.')
@@ -253,6 +255,31 @@ func test_a_hit_applies_the_chip_and_a_miss_does_not():
 	var missed:Unit = SubutaiFixture.create_dummy(game, Vector2i(10, 12), 30)
 	await fire_rail(missed, D20_MISS)
 	assert_false(UnitCondition.has_buff(missed, CHIP_ID), 'A miss does not.')
+
+func test_a_second_hit_refreshes_the_chip_rather_than_stacking_it():
+	# NOT CUMULATIVE, and this pins the correction: the Task 2 report claimed a second hit would stack
+	# a second -2. Buff.multiple_copies_can_stack defaults to FALSE (buff.gd:131), and
+	# UnitCondition.apply_buff_alt (unit_condition.gd:741-748) clears every buff already on the unit
+	# with the same compcon_id, the same from_gear, the same `to` and the same `until` before appending
+	# the new one - so a second hit REPLACES the chip with its lifetime refreshed. One buff, one -2.
+	#
+	# THE SECOND SHOT NEEDS A SECOND TURN: the Rail's per-turn soft limit is 1. The Subutai's own turn
+	# is ended and reopened rather than the target's, because the target taking a turn is what would
+	# expire the chip (test_the_chip_clears_at_the_end_of_the_targets_next_turn).
+	await SubutaiFixture.open_turn(game, subutai)
+	await fire_rail(target)
+	assert_eq(UnitCondition.get_buffs(target, CHIP_ID).size(), 1, 'CONTROL: one chip after the first hit.')
+
+	await game.execute_event(&'event_turn_end', {unit = subutai})
+	await SubutaiFixture.open_turn(game, subutai)
+	await fire_rail(target)
+	assert_eq(UnitCondition.get_buffs(target, CHIP_ID).size(), 1,
+		'Still ONE chip after the second hit: the old one was cleared, not added to.')
+
+	var ally:Unit = SubutaiFixture.create_ally(game, ALLY_TILE)
+	var rifle := arm(target, RIFLE)
+	assert_eq(preview(target, rifle, ally).accuracy_mods_total(), -2,
+		'And the modifier is still -2, not -4.')
 
 func test_the_chipped_target_is_at_minus_two_against_an_ally():
 	var ally:Unit = SubutaiFixture.create_ally(game, ALLY_TILE)
