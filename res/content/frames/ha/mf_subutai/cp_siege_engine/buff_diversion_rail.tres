@@ -1,0 +1,12 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_subutai/cp_siege_engine/buff_diversion_rail.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/buff_diversion_rail.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_buff")
+icon = ExtResource("2_icon")
+to = &"attack_roll"
+bonus_subtype = &"accuracy"
+bonus_value = -2
+until = 1

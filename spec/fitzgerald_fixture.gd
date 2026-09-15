@@ -120,8 +120,16 @@ static func open_turn(game:Gamemaster, unit:Unit) -> void:
 ## other two callers never had it - it stays at that one call site.
 const DEPLOYABLE_FRAME_ID := &'dep_jericho_cover'
 
-static func create_deployable(game:Gamemaster, tile:Vector2i, health:int, armor:int, evasion:int) -> Unit:
-	var dep := SpecFactory.create_unit(game.map, tile, Faction.AI_ENEMY)
+## SP1 Task 4 review: `faction` is a new OPTIONAL trailing argument, defaulting to the AI_ENEMY every
+## existing call site was getting implicitly, so none of them changes behaviour. The Subutai's
+## Juggernaut Drive needs a FRIENDLY deployable - the card says "allied character", and the only
+## honest test that a deployable does not anchor a line is one the unit would otherwise drive
+## towards.
+static func create_deployable(
+	game:Gamemaster, tile:Vector2i, health:int, armor:int, evasion:int,
+	faction:Faction.SIDE = Faction.AI_ENEMY,
+) -> Unit:
+	var dep := SpecFactory.create_unit(game.map, tile, faction)
 	dep.core.frame = ContentLibrary.get_mech_frame(DEPLOYABLE_FRAME_ID)
 	FrameIsolation.isolate_frame(dep)
 	dep.core.frame.stat.health = health

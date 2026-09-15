@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.2.0'
+const EXPECTED_VERSION := '0.3.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -181,7 +181,7 @@ const ICON_TARGETS := {
 	&'mt_hole_puncher': [], # a passive trait: no action of its own, so it wears the Kit's icon
 	&'mt_knock_em_down': [], # a passive trait: no action of its own, so it wears the Kit's icon
 	# Its one action (action_blasting_powder_spend) is a hidden bookkeeping reaction: reactions never
-	# reach the gear bar (gear_bar.gd:143) and it overrides show_in_tooltip to false, so nothing the
+	# reach the gear bar (gear_bar.gd:145) and it overrides show_in_tooltip to false, so nothing the
 	# player sees ever wears an icon for it. The Kit's own icon still has to be real.
 	&'mt_blasting_powder': [],
 	# SP2 Task 1. A weapon Kit, not a trait: its SINGLE SHOT profile is a separately pressable button
@@ -191,7 +191,7 @@ const ICON_TARGETS := {
 	# the mt_blasting_powder reason above.)
 	&'mw_breech_loading_swivel_gun': [&'action_swivel_single_shot', &'action_swivel_grapeshot'],
 	# SP2 Task 4. Its one action (action_heaer_detonate) is a hidden bookkeeping reaction: reactions
-	# never reach the gear bar (gear_bar.gd:143) and it overrides show_in_tooltip to false, so nothing
+	# never reach the gear bar (gear_bar.gd:145) and it overrides show_in_tooltip to false, so nothing
 	# the player sees ever wears an icon for it. The Kit's own icon still has to be real - the system
 	# is equippable, and sits in the loadout like any other.
 	&'ms_heaer': [],
@@ -222,6 +222,21 @@ const ICON_TARGETS := {
 	# SP1 Task 3 (M/K2). The core system, one pressable protocol - cp_broadside's shape with one
 	# button instead of three.
 	&'cp_auxiliary_power_rerouter': [&'action_ors_hypercharge'],
+	# SP1 Task 4 (Subutai). Its one action is an end_turn reaction, and reactions never reach the
+	# gear bar (gear_bar.gd:145) - but unlike mt_blasting_powder's and ms_heaer's hidden bookkeeping
+	# reactions, this one does NOT override show_in_tooltip, so it is drawn on the trait card with
+	# its own row. It therefore earns its own icon as well as the Kit's.
+	&'mt_juggernaut_drive': [&'action_juggernaut_drive'],
+	# SP1 Task 2 (Subutai). A pure passive: no action of its own, so it wears the Kit's icon. Its
+	# BuffResistDamage is an inline SubResource and carries hide_from_player, so it is correctly
+	# absent from VISIBLE_BUFFS - it is never a chip on the unit.
+	&'mt_reinforced_chassis': [],
+	# SP2 Task 1 (Subutai). The core system. GATHER ROUND is a PROTOCOL the player presses on the
+	# gear bar, so it wears its own icon as well as the Kit's - cp_auxiliary_power_rerouter's shape.
+	# Task 2 appends action_diversion_rail (a pressable weapon profile) and Task 3 action_draw_fire
+	# (a reaction that never reaches the gear bar, but does not override show_in_tooltip, so it is
+	# drawn on the trait card with its own row - the mt_juggernaut_drive reasoning).
+	&'cp_siege_engine': [&'action_gather_round', &'action_draw_fire', &'action_diversion_rail'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -259,6 +274,15 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# SP1 Task 1 and Task 3 (M/K2) - deliberately player-visible, and they are the only on-map signal
 	# that either ability is running.
 	&'buff_rapid_stabilization_jets', &'buff_ors_hypercharge',
+	# SP2 Task 1 (Subutai). The chip is the only on-map signal that the core power is up and Draw
+	# Fire is live; Draw Fire itself reads it by id, so it has to exist as a standalone buff_*.tres
+	# whether or not it were visible.
+	&'buff_gather_round',
+	# SP2 Task 2 (Subutai). The on-hit chip. Visible for two independent reasons: it is the target's
+	# only warning that it is at +2 difficulty, and attack_roll.gd:189 passes buff_core.base.icon
+	# RAW into the roll breakdown - NOT through Buff.get_icon(), so BuffBonus's accuracy-svg fallback
+	# never runs on that path and a null icon draws a blank beside the -2.
+	&'buff_diversion_rail',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

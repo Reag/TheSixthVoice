@@ -497,6 +497,54 @@ func test_both_profiles_are_firable_after_the_protocol() -> void:
 	assert_false(_gear_bar_hides_when_disabled(MBP_ACTION_ID),
 		'And the second profile now has a button on the bar, where a moment ago it had none.')
 
+func test_the_protocol_does_not_cost_the_cannon_its_turn() -> void:
+	# RULING 92 SAYS THIS FILE HAS A LATENT DEFECT. IT DOES NOT, AND THIS TEST IS THE EVIDENCE.
+	#
+	# The ruling (rulings.md, 2026-09-15, "Siege Engine usage groups") claims that
+	# action_more_black_powder_protocol.tres "sets no group", so pressing MORE BLACK POWDER would
+	# record a use of the KIT's group and unit_action.gd:167-168's per-turn repeat-action rule would
+	# then refuse the cannon on the same turn unless the player overcharged. It further claims that
+	# test_both_profiles_are_firable_after_the_protocol passes only because can_activate_gear also
+	# accepts firing by overcharge (unit_action.gd:119-120).
+	#
+	# Both halves are false for this Kit. The protocol has carried
+	# usage_group = &"more_black_powder" since the commit that created it (8cb7773), and
+	# GearCore.get_usage_group_for_action falls back to kit.compcon_id ONLY when the group is empty
+	# (gear_core.gd:165-167). So the protocol counts against "more_black_powder" and the cannon
+	# against "cp_broadside" - different keys in the uses_this_turn dictionary
+	# (gear_core.gd:180-181) - and the cannon's allowance is untouched.
+	#
+	# The Subutai's cp_siege_engine DID have that defect and fixed it at SP2; the Fitzgerald never
+	# had it. This test exists so the claim cannot be re-derived from prose a third time, AND so
+	# that the defect would be caught for real if anyone ever deleted the protocol's usage_group.
+	await use_protocol()
+
+	# The two assertions that cannot be vacuous: the engine's own per-group bookkeeping.
+	assert_eq(_gear().get_uses_this_turn(_action(ACTION_ID)), 0,
+		'The cannon\'s usage group records no use: the protocol spent a different one.')
+	assert_eq(_gear().get_uses_this_turn(_action(MBP_PROTOCOL_ID)), 1,
+		'while the protocol\'s own group records exactly the one press.')
+	assert_true(UnitAction.is_under_per_turn_limit(_specific(ACTION_ID)),
+		'So the cannon is still under its per-turn limit on the protocol turn.')
+
+	# And the half ruling 92 said was carrying test_both_profiles_are_firable_after_the_protocol.
+	# THAT HALF IS DOUBLY WRONG, and this is the measurement that settles it: the spec's Fitzgerald
+	# holds NO overcharge action at all. would_consume_overcharge_to_use_gear therefore returns false
+	# at unit_action.gd:200-201, before it ever reaches a usage group - so can_activate_gear's
+	# overcharge clause (unit_action.gd:119-120) CANNOT be what passes that test. The only route to
+	# true is the normal one at :116-117, which is the claim.
+	#
+	# (Asserting has_overcharge false rather than true is deliberate. The first draft of this test
+	# asserted true as a precondition so that a would_consume_overcharge_to_use_gear check could not
+	# pass vacuously; the run came back red and reported the real state, which turns out to be the
+	# stronger evidence. Keep it this way round: if a future fixture change ever grants the unit an
+	# overcharge, this assertion fails loudly and the reasoning above gets re-examined, rather than
+	# the test quietly going back to proving nothing.)
+	assert_false(UnitAction.has_overcharge(unit),
+		'The spec Fitzgerald holds no overcharge at all,')
+	assert_true(UnitAction.can_activate_gear(_specific(ACTION_ID)),
+		'so the cannon being firable after the protocol can only be the normal path, not an overcharge.')
+
 func test_firing_one_profile_spends_the_shared_allowance_for_the_other() -> void:
 	# Both profiles share the Kit's usage group by ENGINE DEFAULT, not by anything either .tres sets:
 	# GearCore.get_usage_group_for_action (gear_core.gd:166-168) falls back to kit.compcon_id whenever
