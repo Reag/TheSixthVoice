@@ -74,6 +74,9 @@ func test_a_subutai_actually_holds_the_core_system():
 
 func test_the_protocol_is_a_core_power_protocol_applied_only_to_self():
 	var kit:Kit = ContentLibrary.get_kit(CORE_ID)
+	# Asserted before the guard: a bare `return` here would let the Kit dropping out of the index
+	# pass this test green with zero asserts (GUT scores that RISKY, not FAILED).
+	assert_true(Kit.is_valid(kit), 'cp_siege_engine is in the kits index.')
 	if not Kit.is_valid(kit): return
 	var action:Action = kit.get_action(PROTOCOL_ID)
 	assert_true(action is ActionSystemApplyBuff, 'It applies a buff.')
