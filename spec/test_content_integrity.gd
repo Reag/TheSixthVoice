@@ -236,7 +236,7 @@ const ICON_TARGETS := {
 	# Task 2 appends action_diversion_rail (a pressable weapon profile) and Task 3 action_draw_fire
 	# (a reaction that never reaches the gear bar, but does not override show_in_tooltip, so it is
 	# drawn on the trait card with its own row - the mt_juggernaut_drive reasoning).
-	&'cp_siege_engine': [&'action_gather_round', &'action_diversion_rail'],
+	&'cp_siege_engine': [&'action_gather_round', &'action_draw_fire', &'action_diversion_rail'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
