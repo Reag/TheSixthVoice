@@ -9,6 +9,10 @@ Measured across vanilla `assets/frames/`: **93 files at 80×80, 39 at 160×160 (
 (the Barbarossa, size 3). A size-2 or size-3 frame in this supplement needs its own placeholder at
 the matching dimension rather than this one scaled.
 
+`mf_placeholder_160.png` is the same art at 160×160 (nearest-neighbour 2×), for **size-2** frames.
+The Subutai is the first of them. A size-3 frame will need a 240×240 sibling; do not point a size-2
+or size-3 frame at the 80×80 file, which renders at half scale on the board.
+
 Art never blocks a release (roadmap §6). A sprite drop-in needs no session: replace the file, run
 the headless import, commit the regenerated `.import` sidecar.
 
