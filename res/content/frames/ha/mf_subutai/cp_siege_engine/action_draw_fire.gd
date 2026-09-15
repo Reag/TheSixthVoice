@@ -53,8 +53,18 @@
 ## subutais_own_turn. Within a single enemy phase the counter does bind, however many enemies shoot.
 extends ActionReaction
 
-## The Rail lives on the same Kit; both its reach (the trigger's range clause) and the follow-up shot
-## are read off it, so the two can never disagree with the weapon the card names.
+## THE RAIL IS ITS OWN KIT, not an action on this one (changed 2026-09-15, author-ruled).
+##
+## The character sheet titles an integrated-weapon box from the KIT that holds the weapon -
+## `Translate.gear(core.kit.compcon_id, 'name')`, `weapon_mount_item.gd:101` - so while the Rail sat
+## on `cp_siege_engine` the game called the Subutai's gun "Siege Engine". One Kit cannot carry two
+## names, and that UI file is base-game. Splitting the weapon onto `mw_diversion_rail` is vanilla's
+## own shape for a standalone integrated weapon (`mw_fuel_rod_gun.tres`, Nuclear Cavalier rank 3).
+##
+## Both the trigger's range clause and the follow-up shot are still read off the weapon itself, so
+## neither can disagree with the gun the card names - they are just read off the OTHER gear now, via
+## `rail_gear()`. Everything here takes the UNIT rather than this reaction's own gear.
+const RAIL_KIT_ID := &'mw_diversion_rail'
 const RAIL_ACTION_ID := &'action_diversion_rail'
 
 ## GATHER ROUND's chip. The reaction does not exist until the protocol has been pressed.
@@ -74,12 +84,24 @@ func is_available_to_activate(unit:Unit, gear:GearCore) -> bool:
 func get_required_triggering_context() -> Array[Context.PROP]:
 	return [Context.PROP.unit, Context.PROP.gear, Context.PROP.action, Context.PROP.resource]
 
-func rail_action(gear:GearCore) -> Action:
+## The Rail's own GearCore on this unit, or null. Null is a real possibility rather than paranoia:
+## the Rail is a frame trait and a player may CLEAR a frame trait from the character sheet
+## (mech_section.gd:256, set_trait_removed), which removes the gear while GATHER ROUND and this
+## reaction stay. Every caller below treats null as "no Rail, so no draw", which is the card's own
+## reading - the trigger is measured in the Rail's range, and a Subutai with no Rail has none.
+func rail_gear(unit:Unit) -> GearCore:
+	if not Unit.is_valid(unit): return null
+	var gear:GearCore = unit.get_gear(RAIL_KIT_ID)
+	return gear if GearCore.is_valid(gear) else null
+
+func rail_action(unit:Unit) -> Action:
+	var gear:GearCore = rail_gear(unit)
 	return gear.get_action(RAIL_ACTION_ID) if GearCore.is_valid(gear) else null
 
 ## The Diversion Rail's targeting range, read off the weapon rather than hardcoded.
-func rail_range(unit:Unit, gear:GearCore) -> int:
-	var rail:Action = rail_action(gear)
+func rail_range(unit:Unit, _gear:GearCore) -> int:
+	var gear:GearCore = rail_gear(unit)
+	var rail:Action = rail_action(unit)
 	if rail == null: return 0
 	return rail.get_target_range(SpecificAction.create(unit, gear, rail))
 
@@ -201,11 +223,16 @@ func activate(context:Context, activation:EventCore) -> void:
 ## If the Rail cannot reach the attacker by then - the drawn shot's knockback moved us out of range
 ## or sight - the queued event finds no target and does nothing. Accepted.
 func queue_rail_follow_up(context:Context, activation:EventCore, triggering_context:Context) -> void:
-	var rail:Action = rail_action(context.gear)
+	# The shot is built on the RAIL's gear, not this reaction's - they are different Kits since the
+	# frame close. Getting this wrong would not crash: SpecificAction.create would pair the Rail
+	# action with cp_siege_engine, and can_activate_gear would then check the wrong Kit's usage,
+	# charges and destruction state.
+	var rail_holder:GearCore = rail_gear(context.unit)
+	var rail:Action = rail_action(context.unit)
 	if rail == null: return
 	var attacker:Unit = triggering_context.unit.get_attacker(triggering_context)
 	if not Unit.is_valid(attacker): return
-	var shot := SpecificAction.create(context.unit, context.gear, rail)
+	var shot := SpecificAction.create(context.unit, rail_holder, rail)
 	CommonActionUtil.choose_and_use_after_triggering_event(
 		activation, shot, [shot],
 		CommonActionUtil.choose_and_use_no_spend, attacker, [Action.FLAG.AS_FREEBIE]

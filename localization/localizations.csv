@@ -20,14 +20,15 @@ gear.mt_weak_computer.name,Weak Computer
 gear.mt_weak_computer.effect,The Fitzgerald receives |+1 Difficulty| on all SYSTEMS saves and checks.
 ,
 gear.cp_broadside.name,Broadside
+gear.mw_bizarre_cannon.name,Bizarre Cannon
 gear.cp_broadside.flavor,Give 'em hell.
 gear.cp_broadside.effect,"The BIZARRE CANNON is built through the Fitzgerald's chassis rather than mounted on it: it occupies no weapon mount and cannot take a weapon mod. Its active MORE BLACK POWDER protocol grants the cannon a second profile."
-gear.cp_broadside.action_bizarre_cannon.name,Bizarre Cannon
-gear.cp_broadside.action_bizarre_cannon.effect,"On attack: you take 2 |AP| kinetic damage and are knocked back 2 spaces, away from the direction of fire."
+gear.mw_bizarre_cannon.action_bizarre_cannon.name,Bizarre Cannon
+gear.mw_bizarre_cannon.action_bizarre_cannon.effect,"On attack: you take 2 |AP| kinetic damage and are knocked back 2 spaces, away from the direction of fire."
 gear.cp_broadside.action_more_black_powder_protocol.name,MORE BLACK POWDER
 gear.cp_broadside.action_more_black_powder_protocol.effect,"For the rest of this scene, the BIZARRE CANNON gains the following profile: Heavy Cannon, |AP|, |Reliable 3|, |Heat 1| (Self). [|Line 15|] [2d6 kinetic + 1d6 explosive damage]"
-gear.cp_broadside.action_more_black_powder.name,Bizarre Cannon (More Black Powder)
-gear.cp_broadside.action_more_black_powder.effect,"On attack: you take 3 |AP| kinetic damage and are knocked back 3 spaces, in any direction. On hit: targets must succeed on a |hull save| or become |prone|."
+gear.mw_bizarre_cannon.action_more_black_powder.name,Bizarre Cannon (More Black Powder)
+gear.mw_bizarre_cannon.action_more_black_powder.effect,"On attack: you take 3 |AP| kinetic damage and are knocked back 3 spaces, in any direction. On hit: targets must succeed on a |hull save| or become |prone|."
 gear.buff_more_black_powder.name,More Black Powder
 gear.buff_more_black_powder.effect,"The BIZARRE CANNON has a second, heavier profile for the rest of this scene."
 ,
@@ -104,14 +105,15 @@ gear.mt_juggernaut_drive.effect,"1/round, as a |free action| at the end of its t
 gear.mt_juggernaut_drive.action_juggernaut_drive.name,Juggernaut Drive
 gear.mt_juggernaut_drive.action_juggernaut_drive.effect,"Move up to 3 spaces in a straight line directly towards an allied character within |line of sight|, ignoring terrain and |Immobilized|."
 gear.cp_siege_engine.name,Siege Engine
+gear.mw_diversion_rail.name,Diversion Rail
 gear.cp_siege_engine.flavor,"And God said, Let there be light: and there was light. And Harrison said, Let there be 73-pound hyperdense tungsten bars gravitationally launched at 128 meters per second that infect their target with forced system lock: and there was 73-pound hyperdense tungsten bars gravitationally launched at 128 meters per second that infect their target with forced system lock. God is dead and we have killed her!"
 gear.cp_siege_engine.effect,"The DIVERSION RAIL is built through the Subutai's chassis rather than mounted on it: it occupies no weapon mount and cannot take a weapon mod. Its active GATHER ROUND protocol grants the DRAW FIRE reaction for the rest of the scene."
 gear.cp_siege_engine.action_gather_round.name,GATHER ROUND
 gear.cp_siege_engine.action_gather_round.effect,"For the rest of the scene, you gain the Draw Fire reaction."
 gear.buff_gather_round.name,Gather Round
 gear.buff_gather_round.effect,"For the rest of the scene, you gain the Draw Fire reaction."
-gear.cp_siege_engine.action_diversion_rail.name,Diversion Rail
-gear.cp_siege_engine.action_diversion_rail.effect,"On attack: You become |immobilized| until the start of your next turn. On hit: The target takes |+2 difficulty| on all attacks that do not target the Subutai until the end of their next turn."
+gear.mw_diversion_rail.action_diversion_rail.name,Diversion Rail
+gear.mw_diversion_rail.action_diversion_rail.effect,"On attack: You become |immobilized| until the start of your next turn. On hit: The target takes |+2 difficulty| on all attacks that do not target the Subutai until the end of their next turn."
 gear.buff_diversion_rail.name,Diversion Rail
 gear.buff_diversion_rail.effect,"The target takes |+2 difficulty| on all attacks that do not target the Subutai until the end of their next turn."
 gear.cp_siege_engine.action_draw_fire.name,Draw Fire

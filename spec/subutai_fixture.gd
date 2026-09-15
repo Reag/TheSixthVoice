@@ -18,6 +18,10 @@ const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzg
 
 const FRAME_ID := &'mf_subutai'
 const CORE_ID := &'cp_siege_engine'
+## The Rail is its OWN Kit since 2026-09-15, so the character sheet can title the
+## integrated-weapon box "Diversion Rail" rather than "Siege Engine"
+## (weapon_mount_item.gd:101 reads the KIT's name). See test_integrated_weapon_names.gd.
+const RAIL_KIT_ID := &'mw_diversion_rail'
 const GATHER_ROUND_ID := &'action_gather_round'
 
 static func create_game(test:GutTest, map_size:Vector2i = FitzgeraldFixture.DEFAULT_MAP_SIZE) -> Gamemaster:

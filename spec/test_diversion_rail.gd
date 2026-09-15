@@ -26,6 +26,10 @@ const SubutaiFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/subutai_
 const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 
 const CORE_ID := &'cp_siege_engine'
+## The Rail is its OWN Kit since 2026-09-15, so the character sheet can title the
+## integrated-weapon box "Diversion Rail" rather than "Siege Engine"
+## (weapon_mount_item.gd:101 reads the KIT's name). See test_integrated_weapon_names.gd.
+const RAIL_KIT_ID := &'mw_diversion_rail'
 const RAIL_ID := &'action_diversion_rail'
 const CHIP_ID := &'buff_diversion_rail'
 
@@ -73,11 +77,11 @@ func after_each() -> void:
 
 # ---------------------------------------------------------------- helpers
 
-func core_gear() -> GearCore:
-	return subutai.get_gear(CORE_ID)
+func rail_gear() -> GearCore:
+	return subutai.get_gear(RAIL_KIT_ID)
 
 func rail_action() -> Action:
-	var gear:GearCore = core_gear()
+	var gear:GearCore = rail_gear()
 	return gear.get_action(RAIL_ID) if GearCore.is_valid(gear) else null
 
 ## Every die in the rest of this activation comes back 6 after the one d20 we care about. A thinner
@@ -99,7 +103,7 @@ func fire_rail(at:Unit, d20:int = D20_HIT) -> DeclaredAttackSummary:
 ## parameter of the gate: the Rail's gear core, and therefore the chip's from_gear, is per UNIT.
 func fire_rail_from(shooter:Unit, at:Unit, d20:int = D20_HIT) -> DeclaredAttackSummary:
 	queue_dice(d20)
-	var gear:GearCore = shooter.get_gear(CORE_ID)
+	var gear:GearCore = shooter.get_gear(RAIL_KIT_ID)
 	var action:Action = gear.get_action(RAIL_ID) if GearCore.is_valid(gear) else null
 	var core := EventCore.create(&'event_gear_activate', {
 		action = action, gear = gear, unit = shooter, target_unit = at,
@@ -118,7 +122,7 @@ func fire_rail_at_tile(tile:Vector2i) -> void:
 	queue_dice(D20_HIT)
 	var tiles:Array[Vector2i] = [tile]
 	var core := EventCore.create(&'event_gear_activate', {
-		action = rail_action(), gear = core_gear(), unit = subutai, target_tiles = tiles,
+		action = rail_action(), gear = rail_gear(), unit = subutai, target_tiles = tiles,
 	})
 	var cores:Array[EventCore] = [core]
 	await game.execute_event_block(EventBlock.create_multiple(cores))
@@ -156,9 +160,11 @@ func arm(unit:Unit, weapon_id:StringName) -> GearCore:
 
 # ---------------------------------------------------------------- the weapon profile
 
-func test_the_rail_is_on_the_core_kit():
-	var kit:Kit = ContentLibrary.get_kit(CORE_ID)
-	assert_true(Kit.is_valid(kit), 'cp_siege_engine loads.')
+func test_the_rail_is_on_its_own_kit():
+	# It used to be an action on cp_siege_engine, which made the game call the Subutai's gun
+	# "Siege Engine" in the integrated-weapon box. Its own Kit is what fixes that.
+	var kit:Kit = ContentLibrary.get_kit(RAIL_KIT_ID)
+	assert_true(Kit.is_valid(kit), 'mw_diversion_rail loads.')
 	if not Kit.is_valid(kit): return
 	var action:Action = kit.get_action(RAIL_ID)
 	assert_not_null(action, 'The Kit carries action_diversion_rail.')
@@ -190,7 +196,7 @@ func test_range_fifteen_is_what_the_targeting_actually_uses():
 	var action = rail_action()
 	assert_not_null(action, 'The unit holds the Rail.')
 	if action == null: return
-	var specific := SpecificAction.create(subutai, core_gear(), action)
+	var specific := SpecificAction.create(subutai, rail_gear(), action)
 	assert_eq(action.get_target_range(specific), 15, 'The targeting range is 15.')
 
 func test_the_ap_flag_reaches_the_damage_event():
@@ -495,11 +501,13 @@ func test_the_rail_fires_on_the_turn_gather_round_is_pressed():
 
 func test_the_rail_rows_resolve():
 	for key:String in [
-		'gear.cp_siege_engine.action_diversion_rail.name',
-		'gear.cp_siege_engine.action_diversion_rail.effect',
+		'gear.mw_diversion_rail.action_diversion_rail.name',
+		'gear.mw_diversion_rail.action_diversion_rail.effect',
 		'gear.buff_diversion_rail.name', 'gear.buff_diversion_rail.effect',
 	]:
 		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
-	assert_eq(X.tr('gear.cp_siege_engine.action_diversion_rail.name'), 'Diversion Rail', 'Named.')
+	assert_eq(X.tr('gear.mw_diversion_rail.action_diversion_rail.name'), 'Diversion Rail', 'Named.')
+	assert_eq(X.tr('gear.mw_diversion_rail.name'), 'Diversion Rail',
+		'and so is the Kit, which is the name the integrated-weapon box shows.')
 	assert_eq(X.tr('gear.buff_diversion_rail.name'), 'Diversion Rail',
 		'The chip is named after its source (ruling 14).')

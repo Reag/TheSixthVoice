@@ -38,7 +38,10 @@ extends GutTest
 
 const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 
-const KIT_ID := &'cp_broadside'
+## The Bizarre Cannon moved to its OWN Kit at the 2026-09-15 patch, so the character sheet could
+## title the integrated-weapon box "Bizarre Cannon" rather than "Broadside"
+## (weapon_mount_item.gd:101 reads the KIT's name). cp_broadside keeps the protocol.
+const KIT_ID := &'mw_bizarre_cannon'
 const ACTION_ID := &'action_bizarre_cannon'
 const TRAIT_ID := &'mt_blasting_powder'
 const USAGE_KEY := &'blasting_powder'

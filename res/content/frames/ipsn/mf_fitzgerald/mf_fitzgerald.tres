@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="7_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_fitzgerald/mt_weak_computer.tres" id="8_weakcomputer"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_fitzgerald/cp_broadside/cp_broadside.tres" id="9_broadside"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_fitzgerald/cp_broadside/mw_bizarre_cannon.tres" id="20_cannon"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_fitzgerald/mt_hole_puncher/mt_hole_puncher.tres" id="10_holepuncher"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_fitzgerald/mt_knock_em_down/mt_knock_em_down.tres" id="11_knockemdown"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_fitzgerald/mt_blasting_powder/mt_blasting_powder.tres" id="12_blastingpowder"]
@@ -48,5 +49,5 @@ mount_types = Array[ExtResource("4_mounttype")]([ExtResource("5_mountmain")])
 stat = SubResource("Resource_statblock")
 role_primary = 4
 role_secondary = 1
-traits = Array[ExtResource("7_kit")]([ExtResource("10_holepuncher"), ExtResource("11_knockemdown"), ExtResource("12_blastingpowder"), ExtResource("8_weakcomputer"), ExtResource("9_broadside")])
+traits = Array[ExtResource("7_kit")]([ExtResource("10_holepuncher"), ExtResource("11_knockemdown"), ExtResource("12_blastingpowder"), ExtResource("8_weakcomputer"), ExtResource("9_broadside"), ExtResource("20_cannon")])
 metadata/_custom_type_script = "uid://daycu0mqh1rbq"

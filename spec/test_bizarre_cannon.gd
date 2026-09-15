@@ -32,7 +32,20 @@ const FrameIsolation := preload('res://testkit/frame_isolation.gd')
 const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 
 const FRAME_ID := &'mf_fitzgerald'
+## THE CORE SYSTEM. Since 2026-09-15 it carries the PROTOCOL only.
 const KIT_ID := &'cp_broadside'
+## THE INTEGRATED WEAPON, its own Kit, carrying both cannon profiles.
+##
+## The character sheet titles an integrated-weapon box from the KIT that holds the weapon -
+## Translate.gear(core.kit.compcon_id, 'name'), weapon_mount_item.gd:101 - so while the cannon
+## sat on cp_broadside the game called the Fitzgerald's gun "Broadside". One Kit cannot carry
+## two names and that UI file is base-game, so the weapon moved to its own Kit: vanilla's shape
+## for a standalone integrated weapon (mw_fuel_rod_gun.tres). See test_integrated_weapon_names.gd.
+##
+## Ruling 8 is unaffected: both profiles still leave usage_group empty, so both still fall back
+## to the KIT id (gear_core.gd:165-167) and still share one per-turn allowance - it is just
+## mw_bizarre_cannon's now instead of cp_broadside's.
+const CANNON_KIT_ID := &'mw_bizarre_cannon'
 const ACTION_ID := &'action_bizarre_cannon'
 
 # SP1 Task 4: MORE BLACK POWDER. A PROTOCOL that applies a scene-long marker, and a SECOND weapon
@@ -99,13 +112,29 @@ func after_each() -> void:
 
 # ---------------------------------------------------------------- helpers
 
-func _kit() -> Kit:
+## The CORE SYSTEM's Kit and gear (the protocol).
+func _core_kit() -> Kit:
 	var kit = ContentLibrary.get_kit(KIT_ID)
 	return kit if kit is Kit else null
 
-func _gear() -> GearCore:
+func _core_gear() -> GearCore:
 	var gear := unit.get_gear(KIT_ID)
 	return gear if GearCore.is_valid(gear) else null
+
+## The WEAPON's Kit and gear (both profiles). _kit()/_gear() mean the weapon, because all but a
+## handful of assertions in this file are about the gun.
+func _kit() -> Kit:
+	var kit = ContentLibrary.get_kit(CANNON_KIT_ID)
+	return kit if kit is Kit else null
+
+func _gear() -> GearCore:
+	var gear := unit.get_gear(CANNON_KIT_ID)
+	return gear if GearCore.is_valid(gear) else null
+
+## The gear that actually carries `action_id` - the protocol is on the core Kit, the two
+## profiles on the weapon Kit. Every helper below goes through this rather than assuming one.
+func _gear_for(action_id:StringName) -> GearCore:
+	return _core_gear() if action_id == MBP_PROTOCOL_ID else _gear()
 
 func _profile() -> ActionAttackWeapon:
 	return _weapon(ACTION_ID)
@@ -114,7 +143,7 @@ func _profile() -> ActionAttackWeapon:
 ## carries THREE actions from Task 4 on, and "solo" would silently mean "whichever is first in the
 ## array" (gear_core.gd:337-339).
 func _action(action_id:StringName) -> Action:
-	var gear := _gear()
+	var gear := _gear_for(action_id)
 	if gear == null: return null
 	var action := gear.get_action(action_id)
 	return action if Action.is_valid(action) else null
@@ -124,7 +153,7 @@ func _weapon(action_id:StringName) -> ActionAttackWeapon:
 	return action if action is ActionAttackWeapon else null
 
 func _specific(action_id:StringName) -> SpecificAction:
-	return SpecificAction.create(unit, _gear(), _action(action_id))
+	return SpecificAction.create(unit, _gear_for(action_id), _action(action_id))
 
 ## Does gear_bar.gd's hide_if_disabled clause hide this action's button?
 ##
@@ -142,11 +171,11 @@ func _gear_bar_hides_when_disabled(action_id:StringName) -> bool:
 
 func fire_at(tile:Vector2i) -> void:
 	await FitzgeraldFixture.open_turn(game, unit)
-	await SpecFactory.use(game, unit, KIT_ID, ACTION_ID, tile)
+	await SpecFactory.use(game, unit, CANNON_KIT_ID, ACTION_ID, tile)
 
 func fire_more_black_powder_at(tile:Vector2i) -> void:
 	await FitzgeraldFixture.open_turn(game, unit)
-	await SpecFactory.use(game, unit, KIT_ID, MBP_ACTION_ID, tile)
+	await SpecFactory.use(game, unit, CANNON_KIT_ID, MBP_ACTION_ID, tile)
 
 func use_protocol() -> void:
 	await FitzgeraldFixture.open_turn(game, unit)
@@ -179,10 +208,19 @@ func cheat_a_miss() -> void:
 # ---------------------------------------------------------------- the Kit
 
 func test_the_core_kit_is_registered_as_a_trait() -> void:
+	# BOTH Kits, since the weapon split off: the core system carries the protocol, the weapon Kit
+	# carries the gun, and the frame has to carry both or half the core system vanishes.
+	var core_kit := _core_kit()
+	assert_not_null(core_kit, '%s loads as a valid Kit through ContentLibrary.' % KIT_ID)
+	if core_kit == null: return
+	assert_true(core_kit.is_trait, '%s is a trait Kit.' % KIT_ID)
+	assert_not_null(_core_gear(), 'A live Fitzgerald carries %s as gear.' % KIT_ID)
+
 	var kit := _kit()
-	assert_not_null(kit, '%s loads as a valid Kit through ContentLibrary.' % KIT_ID)
+	assert_not_null(kit, '%s loads as a valid Kit through ContentLibrary.' % CANNON_KIT_ID)
 	if kit == null: return
-	assert_true(kit.is_trait, '%s is a trait Kit (no mount, no weapon mod, no Main slot).' % KIT_ID)
+	assert_true(kit.is_trait,
+		'%s is a trait Kit - which is what puts it in get_integrated_weapons().' % CANNON_KIT_ID)
 
 	var frame:Frame = ContentLibrary.get_mech_frame(FRAME_ID)
 	assert_not_null(frame, 'fixture: the frame loads.')
@@ -191,13 +229,18 @@ func test_the_core_kit_is_registered_as_a_trait() -> void:
 		frame.traits.any(func(carried:Kit) -> bool: return carried.compcon_id == KIT_ID),
 		'The frame carries %s in its traits.' % KIT_ID
 	)
+	assert_true(
+		frame.traits.any(func(carried:Kit) -> bool: return carried.compcon_id == CANNON_KIT_ID),
+		'and %s too.' % CANNON_KIT_ID
+	)
 	# And it survives the trip through the loadout: regenerate_derived_gear builds a GearCore per
 	# frame trait (loadout_core.gd:153-154), which is what makes the weapon actually fireable.
-	assert_not_null(_gear(), 'A live Fitzgerald carries %s as gear.' % KIT_ID)
+	assert_not_null(_gear(), 'A live Fitzgerald carries %s as gear.' % CANNON_KIT_ID)
 	# Design doc §2.5 gives the Bizarre Cannon SP 0. Nothing else pins this - it is currently
 	# satisfied only by Kit.sp_cost defaulting to 0 (kit.gd:29) - so an inspector save that ever
 	# writes a non-zero sp_cost into cp_broadside.tres would go unnoticed without this assertion.
-	assert_eq(kit.sp_cost, 0, '%s costs SP 0.' % KIT_ID)
+	assert_eq(kit.sp_cost, 0, '%s costs SP 0.' % CANNON_KIT_ID)
+	assert_eq(core_kit.sp_cost, 0, 'and so does %s.' % KIT_ID)
 
 # ---------------------------------------------------------------- the base profile's statistics
 
@@ -288,11 +331,17 @@ func test_the_kit_and_its_profile_have_display_text() -> void:
 	assert_not_null(translation,
 		'This mod has a compiled translation (run the headless --import if this is a fresh clone).')
 	if translation == null: return
-	var keys:Array[String] = ['gear.%s.name' % KIT_ID, 'gear.%s.effect' % KIT_ID]
-	# Every action on the Kit, not a hardcoded list, so a fourth profile cannot ship without its rows.
+	var keys:Array[String] = [
+		'gear.%s.name' % KIT_ID, 'gear.%s.effect' % KIT_ID,
+		'gear.%s.name' % CANNON_KIT_ID, # the name the integrated-weapon box shows
+	]
+	# Every action, keyed off the Kit that actually carries it - Translate.action builds
+	# ['gear', kit.compcon_id, action_id, prop] (translate.gd:26-29), so the protocol's rows hang
+	# off cp_broadside and the two profiles' off mw_bizarre_cannon.
 	for action_id:StringName in [ACTION_ID, MBP_PROTOCOL_ID, MBP_ACTION_ID]:
-		keys.append('gear.%s.%s.name' % [KIT_ID, action_id])
-		keys.append('gear.%s.%s.effect' % [KIT_ID, action_id])
+		var owner_id:StringName = KIT_ID if action_id == MBP_PROTOCOL_ID else CANNON_KIT_ID
+		keys.append('gear.%s.%s.name' % [owner_id, action_id])
+		keys.append('gear.%s.%s.effect' % [owner_id, action_id])
 	# The marker is a VISIBLE buff, so it gets its own tooltip rows. Without them Translate.buff falls
 	# all the way back to the owner gear's own name/effect (translate.gd:65-78), and the marker would
 	# render in the status bar wearing the Kit's text - which looks deliberate and is not.
@@ -519,10 +568,15 @@ func test_the_protocol_does_not_cost_the_cannon_its_turn() -> void:
 	# that the defect would be caught for real if anyone ever deleted the protocol's usage_group.
 	await use_protocol()
 
-	# The two assertions that cannot be vacuous: the engine's own per-group bookkeeping.
+	# SINCE THE SPLIT THIS IS OVER-DETERMINED, and deliberately kept anyway. The protocol and the
+	# cannon are now on DIFFERENT KITS, so their usage counters live on different GearCores
+	# entirely (gear_core.gd:174-181 keys them per instance) and could not collide even if both
+	# left usage_group empty. The assertions below therefore prove the claim twice over - by Kit
+	# and by group - which is the right direction for a pin that exists to stop a false ruling
+	# being re-derived from prose.
 	assert_eq(_gear().get_uses_this_turn(_action(ACTION_ID)), 0,
 		'The cannon\'s usage group records no use: the protocol spent a different one.')
-	assert_eq(_gear().get_uses_this_turn(_action(MBP_PROTOCOL_ID)), 1,
+	assert_eq(_core_gear().get_uses_this_turn(_action(MBP_PROTOCOL_ID)), 1,
 		'while the protocol\'s own group records exactly the one press.')
 	assert_true(UnitAction.is_under_per_turn_limit(_specific(ACTION_ID)),
 		'So the cannon is still under its per-turn limit on the protocol turn.')

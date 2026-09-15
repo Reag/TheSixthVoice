@@ -299,6 +299,10 @@ func test_a_unit_can_actually_wear_the_frame():
 ## trait rows in the places a player learned them in SP1.
 const SHEET_TRAITS:Array[StringName] = [
 	&'mt_juggernaut_drive', &'mt_reinforced_chassis', &'mt_guardian', &'mt_slow', &'cp_siege_engine',
+	# The Rail's own Kit, appended after the core system it belongs to. It is a trait so that
+	# loadout.get_integrated_weapons() finds it and the sheet titles the weapon box from IT
+	# rather than from cp_siege_engine (weapon_mount_item.gd:101).
+	&'mw_diversion_rail',
 ]
 
 func test_the_traits_are_the_sheets_four_then_the_core_system():

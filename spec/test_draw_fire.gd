@@ -41,6 +41,10 @@ const SubutaiFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/subutai_
 const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 
 const CORE_ID := &'cp_siege_engine'
+## The Rail is its OWN Kit since 2026-09-15, so the character sheet can title the
+## integrated-weapon box "Diversion Rail" rather than "Siege Engine"
+## (weapon_mount_item.gd:101 reads the KIT's name). See test_integrated_weapon_names.gd.
+const RAIL_KIT_ID := &'mw_diversion_rail'
 const RAIL_ID := &'action_diversion_rail'
 const DRAW_FIRE_ID := &'action_draw_fire'
 const GATHER_ROUND_BUFF := &'buff_gather_round'
@@ -245,11 +249,11 @@ func install_recorder() -> void:
 	subutai.core.full_repair()
 	UnitTile.update_tracking_and_statuses(game.map)
 
-func core_gear() -> GearCore:
-	return subutai.get_gear(CORE_ID)
+func rail_gear() -> GearCore:
+	return subutai.get_gear(RAIL_KIT_ID)
 
 func rail_action() -> Action:
-	var gear:GearCore = core_gear()
+	var gear:GearCore = rail_gear()
 	return gear.get_action(RAIL_ID) if GearCore.is_valid(gear) else null
 
 func arm(unit:Unit, weapon_id:StringName) -> GearCore:
@@ -793,7 +797,7 @@ func test_two_draws_in_one_round_are_refused() -> void:
 	# AND EVERY OTHER GATE IS OPEN for the second pair, so the refusal can only be the round counter.
 	assert_true(UnitRelation.can_see(subutai, enemy_b), 'fixture: the second attacker is in sight.')
 	assert_true(UnitRelation.distance_between(subutai, enemy_b) <= rail_action().get_target_range(
-		SpecificAction.create(subutai, core_gear(), rail_action())),
+		SpecificAction.create(subutai, rail_gear(), rail_action())),
 		'fixture: and inside the Rail s range.')
 	assert_true(UnitRelation.distance_between(subutai, ally_b) <= subutai.get_sensor_range(),
 		'fixture: the second ally is inside the Subutai s sensors.')
@@ -882,7 +886,7 @@ func test_firing_the_rail_does_not_spend_the_draw() -> void:
 	await SubutaiFixture.open_turn(game, subutai)
 	queue_dice(D20_HITS_BOTH)
 	var shot := EventCore.create(&'event_gear_activate', {
-		action = rail_action(), gear = core_gear(), unit = subutai, target_unit = enemy,
+		action = rail_action(), gear = rail_gear(), unit = subutai, target_unit = enemy,
 	})
 	var shots:Array[EventCore] = [shot]
 	await game.execute_event_block(EventBlock.create_multiple(shots))
@@ -1111,8 +1115,14 @@ func test_the_actions_are_in_the_cards_order():
 	if not Kit.is_valid(kit): return
 	var ids:Array[StringName] = []
 	for action:Action in kit.actions: ids.append(action.get_id())
-	assert_eq(ids, [&'action_gather_round', DRAW_FIRE_ID, RAIL_ID] as Array[StringName],
-		'Protocol, reaction, weapon.')
+	assert_eq(ids, [&'action_gather_round', DRAW_FIRE_ID] as Array[StringName],
+		'Protocol then reaction. The weapon is no longer on this Kit.')
+	var rail_kit:Kit = ContentLibrary.get_kit(RAIL_KIT_ID)
+	assert_true(Kit.is_valid(rail_kit), 'mw_diversion_rail loads,')
+	if not Kit.is_valid(rail_kit): return
+	var rail_ids:Array[StringName] = []
+	for rail_a:Action in rail_kit.actions: rail_ids.append(rail_a.get_id())
+	assert_eq(rail_ids, [RAIL_ID] as Array[StringName], 'and carries the weapon alone.')
 
 ## A SOURCE-ORDER PIN, not a behaviour test, because the race it guards is not reproducible in this
 ## harness: it needs a SECOND attack_declared PRE reaction to displace the Subutai or the ally while

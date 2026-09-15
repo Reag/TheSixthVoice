@@ -415,10 +415,13 @@ func test_on_the_fitzgerald_it_blindfires_and_still_takes_no_penalty() -> void:
 
 	# The control, and it is what stops this passing against a trait that was never applied: the
 	# Fitzgerald's OWN Bizarre Cannon, same unit, same target, same instant, DOES take the -1.
-	var broadside := unit.get_gear(&'cp_broadside')
-	assert_true(GearCore.is_valid(broadside), 'fixture: the frame carries cp_broadside.')
-	if not GearCore.is_valid(broadside): return
-	var bizarre := SpecificAction.create(unit, broadside, broadside.get_action(&'action_bizarre_cannon'))
+	# The cannon lives on mw_bizarre_cannon since 2026-09-15, not on cp_broadside - see
+	# test_integrated_weapon_names.gd for why the weapon needed a Kit of its own.
+	var cannon_gear := unit.get_gear(&'mw_bizarre_cannon')
+	assert_true(GearCore.is_valid(cannon_gear), 'fixture: the frame carries mw_bizarre_cannon.')
+	if not GearCore.is_valid(cannon_gear): return
+	var bizarre := SpecificAction.create(unit, cannon_gear,
+		cannon_gear.get_action(&'action_bizarre_cannon'))
 	assert_eq(trait_mods(preattack(bizarre, unseen)), [-1],
 		'control: the trait IS live here - the Bizarre Cannon takes its -1 against the same target.')
 

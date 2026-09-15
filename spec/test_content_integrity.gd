@@ -175,9 +175,11 @@ const ICON_TARGETS := {
 	# Three buttons on one Kit: the base weapon profile, the MORE BLACK POWDER protocol, and the
 	# second weapon profile the protocol unlocks. Each is separately pressable, so each wears its own
 	# icon rather than sharing the Kit's.
-	&'cp_broadside': [
-		&'action_bizarre_cannon', &'action_more_black_powder_protocol', &'action_more_black_powder',
-	],
+	&'cp_broadside': [&'action_more_black_powder_protocol'],
+	# The two CANNON PROFILES moved to their own Kit at the frame close, so the character sheet
+	# titles the integrated-weapon box "Bizarre Cannon" instead of "Broadside"
+	# (weapon_mount_item.gd:101 reads the KIT's name). See test_integrated_weapon_names.gd.
+	&'mw_bizarre_cannon': [&'action_bizarre_cannon', &'action_more_black_powder'],
 	&'mt_hole_puncher': [], # a passive trait: no action of its own, so it wears the Kit's icon
 	&'mt_knock_em_down': [], # a passive trait: no action of its own, so it wears the Kit's icon
 	# Its one action (action_blasting_powder_spend) is a hidden bookkeeping reaction: reactions never
@@ -236,7 +238,11 @@ const ICON_TARGETS := {
 	# Task 2 appends action_diversion_rail (a pressable weapon profile) and Task 3 action_draw_fire
 	# (a reaction that never reaches the gear bar, but does not override show_in_tooltip, so it is
 	# drawn on the trait card with its own row - the mt_juggernaut_drive reasoning).
-	&'cp_siege_engine': [&'action_gather_round', &'action_draw_fire', &'action_diversion_rail'],
+	&'cp_siege_engine': [&'action_gather_round', &'action_draw_fire'],
+	# The Rail is its OWN Kit since the frame close, so the character sheet can title the
+	# integrated-weapon box "Diversion Rail" instead of "Siege Engine"
+	# (weapon_mount_item.gd:101 reads the KIT's name). See test_integrated_weapon_names.gd.
+	&'mw_diversion_rail': [&'action_diversion_rail'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

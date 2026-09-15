@@ -143,8 +143,12 @@ func test_the_frame_carries_all_five_traits():
 	var carried:Array = frame.traits.map(func(kit:Kit) -> StringName: return kit.compcon_id)
 	assert_eq(carried,
 		[&'mt_hole_puncher', &'mt_knock_em_down', &'mt_blasting_powder', &'mt_weak_computer',
-			&'cp_broadside'],
-		'The frame carries exactly its five traits, in the order the design and rules sheet specify.')
+			&'cp_broadside',
+			# The weapon's own Kit, appended after the core system that grants it. It is a trait so
+			# that loadout.get_integrated_weapons() finds it and the sheet titles the weapon box from
+			# IT rather than from cp_broadside (weapon_mount_item.gd:101).
+			&'mw_bizarre_cannon'],
+		'The frame carries exactly its traits, in the order the design and rules sheet specify.')
 
 func test_the_frame_has_the_sheets_roles():
 	# Rules sheet (01-fitzgerald.md line 6): "Roles: Artillery, Striker". role_secondary is
