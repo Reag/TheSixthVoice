@@ -21,11 +21,21 @@ const FRAME_ID := &'mf_subutai'
 static func create_game(test:GutTest, map_size:Vector2i = FitzgeraldFixture.DEFAULT_MAP_SIZE) -> Gamemaster:
 	return FitzgeraldFixture.create_game(test, map_size)
 
-## A Subutai with its traits' passive buffs applied.
+## A Subutai with its traits' passive buffs applied, and the map's tile index told it is size 2.
+##
+## THE RE-TRACKING LINE IS LOAD-BEARING (SP2, the recentre probe). SpecFactory.create_unit adds the
+## unit to the map at SIZE 1 - the dummy Everest's size - and only full_repair() below grows it to
+## the frame's size 2. MapState.unit_tiles is rebuilt only when map_bus.update_unit_tile_tracking
+## fires (map_state.gd:352), which nothing in that sequence does, so without this line the map
+## indexes the Subutai at its anchor tile ALONE: any AoE lookup through get_all_units_at_tiles
+## (the whole attack pipeline, action_attack.gd:164) misses it on its other three tiles, and a
+## Line that reaches its near edge finds nobody there. SP1's Drive specs never noticed because a
+## Drive moves the unit, and UnitTile.move_to re-tracks (unit_tile.gd:12-19).
 static func create_subutai(game:Gamemaster, tile:Vector2i) -> Unit:
 	var unit := SpecFactory.create_unit(game.map, tile)
 	unit.core.frame = ContentLibrary.get_mech_frame(FRAME_ID)
 	SpecFactory.apply_passive_buffs(unit) # full_repair() + the frame's trait Kits' passive buffs
+	UnitTile.update_tracking_and_statuses(game.map)
 	return unit
 
 static func create_dummy(
