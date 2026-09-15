@@ -98,11 +98,11 @@ frame.mf_subutai.name,Subutai
 frame.mf_subutai.flavor.short,Immovable Object
 frame.mf_subutai.flavor,"The Barbarossa has offers a simple choice: you kill it and get swarmed by its friends, or you don't kill it and you get the business end of a ship-class spool weapon. With the start of the broadcasts, Harrison Armory decided to take this principle to the next level; why even let them have the choice? The Subutai is the next step, armed with the experimental diversion rail, it locks down the battlefield leaving a trail of destruction in its wake. Now sure, you can't annihilate a bunker from a ridge over, but it's the price you pay for unparalleled defensive artillery. At the end of the day, you are still a solid block of metal, and ain't nothing gonna stand in your way."
 gear.mt_reinforced_chassis.name,Reinforced Chassis
-gear.mt_reinforced_chassis.effect,The Subutai reduces all Kinetic and Explosive damage by 1 before Armor and Resistances are calculated.
+gear.mt_reinforced_chassis.effect,The Subutai reduces all |Kinetic| and |Explosive| damage by 1 before |Armor| and |Resistances=lancer.term.resistance| are calculated.
 gear.mt_juggernaut_drive.name,Juggernaut Drive
-gear.mt_juggernaut_drive.effect,"1/round, as a free action at the end of its turn, the Subutai may move up to 3 spaces ignoring terrain and Immobilized. It must move in a straight line directly towards an allied character within line of sight. It may only take this action if it is Immobilized."
+gear.mt_juggernaut_drive.effect,"1/round, as a |free action| at the end of its turn, the Subutai may move up to 3 spaces ignoring terrain and |Immobilized|. It must move in a straight line directly towards an allied character within |line of sight|. It may only take this action if it is |Immobilized|."
 gear.mt_juggernaut_drive.action_juggernaut_drive.name,Juggernaut Drive
-gear.mt_juggernaut_drive.action_juggernaut_drive.effect,"Move up to 3 spaces in a straight line directly towards an allied character within line of sight, ignoring terrain and Immobilized."
+gear.mt_juggernaut_drive.action_juggernaut_drive.effect,"Move up to 3 spaces in a straight line directly towards an allied character within |line of sight|, ignoring terrain and |Immobilized|."
 gear.cp_siege_engine.name,Siege Engine
 gear.cp_siege_engine.flavor,"And God said, Let there be light: and there was light. And Harrison said, Let there be 73-pound hyperdense tungsten bars gravitationally launched at 128 meters per second that infect their target with forced system lock: and there was 73-pound hyperdense tungsten bars gravitationally launched at 128 meters per second that infect their target with forced system lock. God is dead and we have killed her!"
 gear.cp_siege_engine.effect,"The DIVERSION RAIL is built through the Subutai's chassis rather than mounted on it: it occupies no weapon mount and cannot take a weapon mod. Its active GATHER ROUND protocol grants the DRAW FIRE reaction for the rest of the scene."
@@ -111,9 +111,9 @@ gear.cp_siege_engine.action_gather_round.effect,"For the rest of the scene, you 
 gear.buff_gather_round.name,Gather Round
 gear.buff_gather_round.effect,"For the rest of the scene, you gain the Draw Fire reaction."
 gear.cp_siege_engine.action_diversion_rail.name,Diversion Rail
-gear.cp_siege_engine.action_diversion_rail.effect,"On attack: You become |Immobilized| until the start of your next turn. On hit: The target takes +2 difficulty on all attacks that do not target the Subutai until the end of their next turn."
+gear.cp_siege_engine.action_diversion_rail.effect,"On attack: You become |immobilized| until the start of your next turn. On hit: The target takes |+2 difficulty| on all attacks that do not target the Subutai until the end of their next turn."
 gear.buff_diversion_rail.name,Diversion Rail
-gear.buff_diversion_rail.effect,"The target takes +2 difficulty on all attacks that do not target the Subutai until the end of their next turn."
+gear.buff_diversion_rail.effect,"The target takes |+2 difficulty| on all attacks that do not target the Subutai until the end of their next turn."
 gear.cp_siege_engine.action_draw_fire.name,Draw Fire
-gear.cp_siege_engine.action_draw_fire.trigger,"A hostile character within Range of the Diversion Rail and line of sight makes a ranged attack against an allied character within Sensors."
+gear.cp_siege_engine.action_draw_fire.trigger,"A hostile character within |Range| of the Diversion Rail and |line of sight| makes a |ranged attack| against an allied character within |Sensors|."
 gear.cp_siege_engine.action_draw_fire.effect,"The attack is made against you instead. After the attack, you may make an attack against the hostile character with the Diversion Rail."

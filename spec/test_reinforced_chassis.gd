@@ -11,7 +11,7 @@
 #  2. Shredded returns early (:73-77) and skips the reduction entirely.
 #
 # Armor ORDER makes no numeric difference: max(0, d - 1 - A) either way. AP skips only the armor
-# line (:99), so AP damage is still reduced. Heat and burn are excluded by the damage-type list.
+# line (:103), so AP damage is still reduced. Heat and burn are excluded by the damage-type list.
 #
 # Damage is applied through event_unit_damage directly rather than through an attack, so each test
 # pins one arithmetic path with nothing else moving.
@@ -75,7 +75,7 @@ func test_six_energy_takes_five_because_energy_is_not_reduced():
 	assert_eq(await damage_taken(6, Lancer.DAMAGE_TYPE.ENERGY), 5, 'Energy takes armor only.')
 
 func test_ap_kinetic_skips_armor_but_is_still_reduced():
-	# AP skips the armor line (:99) and nothing else. 6 - 1 reduction = 5.
+	# AP skips the armor line (:103) and nothing else. 6 - 1 reduction = 5.
 	assert_eq(
 		await damage_taken(6, Lancer.DAMAGE_TYPE.KINETIC, [EventService.DAMAGE_FLAG.AP]), 5,
 		'AP kinetic loses the armor but keeps the reduction.'
@@ -111,7 +111,7 @@ func test_a_resisted_hit_is_halved_first_and_then_reduced():
 	# A freshly-constructed Buff with no resource_path of its own gets compcon_id = GENERIC_ID
 	# (buff.gd:105-112) - same as the trait's own inline SubResource buff. apply_buff_alt's
 	# already-applied dedup (unit_condition.gd:741-747) matches on compcon_id via get_buffs_alt,
-	# and passing an empty from_gear there (unit_condition.gd:794-795) makes it match ANY from_gear,
+	# and passing an empty from_gear there (unit_condition.gd:795) makes it match ANY from_gear,
 	# not just ''. Without this flag the trait's own reduction buff (same `to`, same default `until`)
 	# gets silently cleared the instant this ad-hoc one is applied, and the test would be measuring
 	# armor+halving alone. multiple_copies_can_stack skips that whole dedup block.

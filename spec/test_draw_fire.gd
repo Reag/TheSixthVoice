@@ -115,6 +115,21 @@ const PINAKA_ACTION := &'action_pinaka_missiles'
 ##    (8..10, 5..7) shares the whole y = 5 row.
 const SECOND_AIM := Vector2i(9, 4)
 
+## THE SPLASH GEOMETRY, east-facing (frame close). The blast is AIMED at an allied character 16 tiles
+## from the Subutai - outside its Sensors 15, so not an ally this reaction answers for - and SPLASHES
+## one at 15, which is. The shooter stands at 10, inside the Rail's Range 15, and outside its own
+## Blast 1 so nothing but the two allies is caught.
+const EAST_ENEMY_TILE := Vector2i(20, 6)
+const ALLY_OUTSIDE_SENSORS := Vector2i(26, 6)
+const ALLY_INSIDE_SENSORS := Vector2i(25, 6)
+
+## THE OFF-AXIS LINE GEOMETRY. Every other Line and Cone case in this file re-aims on a compass axis
+## ((2,6)->(9,6) east, (14,6)->(9,6) west, (4,6)->(4,9) south); a Subutai anchored here is re-aimed at
+## a bearing of about 23 degrees, which is what exercises AoeCalculator.line's per-ring bearing pick
+## and the LOS filter (action.gd:273-278) on a diagonal rather than along a row.
+const OFF_AXIS_SUBUTAI_TILE := Vector2i(9, 9)
+const OFF_AXIS_ALLY_TILE := Vector2i(5, 3)
+
 ## The Subutai's own evasion is the frame's, and is NOT settable: SubutaiFixture does not isolate the
 ## frame, so writing to stat.evasion would reach the shared ContentLibrary copy.
 const SUBUTAI_EVASION := 6
@@ -449,6 +464,17 @@ func test_a_blast_is_recentred_on_the_subutai() -> void:
 	assert_eq(summary.directly_attacked_tiles, [SUBUTAI_AIM] as Array[Vector2i], 'The blast is centred on the Subutai.')
 	assert_true(summary.all_attacked_tiles.has(BESIDE_SUBUTAI), 'The rebuilt area surrounds the Subutai.')
 	assert_false(summary.all_attacked_tiles.has(ALLY_TILE), 'The rebuilt area no longer covers the ally.')
+	# THE COVER AND KNOCKBACK ORIGIN, and nothing else in this file discriminates it (frame close,
+	# 2026-09-15: deleting the reaction's source_voxels assignment left the whole suite GREEN). A
+	# Blast's origin is its CENTRE, not the firer (action_attack.gd:179-185, the BLAST branch at
+	# :181-184), and the summary's source_voxels are read twice downstream: attack_roll.gd:118-119
+	# copies them into PreAttack.create, which hands them to CoverCalculator.determine_cover (:158),
+	# and action_attack_weapon.gd:337-343 makes Tile.from_voxels(source_voxels) the knockback origin.
+	# test_cover_is_read_from_the_subutais_position cannot see any of that: it fires a RIFLE, and
+	# get_origin_voxels returns the attacker's OWN voxels for every non-Blast shape (:185), so it
+	# exercises the no-op path. A recentred Blast is the only case where the line does work.
+	assert_eq(Tile.from_voxels(summary.source_voxels), [SUBUTAI_AIM] as Array[Vector2i],
+		'The blast s cover and knockback origin moved to the Subutai with it.')
 
 func test_the_blasts_ground_damage_lands_on_the_new_tiles() -> void:
 	place_enemy()
@@ -494,6 +520,30 @@ func test_a_line_that_cannot_reach_the_subutai_is_refused() -> void:
 
 	assert_eq(rolled_against(summary), [ally], 'The ally is still the one attacked.')
 	assert_eq(subutai.core.current.reactions, 1, 'And the reaction was not spent.')
+
+func test_an_off_axis_line_is_re_aimed_at_the_subutai() -> void:
+	# THE ONLY NON-COMPASS GEOMETRY IN THE FILE, added at the frame close. Enemy (2,6), ally off the
+	# ray at (5,3) to the north-east, Subutai anchored at (9,9) to the south-east: the line is aimed
+	# up-right and re-aimed down-right, at a bearing no other case here uses. Draw Fire derives the
+	# line exactly once - it hands new_targets to the attacker's own get_aoe_tiles_with_targets - so
+	# there is no second derivation to disagree with the first the way Juggernaut Drive's pathfinder
+	# does (SP1's off-axis measurement); what this case exercises that the axis cases do not is
+	# AoeCalculator.line's per-ring bearing pick and the LOS filter on a diagonal.
+	#
+	# NO TILE IS ASSERTED BY NAME. The Subutai's four tiles tie on Chebyshev distance from (2,6) and
+	# the aim tile falls out of the engine's own tiebreak, which test_a_size_two_subutai_is_aimed_at_
+	# by_its_nearest_tile already pins on a geometry where it is unambiguous. Here the claim is the
+	# card's: the shot comes to the Subutai and leaves the ally.
+	place_enemy()
+	place_ally(OFF_AXIS_ALLY_TILE)
+	await make_subutai(OFF_AXIS_SUBUTAI_TILE)
+	assert_map_indexes_the_whole_footprint()
+	var lance := arm(enemy, THERMAL_LANCE)
+	var summary := await fire_at_tile(enemy, lance, OFF_AXIS_ALLY_TILE, D20_HITS_BOTH)
+
+	assert_eq(rolled_against(summary), [subutai], 'The off-axis line was re-aimed onto the Subutai.')
+	assert_false(summary.all_attacked_tiles.has(OFF_AXIS_ALLY_TILE), 'And no longer crosses the ally.')
+	assert_eq(subutai.core.current.reactions, 0, 'The reaction was spent.')
 
 func test_a_cone_that_reaches_the_subutai_is_re_aimed_at_it() -> void:
 	# Cone 3 from the brawler at (4,6): aimed east at the ally at (6,6) it catches the ally; re-aimed
@@ -598,6 +648,65 @@ func test_an_ally_on_the_re_aimed_ray_is_still_caught() -> void:
 	assert_true(targets.has(subutai), 'The shot was drawn onto the Subutai.')
 	assert_true(targets.has(on_the_ray), 'And the ally standing on the re-aimed ray is caught with it.')
 	assert_false(targets.has(ally), 'The originally targeted ally is off the new ray, and spared.')
+
+# ---------------------------------------------------------------- the splash case (frame close)
+#
+# AIMED AT vs CAUGHT BY, and the two were out of step until the frame close. The trigger's ally gate
+# reads summary.all_attacked_units, which includes SPLASHED units; the rebuild's step 1 only moved a
+# direct target tile an allied character was STANDING on. When an AoE is aimed at something that is
+# not an in-Sensors allied character but splashes one, nothing moved, the rebuilt area came back
+# unchanged, the dry rebuild returned false and Draw Fire was silently never offered - no point spent,
+# no wrong roll, the capability simply absent. Step 1a re-aims the direct target nearest an ally when
+# step 1 moves nothing; the two cases below are the AI-driven ways in.
+
+func test_a_blast_aimed_at_a_friendly_deployable_that_splashes_an_ally_is_drawn() -> void:
+	# THE ROUTINE CASE, not an exotic one: several NPC behaviours weight player deployables positively
+	# as blast targets (npcc_demolisher's action_seismic_destroyer_demolisher.tres sets
+	# weight_deployables = 1.25), so a mortar aimed at a Jericho with a mech beside it is ordinary AI
+	# play. The deployable is an ALLY but not a CHARACTER, so allies_under_fire excludes it and the
+	# only tile the blast is aimed at belongs to nobody this reaction answers for.
+	place_enemy()
+	var cover := SubutaiFixture.create_allied_deployable(game, ALLY_TILE)
+	place_ally(BESIDE_ALLY)
+	await make_subutai()
+	assert_false(cover.is_character(), 'fixture: the deployable is not a character.')
+	assert_true(UnitRelation.are_allies(subutai, cover), 'fixture: but it is on our side.')
+	var mortar := arm(enemy, MORTAR)
+	var summary := await fire_at_tile(enemy, mortar, ALLY_TILE, D20_HITS_BOTH)
+
+	var targets := rolled_against(summary)
+	assert_eq(targets, [subutai], 'The blast was drawn off the deployable and onto the Subutai.')
+	assert_false(targets.has(ally), 'The splashed ally is spared.')
+	assert_eq(summary.directly_attacked_tiles, [SUBUTAI_AIM] as Array[Vector2i],
+		'And the blast is centred on the Subutai, not still on the deployable.')
+	assert_eq(subutai.core.current.reactions, 0, 'The reaction was spent.')
+
+func test_a_blast_aimed_outside_sensors_that_splashes_an_ally_inside_them_is_drawn() -> void:
+	# THE SAME DEFECT FROM THE OTHER DIRECTION: the aimed-at unit IS an allied character, but it is 16
+	# tiles away and allies_under_fire drops it at the Sensors line - so again no direct target tile
+	# belongs to an ally this reaction answers for, while the splashed ally at 15 does.
+	#
+	# THE AIM TILE IS NOT ASSERTED BY NAME: the shooter is east of the Subutai and its two east tiles
+	# tie on Chebyshev, where every other case in this file shoots from the west. That the re-aim
+	# lands on one of the four is the whole claim.
+	place_enemy(EAST_ENEMY_TILE)
+	var far_ally := make_player_unit(ALLY_OUTSIDE_SENSORS)
+	place_ally(ALLY_INSIDE_SENSORS)
+	await make_subutai()
+	assert_eq(UnitRelation.distance_between(subutai, far_ally), 16, 'fixture: the aimed-at ally is outside Sensors 15.')
+	assert_eq(UnitRelation.distance_between(subutai, ally), 15, 'fixture: the splashed ally is inside them.')
+	assert_true(UnitRelation.distance_between(subutai, enemy) <= 15, 'fixture: and the shooter is inside the Rail s range.')
+	var mortar := arm(enemy, MORTAR)
+	var summary := await fire_at_tile(enemy, mortar, ALLY_OUTSIDE_SENSORS, D20_HITS_BOTH)
+
+	var targets := rolled_against(summary)
+	assert_eq(targets, [subutai], 'The blast was drawn onto the Subutai.')
+	assert_false(targets.has(far_ally), 'The ally it was aimed at is spared.')
+	assert_false(targets.has(ally), 'And so is the one it splashed.')
+	assert_eq(summary.directly_attacked_tiles.size(), 1, 'One aim tile.')
+	assert_true(subutai.occupied_tiles().has(summary.directly_attacked_tiles[0]),
+		'Centred on one of the Subutai s own tiles.')
+	assert_eq(subutai.core.current.reactions, 0, 'The reaction was spent.')
 
 # ---------------------------------------------------------------- the reaction economy
 
@@ -863,6 +972,80 @@ func test_an_ally_beyond_the_subutais_sensors_cannot_be_drawn_for() -> void:
 	assert_eq(rolled_against(summary), [ally], 'Out of sensors: not an ally this reaction answers for.')
 	assert_eq(subutai.core.current.reactions, 1, 'And the reaction was not spent.')
 
+# ---------------------------------------------------------------- who may shoot, and at whom
+#
+# FOUR IDENTITY FILTERS, ONE TEST EACH, added at the frame close because each was deletable with the
+# whole suite green. They are written so that no two of them redden together: the attacker cases use
+# an attacker the other filter does not object to, and the victim cases use a victim the other filter
+# lets through.
+
+func test_a_teammates_friendly_fire_is_not_drawn() -> void:
+	# "A HOSTILE character". Without the are_enemies check the Subutai answers its own side's stray
+	# shot by pulling it onto itself - and then, because the follow-up is unconditional, Rails the
+	# teammate that fired. Friendly fire is a live engine concept, not a hypothetical: ActionAttack
+	# stops to confirm it (action_attack.gd:247, TargetActionUtil.confirm_friendly_fire).
+	var teammate := make_player_unit(ENEMY_TILE)
+	place_ally()
+	await make_subutai()
+	# The shooter's own turn is opened, unlike every enemy case in this file: a player unit firing on
+	# its turn is the only way this shot happens in play, and confirm_friendly_fire only asks anything
+	# of a player-controlled attacker (target_action_util.gd:431). The spec responder answers it yes.
+	await SubutaiFixture.open_turn(game, teammate)
+	assert_false(UnitRelation.are_enemies(subutai, teammate), 'fixture: the shooter is on our side.')
+	assert_true(UnitRelation.can_see(subutai, teammate), 'fixture: and is in sight, inside the Rail s range.')
+	var rifle := arm(teammate, RIFLE)
+	var summary := await fire(teammate, rifle, ally, D20_HITS_BOTH)
+
+	assert_eq(rolled_against(summary), [ally], 'The card says HOSTILE: a teammate s shot is left alone.')
+	assert_eq(subutai.core.current.reactions, 1, 'And the reaction was not spent.')
+
+func test_an_unowned_hostile_deployables_shot_is_not_drawn() -> void:
+	# "A hostile CHARACTER". test_a_hostile_drones_shot_is_drawn_and_the_rail_answers_its_owner does
+	# NOT pin this: its drone has an OWNER, so get_attacker() hands back a character and the check
+	# passes either way. An ownerless deployable answers for itself (unit.gd:276-282 falls through to
+	# get_owner_unit_or_self, which returns `self`), so it is the case where the filter is the only
+	# thing standing between the card's wording and a draw.
+	place_ally()
+	await make_subutai()
+	var turret := FitzgeraldFixture.create_deployable(game, Vector2i(4, 7), 20, 0, ENEMY_EVASION)
+	enemy = turret
+	assert_false(turret.is_character(), 'fixture: a deployable is not a character.')
+	assert_eq(turret.get_attacker(), turret, 'fixture: and with no owner it answers for itself.')
+	var rifle := arm(turret, RIFLE)
+	var summary := await fire(turret, rifle, ally, D20_HITS_BOTH)
+
+	assert_eq(rolled_against(summary), [ally], 'No character pulled that trigger: no draw.')
+	assert_eq(subutai.core.current.reactions, 1, 'And the reaction was not spent.')
+
+func test_a_blast_that_catches_only_a_friendly_deployable_is_not_drawn() -> void:
+	# "against an allied CHARACTER", and the control that makes the splash case above mean something.
+	# Without the is_character filter on the victim side the Subutai draws attacks aimed at its own
+	# turrets and cover - and, since the frame close, step 1a would re-aim them onto it as well.
+	place_enemy()
+	var cover := SubutaiFixture.create_allied_deployable(game, ALLY_TILE)
+	await make_subutai()
+	assert_true(UnitRelation.are_allies(subutai, cover), 'fixture: the deployable is ours.')
+	assert_false(cover.is_character(), 'fixture: and it is not a character.')
+	var mortar := arm(enemy, MORTAR)
+	var summary := await fire_at_tile(enemy, mortar, ALLY_TILE, D20_HITS_BOTH)
+
+	assert_eq(rolled_against(summary), [cover], 'The deployable eats it: a deployable is not an allied character.')
+	assert_eq(subutai.core.current.reactions, 1, 'And the reaction was not spent.')
+
+func test_an_attack_on_another_hostile_is_not_drawn() -> void:
+	# "against an ALLIED character". Without the are_allies filter every character caught by the shot
+	# counts, and the Subutai would step in front of one enemy shooting another.
+	place_enemy()
+	var victim := SubutaiFixture.create_dummy(game, ALLY_TILE, ENEMY_EVASION)
+	await make_subutai()
+	assert_true(victim.is_character(), 'fixture: the victim IS a character, so only are_allies can refuse it.')
+	assert_false(UnitRelation.are_allies(subutai, victim), 'fixture: and it is not ours.')
+	var rifle := arm(enemy, RIFLE)
+	var summary := await fire(enemy, rifle, victim, D20_HITS_BOTH)
+
+	assert_eq(rolled_against(summary), [victim], 'Nobody allied is under fire: no draw.')
+	assert_eq(subutai.core.current.reactions, 1, 'And the reaction was not spent.')
+
 func test_a_hostile_drones_shot_is_drawn_and_the_rail_answers_its_owner() -> void:
 	# Ruling 5: "a hostile CHARACTER". A deployable is not one, so the trigger asks
 	# triggering_context.unit.get_attacker() - which resolves a deployable to its owner - and the
@@ -958,6 +1141,19 @@ func test_activate_checks_the_live_rebuild_before_spending():
 	assert_gt(spend_at, -1, 'activate spends the reaction.')
 	assert_lt(rebuild_at, spend_at, 'The LIVE rebuild is checked BEFORE the point is spent.')
 
+## A localization row with its glossary markup taken back off: |Label| -> Label, |Label=key| -> Label,
+## the way GlossaryItem.process_glossed_text renders it (glossary_item.gd:212-257). Splitting on '|'
+## alternates literal text (even indices) with labels (odd), so an UNBALANCED pipe leaves a stray
+## label in the output and the compare fails loudly - which is the right failure for a malformed row.
+func _unpiped(key:String) -> String:
+	var parts := X.tr(key).split('|')
+	var out := ''
+	for i in parts.size():
+		var part:String = parts[i]
+		if i % 2 == 1 and part.contains('='): part = part.split('=')[0]
+		out += part
+	return out
+
 func test_the_draw_fire_rows_resolve():
 	for key:String in [
 		'gear.cp_siege_engine.action_draw_fire.name',
@@ -971,9 +1167,15 @@ func test_the_draw_fire_rows_resolve():
 		'The row carries the sentence, not the label.')
 	# THE LCP'S SENTENCES VERBATIM. The card text is Bel's words, not ours: any engine divergence goes
 	# in a ruling, never into the row. Source: specs/sixth-voice/03-subutai.md.
-	assert_eq(X.tr('gear.cp_siege_engine.action_draw_fire.trigger'),
+	#
+	# COMPARED WITH ITS GLOSSARY MARKUP TAKEN BACK OFF. The frame close piped this row's keywords
+	# (|Range|, |line of sight|, |ranged attack|, |Sensors|) to match every sibling row in the mod.
+	# Pipes are MARKUP, not rewording, so the verbatim guarantee is unchanged - but a raw byte compare
+	# would now fail on the pipe characters. Stripping and THEN comparing keeps the guarantee that the
+	# words are still Bel's; pasting the piped string into the literal would have thrown it away.
+	assert_eq(_unpiped('gear.cp_siege_engine.action_draw_fire.trigger'),
 		'A hostile character within Range of the Diversion Rail and line of sight makes a ranged attack against an allied character within Sensors.',
-		'The trigger row is the LCP sentence, verbatim.')
+		'The trigger row is the LCP sentence, verbatim, under its glossary markup.')
 	assert_eq(X.tr('gear.cp_siege_engine.action_draw_fire.effect'),
 		'The attack is made against you instead. After the attack, you may make an attack against the hostile character with the Diversion Rail.',
 		'The effect row is the LCP sentence, verbatim.')

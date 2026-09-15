@@ -1,16 +1,18 @@
 # Placeholder frame art
 
-`mf_placeholder.png` is the stand-in sprite every frame in this mod references until the author
-drops in commissioned art. 80×80 RGBA, the vanilla size-1 frame dimension
+`mf_placeholder.png` is the stand-in sprite a frame points at until the author drops in commissioned
+art. **No `.tres` in this mod references it today** — the Fitzgerald, the M/K2 and the Subutai all
+carry real art — but eighteen of the supplement's twenty-one frames are still to be built, and each
+one arrives unarted, so the files stay. 80×80 RGBA, the vanilla size-1 frame dimension
 (`assets/frames/ipsn/mf_blackbeard/ipsn_blackbeard.png`). A size-½ frame still occupies one tile and
-uses 80×80, so the placeholder fits the Fitzgerald as-is.
+uses 80×80, so this file serves those too.
 
 Measured across vanilla `assets/frames/`: **93 files at 80×80, 39 at 160×160 (size 2), 3 at 240×240**
 (the Barbarossa, size 3). A size-2 or size-3 frame in this supplement needs its own placeholder at
 the matching dimension rather than this one scaled.
 
 `mf_placeholder_160.png` is the same art at 160×160 (nearest-neighbour 2×), for **size-2** frames.
-The Subutai is the first of them. A size-3 frame will need a 240×240 sibling; do not point a size-2
+The Subutai was the first of them. A size-3 frame will need a 240×240 sibling; do not point a size-2
 or size-3 frame at the 80×80 file, which renders at half scale on the board.
 
 Art never blocks a release (roadmap §6). A sprite drop-in needs no session: replace the file, run

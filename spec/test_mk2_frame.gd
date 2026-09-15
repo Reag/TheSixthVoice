@@ -78,6 +78,32 @@ func test_the_mounts_match_the_sheet() -> void:
 	assert_eq(mounts, ['mount_flex.tres', 'mount_main.tres', 'mount_heavy.tres'],
 		'Flex, Main, Heavy, in sheet order.')
 
+## THERE WAS NO SPRITE TEST ON THIS FILE AT ALL until the frame close. Nothing in the suite read
+## mf_mk2.sprites, so an empty array, an ext_resource that failed to load, or a revert to the grey
+## stand-in all shipped green.
+##
+## sprites[0] IS THE ONE THIS MOD SUPPLIES. The other nine entries are vanilla textures the M/K2
+## offers as alternate skins (the Everest's own art and a row of NPC sprites, all at res://assets/),
+## so the placeholder guard is aimed at the first entry rather than swept over the array - the
+## vanilla nine are not ours to pin.
+##
+## 80x80 because the M/K2 is size 1, which is also what makes this the M/K2's version of the
+## Subutai's guard rather than a copy of it: the mod's two placeholders are mf_placeholder.png
+## (80x80) and mf_placeholder_160.png (160x160), so a size assertion alone would NOT notice a revert
+## to the size-matched stand-in. The resource_path check is what does.
+func test_the_frame_has_a_sprite_that_actually_loaded() -> void:
+	var mk2:Frame = frame()
+	assert_not_null(mk2, 'mf_mk2 loads.')
+	if mk2 == null: return
+	assert_false(mk2.sprites.is_empty(), 'The frame carries at least one sprite.')
+	if mk2.sprites.is_empty(): return
+	var sprite:Texture2D = mk2.sprites[0]
+	assert_not_null(sprite, 'The sprite texture loaded.')
+	if sprite == null: return
+	assert_eq(sprite.get_size(), Vector2(80, 80), 'A size-1 frame uses an 80x80 sprite.')
+	assert_false(sprite.resource_path.contains('placeholder'),
+		'The frame wears its commissioned art, not the stand-in (%s).' % sprite.resource_path)
+
 func test_the_traits_are_the_sheets_four_in_order() -> void:
 	var ids:Array[StringName] = []
 	for kit:Kit in frame().traits: ids.append(kit.compcon_id)

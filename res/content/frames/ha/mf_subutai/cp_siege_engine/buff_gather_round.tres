@@ -6,5 +6,4 @@
 [resource]
 script = ExtResource("1_buff")
 icon = ExtResource("2_icon")
-to = &"none"
 metadata/_custom_type_script = "uid://cqrqkdgcf8mti"

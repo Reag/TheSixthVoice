@@ -33,11 +33,25 @@ static func create_game(test:GutTest, map_size:Vector2i = FitzgeraldFixture.DEFA
 ## (the whole attack pipeline, action_attack.gd:164) misses it on its other three tiles, and a
 ## Line that reaches its near edge finds nobody there. SP1's Drive specs never noticed because a
 ## Drive moves the unit, and UnitTile.move_to re-tracks (unit_tile.gd:12-19).
+##
+## AND IT IS move_to, NOT update_tracking_and_statuses ALONE (frame close, fix wave 2). The rebuild
+## READS the cache it is supposed to be catching up with: map_state.gd:379 iterates
+## unit.occupied_tiles(), and unit.gd:206 hands back the cached state.occupied_tiles, which only
+## UnitBattleState.set_tile (unit_battle_state.gd:176-179) ever reassigns. So the cache has to be
+## refreshed BEFORE the rebuild, which is exactly the order UnitTile.move_to uses
+## (unit_tile.gd:10-13) and exactly the order vanilla's own test_pathfinder.gd:240 hand-writes for
+## the same purpose. update_tracking_and_statuses on its own emits the rebuild first
+## (unit_tile.gd:19) and only refreshes the caches afterwards (:40), so it was right here purely by
+## accident of ordering: SpecFactory.apply_passive_buffs runs first, and Reinforced Chassis'
+## PassiveBuffApplicator reaches post_apply_buff_cache_update -> update_cached_values_and_token ->
+## set_tile (unit_condition.gd:715, :775). Take Reinforced Chassis off the frame and the SP2 bug
+## comes back with no spec failing. Passing the tile explicitly rather than unit.tile() also means
+## nothing here depends on create_unit having left the unit where it was asked to.
 static func create_subutai(game:Gamemaster, tile:Vector2i) -> Unit:
 	var unit := SpecFactory.create_unit(game.map, tile)
 	unit.core.frame = ContentLibrary.get_mech_frame(FRAME_ID)
 	SpecFactory.apply_passive_buffs(unit) # full_repair() + the frame's trait Kits' passive buffs
-	UnitTile.update_tracking_and_statuses(game.map)
+	UnitTile.move_to(unit, tile) # refresh the cached footprint, THEN rebuild the map's tile index
 	return unit
 
 static func create_dummy(

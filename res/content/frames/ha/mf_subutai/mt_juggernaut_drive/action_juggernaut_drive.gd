@@ -19,6 +19,14 @@ extends ActionReactionMovement
 # Slowed or Prone Subutai may still Drive, a Drive off a ledge takes fall damage, and a grapple is
 # broken as a knockback would break it.
 #
+# ONE MORE CONSEQUENCE, MEASURED AT THE FRAME CLOSE: `ignore_difficult` on the .tres is DEAD.
+# MovementType.ignores_difficult_terrain() is `ignore_difficult or teleport or flying or NOT
+# VOLUNTARY` (movement_type.gd:107-108) and pathfinder.gd:99 is its only reader in the engine, so a
+# non-voluntary move already ignores difficult terrain and the flag changes nothing. It is kept
+# because ruling 8 says the card means it. Its two neighbours are NOT dead and must not be cleaned up
+# with it: `free_climb` is read bare by the climb multiplier (pathfinder.gd:774) and
+# `ignore_dangerous` bare by event_map_dangerous.check_specific_context (:19).
+#
 # WHY NO CONFIRM PROMPT (ruling 9). ActionReactionMovement.confirm_use_of_reaction asks only when
 # requires_reaction_available(), which is consumes_rxn - false here. So the movement picker IS the
 # prompt, and cancelling it is the card's "may". The archetype calls spend_actions AFTER the picker,
@@ -41,8 +49,11 @@ func get_per_round_hard_limit(_specific:SpecificAction) -> int:
 
 func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> bool:
 	# super() checks this is OUR turn end (triggering_unit_is = UNIT) and that the movement type is
-	# valid. event_turn_end.execute_preblock also fires a VIRTUAL end_turn core per owned deployable,
-	# and that check is what rejects those.
+	# valid. event_turn_end.execute_preblock also fires a VIRTUAL end_turn core per owned deployable
+	# (event_turn_end.gd:20-24), and that check is what rejects those - guarded by
+	# test_a_deployable_the_subutai_owns_does_not_open_a_second_picker, which has to OWN the
+	# deployable (SpecFactory builds them unowned) and has to DECLINE the first picker, or the engine's
+	# own 1/round limit stops the second one and this line can be deleted with the suite green.
 	if not super.triggers_on_event(unit, gear, triggering_event): return false
 	# "It may only take this action if it is Immobilized" - the engine's own test (ruling 10): the
 	# status, the smaller party in a grapple, or Shutdown.

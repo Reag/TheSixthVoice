@@ -21,6 +21,14 @@
 ## runs (ActionAttack.activate calls run_attack_effects at :265). Nothing in content precedes it. The
 ## confirm prompt's target line is the telegraph.
 ##
+## ONE SHOT THIS REACTION CANNOT DRAW, AND IT IS CORRECT: an ORDNANCE attack made by a unit the
+## Subutai is ENGAGED with. The rebuild's unit filter is the attacker's own can_target_unit, and
+## action_attack_weapon.gd:231-236 refuses an ordnance target that is engaged with the firer - so the
+## Subutai drops out of new_units, `new_units.has(unit)` is false and the draw is refused exactly as a
+## Line that cannot reach is. That is vanilla's ordnance rule applied to the new target, not a defect;
+## it is written down here because "the draw is silently not offered" is the same symptom as ruling 2's
+## refusals and a playtest would otherwise have to guess which one it was watching.
+##
 ## THE USAGE GROUP IS ITS OWN, AND TODAY THAT IS DEFENCE IN DEPTH, NOT LOAD-BEARING. usage_group
 ## defaults to the KIT id, which this reaction would otherwise share with the GATHER ROUND protocol
 ## and the Diversion Rail. But cf56dfc gave both of those their OWN usage_groups too (vanilla's
@@ -80,10 +88,21 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	var summary:DeclaredAttackSummary = triggering_context.resource
 	if not DeclaredAttackSummary.is_valid(summary): return false
 
-	# ONCE PER DECLARED ATTACK. Early, so a second Subutai whose gate is evaluated AFTER the first has
-	# already drawn is not even prompted. Note the engine evaluates every reaction's gate before any
-	# body runs, so on the common path this branch is not what refuses the second Subutai - the guard
-	# in activate() is. This one covers later re-evaluations of the same event.
+	# ONCE PER DECLARED ATTACK - and MEASURED REDUNDANT ON THIS SEAM, KEPT ANYWAY, in the same sense as
+	# the Burst guard and the dedupe loop in rebuild(). The old comment here justified the line with "a
+	# later re-evaluation of the same event", and on this seam there is no such re-evaluation. Three
+	# facts, read off the 1.4.3 source at the frame close (2026-09-15):
+	#  - the ONLY path that re-runs triggers_on_event at execute time is
+	#    event_gear_activate.check_specific_context (:38-41), behind the action's own
+	#    recheck_trigger_before_execution flag - which defaults to false (action_reaction.gd:10) and
+	#    which action_draw_fire.tres does not set;
+	#  - execute_reaction_events(ATTACK_DECLARED, PRE) runs exactly once per declared attack
+	#    (event_unit_attack_declared.gd:21-23), so the gate is asked once;
+	#  - the engine evaluates every reaction's gate before any body runs, so a second Subutai's gate is
+	#    asked BEFORE the first has drawn, never after. The stamp in activate() is what refuses it, and
+	#    test_a_second_subutai_cannot_redraw_an_attack_already_drawn pins that.
+	# So this branch cannot currently be reached by anything. It stays because it is the correct defence
+	# the day recheck_trigger_before_execution IS set on this action, and because it costs a meta lookup.
 	if summary.has_meta(DRAWN_META): return false
 
 	# "A hostile CHARACTER": a drone's or deployable's shot counts as its owner's (ruling 5).
@@ -136,8 +155,15 @@ func activate(context:Context, activation:EventCore) -> void:
 	#     all_attacked_units is [Subutai A], and A is an allied character inside B's sensors, so B's
 	#     allies_under_fire is NOT empty and B would happily redraw the attack onto itself. (The old
 	#     comment here claimed the opposite; it was wrong, and this stamp is the fix.)
-	#  2. the allies. Kept: an attack whose every ally has left the summary for any other reason has
-	#     nothing left to draw, and a prompt about nobody is worse than a silent abort.
+	#  2. the allies - and this one is UNREACHABLE, MEASURED, KEPT ANYWAY (frame close, 2026-09-15; the
+	#     design's §2.2 "Guards" paragraph believed it was the guard against a second Subutai, and
+	#     guard 1 above already records that it is not). Nothing between the trigger's own ally check
+	#     and this line can empty the list: the only writer of all_attacked_units at this timing is
+	#     another Draw Fire's rebuild, and after one of those has run the summary names the drawing
+	#     Subutai - an allied character inside this one's sensors - so the list is non-empty, not
+	#     empty, which is precisely why guard 1 had to exist. It stays as a cheap liveness check on a
+	#     list this function is about to put in a player-facing prompt: a prompt about nobody is worse
+	#     than a silent abort.
 	#  3. the rebuild itself, run LIVE. rebuild() returns false without writing anything when the
 	#     rebuilt area would not contain us, and the geometry it reads can have changed since the DRY
 	#     check in triggers_on_event - another attack_declared PRE reaction may have displaced the
@@ -200,6 +226,19 @@ static func allies_under_fire(unit:Unit, summary:DeclaredAttackSummary) -> Array
 		allies.append(attacked)
 	return allies
 
+## The direct target tile CLOSEST to any ally we are answering for - step 1a's pick. Tile.INVALID when
+## either array is empty, which the caller reads as "nothing to re-aim" and refuses.
+##
+## Tile.get_closest_pair_between measures every from/to pair (tile.gd:408-436) and breaks ties by
+## Chebyshev, then by a tiebreaker distance, then by Manhattan - the engine's own ordering, the same
+## one Tile.closest_possible_to picks the aim tile with two lines above. Allies are compared by their
+## WHOLE footprint, so a size-2 ally is measured from the corner the attack actually reached.
+static func nearest_target_to_allies(targets:Array[Vector2i], allies:Array[Unit]) -> Vector2i:
+	var ally_tiles:Array[Vector2i] = []
+	for allied:Unit in allies: ally_tiles.append_array(allied.occupied_tiles())
+	var closest:Vector2i = Tile.get_closest_pair_between(targets, ally_tiles).from
+	return closest
+
 ## THE REBUILD. DRY (live = false) answers "would the rebuilt area contain us?"; LIVE writes the four
 ## summary arrays in place. Copies ActionAttack.get_attacked_tiles_and_units_from_plan
 ## (action_attack.gd:156-173) step for step, so the rebuilt area is exactly what the attacker would
@@ -234,6 +273,23 @@ static func allies_under_fire(unit:Unit, summary:DeclaredAttackSummary) -> Array
 ## the ruling. The choice is still the right one; the reason is "aim where a player would", not
 ## "otherwise the draw is refused".
 ##
+## RECORDED, UNMEASURED, AND DELIBERATELY NOT CHANGED: the aim tile is measured to the attacker's
+## ANCHOR (specific.unit.tile()), where the engine's own start-tile pick for an AoE is symmetric -
+## RangePattern.get_aoe_tiles takes Tile.closest_possible_to(occupied_tiles, target_tile) over the
+## ATTACKER's footprint (range_pattern.gd:51,55). For a size-2 attacker the two can disagree about
+## which of our four tiles is "nearest", by one tile. Every case in the suite has a size-1 attacker,
+## so nothing measures it; it is a candidate for the next frame that fields a big shooter.
+##
+## THE SPLASH CASE, and why step 1a exists. The trigger's ally gate reads all_attacked_units, which
+## includes SPLASHED units; step 1 only moves a direct target tile an allied character is STANDING on.
+## Without 1a the two disagree, and an AoE merely splashing an ally rebuilds to the area it already
+## had - `new_units.has(unit)` is false, the dry rebuild returns false, and the reaction is silently
+## never offered. Three routine ways in, all reachable on 1.4.3: an AoE aimed at a friendly DEPLOYABLE
+## (NPC behaviours weight those positively - npcc_demolisher's action_seismic_destroyer_demolisher.tres
+## sets weight_deployables = 1.25) whose splash catches an allied mech; an AoE aimed at an allied
+## character OUTSIDE our Sensors whose splash catches one inside them; and, from a player-side
+## attacker, an AoE aimed at empty ground beside an ally. Found at the frame close, 2026-09-15.
+##
 ## RECORDED CONSEQUENCE, not a bug: an ally standing ON the re-aimed ray is still caught. The shot is
 ## made against us, and whatever lies between the attacker and us is in the rebuilt area.
 static func rebuild(unit:Unit, triggering_context:Context, live:bool) -> bool:
@@ -244,14 +300,38 @@ static func rebuild(unit:Unit, triggering_context:Context, live:bool) -> bool:
 
 	# 1. the direct targets: every tile an allied character stands on becomes the aim tile
 	var allies := allies_under_fire(unit, summary)
-	var new_targets:Array[Vector2i] = []
+	var moved_targets:Array[Vector2i] = []
+	var moved_an_allys_tile := false
 	for tile:Vector2i in summary.directly_attacked_tiles:
 		var moved := tile
 		for allied:Unit in allies:
 			if allied.occupied_tiles().has(tile):
 				moved = aim
+				moved_an_allys_tile = true
 				break
-		Util.append_nonduplicate(new_targets, moved)
+		moved_targets.append(moved)
+
+	# 1a. THE SPLASH CASE: the ally is CAUGHT but nothing is AIMED at it, so step 1 moved nothing and
+	# the rebuild would hand back the area the attack already had. Re-aim the single direct target
+	# CLOSEST to an ally we are answering for - the one whose area the splash came out of - and leave
+	# every other direct target where the attacker put it, exactly as step 1 does.
+	#
+	# NEAREST RATHER THAN "whichever target's rebuilt area would contain us": one derivation, no
+	# geometry loop, and the same answer on every case reachable today, since an ally is splashed by
+	# the area it is nearest to. Nothing downstream is relaxed to make this work - the area is rebuilt
+	# the same way, the unit refilter is the same, a Burst is still refused before either, and a Line
+	# or Cone that still cannot reach us is still refused by `new_units.has(unit)` (ruling 2).
+	if not moved_an_allys_tile:
+		var splashed_from := nearest_target_to_allies(moved_targets, allies)
+		var index := moved_targets.find(splashed_from)
+		if index < 0: return false # no direct target to move: nothing this reaction can draw
+		moved_targets[index] = aim
+
+	# DEDUPED HERE rather than as they are appended, because 1a substitutes by index: two ally tiles
+	# collapsing onto our one aim tile must still leave one direct target, as before.
+	var new_targets:Array[Vector2i] = []
+	for tile:Vector2i in moved_targets:
+		Util.append_nonduplicate(new_targets, tile)
 
 	# 2. the area and the units in it
 	var reqs := specific.action.get_target_requirements(specific)

@@ -77,25 +77,35 @@ func test_the_frame_is_size_half():
 	assert_true(unit.core.is_size_half(), 'The live unit built on this frame reads as size-half.')
 	assert_eq(unit.core.get_size_float(), 0.5, 'The live unit is size 0.5.')
 
-## Both the frame's sprite and the licence's icon currently point at the shared placeholder
-## (frame.gd:25's sprites, unlock_tree.gd:12's icon) - art is commissioned separately and is
-## deliberately NOT blocking on this branch, so this asserts only that each is non-empty/non-null,
-## never WHICH image it is. An empty sprites array or a null licence icon would ship green today:
-## nothing else in this file, or in test_weak_computer.gd/test_ripper_mod.gd/
-## test_full_speed_ahead.gd, ever reads either property.
+## The frame's sprite (frame.gd:25) and the licence's icon (unlock_tree.gd:12) both carry the
+## author's commissioned art now, and these two tests assert WHICH IMAGE IT IS as well as that there
+## is one. That is a deliberate change of intent: while art was still outstanding these asserted only
+## non-empty/non-null, on the grounds that the placeholder was fine - it is not fine any more, and a
+## revert to it is a one-line edit to the .tres's ext_resource path that nothing else in the suite
+## would notice. Nothing else in this file, or in test_weak_computer.gd/test_ripper_mod.gd/
+## test_full_speed_ahead.gd, ever reads either property; test_content_integrity.gd's _assert_real_icon
+## walks kit, action and buff icons only, and never reaches a Frame.sprites entry or a licence icon.
 func test_the_frame_has_a_sprite():
 	var frame := _frame()
 	assert_not_null(frame, 'fixture: the frame loads.')
 	if frame == null: return
 	assert_false(frame.sprites.is_empty(),
-		'frame.sprites is non-empty (the placeholder art is fine; a missing entry is not).')
+		'frame.sprites is non-empty (a missing entry drops the frame off every card).')
+	if frame.sprites.is_empty(): return
+	var sprite:Texture2D = frame.sprites[0]
+	assert_not_null(sprite, 'The sprite texture loaded.')
+	if sprite == null: return
+	assert_false(sprite.resource_path.contains('placeholder'),
+		'The frame wears its commissioned art, not the stand-in (%s).' % sprite.resource_path)
 
 func test_the_licence_has_an_icon():
 	var license := _license()
 	assert_not_null(license, 'fixture: the licence loads.')
 	if license == null: return
-	assert_not_null(license.icon,
-		'license.icon is set (the placeholder art is fine; a null icon is not).')
+	assert_not_null(license.icon, 'license.icon is set (a null icon draws a blank on the catalog).')
+	if license.icon == null: return
+	assert_false(license.icon.resource_path.contains('placeholder'),
+		'The licence wears real art, not the stand-in (%s).' % license.icon.resource_path)
 
 func test_the_frame_has_one_main_mount():
 	var frame := _frame()

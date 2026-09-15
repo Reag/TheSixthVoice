@@ -222,6 +222,27 @@ func test_the_trait_and_its_action_exist():
 func test_the_subutai_carries_the_trait():
 	assert_not_null(drive_gear(), 'The frame grants mt_juggernaut_drive.')
 
+func test_the_map_indexes_the_subutai_on_every_tile_of_its_footprint():
+	# THE SHARED FIXTURE'S OWN PRECONDITION, and it lives in this file because this is the file whose
+	# before_each is the plainest use of it. subutai_fixture.create_subutai has to re-track the map by
+	# hand - SpecFactory.create_unit adds the unit at SIZE 1, the dummy Everest's size, and only
+	# full_repair() grows it to the frame's 2 - and the ORDER of the two calls it makes is
+	# load-bearing: MapState.unit_tiles is rebuilt from unit.occupied_tiles() (map_state.gd:379),
+	# which is the CACHED footprint (unit.gd:206), so the cache has to be refreshed first. Get that
+	# backwards and the map files a size-2 Subutai under its anchor tile alone, every
+	# get_all_units_at_tiles lookup misses it on the other three - the whole attack pipeline,
+	# action_attack.gd:164 - and no spec in this mod notices, because a Drive moves the unit and
+	# UnitTile.move_to re-tracks on the way.
+	#
+	# The three NON-ANCHOR tiles are the whole measurement; the anchor is indexed either way.
+	assert_eq(subutai.state.occupying_size, 2, 'fixture: the Subutai is size 2.')
+	var footprint := subutai.occupied_tiles()
+	assert_eq(footprint.size(), 4, 'fixture: its footprint is four tiles.')
+	for tile:Vector2i in footprint:
+		var one_tile:Array[Vector2i] = [tile]
+		assert_true(game.map.get_all_units_at_tiles(one_tile).has(subutai),
+			'The map indexes the Subutai at %s.' % tile)
+
 func test_the_action_is_a_free_end_of_turn_reaction_that_spends_no_point():
 	var action := drive_action()
 	assert_not_null(action, 'The action exists.')
@@ -521,9 +542,9 @@ func test_a_second_turn_end_in_the_same_round_offers_nothing():
 
 func test_a_drive_that_ends_in_dangerous_terrain_takes_the_terrain_damage():
 	# Ruling 19. ignore_dangerous protects the Drive in TRANSIT only - event_map_dangerous refuses a
-	# move whose movement type carries it (event_map_dangerous.gd:22) - but handle_ending_unit walks
-	# the unit's occupied tiles afterwards with NO movement type at all, in the very same turn-end
-	# event, and that one lands.
+	# move whose movement type carries it (event_map_dangerous.gd:19; :22 is the bare `return true`
+	# below it) - but handle_ending_unit walks the unit's occupied tiles afterwards with NO movement
+	# type at all (event_turn_end.gd:82-89), in the very same turn-end event, and that one lands.
 	#
 	# There is no map.set_surface_terrain_at: surface terrain is derived from the landscape, so the
 	# reachable API is SpecFactory.add_blocks_to_landscape, exactly as vanilla's
@@ -547,3 +568,212 @@ func test_a_drive_that_ends_in_dangerous_terrain_takes_the_terrain_damage():
 	assert_eq(subutai.tile(), START + Vector2i(3, 0), 'It drove into the fire.')
 	assert_lt(subutai.core.current.health, health_before,
 		'It takes the dangerous-terrain damage at the end of the same turn.')
+
+func test_the_drive_takes_no_damage_from_dangerous_terrain_it_merely_crosses():
+	# THE OTHER HALF OF RULING 19, and the half the trait is actually built to deliver. The test above
+	# puts the lava on the DESTINATION; this one puts it strictly in TRANSIT - on (10, 8) and (10, 9),
+	# which the size-2 footprint enters on the way east and leaves behind, and which are in neither the
+	# starting footprint nor the landing one. event_unit_move queues an event_map_dangerous per step
+	# with `resource = move.movement_type` (event_unit_move.gd:273-280), and
+	# event_map_dangerous.check_specific_context refuses it when that movement type carries
+	# ignore_dangerous (:19). That is the ONLY reader of the raw flag, so this test is what makes
+	# ignore_dangerous on action_juggernaut_drive.tres load-bearing rather than decorative.
+	#
+	# The eng check is cheated to a 1 the same way: if the transit check DID fire it would fail, so a
+	# silent regression shows up as damage rather than as a coin flip. The queued 1 is simply never
+	# consumed when the trait works, and after_each clears the queue.
+	SubutaiFixture.create_ally(game, START + Vector2i(6, 0))
+	responder.chosen_move_tile = START + Vector2i(3, 0)
+	var lava:Array[Vector3i] = [Vector3i(10, 0, 8), Vector3i(10, 0, 9)]
+	SpecFactory.add_blocks_to_landscape(game.get_landscape_node(), 'block_lava', lava)
+	await SubutaiFixture.open_turn(game, subutai)
+	immobilize(subutai)
+	assert_true(game.map.get_surface_terrain_at(Vector2i(10, 8)).is_dangerous(),
+		'fixture: (10, 8) really is dangerous terrain.')
+	assert_false(subutai.occupied_tiles().has(Vector2i(10, 8)),
+		'fixture: and the Subutai does not START standing in it.')
+	var health_before:int = subutai.core.current.health
+	Dice.CHEAT_ROLL_QUEUE.append(1) # if the transit check fired, this would fail it and damage would land
+	await end_turn()
+	assert_eq(subutai.tile(), START + Vector2i(3, 0), 'It drove the full 3, across the fire.')
+	assert_false(subutai.occupied_tiles().has(Vector2i(10, 8)),
+		'fixture: and it did not stop in it, so nothing here is the destination case.')
+	assert_eq(subutai.core.current.health, health_before,
+		'Crossing dangerous terrain costs the Drive nothing (ruling 8, ruling 19).')
+
+# ------------------------------------------------------------ difficult terrain, and a dead .tres flag
+
+func test_difficult_terrain_along_the_line_costs_the_drive_nothing():
+	# The spec the design names by name in its section 1.1 list - "difficult terrain on the line costs
+	# nothing (3 tiles still reachable)" - and which the plan lost, for the second time on this trait.
+	#
+	# THE .tres FLAG IT LOOKS LIKE IT GUARDS IS DEAD, and this is where that record belongs, so nobody
+	# later "cleans up" the wrong one. MovementType.ignores_difficult_terrain() is
+	# `ignore_difficult or teleport or flying or NOT VOLUNTARY` (movement_type.gd:107-108), the Drive
+	# is non-voluntary by ruling 7, and pathfinder.gd:99 is the only reader in the whole engine - it
+	# goes through the accessor. So ignore_difficult = true on action_juggernaut_drive.tres changes
+	# nothing, and no mod-side mutation reddens this test: it pins the ENGINE behaviour the card's
+	# "ignoring terrain" relies on, and it would catch a modkit that dropped the `not voluntary` limb.
+	# Do NOT conclude the same about its two neighbours on that resource - free_climb is read bare by
+	# the climb multiplier (pathfinder.gd:774) and ignore_dangerous bare by
+	# event_map_dangerous.check_specific_context (:19), and the test above pins the second of those.
+	#
+	# The forest covers the two tiles the size-2 footprint ENTERS on the way east and stops short of
+	# the third candidate, so nothing about the destination's own validity is in play. With difficult
+	# terrain counted, the step onto candidate 1 would cost 2 (it newly occupies (10, 8) and (10, 9))
+	# and candidate 3 would cost 4 against a budget of 3, so it would drop off the picker.
+	var ally := SubutaiFixture.create_ally(game, START + Vector2i(6, 0))
+	var forest:Array[Vector2i] = [Vector2i(9, 8), Vector2i(9, 9), Vector2i(10, 8), Vector2i(10, 9)]
+	SpecFactory.add_setpieces_to_landscape(game.get_landscape_node(), &'setpiece_tree_acacia', forest)
+	await SubutaiFixture.open_turn(game, subutai)
+	immobilize(subutai)
+	for tile:Vector2i in forest:
+		assert_true(game.map.get_surface_terrain_at(tile).is_difficult(),
+			'fixture: %s really is difficult terrain.' % tile)
+	assert_true(UnitRelation.can_see(subutai, ally),
+		'fixture: a one-tall setpiece with blocks_los false does not hide the ally that anchors the line.')
+	# Computed before the turn ends, for the reason the compass-ray test above records.
+	var expected := candidates_towards(START + Vector2i(6, 0))
+	var prompts := await end_turn()
+	assert_eq(prompts.size(), 1, 'One movement picker was opened.')
+	if prompts.is_empty(): return
+	var offered:Array = offered_by(prompts[0])
+	assert_eq(offered.size(), expected.size(), 'All three tiles survive a line made of forest.')
+	for tile:Vector2i in expected:
+		assert_true(offered.has(tile), '%s is offered.' % tile)
+	var pathfinder:Pathfinder = prompts[0].pathfinder
+	assert_eq(pathfinder.get_path_cost(pathfinder.path_to(expected[2])), RANGE,
+		'And the far tile costs exactly one per step - the forest adds nothing, it is not merely affordable.')
+
+# --------------------------------------------------------------- the rulings with no assertion at all
+#
+# Three implementation lines the design asked for and the SP1 build shipped unguarded: ruling 9's
+# union over EVERY visible ally, ruling 18's flying merge, and the `super.triggers_on_event` call that
+# rejects the virtual end-turn cores. Each was measurably deletable with this file green.
+
+func test_two_allies_in_different_directions_are_offered_as_one_union():
+	# RULING 9: "every tile up to 3 along the line from the Subutai towards EACH allied character in
+	# line of sight, ALL AT ONCE". candidate_tiles loops every visible ally, but every other
+	# behavioural test in this file creates exactly one - create_dummy is AI_ENEMY and
+	# create_allied_deployable is excluded from map.get_all_characters() by map_state.gd:231 - so
+	# `if allies.size() > 1: allies = [allies[0]]` left the whole file green. Two allies on two
+	# different compass rays, and the offer has to be the UNION of both.
+	#
+	# Whatever candidate_tiles drops is gone for good: Pathfinder.generate_for_given_tiles only ever
+	# NARROWS the set it is handed (Util.filter(movable_tiles, given_tiles.has), pathfinder.gd:314).
+	var east := SubutaiFixture.create_ally(game, START + Vector2i(6, 0))
+	var north := SubutaiFixture.create_ally(game, START + Vector2i(0, -6))
+	await SubutaiFixture.open_turn(game, subutai)
+	immobilize(subutai)
+	assert_true(UnitRelation.can_see(subutai, east), 'fixture: the eastern ally is visible.')
+	assert_true(UnitRelation.can_see(subutai, north), 'fixture: the northern ally is visible.')
+	# Computed before the turn ends, for the reason the compass-ray test above records, and asserted
+	# against literals as well, so a change in either ray shows up as itself rather than as "the union
+	# still matched whatever the union now is".
+	var towards_east := candidates_towards(START + Vector2i(6, 0))
+	var towards_north := candidates_towards(START + Vector2i(0, -6))
+	assert_eq(towards_east, [Vector2i(9, 8), Vector2i(10, 8), Vector2i(11, 8)] as Array[Vector2i],
+		'fixture: the eastern ray is the three tiles east.')
+	assert_eq(towards_north, [Vector2i(8, 7), Vector2i(8, 6), Vector2i(8, 5)] as Array[Vector2i],
+		'fixture: the northern ray is the three tiles north.')
+	var expected:Array[Vector2i] = []
+	expected.append_array(towards_east)
+	expected.append_array(towards_north)
+	var prompts := await end_turn()
+	assert_eq(prompts.size(), 1, 'ONE picker over both lines, not one picker per ally.')
+	if prompts.is_empty(): return
+	var offered:Array = offered_by(prompts[0])
+	assert_eq(offered.size(), expected.size(), 'Six tiles: both rays, not one of them.')
+	for tile:Vector2i in expected:
+		assert_true(offered.has(tile), '%s is offered.' % tile)
+	for tile:Vector2i in offered:
+		assert_true(expected.has(tile), '%s lies on one of the two rays and nowhere else.' % tile)
+
+func test_a_flying_subutai_is_handed_a_flying_movement_type():
+	# RULING 18. generate_reaction_pathfinder merges the unit's LIVE flying state into the authored
+	# MovementType, because a .tres cannot carry runtime state and merge_with_standard_move_type is
+	# false. Without it MovementType.takes_fall_damage() - `(not ignore_fall_damage) and (straight_line
+	# or not voluntary) and (not teleport) and (not flying)` (movement_type.gd:110-111) - is TRUE for
+	# this move, and a flying Subutai falls out of the sky at the end of its own turn; the size-2
+	# flat-ground endpoint rule (pathfinder.gd:167-168) also changes the offer over uneven ground.
+	#
+	# IT HAS TO BE ASSERTED ON THE PATHFINDER, not on the action.
+	# test_the_movement_type_carries_every_clause_of_the_card reads action.movement_type, the AUTHORED
+	# sub-resource, which is identical with the merge and without it: MovementType.create_merged
+	# returns a COPY (movement_type.gd:73-77). Pathfinder.using_movement_type is the merged one
+	# (pathfinder.gd:331), and prompt_watcher.gd:83 already reports the pathfinder - so no terrain
+	# setup is needed to see the difference.
+	SubutaiFixture.create_ally(game, START + Vector2i(6, 0))
+	responder.chosen_move_tile = START + Vector2i(3, 0)
+	await SubutaiFixture.open_turn(game, subutai)
+	immobilize(subutai)
+	UnitCondition.apply_status(
+		SpecFactory.dummy_event(), subutai, Lancer.STATUS.FLYING, Lancer.UNTIL.START_OF_TURN)
+	assert_true(subutai.state.is_flying(), 'fixture: the Subutai is airborne.')
+	var prompts := await end_turn()
+	assert_eq(prompts.size(), 1, 'One movement picker was opened.')
+	if prompts.is_empty(): return
+	assert_true(prompts[0].pathfinder.using_movement_type.flying,
+		'The pathfinder was handed a FLYING movement type, so the Drive does not fall (ruling 18).')
+	var action := drive_action()
+	assert_not_null(action, 'The action exists.')
+	if action == null: return
+	assert_false(action.movement_type.flying,
+		'And the authored resource was copied, not mutated - a mutation would make every later Drive fly.')
+
+func test_a_deployable_the_subutai_owns_does_not_open_a_second_picker():
+	# event_turn_end.execute_preblock fires a VIRTUAL end_turn core per unit the ending unit OWNS
+	# (:20-24), and the `super.triggers_on_event` call is the whole of what rejects those:
+	# ActionReactionMovement compares triggering_unit_is = UNIT against the core's unit
+	# (action_reaction_movement.gd:29-31), and a virtual core's unit is the deployable, not the
+	# Subutai. No spec could exercise it before, because SpecFactory's deployables are UNOWNED -
+	# create_allied_deployable never sets deployable_owner_id, so the fixture's "allied deployable"
+	# fires no virtual core at all and deleting the super call stayed green.
+	#
+	# THE PICKER MUST BE DECLINED FOR THIS TO DISCRIMINATE. If the first Drive is taken, the engine's
+	# own 1/round hard limit refuses the second one by itself and the super call is free to vanish;
+	# abort_all leaves uses_this_round at 0, so a second trigger really would open a second picker.
+	# abort_all still OPENS each prompt and reports it to the watcher before cancelling it, which is
+	# what test_declining_the_picker_leaves_it_in_place_and_spends_nothing already relies on.
+	SubutaiFixture.create_ally(game, START + Vector2i(6, 0))
+	var dep := SubutaiFixture.create_allied_deployable(game, START + Vector2i(0, 6))
+	dep.state.set_owner(subutai)
+	responder.abort_all = true
+	await SubutaiFixture.open_turn(game, subutai)
+	immobilize(subutai)
+	assert_false(subutai.core.persistent_id.is_empty(),
+		'fixture: the owner id is a real id, so is_owned_by is not two empty strings matching.')
+	assert_true(dep.state.is_owned_by(subutai),
+		'fixture: the Subutai owns the deployable, so a virtual end-turn core IS fired for it.')
+	var prompts := await end_turn()
+	assert_eq(prompts.size(), 1, 'One picker: a deployable turn end is not the Subutai turn end.')
+	assert_eq(uses_this_round(), 0,
+		'fixture: declining spent nothing, so the 1/round limit was not what stopped a second picker.')
+
+func test_a_non_obstruction_unit_on_the_only_candidate_does_not_close_the_drive():
+	# Every branch of footprint_is_clear makes the empty-picker gate MORE permissive - attached units,
+	# EXILED, non-obstruction frames and the two CAN_SHARE_SPACE probes are all things the pathfinder
+	# steps over. Delete any one and the gate becomes STRICTER than the pathfinder, refusing a Drive
+	# the card allows, with nothing in this file red: every other test here either has no unit on a
+	# candidate tile, or expects the Drive refused anyway.
+	#
+	# The setup is test_an_immobilized_subutai_whose_only_ally_is_pressed_against_it_is_offered_nothing
+	# with ONE difference. The ally is adjacent, so the line towards it offers exactly one candidate -
+	# the ally's own tile - and that one tile is the whole offer. Flipping is_obstruction takes the
+	# ally out of the pathfinder's occupation lists entirely (pathfinder.gd:109-116, the closing
+	# `return other_unit.core.frame.is_obstruction`), so the tile is a legal endpoint and the picker
+	# must open. The frame is safe to write to: FitzgeraldFixture.create_dummy FrameIsolation's it, so
+	# this is a throwaway copy and not the shared ContentLibrary Everest.
+	var ally := SubutaiFixture.create_ally(game, START + Vector2i(-1, 0))
+	ally.core.frame.is_obstruction = false
+	responder.abort_all = true # the OFFER is the measurement; nothing has to actually move
+	await SubutaiFixture.open_turn(game, subutai)
+	immobilize(subutai)
+	assert_false(ally.core.frame.is_obstruction, 'fixture: the ally is not an obstruction.')
+	assert_eq(candidates_towards(START + Vector2i(-1, 0)).size(), 1,
+		'fixture: the line towards an adjacent ally has exactly one candidate - its own tile.')
+	var prompts := await end_turn()
+	assert_eq(prompts.size(), 1, 'The picker opens: a non-obstruction unit is not a blocker.')
+	if prompts.is_empty(): return
+	assert_eq(offered_by(prompts[0]), [START + Vector2i(-1, 0)] as Array[Vector2i],
+		'And the one tile it offers is the one the ally is standing on.')

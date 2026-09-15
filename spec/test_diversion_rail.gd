@@ -35,6 +35,11 @@ const CHIP_NAME_KEY := 'gear.%s.name' % CHIP_ID
 const SUBUTAI_TILE := Vector2i(4, 6)
 const TARGET_TILE := Vector2i(10, 6)
 const ALLY_TILE := Vector2i(14, 6)
+## A SECOND Subutai, for the two-gear-instance case. Four clear tiles south of the target, on the
+## opposite side from the ally and well off the Subutai-to-ally row, so the target's roll against it
+## carries no cover and no engagement of its own - the control assertions measure that rather than
+## assume it. test_the_ap_flag_reaches_the_damage_event already shoots a dummy standing here.
+const SECOND_SUBUTAI_TILE := Vector2i(10, 10)
 ## Inside a Blast 1 centred on SUBUTAI_TILE + (1, 0), for the per-roll split.
 const BESIDE_SUBUTAI := Vector2i(6, 6)
 
@@ -87,9 +92,17 @@ func queue_dice(d20:int) -> void:
 ## hand rather than through game.execute_event() because the summary lives on the activation event's
 ## OWN context, which execute_event does not return (test_hybridized_shot.fire_and_capture's reason).
 func fire_rail(at:Unit, d20:int = D20_HIT) -> DeclaredAttackSummary:
+	return await fire_rail_from(subutai, at, d20)
+
+## The same shot, from a NAMED Subutai rather than the fixture's own. Only the two-Subutai test needs
+## this, and it needs the shooter to be a parameter for the same reason the chip's owner is a
+## parameter of the gate: the Rail's gear core, and therefore the chip's from_gear, is per UNIT.
+func fire_rail_from(shooter:Unit, at:Unit, d20:int = D20_HIT) -> DeclaredAttackSummary:
 	queue_dice(d20)
+	var gear:GearCore = shooter.get_gear(CORE_ID)
+	var action:Action = gear.get_action(RAIL_ID) if GearCore.is_valid(gear) else null
 	var core := EventCore.create(&'event_gear_activate', {
-		action = rail_action(), gear = core_gear(), unit = subutai, target_unit = at,
+		action = action, gear = gear, unit = shooter, target_unit = at,
 	})
 	var cores:Array[EventCore] = [core]
 	await game.execute_event_block(EventBlock.create_multiple(cores))
@@ -124,9 +137,17 @@ func preview(shooter:Unit, weapon:GearCore, against:Unit) -> AttackRoll.PreAttac
 ## the map as much as the chip. The title is buff_core.name_text(), which is what attack_roll.gd:189
 ## puts on the line.
 func has_chip_mod(pre:AttackRoll.PreAttack) -> bool:
+	return chip_mod_count(pre) > 0
+
+## HOW MANY of the chip's own lines this roll carries. has_chip_mod cannot answer the two-Subutai
+## case below: two chips render IDENTICAL lines, because attack_roll.gd:189 titles a line with
+## buff_core.name_text() - the buff's name, which says nothing about WHICH Rail applied it. Only the
+## count separates "both chips applied to this roll" from "one did".
+func chip_mod_count(pre:AttackRoll.PreAttack) -> int:
+	var count:int = 0
 	for mod:AttackRoll.AccuracyMod in pre.accuracy_mods:
-		if mod.title_key == tr(CHIP_NAME_KEY) and mod.mod == -2: return true
-	return false
+		if mod.title_key == X.tr(CHIP_NAME_KEY) and mod.mod == -2: count += 1
+	return count
 
 func arm(unit:Unit, weapon_id:StringName) -> GearCore:
 	var weapon:GearCore = unit.core.equip_system(weapon_id)
@@ -280,6 +301,73 @@ func test_a_second_hit_refreshes_the_chip_rather_than_stacking_it():
 	var rifle := arm(target, RIFLE)
 	assert_eq(preview(target, rifle, ally).accuracy_mods_total(), -2,
 		'And the modifier is still -2, not -4.')
+
+func test_two_subutais_leave_two_chips_and_neither_exempts_the_other():
+	# THE COUNTERPART OF THE TEST ABOVE, AND AN ACCEPTED DIVERGENCE - ruled on by the author, recorded,
+	# and deliberately NOT fixed. This test is the thing that must notice if someone later changes it.
+	#
+	# The non-stacking guarantee is per GEAR INSTANCE, not per ability. unit_condition.gd:741-747
+	# dedupes with get_buffs(unit, buff_core.base.compcon_id, buff_core.from_gear), and from_gear is
+	# context.gear.persistent_id (on_hit_effect.gd:88) - a per-GearCore id, so no two Subutais ever
+	# share one. Two Subutais that each hit the same enemy with their OWN Rail therefore leave TWO
+	# buff_diversion_rail cores on it, where two hits from ONE Subutai leave one.
+	#
+	# TWO CONSEQUENCES, BOTH ACCEPTED AS THEY STAND:
+	#  1. the enemy shoots a third party at -4, not -2: attack_roll.gd:134 gathers every applicable
+	#     core and :182-189 adds a mod LINE for each, which dice.gd:86-87 then sums;
+	#  2. the enemy shooting Subutai A is STILL at -2, because A's chip gates itself out and B's does
+	#     not - which the card's "attacks that do not target the Subutai" arguably exempts.
+	# The declined alternative was to widen the gate so that a chip exempts attacks aimed at ANY
+	# Subutai rather than only its own owner; that is the mutation this test exists to redden.
+	#
+	# IT IS REACHABLE IN PLAY AND NEEDS NO DRAW FIRE. Two pilots may both hold li_barbarossa at rank 2
+	# (the licence grant is non-exclusive, ruling 15) and simply fire at the same enemy on their own
+	# turns; the two-Subutai fixture shape is test_draw_fire's own.
+	#
+	# NEITHER TURN IS ENDED, deliberately. The two Subutais are allied CHARACTERS to one another, so a
+	# turn end here would put the Juggernaut Drive's end-of-turn movement picker in front of the
+	# responder and could move a Subutai off the tile these totals are measured at. Nothing in this
+	# test needs a turn to end - the chip's lifetime is pinned elsewhere - and the Rail needs no turn
+	# at all (test_the_ap_flag_reaches_the_damage_event fires it with none); the turns are opened only
+	# because that is the state a player reaches this from.
+	var second:Unit = SubutaiFixture.create_subutai(game, SECOND_SUBUTAI_TILE)
+	var ally:Unit = SubutaiFixture.create_ally(game, ALLY_TILE)
+	var rifle := arm(target, RIFLE)
+	# THE BASELINE IS MEASURED, NOT ASSUMED (the Blast test's lesson, where it turned out to be -1).
+	# All three of these rolls must start at 0, or the totals at the bottom would be pinning the map -
+	# a cover source, an engagement - as much as the chips.
+	assert_eq(preview(target, rifle, ally).accuracy_mods_total(), 0, 'CONTROL: unchipped, nothing vs the ally.')
+	assert_eq(preview(target, rifle, subutai).accuracy_mods_total(), 0, 'CONTROL: nothing vs Subutai A.')
+	assert_eq(preview(target, rifle, second).accuracy_mods_total(), 0, 'CONTROL: nothing vs Subutai B either.')
+
+	await SubutaiFixture.open_turn(game, subutai)
+	await fire_rail(target)
+	await SubutaiFixture.open_turn(game, second)
+	await fire_rail_from(second, target)
+
+	# WHY the numbers below are what they are: two cores, one per Rail, each with its own owner.
+	var chips:Array[BuffCore] = UnitCondition.get_buffs(target, CHIP_ID)
+	assert_eq(chips.size(), 2, 'TWO chips: the dedupe is per gear instance, so B s did not replace A s.')
+	if chips.size() != 2: return
+	assert_ne(chips[0].from_gear, chips[1].from_gear, 'They came from different gear cores.')
+	var owners:Array[Unit] = []
+	for chip:BuffCore in chips: owners.append(chip.get_owner_unit(game.map))
+	assert_true(owners.has(subutai) and owners.has(second), 'One chip owned by each Subutai.')
+
+	var at_ally:AttackRoll.PreAttack = preview(target, rifle, ally)
+	assert_eq(at_ally.accuracy_mods_total(), -4,
+		'ACCEPTED: two chips stack against a third party - +4 difficulty, not +2.')
+	assert_eq(chip_mod_count(at_ally), 2, 'Both Rail lines are on that roll: -2 and -2, not one -4.')
+
+	var at_first:AttackRoll.PreAttack = preview(target, rifle, subutai)
+	assert_eq(at_first.accuracy_mods_total(), -2,
+		'ACCEPTED: shooting Subutai A is still at -2 - A s chip is gated out, B s is not.')
+	assert_eq(chip_mod_count(at_first), 1, 'Exactly one line survives that roll: B s.')
+
+	var at_second:AttackRoll.PreAttack = preview(target, rifle, second)
+	assert_eq(at_second.accuracy_mods_total(), -2,
+		'And shooting Subutai B is at -2 for the mirror reason: A s chip does not exempt B.')
+	assert_eq(chip_mod_count(at_second), 1, 'Exactly one line survives that roll: A s.')
 
 func test_the_chipped_target_is_at_minus_two_against_an_ally():
 	var ally:Unit = SubutaiFixture.create_ally(game, ALLY_TILE)

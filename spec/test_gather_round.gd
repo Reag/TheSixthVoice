@@ -20,7 +20,6 @@ const SubutaiFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/subutai_
 const CORE_ID := &'cp_siege_engine'
 const PROTOCOL_ID := &'action_gather_round'
 const BUFF_ID := &'buff_gather_round'
-const FRAME_ID := &'mf_subutai'
 
 const START := Vector2i(4, 4)
 
@@ -30,9 +29,6 @@ var subutai:Unit
 func before_each() -> void:
 	game = SubutaiFixture.create_game(self)
 	subutai = SubutaiFixture.create_subutai(game, START)
-
-func after_each() -> void:
-	Dice.CHEAT_ROLL_QUEUE.clear()
 
 func core_gear() -> GearCore:
 	return subutai.get_gear(CORE_ID)
@@ -56,16 +52,10 @@ func test_the_buff_is_in_the_buffs_index_as_its_own_resource():
 	assert_eq(buff.until, Lancer.UNTIL.MANUAL, 'For the rest of the scene: nothing clears it.')
 	assert_eq(buff.to, Buff.TO.NONE, 'It grants nothing by itself; its job is to be present.')
 
-func test_the_frame_carries_the_core_system_last():
-	# Appended, not inserted: the sheet lists the four traits first and the core system after them,
-	# and the frame card renders traits in array order. test_subutai_frame.SHEET_TRAITS is the pin.
-	var frame:Frame = ContentLibrary.get_mech_frame(FRAME_ID)
-	assert_not_null(frame, 'mf_subutai loads.')
-	if frame == null: return
-	var ids:Array[StringName] = []
-	for kit:Kit in frame.traits: ids.append(kit.compcon_id)
-	assert_eq(ids.size(), 5, 'Four traits plus the core system.')
-	assert_eq(ids.back(), CORE_ID, 'The core system is last.')
+## THE CORE SYSTEM'S PLACE IN THE TRAIT LIST IS PINNED IN test_subutai_frame.gd, not here. That file's
+## test_the_traits_are_the_sheets_four_then_the_core_system asserts the whole ordered list against
+## SHEET_TRAITS, which is strictly stronger than the size-and-last-entry check this file used to carry;
+## the weaker copy was deleted at the frame close rather than left to rot beside it.
 
 func test_a_subutai_actually_holds_the_core_system():
 	assert_true(GearCore.is_valid(core_gear()), 'The unit has cp_siege_engine as gear.')
