@@ -181,7 +181,7 @@ const ICON_TARGETS := {
 	&'mt_hole_puncher': [], # a passive trait: no action of its own, so it wears the Kit's icon
 	&'mt_knock_em_down': [], # a passive trait: no action of its own, so it wears the Kit's icon
 	# Its one action (action_blasting_powder_spend) is a hidden bookkeeping reaction: reactions never
-	# reach the gear bar (gear_bar.gd:143) and it overrides show_in_tooltip to false, so nothing the
+	# reach the gear bar (gear_bar.gd:145) and it overrides show_in_tooltip to false, so nothing the
 	# player sees ever wears an icon for it. The Kit's own icon still has to be real.
 	&'mt_blasting_powder': [],
 	# SP2 Task 1. A weapon Kit, not a trait: its SINGLE SHOT profile is a separately pressable button
@@ -191,7 +191,7 @@ const ICON_TARGETS := {
 	# the mt_blasting_powder reason above.)
 	&'mw_breech_loading_swivel_gun': [&'action_swivel_single_shot', &'action_swivel_grapeshot'],
 	# SP2 Task 4. Its one action (action_heaer_detonate) is a hidden bookkeeping reaction: reactions
-	# never reach the gear bar (gear_bar.gd:143) and it overrides show_in_tooltip to false, so nothing
+	# never reach the gear bar (gear_bar.gd:145) and it overrides show_in_tooltip to false, so nothing
 	# the player sees ever wears an icon for it. The Kit's own icon still has to be real - the system
 	# is equippable, and sits in the loadout like any other.
 	&'ms_heaer': [],
@@ -223,7 +223,7 @@ const ICON_TARGETS := {
 	# button instead of three.
 	&'cp_auxiliary_power_rerouter': [&'action_ors_hypercharge'],
 	# SP1 Task 4 (Subutai). Its one action is an end_turn reaction, and reactions never reach the
-	# gear bar (gear_bar.gd:143) - but unlike mt_blasting_powder's and ms_heaer's hidden bookkeeping
+	# gear bar (gear_bar.gd:145) - but unlike mt_blasting_powder's and ms_heaer's hidden bookkeeping
 	# reactions, this one does NOT override show_in_tooltip, so it is drawn on the trait card with
 	# its own row. It therefore earns its own icon as well as the Kit's.
 	&'mt_juggernaut_drive': [&'action_juggernaut_drive'],

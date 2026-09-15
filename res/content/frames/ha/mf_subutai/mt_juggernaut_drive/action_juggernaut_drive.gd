@@ -26,9 +26,11 @@ extends ActionReactionMovement
 #
 # WHAT A SPEC MUST NOT ASSERT (measured, SP1 Task 3). For an ally that is NOT on a compass ray, the
 # pathfinder's own ray to a candidate endpoint and the ally-ray that produced that endpoint disagree
-# by one intermediate tile at the third step. Both start adjacent to the origin, step 8-adjacently,
-# and land on the SAME tile, so no endpoint is lost - but an off-axis Drive's travelled path must
-# never be asserted tile by tile. Landing tiles are safe.
+# by one intermediate tile. The divergence is at the FIRST step, while resolving the THIRD endpoint:
+# for the shallow off-axis ally the spec measures, the pathfinder leaves via (9, 8) where the
+# ally-line used (9, 9), both en route to the same endpoint (11, 9). Both rays start
+# adjacent to the origin, step 8-adjacently, and land on the SAME tile, so no endpoint is lost - but
+# an off-axis Drive's travelled path must never be asserted tile by tile. Landing tiles are safe.
 
 ## A reaction that consumes no reaction point has a per-round hard limit of 99
 ## (action_reaction.gd:69), which would let the Subutai Drive on every extra activation it is
@@ -47,7 +49,17 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if not UnitCondition.is_immobilized(unit): return false
 	# "towards an allied character within line of sight" - with nobody to drive towards there is no
 	# line, so do not open a picker with nothing in it.
-	return not visible_allied_characters(unit).is_empty()
+	#
+	# AND NOT JUST "IS THERE AN ALLY". The candidates are the min(3, distance) line tiles towards that
+	# ally, and the Subutai is size 2 - so an ally standing close enough leaves every candidate anchor
+	# with a footprint that overlaps it, and the pathfinder rejects all of them. THIS IS THE COMMON
+	# CASE, not the exotic one: the frame's own Guardian trait rewards allies for standing adjacent.
+	# TargetActionUtil.ask_for_movement opens the picker for a player unit regardless of whether the
+	# pathfinder found anything, so without this the Subutai gets a dead prompt at every turn end for
+	# as long as it stays Immobilized. triggers_on_event is the only sync seam that can stop it:
+	# generate_reaction_pathfinder is awaited by the archetype's activate immediately before
+	# ask_for_movement, with nothing in between to bail from.
+	return has_a_clear_candidate(unit, get_target_range(SpecificAction.create(unit, gear, self)))
 
 ## Allied CHARACTERS the Subutai can see, excluding itself.
 ##
@@ -63,6 +75,67 @@ func visible_allied_characters(unit:Unit) -> Array[Unit]:
 		if not UnitRelation.can_see(unit, other): continue
 		allies.append(other)
 	return allies
+
+## The candidate endpoints of the Drive: the union, over every visible allied character, of the
+## Line-pattern tiles from the unit's tile towards that ally, capped at `range_tiles`.
+##
+## ONE DEFINITION, TWO CALLERS. generate_reaction_pathfinder hands these to the pathfinder, and
+## triggers_on_event asks whether any of them could be stood on. Computing the union twice would let
+## the gate and the picker drift apart, which is precisely the bug the gate exists to prevent.
+func candidate_tiles(unit:Unit, range_tiles:int) -> Array[Vector2i]:
+	var tiles:Array[Vector2i] = []
+	for ally:Unit in visible_allied_characters(unit):
+		# The origin tile is excluded, because AoeCalculator.line builds from rings starting at
+		# distance 1 (CommonActionUtil.get_all_occupied_tiles_in_line is the Full Speed Ahead helper).
+		for tile:Vector2i in CommonActionUtil.get_all_occupied_tiles_in_line(
+			unit, unit.tile(), ally.tile(), range_tiles
+		):
+			if not tiles.has(tile): tiles.append(tile)
+	return tiles
+
+## Could the Drive land ANYWHERE? A cheap, SYNCHRONOUS approximation of the pathfinder's endpoint
+## validity, used only to decide whether opening the picker is worth the player's time.
+##
+## IT IS AN APPROXIMATION ON PURPOSE, AND IT IS BIASED TOWARDS OFFERING. It models exactly one of the
+## pathfinder's rejection reasons - another unit overlapping the size-2 footprint
+## (pathfinder.gd:132-134 for the anchor tile, :158-160 for the footprint) - and models NOTHING about
+## terrain, elevation, dz, off-map footprints, dynamic-zone boundaries or CANT_MOVE_THROUGH. So the
+## picker CAN still open empty, for a wall or a cliff or a map edge. That is accepted: the failure
+## this guards is the routine one (an ally standing next to the Subutai), and a gate that is merely
+## incomplete costs a prompt, while a gate that is WRONG silently deletes a legal Drive.
+##
+## Hence every uncertainty below resolves towards "offer it": a unit is treated as a blocker only
+## when the pathfinder would certainly treat it as one. Attached units (a grapple katamari), exiled
+## units, markers (excluded by get_all_units_at_tiles' default) and non-obstruction frames are all
+## things the pathfinder steps over, so they are not blockers here either; and a stackup skips the
+## whole narrowing, because pathfinder.gd:123-125 folds the entire stack into can_share_space_units
+## and reproducing that is not worth the risk of getting it backwards.
+func has_a_clear_candidate(unit:Unit, range_tiles:int) -> bool:
+	var candidates := candidate_tiles(unit, range_tiles)
+	if candidates.is_empty(): return false
+	if UnitCondition.is_in_stackup(unit): return true # err towards offering; see the header
+	var attached:Array[Unit] = Katamari.create(unit).all_units
+	for candidate:Vector2i in candidates:
+		if footprint_is_clear(unit, candidate, attached): return true
+	return false
+
+## Does the unit's footprint anchored at `candidate` overlap anything the pathfinder would refuse to
+## share a tile with? Mirrors the occupation filter at pathfinder.gd:109-116 and the CAN_SHARE_SPACE
+## pass at :117-122, minus the cases the header lists as deliberately unmodelled.
+func footprint_is_clear(unit:Unit, candidate:Vector2i, attached:Array[Unit]) -> bool:
+	var buff_context := Context.create({unit = unit, target_tiles = [candidate], resource = movement_type})
+	for other:Unit in unit.map.get_all_units_at_tiles(unit.occupied_tiles(candidate)):
+		if other == unit or attached.has(other): continue
+		if other.has_status(Lancer.STATUS.EXILED): continue
+		if not other.core.frame.is_obstruction: continue
+		if UnitCondition.has_buff_to(
+			unit, Buff.TO.CAN_SHARE_SPACE, Context.clone(buff_context, {target_unit = other})
+		): continue
+		if UnitCondition.has_buff_to(
+			other, Buff.TO.CAN_SHARE_SPACE, Context.clone(buff_context, {target_unit = unit})
+		): continue
+		return false
+	return true
 
 ## ONE picker over every line at once (ruling 9), rather than "pick an ally, then pick a tile".
 ##
@@ -86,7 +159,7 @@ func visible_allied_characters(unit:Unit) -> Array[Unit]:
 ##    graph built only from the tiles we hand it. One tile of rounding disagreement and the path
 ##    comes back empty and that endpoint silently vanishes from the picker. The flag puts the
 ##    intervening tiles in the graph. It gains no endpoint: straight_line still forces the line path,
-##    and generate_for_given_tiles filters movable_tiles back down to given_tiles (pathfinder.gd:313).
+##    and generate_for_given_tiles filters movable_tiles back down to given_tiles (pathfinder.gd:314).
 func generate_reaction_pathfinder(moving_unit:Unit, specific:SpecificAction) -> Pathfinder:
 	# create_merged is a COPY, so the authored resource is never mutated - a mutation would persist
 	# for the whole scene and make every later Drive flying.
@@ -95,16 +168,9 @@ func generate_reaction_pathfinder(moving_unit:Unit, specific:SpecificAction) -> 
 		use_movement_type = MovementType.create_merged(movement_type, MovementType.new())
 		use_movement_type.flying = true
 
-	var tiles:Array[Vector2i] = []
-	for ally:Unit in visible_allied_characters(moving_unit):
-		for tile:Vector2i in CommonActionUtil.get_all_occupied_tiles_in_line(
-			moving_unit, moving_unit.tile(), ally.tile(), get_target_range(specific)
-		):
-			if not tiles.has(tile): tiles.append(tile)
-
 	return await Pathfinder.generate_for_given_tiles(
 		moving_unit,
-		tiles,
+		candidate_tiles(moving_unit, get_target_range(specific)),
 		use_movement_type,
 		true, # ruling 17
 		get_target_range(specific),

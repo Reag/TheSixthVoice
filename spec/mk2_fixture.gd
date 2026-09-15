@@ -8,7 +8,14 @@
 #
 # Generalising fitzgerald_fixture.create_fitzgerald() into a create_frame(frame_id) was the other
 # option and was NOT taken: its three existing call sites are covered by 200 green tests, and a
-# no-behaviour-change refactor of them is not SP1's job. If a third frame arrives, do it then.
+# no-behaviour-change refactor of them is not SP1's job.
+#
+# THE THIRD FRAME HAS SINCE ARRIVED AND THE REFACTOR STILL DID NOT HAPPEN. subutai_fixture.gd (SP1)
+# copied this same four-line body a third time rather than generalise, because that sub-project was
+# adding a frame and not rewriting two others' fixtures. So the deferral above is now a known
+# duplication, not a judgement call waiting on evidence: three identical create_<frame>() bodies,
+# differing only in FRAME_ID, and the extraction is open work for whoever next has reason to touch
+# all three.
 #
 # Static functions, no state, NOT extends GutTest, NOT test_-prefixed, so GUT's directory scan never
 # collects this as a test script.

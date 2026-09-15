@@ -38,5 +38,12 @@ static func create_dummy(
 static func create_ally(game:Gamemaster, tile:Vector2i) -> Unit:
 	return FitzgeraldFixture.create_dummy(game, tile, 10, Faction.PLAYER)
 
+## A friendly DEPLOYABLE (the vanilla Jericho cover), for the other half of that same distinction: a
+## unit the Drive can see and is allied to, which map.get_all_characters() must nevertheless not
+## return. Same statblock as test_heaer.gd's cover - 10 HP, no armor, evasion 10 - since nothing here
+## ever shoots it.
+static func create_allied_deployable(game:Gamemaster, tile:Vector2i) -> Unit:
+	return FitzgeraldFixture.create_deployable(game, tile, 10, 0, 10, Faction.PLAYER)
+
 static func open_turn(game:Gamemaster, unit:Unit) -> void:
 	await FitzgeraldFixture.open_turn(game, unit)

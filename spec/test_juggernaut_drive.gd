@@ -175,6 +175,25 @@ func slow(unit:Unit) -> void:
 	UnitCondition.apply_status(
 		SpecFactory.dummy_event(), unit, Lancer.STATUS.SLOWED, Lancer.UNTIL.START_OF_TURN)
 
+## The OTHER limb of UnitCondition.is_immobilized (unit_condition.gd:413-418): GRAPPLED while not the
+## larger party. is_larger_in_grapple is a plain state flag, false by default
+## (unit_battle_state.gd:56) and set by Katamari.create - so the status alone is the whole condition,
+## and it is set explicitly here rather than relied on, since the assertion below is about it.
+func grapple_as_the_smaller(unit:Unit) -> void:
+	UnitCondition.apply_status(
+		SpecFactory.dummy_event(), unit, Lancer.STATUS.GRAPPLED, Lancer.UNTIL.START_OF_TURN)
+	unit.state.is_larger_in_grapple = false
+
+## A full-height forbidden-interior column spanning the map north to south at `x`: blocks sight at
+## every layer and gives no cover of its own. Lifted from test_hole_puncher.gd, which is all about
+## this - including the calculate_los_blockers() re-push vanilla's test_map_sightlines.gd does. The
+## forbidden_interiors_enabled flag the column depends on is set by FitzgeraldFixture.create_game().
+func build_wall_at(x:int) -> void:
+	var wall:Array[Vector2i] = []
+	for y:int in game.map.size.y: wall.append(Vector2i(x, y))
+	SpecFactory.add_setpieces_to_landscape(game.get_landscape_node(), &'setpiece_forbidden_interior', wall)
+	game.map.calculate_los_blockers()
+
 ## End the Subutai's turn and return the move_tile prompts that turn end opened.
 func end_turn() -> Array[Dictionary]:
 	var before:int = watcher.kinds(PromptWatcher.KIND.move_tile).size()
@@ -344,6 +363,102 @@ func test_an_immobilized_subutai_with_no_allied_character_is_not_offered_the_dri
 	immobilize(subutai)
 	var prompts := await end_turn()
 	assert_eq(prompts.size(), 0, 'No picker: there is nobody friendly to drive towards.')
+
+# ------------------------------------------------- the three cases the design named and the plan lost
+#
+# SP1's whole-branch review measured that this file was 23/23 with `if not UnitRelation.can_see(...)`
+# deleted from visible_allied_characters(), and 23/23 again with get_all_characters() swapped for
+# get_all_units() - two implementation lines the design had asked for and nothing tested. The first
+# two tests below pin them. The third pins a ruling rather than a line: "Immobilized" is the engine's
+# own UnitCondition.is_immobilized, which has three limbs, and only the status limb was exercised.
+
+func test_an_ally_behind_a_wall_does_not_anchor_a_line():
+	# "towards an allied character WITHIN LINE OF SIGHT". The ally is a real allied character at the
+	# same distance as every other test in this file uses; the only difference is the wall.
+	var ally := SubutaiFixture.create_ally(game, START + Vector2i(6, 0))
+	build_wall_at(START.x + 4)
+	await SubutaiFixture.open_turn(game, subutai)
+	immobilize(subutai)
+	# THE FIXTURE CHECKS ARE NOT DECORATION. Without them this test would pass just as well if the
+	# wall had accidentally swallowed the candidate tiles, or if the ally had never been placed - it
+	# has to be an ally the Drive would otherwise drive towards, unseen for exactly one reason.
+	assert_true(UnitRelation.are_allies(subutai, ally), 'fixture: it is an ally.')
+	assert_false(UnitRelation.can_see(subutai, ally), 'fixture: the wall blocks sight to it.')
+	assert_eq(candidates_towards(START + Vector2i(6, 0)).size(), RANGE,
+		'fixture: the line towards it still has three candidates, all west of the wall.')
+	var prompts := await end_turn()
+	assert_eq(prompts.size(), 0, 'No picker: an unseen ally anchors no line.')
+	assert_eq(subutai.tile(), START, 'It did not move.')
+
+func test_a_friendly_deployable_does_not_anchor_a_line():
+	# "towards an ALLIED CHARACTER". A drone, turret or cover the Subutai owns is allied and plainly
+	# visible, and is still not a character - which is why the trait reads map.get_all_characters()
+	# and not get_all_units().
+	var dep := SubutaiFixture.create_allied_deployable(game, START + Vector2i(6, 0))
+	await SubutaiFixture.open_turn(game, subutai)
+	immobilize(subutai)
+	assert_true(UnitRelation.are_allies(subutai, dep), 'fixture: the deployable is allied.')
+	assert_true(UnitRelation.can_see(subutai, dep), 'fixture: it is in plain sight.')
+	assert_false(dep.is_character(), 'fixture: it is not a character.')
+	assert_eq(candidates_towards(START + Vector2i(6, 0)).size(), RANGE,
+		'fixture: the line towards it would have had three candidates.')
+	var prompts := await end_turn()
+	assert_eq(prompts.size(), 0, 'No picker: a deployable is not an allied character.')
+	assert_eq(subutai.tile(), START, 'It did not move.')
+
+func test_a_grappled_smaller_subutai_is_offered_the_drive():
+	# Ruling 10: "Immobilized" is the ENGINE's test, not the status. UnitCondition.is_immobilized is
+	# true for the smaller party in a grapple and for Shutdown as well, and the trait calls it rather
+	# than has_status - so a Subutai held by something bigger can still Drive itself free. Every other
+	# test in this file reaches Immobilized through the status, so this is the only guard on that.
+	SubutaiFixture.create_ally(game, START + Vector2i(6, 0))
+	await SubutaiFixture.open_turn(game, subutai)
+	grapple_as_the_smaller(subutai)
+	assert_false(subutai.has_status(Lancer.STATUS.IMMOBILIZED),
+		'fixture: the Immobilized STATUS is not what is being tested here.')
+	assert_true(UnitCondition.is_immobilized(subutai), 'fixture: the engine still calls it immobilized.')
+	var prompts := await end_turn()
+	assert_eq(prompts.size(), 1, 'The grapple limb of is_immobilized opens the Drive too.')
+
+# ------------------------------------------------------ the picker must never open with nothing in it
+#
+# SP1's whole-branch review: triggers_on_event gated only on "an ally exists", but the candidates are
+# the min(3, distance) line tiles towards it and the Subutai is size 2 - so an ally standing close
+# enough leaves every candidate anchor with a footprint that overlaps it, and the pathfinder rejects
+# the lot. ask_for_movement opens the picker for a player unit regardless, so the Subutai got a dead
+# prompt at every turn end for as long as it stayed Immobilized. Guardian rewards allies for standing
+# adjacent, so this is the ordinary case.
+#
+# THE GEOMETRY IS DIRECTIONAL, and these two tests are aimed the way they are for that reason. The
+# Subutai anchors its 2x2 footprint on its NORTH-WEST tile, so the footprint reaches away to the east
+# and south: an ally two tiles EAST is covered by both candidate anchors, while an ally two tiles
+# WEST is not covered by the near one and does still leave a legal landing tile. Measured
+# 2026-09-15: the empty-picker window is an ally at anchor distance 1 in any direction, and at anchor
+# distance 2 to the east/south.
+
+func test_an_immobilized_subutai_whose_only_ally_is_pressed_against_it_is_offered_nothing():
+	# The ally is on the single candidate tile the line offers, so the only anchor the Drive could
+	# take IS the ally's tile.
+	SubutaiFixture.create_ally(game, START + Vector2i(-1, 0))
+	await SubutaiFixture.open_turn(game, subutai)
+	immobilize(subutai)
+	assert_eq(candidates_towards(START + Vector2i(-1, 0)).size(), 1,
+		'fixture: the line towards an adjacent ally has exactly one candidate - its own tile.')
+	var prompts := await end_turn()
+	assert_eq(prompts.size(), 0, 'No picker: there is nowhere legal to land.')
+	assert_eq(subutai.tile(), START, 'It did not move.')
+
+func test_an_immobilized_subutai_whose_only_ally_is_two_tiles_east_is_offered_nothing():
+	# Two candidates this time, and the size-2 footprint kills both: anchoring on the first would put
+	# the Subutai's east half on the ally, and the second IS the ally's tile.
+	SubutaiFixture.create_ally(game, START + Vector2i(2, 0))
+	await SubutaiFixture.open_turn(game, subutai)
+	immobilize(subutai)
+	assert_eq(candidates_towards(START + Vector2i(2, 0)).size(), 2,
+		'fixture: the line still offers two candidate tiles - both are illegal endpoints.')
+	var prompts := await end_turn()
+	assert_eq(prompts.size(), 0, 'No picker: every candidate footprint overlaps the ally.')
+	assert_eq(subutai.tile(), START, 'It did not move.')
 
 func test_a_unit_standing_along_the_line_shortens_the_offer():
 	# A unit in the way narrows the offer, and this test records EXACTLY how - which is not what the

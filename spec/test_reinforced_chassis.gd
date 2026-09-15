@@ -8,7 +8,7 @@
 #
 #  1. The engine subtracts the 1 AFTER halving for resistance (damage_modifications.gd:104-110), so
 #     a resisted hit takes up to 1 less than the card - in the Subutai's favour.
-#  2. Shredded returns early (:77-81) and skips the reduction entirely.
+#  2. Shredded returns early (:73-77) and skips the reduction entirely.
 #
 # Armor ORDER makes no numeric difference: max(0, d - 1 - A) either way. AP skips only the armor
 # line (:99), so AP damage is still reduced. Heat and burn are excluded by the damage-type list.
@@ -94,7 +94,7 @@ func test_the_reduction_floors_at_zero():
 
 func test_shredded_skips_the_reduction_entirely():
 	# Ruling 11's second accepted divergence. Shredded returns early BEFORE the reduction is applied
-	# (:77-81) and also before armor, so a Shredded Subutai takes the full 6.
+	# (:73-77) and also before armor, so a Shredded Subutai takes the full 6.
 	UnitCondition.apply_status(SpecFactory.dummy_event(), subutai, Lancer.STATUS.SHREDDED, Lancer.UNTIL.MANUAL)
 	assert_eq(await damage_taken(6, Lancer.DAMAGE_TYPE.KINETIC), 6,
 		'Shredded takes the raw number: no armor, no reduction.')
