@@ -64,9 +64,16 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if not Unit.is_valid(attacker) or not attacker.is_character(): return false
 	if not UnitRelation.are_enemies(unit, attacker): return false
 
-	# "makes a RANGED attack", and not one the engine already exempts from redirects (the Sniper's
-	# AMR overrides is_immune_to_automisses_and_redirects; the NOAH honours it the same way).
+	# "makes a RANGED attack".
 	if not UnitAction.is_ranged_weapon(triggering_context.action, triggering_context.gear): return false
+	# THE AMR EXEMPTION IS UNREACHABLE ON THIS SEAM, and kept for parity with the NOAH's ward rather
+	# than because it is honoured here. The only vanilla override of
+	# is_immune_to_automisses_and_redirects is the Sniper's AMR, and it reads
+	# AttackRoll.is_valid(context.object) and Unit.is_valid(context.target_unit) - an attack_declared
+	# context carries neither, so that override can only ever return false here. Vanilla's base
+	# ActionAttack returns false too (action_attack.gd:43), so on this seam the line never refuses
+	# anything. It stays so that a future override keyed
+	# off something this context DOES carry is honoured without anyone having to remember to add it.
 	if triggering_context.action.is_immune_to_automisses_and_redirects(triggering_context): return false
 
 	# An attack already covering us needs no drawing. There is no target_unit on this context, so
@@ -89,9 +96,22 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 func activate(context:Context, activation:EventCore) -> void:
 	var triggering_context:Context = context.event.context
 	var summary:DeclaredAttackSummary = triggering_context.resource
-	# RE-ASKED HERE, not just in the trigger. A second Subutai's Draw Fire queued on the same attack
-	# may already have moved every ally out of the summary, at which point there is nothing left to
-	# draw - abort WITHOUT spending rather than confirm a prompt about nobody.
+	# NOTHING IS SPENT UNTIL THE DRAW IS KNOWN TO HAVE LANDED. Two guards, both re-asking at LIVE time
+	# what triggers_on_event only answered when the event was queued:
+	#
+	#  1. the allies. A second Subutai's Draw Fire queued on the same attack may already have moved
+	#     every ally out of the summary, at which point there is nothing left to draw - abort WITHOUT
+	#     spending rather than confirm a prompt about nobody.
+	#  2. the rebuild itself, run LIVE. rebuild() returns false without writing anything when the
+	#     rebuilt area would not contain us, and the geometry it reads can have changed since the DRY
+	#     check in triggers_on_event - another attack_declared PRE reaction may have displaced the
+	#     Subutai or the ally while confirm_use was awaited. Checking its return before spend_actions
+	#     is what stops that costing the point, leaving the attack undrawn, and still queueing a free
+	#     Rail shot.
+	#
+	# ORDERING CONSEQUENCE, and it is safe: guard 2 rewrites the summary BEFORE the point is spent.
+	# spend_actions does not read the summary - it only touches the activation's own gear and reaction
+	# bookkeeping - so the earlier write changes nothing about what it does.
 	var allies := allies_under_fire(context.unit, summary)
 	if activation.abort_when(allies.is_empty()): return
 
@@ -99,9 +119,9 @@ func activate(context:Context, activation:EventCore) -> void:
 		context, allies, [], SpecificAction.from_context(triggering_context)
 	)
 	if activation.abort_when(not confirmed): return
-	spend_actions(activation)
+	if activation.abort_when(not rebuild(context.unit, triggering_context, true)): return
 
-	rebuild(context.unit, triggering_context, true)
+	spend_actions(activation)
 	queue_rail_follow_up(context, activation, triggering_context)
 
 ## "After the attack, you may make an attack against the hostile character with the Diversion Rail."
@@ -143,7 +163,19 @@ static func allies_under_fire(unit:Unit, summary:DeclaredAttackSummary) -> Array
 ## THE REBUILD. DRY (live = false) answers "would the rebuilt area contain us?"; LIVE writes the four
 ## summary arrays in place. Copies ActionAttack.get_attacked_tiles_and_units_from_plan
 ## (action_attack.gd:156-173) step for step, so the rebuilt area is exactly what the attacker would
-## have got by aiming there.
+## have got by aiming there - with ONE deliberate departure.
+##
+## THE DEPARTURE: vanilla seeds attacked_units from the plan's DIRECT targets before the AoE branch
+## runs (`attacked_units.assign(plan.target_units)`, action_attack.gd:160); the AoE branch here starts
+## new_units EMPTY and takes only what get_all_units_at_tiles finds in the rebuilt area. There is no
+## plan to read from at this seam - the summary is all we have, and its all_attacked_units is the
+## POST-AoE list, so seeding from it would re-admit units the rebuild has just moved the area off.
+## Harmless here for the one thing this function decides: the reactor is inside the rebuilt area by
+## construction (every allied tile became our aim tile), so the `new_units.has(unit)` verdict cannot
+## turn on the seed. The seed would only matter for a unit the MAP does not index inside the area it
+## occupies - and the size-2 footprint case that could produce is pinned the other way, by
+## assert_map_indexes_the_whole_footprint in spec/test_draw_fire.gd. The non-AoE branch does the
+## equivalent of the seed explicitly, mapping each attacked unit to us.
 ##
 ## THE AIM TILE IS OUR OCCUPIED TILE CLOSEST TO THE ATTACKER, NOT OUR ANCHOR. A Line 5 from (14,6)
 ## reaches a Subutai anchored at (8,6) by its near column at distance 5; the anchor is at 6. The

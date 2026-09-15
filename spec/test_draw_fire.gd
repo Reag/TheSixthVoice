@@ -620,6 +620,12 @@ func test_two_draws_in_one_round_are_refused() -> void:
 
 	await SubutaiFixture.open_turn(game, enemy_b)
 	assert_eq(subutai.core.current.reactions, 1, 'The reaction point came back at the turn start.')
+	# AND EVERY OTHER GATE IS OPEN for the second pair, so the refusal can only be the round counter.
+	assert_true(UnitRelation.can_see(subutai, enemy_b), 'fixture: the second attacker is in sight.')
+	assert_true(UnitRelation.distance_between(subutai, enemy_b) <= 15,
+		'fixture: and inside the Rail s Range 15.')
+	assert_true(UnitRelation.distance_between(subutai, ally_b) <= subutai.get_sensor_range(),
+		'fixture: the second ally is inside the Subutai s sensors.')
 	var second := await fire(enemy_b, rifle_b, ally_b, D20_HITS_BOTH)
 	assert_eq(rolled_against(second), [ally_b], 'The second is refused: one draw per round.')
 
@@ -798,6 +804,29 @@ func test_the_actions_are_in_the_cards_order():
 	assert_eq(ids, [&'action_gather_round', DRAW_FIRE_ID, RAIL_ID] as Array[StringName],
 		'Protocol, reaction, weapon.')
 
+## A SOURCE-ORDER PIN, not a behaviour test, because the race it guards is not reproducible in this
+## harness: it needs a SECOND attack_declared PRE reaction to displace the Subutai or the ally while
+## confirm_use is awaited, and no such reaction exists to write one against. What activate() must
+## never do is spend the point before it knows the LIVE rebuild succeeded - rebuild() returns false
+## without writing anything when the rebuilt area no longer contains us, and a spend on that path
+## costs the point, leaves the attack undrawn AND still queues a free Rail shot. This was GREEN from
+## the moment it was written (the fix landed in the same task), so it is a regression pin only.
+func test_activate_checks_the_live_rebuild_before_spending():
+	# THE UNPACKED PATH, not the mirror path. The overlay maps res/ onto res:// for RESOURCES (via
+	# take_over_path); raw file access still has to name the file where it actually sits on disk, and
+	# FileAccess on the mirror path comes back empty (measured, first RED run of this pin).
+	const SOURCE := 'res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_subutai/cp_siege_engine/action_draw_fire.gd'
+	var src := FileAccess.get_file_as_string(SOURCE)
+	assert_false(src.is_empty(), 'The reaction s source reads back.')
+	if src.is_empty(): return
+	var body:String = src.substr(src.find('func activate('))
+	assert_gt(body.length(), 0, 'func activate is in the file.')
+	var rebuild_at:int = body.find('rebuild(context.unit, triggering_context, true)')
+	var spend_at:int = body.find('spend_actions(activation)')
+	assert_gt(rebuild_at, -1, 'activate runs the LIVE rebuild.')
+	assert_gt(spend_at, -1, 'activate spends the reaction.')
+	assert_lt(rebuild_at, spend_at, 'The LIVE rebuild is checked BEFORE the point is spent.')
+
 func test_the_draw_fire_rows_resolve():
 	for key:String in [
 		'gear.cp_siege_engine.action_draw_fire.name',
@@ -809,3 +838,11 @@ func test_the_draw_fire_rows_resolve():
 	# The engine prepends "Trigger:" itself (action_reaction.gd:21-24), so the row must not.
 	assert_false(X.tr('gear.cp_siege_engine.action_draw_fire.trigger').begins_with('Trigger:'),
 		'The row carries the sentence, not the label.')
+	# THE LCP'S SENTENCES VERBATIM. The card text is Bel's words, not ours: any engine divergence goes
+	# in a ruling, never into the row. Source: specs/sixth-voice/03-subutai.md.
+	assert_eq(X.tr('gear.cp_siege_engine.action_draw_fire.trigger'),
+		'A hostile character within Range of the Diversion Rail and line of sight makes a ranged attack against an allied character within Sensors.',
+		'The trigger row is the LCP sentence, verbatim.')
+	assert_eq(X.tr('gear.cp_siege_engine.action_draw_fire.effect'),
+		'The attack is made against you instead. After the attack, you may make an attack against the hostile character with the Diversion Rail.',
+		'The effect row is the LCP sentence, verbatim.')
