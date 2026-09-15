@@ -3,9 +3,10 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="2_action"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_subutai/cp_siege_engine/action_gather_round.tres" id="3_protocol"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_subutai/cp_siege_engine/action_diversion_rail.tres" id="4_rail"]
 
 [resource]
 script = ExtResource("1_kit")
-actions = Array[ExtResource("2_action")]([ExtResource("3_protocol")])
+actions = Array[ExtResource("2_action")]([ExtResource("3_protocol"), ExtResource("4_rail")])
 is_trait = true
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

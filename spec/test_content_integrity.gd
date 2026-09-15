@@ -236,7 +236,7 @@ const ICON_TARGETS := {
 	# Task 2 appends action_diversion_rail (a pressable weapon profile) and Task 3 action_draw_fire
 	# (a reaction that never reaches the gear bar, but does not override show_in_tooltip, so it is
 	# drawn on the trait card with its own row - the mt_juggernaut_drive reasoning).
-	&'cp_siege_engine': [&'action_gather_round'],
+	&'cp_siege_engine': [&'action_gather_round', &'action_diversion_rail'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -278,6 +278,11 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# Fire is live; Draw Fire itself reads it by id, so it has to exist as a standalone buff_*.tres
 	# whether or not it were visible.
 	&'buff_gather_round',
+	# SP2 Task 2 (Subutai). The on-hit chip. Visible for two independent reasons: it is the target's
+	# only warning that it is at +2 difficulty, and attack_roll.gd:189 passes buff_core.base.icon
+	# RAW into the roll breakdown - NOT through Buff.get_icon(), so BuffBonus's accuracy-svg fallback
+	# never runs on that path and a null icon draws a blank beside the -2.
+	&'buff_diversion_rail',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

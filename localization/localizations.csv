@@ -110,3 +110,7 @@ gear.cp_siege_engine.action_gather_round.name,GATHER ROUND
 gear.cp_siege_engine.action_gather_round.effect,"For the rest of the scene, you gain the Draw Fire reaction."
 gear.buff_gather_round.name,Gather Round
 gear.buff_gather_round.effect,"For the rest of the scene, you gain the Draw Fire reaction."
+gear.cp_siege_engine.action_diversion_rail.name,Diversion Rail
+gear.cp_siege_engine.action_diversion_rail.effect,"On attack: You become |Immobilized| until the start of your next turn. On hit: The target takes +2 difficulty on all attacks that do not target the Subutai until the end of their next turn."
+gear.buff_diversion_rail.name,Diversion Rail
+gear.buff_diversion_rail.effect,"The target takes +2 difficulty on all attacks that do not target the Subutai until the end of their next turn."
