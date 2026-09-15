@@ -13,3 +13,4 @@ weapon_type = 3
 aim_range = 15
 tags = Array[StringName]([&"ap"])
 on_hit_effects = Array[ExtResource("2_onhit")]([ExtResource("3_railonhit")])
+usage_group = &"action_diversion_rail"

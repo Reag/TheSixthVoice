@@ -354,6 +354,28 @@ func test_the_chip_knows_the_subutai_is_its_owner():
 	assert_eq(preview(target, rifle, subutai).accuracy_mods_total(), 0,
 		'The owner is resolved: attacks on the Subutai are exempt.')
 
+# ---------------------------------------------------------------- usage groups
+
+func test_the_rail_fires_on_the_turn_gather_round_is_pressed():
+	# THE USAGE-GROUP TEST (review fix, following test_draw_fire's own). action_gather_round had no
+	# usage_group of its own, so gear_core.gd:166-168 fell it back to the Kit id cp_siege_engine -
+	# the same group action_diversion_rail (also groupless) fell back to. UnitAction.spend
+	# (unit_action.gd:279) records every activation under its group, and the per-TURN soft limit
+	# (unit_action.gd:167-168, is_under_per_turn_limit) then refuses a second use of that group in
+	# the same turn: pressing GATHER ROUND put cp_siege_engine on 1 use for the turn, and the Rail
+	# (soft limit 1, same group) could only be fired by overcharging. Every vanilla core Kit pairing
+	# a protocol with a pressable action gives each its own group - the Raleigh's Thunder God
+	# (action_thunder_god.tres: usage_group = &"thunder_god") beside its cannon's own, and the
+	# Sherman/Tokugawa/Death's Head the same - and Draw Fire already followed suit
+	# (usage_group = &"action_draw_fire"). The fix gives the protocol and the Rail their own groups
+	# too, so both can fire in the same turn.
+	await SubutaiFixture.gather_round(game, subutai) # opens the turn AND presses the protocol
+	assert_true(UnitCondition.has_buff(subutai, &'buff_gather_round'),
+		'fixture control: the protocol really landed.')
+	await fire_rail(target)
+	assert_true(UnitCondition.has_status(subutai, Lancer.STATUS.IMMOBILIZED),
+		'The Rail really fired (its on-attack drawback landed) on the SAME turn as the protocol.')
+
 # ---------------------------------------------------------------- localisation
 
 func test_the_rail_rows_resolve():

@@ -14,4 +14,5 @@ can_reapply = false
 action_type = 4
 consumes_cp = true
 fxg_use = ExtResource("4_superfx")
+usage_group = &"action_gather_round"
 emit_text_popcorn_on_use = true

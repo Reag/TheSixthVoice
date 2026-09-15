@@ -628,13 +628,12 @@ func test_firing_the_rail_does_not_spend_the_draw() -> void:
 	# cp_siege_engine with the protocol and the Rail - so without &'action_draw_fire' on the .tres,
 	# firing the Rail would spend the draw for the round (gear_core.gd:166-168).
 	#
-	# THE RAIL IS FIRED ON A SECOND TURN, not on the one that pressed GATHER ROUND, and the first RED
-	# run is why: the Rail carries no usage_group of its own either, so it shares cp_siege_engine with
-	# the protocol - and the Kit's per-TURN limit refuses a second use of that group in one turn
-	# ("specific: invalid", with no reason line, measured 2026-09-15). That is Task 2's shape and out
-	# of scope here; a fresh turn clears the per-turn counter and clears the per-ROUND one too, which
-	# is what makes this test still discriminate: the Rail's shot then puts cp_siege_engine back on 1
-	# for the round, and only Draw Fire's own usage group keeps the draw available.
+	# THE RAIL IS STILL FIRED ON A SECOND TURN, so the per-ROUND counter this test is about is
+	# provably the draw's own and not an artefact of a fresh turn. The protocol and the Rail now
+	# carry their own usage_group too (review fix, test_diversion_rail.test_the_rail_fires_on_the_
+	# turn_gather_round_is_pressed), so the same-turn per-TURN refusal the first RED run of this file
+	# hit ("specific: invalid", no reason line, measured 2026-09-15) no longer happens; a fresh turn
+	# here is just this test's own setup, not a workaround for it.
 	place_enemy()
 	place_ally()
 	await make_subutai()
