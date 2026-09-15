@@ -128,20 +128,24 @@ func test_a_unit_can_actually_wear_the_frame():
 	assert_eq(subutai.core.current.armor, SHEET_STATS.armor, 'It has the sheet armor.')
 	assert_eq(subutai.occupied_tiles().size(), 4, 'A size-2 unit occupies four tiles.')
 
-## The sheet's trait order. The frame card lists traits in array order, so this is player-visible.
 ## The two vanilla entries are asserted by identity against ContentLibrary rather than by id, which
 ## is what proves the frame REUSES them instead of shipping a same-named copy - the author's
 ## standing directive for alt frames.
+##
+## The sheet's trait order, then the core system. The frame card lists traits in array order, so
+## this is player-visible. SP2 appends cp_siege_engine last: the sheet prints the four traits under
+## "Traits" and the core system under its own heading, and appending is also what keeps the four
+## trait rows in the places a player learned them in SP1.
 const SHEET_TRAITS:Array[StringName] = [
-	&'mt_juggernaut_drive', &'mt_reinforced_chassis', &'mt_guardian', &'mt_slow',
+	&'mt_juggernaut_drive', &'mt_reinforced_chassis', &'mt_guardian', &'mt_slow', &'cp_siege_engine',
 ]
 
-func test_the_traits_are_the_sheets_four_in_the_sheets_order():
+func test_the_traits_are_the_sheets_four_then_the_core_system():
 	var frame:Frame = _frame()
 	if frame == null: return
 	var ids:Array[StringName] = []
 	for kit:Kit in frame.traits: ids.append(kit.compcon_id)
-	assert_eq(ids, SHEET_TRAITS, 'Four traits, in sheet order.')
+	assert_eq(ids, SHEET_TRAITS, 'Four traits in sheet order, then the core system.')
 
 func test_the_two_vanilla_traits_are_vanillas_own_resources():
 	var frame:Frame = _frame()

@@ -231,6 +231,12 @@ const ICON_TARGETS := {
 	# BuffResistDamage is an inline SubResource and carries hide_from_player, so it is correctly
 	# absent from VISIBLE_BUFFS - it is never a chip on the unit.
 	&'mt_reinforced_chassis': [],
+	# SP2 Task 1 (Subutai). The core system. GATHER ROUND is a PROTOCOL the player presses on the
+	# gear bar, so it wears its own icon as well as the Kit's - cp_auxiliary_power_rerouter's shape.
+	# Task 2 appends action_diversion_rail (a pressable weapon profile) and Task 3 action_draw_fire
+	# (a reaction that never reaches the gear bar, but does not override show_in_tooltip, so it is
+	# drawn on the trait card with its own row - the mt_juggernaut_drive reasoning).
+	&'cp_siege_engine': [&'action_gather_round'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -268,6 +274,10 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# SP1 Task 1 and Task 3 (M/K2) - deliberately player-visible, and they are the only on-map signal
 	# that either ability is running.
 	&'buff_rapid_stabilization_jets', &'buff_ors_hypercharge',
+	# SP2 Task 1 (Subutai). The chip is the only on-map signal that the core power is up and Draw
+	# Fire is live; Draw Fire itself reads it by id, so it has to exist as a standalone buff_*.tres
+	# whether or not it were visible.
+	&'buff_gather_round',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

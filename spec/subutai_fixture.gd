@@ -17,6 +17,8 @@ extends RefCounted
 const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 
 const FRAME_ID := &'mf_subutai'
+const CORE_ID := &'cp_siege_engine'
+const GATHER_ROUND_ID := &'action_gather_round'
 
 static func create_game(test:GutTest, map_size:Vector2i = FitzgeraldFixture.DEFAULT_MAP_SIZE) -> Gamemaster:
 	return FitzgeraldFixture.create_game(test, map_size)
@@ -57,3 +59,16 @@ static func create_allied_deployable(game:Gamemaster, tile:Vector2i) -> Unit:
 
 static func open_turn(game:Gamemaster, unit:Unit) -> void:
 	await FitzgeraldFixture.open_turn(game, unit)
+
+## Open the unit's turn and press GATHER ROUND, so the Draw Fire reaction is live (SP2 Task 1).
+##
+## THE TURN MUST BE OPEN FIRST, and not merely for tidiness: unit_action.gd:144 refuses a PROTOCOL
+## outside the unit's protocol window with REASON.PROTOCOL, and the failure a spec sees is not an
+## error but "no buff was applied" - which reads as broken content. Grep a red run's output for
+## `Gear not available` before suspecting the .tres; the reason string names the exact gate.
+##
+## SpecFactory.use(game, unit, kit_id, action_id) rather than use_solo(): cp_siege_engine carries
+## three actions by the end of SP2, and use_solo fires the Kit's ONE action.
+static func gather_round(game:Gamemaster, unit:Unit) -> void:
+	await open_turn(game, unit)
+	await SpecFactory.use(game, unit, CORE_ID, GATHER_ROUND_ID)
