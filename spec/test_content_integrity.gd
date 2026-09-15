@@ -222,6 +222,15 @@ const ICON_TARGETS := {
 	# SP1 Task 3 (M/K2). The core system, one pressable protocol - cp_broadside's shape with one
 	# button instead of three.
 	&'cp_auxiliary_power_rerouter': [&'action_ors_hypercharge'],
+	# SP1 Task 4 (Subutai). Its one action is an end_turn reaction, and reactions never reach the
+	# gear bar (gear_bar.gd:143) - but unlike mt_blasting_powder's and ms_heaer's hidden bookkeeping
+	# reactions, this one does NOT override show_in_tooltip, so it is drawn on the trait card with
+	# its own row. It therefore earns its own icon as well as the Kit's.
+	&'mt_juggernaut_drive': [&'action_juggernaut_drive'],
+	# SP1 Task 2 (Subutai). A pure passive: no action of its own, so it wears the Kit's icon. Its
+	# BuffResistDamage is an inline SubResource and carries hide_from_player, so it is correctly
+	# absent from VISIBLE_BUFFS - it is never a chip on the unit.
+	&'mt_reinforced_chassis': [],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
