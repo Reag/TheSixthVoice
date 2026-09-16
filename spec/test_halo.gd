@@ -106,9 +106,11 @@ func uses_this_round() -> int:
 ## THAT DISTINCTION IS WHY THIS EXISTS. activate() re-derives the grant and aborts on amount <= 0,
 ## so a Grit 0 Myconid opens no prompt whether the gate refuses it or not - which made the gate's
 ## Grit clause look load-bearing when it was not (mutation 2, measured 2026-09-16: deleting it left
-## the whole file green). Offered-and-aborted is not the same thing: it writes a "Halo triggered"
-## line into the battle log and burns an event_gear_activate on every single hit the Myconid takes,
-## for the whole of licence level 0. This is what makes the spec able to tell.
+## the whole file green). Offered-and-aborted is not the same thing: it wastes an event_gear_activate
+## block on every single hit the Myconid takes, for the whole of licence level 0 - and every
+## UNIT_ACTION PRE reaction and buff on the map fires on its virtual core along the way
+## (event_gear_activate.gd:53-56), whether or not the activation goes on to do anything. This is what
+## makes the spec able to tell.
 ##
 ## The event is BUILT, not executed, so context.number here is the RAW damage rather than the
 ## post-armor amount. The gate's own post-armor clause is therefore tested behaviourally instead, by
@@ -256,7 +258,8 @@ func test_an_enemy_within_sensors_is_not_an_ally():
 
 func test_grit_zero_means_no_offer():
 	# At licence level 0 the grant would be 0, and Overshield.grant refuses that outright - so without
-	# the GATE the reaction would be offered, trigger, log "Halo triggered", and abort inside
+	# the GATE the reaction would be offered, wasting an event_gear_activate block - and every
+	# UNIT_ACTION PRE reaction and buff on the map firing on its virtual core - and then abort inside
 	# activate() on every single hit the Myconid took, for the whole of licence level 0.
 	#
 	# ASSERTED THROUGH would_offer(), NOT THROUGH THE ABSENCE OF A PROMPT, and that is the whole

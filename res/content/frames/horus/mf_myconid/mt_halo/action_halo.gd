@@ -18,7 +18,7 @@
 ## It does not, and MEASURED 2026-09-16 it does not: `capped_damage` is a damage CAP contributed by
 ## BuffResistDamage.FLAG.CAP buffs (grunt save, paradox shield, flash aegis) and defaults to
 ## MAXIMUM_DAMAGE_CAP = 9999 (damage_modifications.gd:11, :69) - armor never touches it. Armor is
-## applied to `context.number` instead (:55, :65), and a 2-damage hit on this frame's armor 2 reaches
+## applied to `context.number` instead (:55, :66), and a 2-damage hit on this frame's armor 2 reaches
 ## :196 with number 0, queues DAMAGE POST, and offered Halo. Hence the `context.number <= 0` clause
 ## in the gate below; test_a_hit_zeroed_by_armor_does_not_offer_halo is what it answers.
 ##

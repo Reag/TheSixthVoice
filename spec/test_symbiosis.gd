@@ -61,6 +61,7 @@ const RXN_SCENE := &'symbiosis_spec_rxn_scene'     # uses_per_scene = 1  -> "1/s
 const RXN_LIMITED_1 := &'symbiosis_spec_rxn_lim1'  # charges_max = 1     -> "1/mission"
 const RXN_LIMITED_3 := &'symbiosis_spec_rxn_lim3'  # charges_max = 3     -> neither
 const QUICK_SCENE := &'symbiosis_spec_quick_scene' # an ORDINARY action on a 1/scene Kit
+const RXN_NONCONSUMING := &'symbiosis_spec_rxn_nonconsuming' # consumes_rxn=false, 1/scene Kit
 
 ## A spec-local reaction. DAMAGE POST, so one poke at the punching bag offers it; `armed` is what
 ## makes the ORDER deterministic - the bus evaluates every gate before any body runs, so two armed
@@ -109,6 +110,7 @@ var rxn_scene:SpecReaction
 var rxn_lim1:SpecReaction
 var rxn_lim3:SpecReaction
 var quick:SpecQuick
+var rxn_nonconsuming:SpecReaction
 
 var log_lines:PackedStringArray = []
 var battle_log:BattleLogBus = load('res://ui/component/battle_log/battle_log_bus.tres')
@@ -130,11 +132,11 @@ func _record_log(line:String) -> void: log_lines.append(line)
 
 # ---------------------------------------------------------------- fixture helpers
 
-func _make_reaction() -> SpecReaction:
+func _make_reaction(consumes_rxn:bool = true) -> SpecReaction:
 	var rxn := SpecReaction.new()
 	rxn.triggers_on.append(&'damage')
 	rxn.trigger_timing = ReactionBus.TIMING.POST
-	rxn.consumes_rxn = true
+	rxn.consumes_rxn = consumes_rxn
 	return rxn
 
 func _make_kit(kit_id:StringName, action:Action, uses_per_scene:int, charges_max:int) -> Kit:
@@ -160,6 +162,7 @@ func install_spec_gear() -> void:
 	rxn_lim1 = _make_reaction()
 	rxn_lim3 = _make_reaction()
 	quick = SpecQuick.new()
+	rxn_nonconsuming = _make_reaction(false)
 	var kits:Array[Kit] = [
 		_make_kit(RXN_PLAIN_A, rxn_a, 0, 0),
 		_make_kit(RXN_PLAIN_B, rxn_b, 0, 0),
@@ -167,13 +170,14 @@ func install_spec_gear() -> void:
 		_make_kit(RXN_LIMITED_1, rxn_lim1, 0, 1),
 		_make_kit(RXN_LIMITED_3, rxn_lim3, 0, 3),
 		_make_kit(QUICK_SCENE, quick, 1, 0),
+		_make_kit(RXN_NONCONSUMING, rxn_nonconsuming, 1, 0),
 	]
 	for kit:Kit in kits: myconid.core.loadout.equipped_kits.append(kit)
 	SpecFactory.apply_passive_buffs(myconid)
 	UnitTile.move_to(myconid, MYCONID_TILE)
 
 func disarm_all() -> void:
-	for rxn:SpecReaction in [rxn_a, rxn_b, rxn_scene, rxn_lim1, rxn_lim3]: rxn.armed = false
+	for rxn:SpecReaction in [rxn_a, rxn_b, rxn_scene, rxn_lim1, rxn_lim3, rxn_nonconsuming]: rxn.armed = false
 
 ## Arm exactly one reaction and poke the dummy, which fires a DAMAGE event the Myconid can react to.
 func react_with(rxn:SpecReaction) -> void:
@@ -489,6 +493,29 @@ func test_after_the_cap_the_ordinary_reaction_may_still_be_one_per_scene():
 	for line:String in log_lines:
 		if line.contains('Symbiosis'): refused = true
 	assert_false(refused, 'And nothing was refused in the battle log: %s' % [log_lines])
+
+func test_a_non_consuming_reaction_is_neither_refused_nor_stamped():
+	# The gate's FIRST clause is action.consumes_reaction() (buff_symbiosis_exclusion.gd:101) - the
+	# action here is present and real, its consumes_reaction() just returns false, so this is a real
+	# clause doing real work, not a vacuous one. Everything else about this reaction is built to fail
+	# the OTHER clauses the ordinary way: uses_per_scene = 1 makes is_excluded() true, and it fires as
+	# the Myconid's SECOND reaction of the turn (current.reactions == max - 1, the round's extra still
+	# unspent), so current < max and not is_extra_spent() are both true too. Only the
+	# consumes_reaction() clause can be what lets it through - which is exactly what deleting it
+	# (below, as a mutation check) is here to prove.
+	await react_with(rxn_a)
+	assert_eq(reactions_left(), reactions_max() - 1,
+		'fixture: the ordinary reaction has been taken, one point short of the max.')
+	log_lines = []
+	await react_with(rxn_nonconsuming)
+	assert_eq(rxn_nonconsuming.fired, 1, 'The non-consuming reaction fired normally, not refused.')
+	var refused := false
+	for line:String in log_lines:
+		if line.contains('Symbiosis'): refused = true
+	assert_false(refused, 'And no Symbiosis refusal reached the battle log: %s' % [log_lines])
+	assert_false(extra_spent(), 'Not stamped as the extra: a non-consuming reaction spends no point.')
+	assert_eq(reactions_left(), reactions_max() - 1,
+		'And the reaction point count is unchanged from before this reaction.')
 
 func test_the_refusal_writes_a_battle_log_line_naming_symbiosis():
 	# Without this the refusal reads as the activation simply not happening, which in play is
