@@ -243,6 +243,16 @@ const ICON_TARGETS := {
 	# integrated-weapon box "Diversion Rail" instead of "Siege Engine"
 	# (weapon_mount_item.gd:101 reads the KIT's name). See test_integrated_weapon_names.gd.
 	&'mw_diversion_rail': [&'action_diversion_rail'],
+	# SP1 Task 3 (Myconid). Pure passives: a Gaze-shaped PassiveStatIncrease and a
+	# PassiveBuffApplicator carrying two hidden bookkeeping buffs. No actions at all, so it wears the
+	# Kit's icon and lists none. Both buffs set hide_from_player and are correctly absent from
+	# VISIBLE_BUFFS - neither is ever a chip on the unit.
+	&'mt_symbiosis': [],
+	# SP1 Task 5 (Myconid). Its one action (action_halo) is a hidden reaction: reactions never reach
+	# the gear bar (gear_bar.gd:145) and it overrides show_in_tooltip to false, so nothing the player
+	# sees ever wears an icon for it - the ms_heaer shape, not the mt_juggernaut_drive one. The Kit's
+	# own icon still has to be real.
+	&'mt_halo': [],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

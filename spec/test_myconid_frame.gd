@@ -295,3 +295,66 @@ func test_the_map_indexes_the_whole_footprint():
 	for tile:Vector2i in myconid.occupied_tiles():
 		assert_true(game.map.get_all_units_at_tile(tile).has(myconid),
 			'The map indexes the Myconid at %s.' % tile)
+
+# ---------------------------------------------------------------- the trait list
+#
+# Kept to the END of SP1 because the array is assembled across three tasks: Task 2 puts Guardian on,
+# Task 3 prepends Symbiosis, Task 5 inserts Halo. SP2 appends cp_quietus_machines and then
+# mw_psychopomp_fold_pike, in that order - the sheet prints the traits under "Traits" and the core
+# system under its own heading, and appending is also what keeps the three trait rows in the places a
+# player learned them in SP1.
+
+## The sheet's trait order (specs/sixth-voice/04-myconid.md). The frame card lists traits in array
+## order, so this is player-visible.
+const SHEET_TRAITS:Array[StringName] = [&'mt_symbiosis', &'mt_halo', &'mt_guardian']
+
+func test_the_traits_are_the_sheets_three_in_the_sheets_order():
+	var frame:Frame = _frame()
+	assert_not_null(frame, 'mf_myconid loads.')
+	if frame == null: return
+	var ids:Array[StringName] = []
+	for kit:Kit in frame.traits: ids.append(kit.compcon_id)
+	assert_eq(ids, SHEET_TRAITS, 'Three traits, in sheet order.')
+
+func test_guardian_is_vanillas_own_resource():
+	# Asserted by IDENTITY against ContentLibrary rather than by id, which is what proves the frame
+	# REUSES vanilla's Kit instead of shipping a same-named copy - the author's standing directive for
+	# alt frames, and the sheet says so outright ("Vanilla shared trait: reuse
+	# content/frames/shared/mt_guardian/, do not author").
+	#
+	# Note what this catches and what it does not, as test_mk2_frame.gd records at length: a copy at a
+	# NEW path with the frame still pointing at vanilla's is caught (two instances); a MIRROR-PATH
+	# copy is not (take_over_path makes both sides the same instance); and a copy at a new path with
+	# the frame repointed at it is not either (get_kit resolves to the copy too). Those last two are
+	# testkit/mod_content_audit.gd's job and a reviewer's.
+	var frame:Frame = _frame()
+	assert_not_null(frame, 'mf_myconid loads.')
+	if frame == null: return
+	var by_id := {}
+	for kit:Kit in frame.traits: by_id[kit.compcon_id] = kit
+	assert_true(by_id.has(&'mt_guardian'), 'The frame carries mt_guardian.')
+	if not by_id.has(&'mt_guardian'): return
+	assert_same(by_id[&'mt_guardian'], ContentLibrary.get_kit(&'mt_guardian'),
+		'The very same Resource instance vanilla registered, not a copy of it.')
+
+func test_every_new_display_row_resolves():
+	# DRIVEN OFF frame().traits rather than a hand-written list, so a fourth trait cannot ship without
+	# its rows: the loop grows with the frame. Guardian is vanilla's own Kit and its rows are
+	# vanilla's, which is why it is asked of tr() and not of our artifact.
+	#
+	# Reading OUR OWN compiled artifact for our own keys is the stronger of the two shapes and the one
+	# test_mk2_frame.gd already uses: a bare tr() reads the global TranslationServer, and an outdated
+	# artifact answers while the CSV on disk says something else - so the test would pass against text
+	# nobody ships.
+	var translation:Translation = load('res://unpacked/Reag-TheSixthVoice/localization/localizations.en.translation')
+	assert_not_null(translation, 'This mod has a compiled translation.')
+	if translation == null: return
+	var traits:Array = _frame().traits
+	assert_eq(traits.size(), SHEET_TRAITS.size(), 'Guard: the trait list is not empty.')
+	for kit:Kit in traits:
+		assert_ne(kit.name(), 'gear.%s.name' % kit.compcon_id,
+			'%s resolves a display name.' % kit.compcon_id)
+		if kit.compcon_id == &'mt_guardian': continue # vanilla's own rows
+		for suffix:String in ['name', 'effect']:
+			var key := 'gear.%s.%s' % [kit.compcon_id, suffix]
+			assert_ne(String(translation.get_message(key)), '', 'Our artifact carries %s.' % key)
