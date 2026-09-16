@@ -82,6 +82,12 @@ func eligible_allies(unit:Unit) -> Array[Unit]:
 	for other:Unit in unit.map.get_all_characters():
 		if other == unit or not Unit.is_valid(other): continue
 		if not UnitRelation.are_allies(unit, other): continue
+		# REACHABLE AT ALL, on the Uffish Gyre's own test (action_uffish_gyre.gd:130) - author's call
+		# at the frame close, 2026-09-16. are_allies and a distance are not enough: can_affect
+		# (unit_relation.gd:390-401) also excludes an EXILED ally, one whose INTANGIBLE state differs
+		# from ours, an INVULNERABLE one, and one we share no shard with. Without this the prompt
+		# offers an ally the halo cannot reach and really fires event_unit_overshield at them.
+		if not UnitRelation.can_affect(unit, other): continue
 		if UnitRelation.distance_between(unit, other) > unit.get_sensor_range(): continue
 		allies.append(other)
 	return allies

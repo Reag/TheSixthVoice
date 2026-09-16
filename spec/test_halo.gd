@@ -311,6 +311,35 @@ func test_an_enemy_within_sensors_is_not_an_ally():
 	var prompts := await take_damage(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC)
 	assert_eq(prompts.size(), 0, 'A hostile is not a candidate.')
 
+func test_an_ally_we_cannot_affect_is_not_a_candidate():
+	# REACHABILITY, the Uffish Gyre's own test (action_uffish_gyre.gd:130), added to Halo at the
+	# frame close on the author's call (2026-09-16).
+	#
+	# THE PROBE IS INTANGIBLE, AND THE FIRST DRAFT'S EXILED WAS VACUOUS - watched, not reasoned. An
+	# EXILED ally never reaches can_affect at all: get_all_characters filters through is_character ->
+	# is_active, and is_active ends with `not has_status(EXILED)` (unit.gd:113), so the eligible-ally
+	# loop has already dropped it before the new clause is consulted. Commenting the clause out left
+	# an EXILED-based test green. INTANGIBLE is not in is_active, so an intangible ally IS a
+	# character, IS allied and IS in range - and can_affect refuses it only because our own
+	# intangibility differs (unit_relation.gd:397). That is the one clause here doing real work, and
+	# it is the state frame 5's Teleport helper is most likely to produce.
+	#
+	# Asked through would_offer rather than by counting prompts, for the reason
+	# test_grit_zero_means_no_offer gives: a prompt count cannot tell "never offered" from "offered
+	# and then aborted".
+	assert_true(would_offer(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC),
+		'CONTROL: this ally IS a candidate while we can reach it, so the clause below is doing the work.')
+
+	UnitCondition.apply_status(SpecFactory.dummy_event(), ally, Lancer.STATUS.INTANGIBLE, Lancer.UNTIL.MANUAL)
+	assert_true(ally.has_status(Lancer.STATUS.INTANGIBLE), 'fixture: the ally really is intangible.')
+	assert_false(myconid.has_status(Lancer.STATUS.INTANGIBLE), 'fixture: and we are not, so the states differ.')
+	assert_true(ally.is_character(), 'fixture: it is STILL a character, unlike an exiled one.')
+	assert_lt(UnitRelation.distance_between(myconid, ally), myconid.get_sensor_range(),
+		'fixture: and it has not moved - it is still well inside Sensors.')
+
+	assert_false(would_offer(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC),
+		'An ally we cannot affect is not a candidate, so Halo is not offered at all.')
+
 func test_grit_zero_means_no_offer():
 	# At licence level 0 the grant would be 0, and Overshield.grant refuses that outright - so without
 	# the GATE the reaction would be offered, wasting an event_gear_activate block - and every
