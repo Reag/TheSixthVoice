@@ -34,24 +34,51 @@
 ## passive_fungal_network_zone.tres, is a PassiveDynamicZone and draws the cloud on the ground. It is
 ## NOT gated on is_aura_active: PassiveDynamicZone.should_show_attached_fx returns
 ## `gear.is_dynamic_zone_active` (passive_dynamic_zone.gd:13-14), a second per-gear flag declared
-## three lines above the aura one (gear_core.gd:25 and :28). The engine always sets the two together
-## - unit_printer.gd:16-21 at spawn, unit_condition.gd:879-880 and :898-899 on a gear reapplication,
-## event_service.gd:67-68 on the owner's death, each pair under one comment - and the ONLY writers
-## that move one without the other are GearCore.set_dynamic_zone_active (gear_core.gd:293) and
-## GearCore.set_aura_active (gear_core.gd:297), neither of which is called anywhere in engine/.
+## three lines above the aura one (gear_core.gd:25 and :28). Wherever the engine moves these flags of
+## its own accord it moves BOTH - unit_printer.gd:16-21 at spawn, unit_condition.gd:879-880 and
+## :898-899 on a gear reapplication, event_service.gd:67-68 on the owner's death, and
+## gear_core.gd:112-113 when a save is restored (mirroring :81-82 on the way out) - and the only
+## writers that move one without the other are the two setters themselves,
+## GearCore.set_dynamic_zone_active (gear_core.gd:293-295) and GearCore.set_aura_active (:297-300).
 ##
-## So the two flags agree in play if and only if THIS FUNCTION keeps them agreeing. Hence two lines
-## rather than one. Delete the set_dynamic_zone_active line and the mechanic still works and the
-## cloud is never drawn (mutation T5-M4); light the zone without the aura and the board shows a
-## burst that does nothing. Both are reddened by section H of test_fungal_network.gd, which asserts
-## the two flags' VALUES against each other rather than trusting this comment.
+## THERE IS AN ENGINE-SIDE ROUTE TO THE ZONE SETTER, AND IT HAS NO AURA TWIN. BuffCore carries a
+## set_dynamic_zone_active(is_active, map) of its own at buff_core.gd:177-181: it resolves the buff's
+## from_gear to a GearCore (buff_core.gd:113-116) and forwards to the GearCore setter above.
+## buff_core.gd declares nothing equivalent for auras - the string "aura" does not occur anywhere in
+## that file - so a buff reaching through it moves the picture and leaves the mechanic alone. That is
+## how four vanilla cards drive a zone: buff_defense_net_aegis.gd, buff_cloaking_field_scout_active.gd,
+## buff_swarm_body.gd, and buff_hardlight_defense_system.gd - the one that wants both, and pairs them
+## BY HAND at :17 and :19. (Others skip the forwarder and call the GearCore setters directly, the way
+## this file does: action_self_destruct.gd:16, and the Drake's Fortress Protocol and its deactivate.)
 ##
-## THE ORDER MATTERS, mildly and for one reason: set_aura_active runs
-## UnitTile.update_tracking_and_statuses and then unit.update_token() (gear_core.gd:299-300), and
-## update_token is what re-collects every passive's attached fx (unit.gd:165-169 into
-## unit_token.gd:215-219). Setting the zone flag FIRST means that single token rebuild already sees
-## the cloud. The reverse order is not wrong - set_dynamic_zone_active calls update_token itself
-## (gear_core.gd:295) - it just does the work twice.
+## THAT ROUTE CANNOT FIRE ON THIS KIT AS BUILT, because the forwarder runs only when a buff SCRIPT
+## calls it, and only against the gear that APPLIED that buff - and no buff of ours calls it. The only
+## calls to either setter anywhere in this mod are the two lines at the bottom of this file. But it is
+## precisely the tool someone would reach for to write a "put the cloud out" buff later, and reaching
+## for it alone WOULD split the flags. If you add one, set both.
+##
+## So the two flags agree in play if and only if every caller keeps them agreeing, and today there is
+## exactly one caller: this function. Hence two lines rather than one. Delete the
+## set_dynamic_zone_active line and the mechanic still works and the cloud is never drawn (mutation
+## T5-M4); light the zone without the aura and the board shows a burst that does nothing. Both are
+## reddened by section H of test_fungal_network.gd, which asserts the two flags' VALUES against each
+## other rather than trusting this comment.
+##
+## THE ORDER MATTERS, THOUGH NOT BY SAVING ANY WORK. Both orders cost the same two token rebuilds:
+## set_dynamic_zone_active calls unit.update_token() unconditionally (gear_core.gd:295) and
+## set_aura_active calls it again (:300). What the order actually buys is REGISTRATION WITH THE MAP.
+## set_dynamic_zone_active does nothing but the flag and that rebuild; only set_aura_active runs
+## UnitTile.update_tracking_and_statuses (:299), which emits map_bus.update_unit_tile_tracking
+## (unit_tile.gd:19) and so reaches MapState.update_unit_tile_tracking - a pass that CLEARS
+## map.dynamic_zones (map_state.gd:371) and rebuilds it from add_dynamic_terrain_and_zones_from_unit
+## (:377), whose `if gear.is_dynamic_zone_active` gate at :435 is what appends this zone (:435-438).
+## Zone flag first: the gate is already open and the zone registers on that pass. Aura first: the
+## gate is shut, the zone is skipped, and it sits drawn-but-unregistered until the next tracking pass
+## from anywhere else. Nothing reads that registration for THIS zone today - every gameplay knob is
+## at its inert default, and the one list it does land in is written and never read (see
+## passive_fungal_network_zone.tres) - so the reverse order would not be visible in play. It would
+## simply be wrong the moment a knob was turned on. Section H's picture-not-a-rule test does not lean
+## on this either way: it calls UnitTile.update_tracking_and_statuses itself before asserting.
 ##
 ## WHY hibernate_action RATHER THAN A USAGE COUNTER. `gear.is_action_hibernating` is consulted by
 ## UnitAction.get_gear_unavailable_reason at unit_action.gd:154 and yields REASON.HIBERNATING - a

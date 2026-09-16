@@ -63,25 +63,35 @@ script = ExtResource("1_zone")
 ; that is a DIFFERENT per-gear flag from the is_aura_active the three PassiveAuras follow
 ; (gear_core.gd:25 and :28 declare the two side by side). A picture on a flag of its own could
 ; outlive the mechanic it draws, which is worse than no picture. So the two flags were traced before
-; this file was written, and they are set in exactly four places:
+; this file was written. FIVE places write them, and the first four write BOTH:
 ;
 ;   1. spawn        unit_printer.gd:16-21   - BOTH set true, then each pulled down by its own
 ;                                             passive type's starts_active = false. Paired.
 ;   2. gear reapply unit_condition.gd:879-880 and :898-899 - the same pairing, line for line.
 ;   3. owner death  event_service.gd:67-68  - BOTH set false, under one comment that says
 ;                                             "all auras and zones turn off". Paired.
-;   4. the setters  gear_core.gd:293 and :297 - set_dynamic_zone_active and set_aura_active. These
-;                                             are the ONLY unpaired writers in the engine, and
-;                                             nothing in engine/ calls either: a grep of the whole
-;                                             tree finds callers only in content/ (the Drake's
-;                                             Fortress Protocol, Hardlight Defense System) and in
-;                                             our own action_fungal_network.gd.
+;   4. save reload  gear_core.gd:112-113    - adjacent entries in GearCore.deserialize's attribute
+;                                             list, mirroring :81-82 on the way out. Paired.
+;   5. the setters  gear_core.gd:293 and :297 - set_dynamic_zone_active and set_aura_active. The
+;                                             ONLY unpaired writers.
 ;
-; So the flags cannot drift on their own; they can only be driven apart by the one script that
-; drives them, and that script now sets both in one place (action_fungal_network.gd - read the
-; paragraph headed WHY THE PROTOCOL SETS TWO FLAGS). starts_active below is the other half:
-; without it this zone would be LIT FROM THE START OF THE SCENE while the auras were still dark,
-; which is the exact failure this passive was asked not to have.
+; AND THE ZONE SETTER HAS AN ENGINE-SIDE CALLER THE AURA ONE DOES NOT. BuffCore declares its own
+; set_dynamic_zone_active(is_active, map) at buff_core.gd:177-181, which resolves a buff's from_gear
+; to a GearCore (:113-116) and forwards to the setter above. buff_core.gd declares no aura
+; equivalent - the string "aura" does not occur in that file at all. So the engine does ship an
+; unpaired lever for exactly this flag, and it is the one vanilla's zone-toggling buffs use:
+; buff_defense_net_aegis.gd, buff_cloaking_field_scout_active.gd, buff_swarm_body.gd, and
+; buff_hardlight_defense_system.gd, which wants both and pairs them by hand at :17 and :19. Other
+; callers skip the forwarder and reach a GearCore directly - action_self_destruct.gd:16, the Drake's
+; Fortress Protocol and its deactivate, and our own action_fungal_network.gd.
+;
+; IT STILL CANNOT DRIFT ON THIS KIT, because that forwarder fires only when a buff SCRIPT calls it,
+; and only against the gear that APPLIED that buff - and no buff of ours calls it. The only calls to
+; either setter in this mod are the two lines in action_fungal_network.gd (read the paragraph headed
+; WHY THE PROTOCOL SETS TWO FLAGS). The flags can only be driven apart by a caller we write, so a
+; later off switch must set both, and the forwarder alone will not do. starts_active below is the
+; other half: without it this zone would be LIT FROM THE START OF THE SCENE while the auras were
+; still dark, which is the exact failure this passive was asked not to have.
 ;
 ; ================= WHY THE FX IS A REUSED VANILLA SCENE =================
 ;
@@ -97,9 +107,25 @@ script = ExtResource("1_zone")
 ; so the game already shows what a burst-2 nanite cloud looks like on this board, and the card here
 ; is literally "a cloud of nanite spores". fxe_nanobots.tscn and fxe_swarm_body.tscn are the near
 ; misses (the Hive's razor swarm and HORUS' own Swarm Body). fxe_smoke_cloud.tscn was rejected on
-; meaning rather than looks: its only user is mt_shroud_projector_assassin.tres, the one zone in the
-; tree that sets BOTH can_see_into and can_see_outof to false, so on this board that haze means "you
-; cannot see through this" - which is the one thing this zone deliberately does not do.
+; meaning rather than looks - but NOT for the reason first written here, which the 2026-09-16 review
+; took apart. That haze is not the tree's private sign for "you cannot see through this":
+;
+;   - It has SEVEN users under content/, not one, and six of them are terrain rather than zones:
+;     mt_smoke_cloud_0/2/3.tres, passive_smoke_cloud_cone.tres and setpiece_smoke.tres all lay
+;     terrain carrying cover = 1, and mt_expose_power_cells_cloud.tres lays terrain with nothing set
+;     on it at all. None of the six touches a sight flag, because none of them has a DynamicZone.
+;   - The seventh, mt_shroud_projector_assassin.tres, DOES block sight - but not with this scene.
+;     Its sight-blocking half is a DynamicZoneNotOwner drawn with fxe_flash.tscn (:17-29); the smoke
+;     is on the DynamicZoneOnlyOwner half (:31-41), whose can_see_into / can_see_outof are both left
+;     at their true defaults (dynamic_zone.gd:8-9).
+;   - Nor is that zone alone in shutting sight both ways: three resources in the tree set BOTH flags
+;     false - mt_shroud_projector_assassin.tres:20-21, mt_blinkshield.tres:13-14 and
+;     ms_hardlight_defense_system.tres:16-17.
+;
+; What the haze does consistently mean on this board is COVER, which this zone does not grant either,
+; so the rejection survives its own evidence being wrong. The positive case is the one that carries
+; the decision: fxe_nanites already means "a HORUS aura is running here", by the hive-drone precedent
+; above.
 ;
 ; NO NEW ART, deliberately: icons and art are SP3's business, and a referenced vanilla .tscn brings
 ; its own already-imported .ctex with it. The id the engine will look up is the scene's BASENAME

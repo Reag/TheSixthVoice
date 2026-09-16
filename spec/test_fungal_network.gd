@@ -906,13 +906,21 @@ func test_the_chip_carries_no_mechanical_effect() -> void:
 #
 # AN FX IS HARD TO ASSERT ON, so it is worth being exact about where these stop.
 #
-# THEY PROVE, as far as live nodes in the scene tree: after the press, the Myconid's token owns an
-# FxEndlessController (unit_token.gd:53) whose fxe_map holds one instantiated FxEndless per tile of
-# the burst, each with id `fxe_nanites`. That is the real chain, not a stand-in for it -
-# UnitToken.update_attached_fx walks every passive on every piece of gear and feeds each returned
-# ticket to FxEndlessController.reconstruct_add (unit_token.gd:209-219), which instantiates the
-# scene ContentLibrary maps that id to and add_child()s it (fx_endless_controller.gd:72-78 into
-# :88-91). Nothing here fakes a step of that.
+# THEY PROVE, as far as INSTANTIATED NODES REGISTERED ON THE CONTROLLER: after the press, the
+# Myconid's token owns an FxEndlessController (unit_token.gd:53) whose fxe_map holds one instantiated
+# FxEndless per tile of the burst, each with id `fxe_nanites`. That is the real chain, not a stand-in
+# for it - UnitToken.update_attached_fx walks every passive on every piece of gear and feeds each
+# returned ticket to FxEndlessController.reconstruct_add (unit_token.gd:209-219), which instantiates
+# the scene ContentLibrary maps that id to and records it in fxe_map (fx_endless_controller.gd:72-74).
+# Nothing here fakes a step of that.
+#
+# THEY DO NOT PROVE THE NODES ARE PARENTED, and the wording above is careful for that reason.
+# reconstruct_add appends to fxe_map at :74, but only reaches add_child - through directly_add_fxe,
+# :78 into :88-91 - when it is running on the MAIN THREAD (:77); off it, the node is queued into
+# deferred_added_fxes instead (:80-86) and parented later. These tests read fxe_map membership and
+# is_instance_valid, so "instantiated and registered" is exactly what they check; tree membership is
+# not. (Corrected at the 2026-09-16 review, which found this section - the one whose subject is not
+# overclaiming - saying "parented" twice.)
 #
 # THEY DO NOT PROVE THAT ANYTHING IS VISIBLE. Not one assertion below looks at the viewport. A node
 # that exists at the right tile may still be invisible, mis-coloured, the wrong size, at the wrong
@@ -933,7 +941,7 @@ func test_the_chip_carries_no_mechanical_effect() -> void:
 # is gated on gear.is_dynamic_zone_active (passive_dynamic_zone.gd:13-14), declared three lines above
 # the aura flag on the same object (gear_core.gd:25 and :28). A picture on a lifetime of its own
 # could outlive the mechanic it draws, so the writers of both flags were traced before this was
-# built, and there are exactly four:
+# built. There are five, and the first four move BOTH:
 #
 #   spawn          unit_printer.gd:16-21       both set true, each then pulled down by its own
 #                                              passive type's starts_active. PAIRED.
@@ -941,14 +949,24 @@ func test_the_chip_carries_no_mechanical_effect() -> void:
 #                  unit_condition.gd:898-899   ...and each pulled down the same way. PAIRED.
 #   owner death    event_service.gd:65-68      both set false under one comment, "all auras and
 #                                              zones turn off". PAIRED.
+#   save reload    gear_core.gd:112-113        adjacent entries in GearCore.deserialize's attribute
+#                                              list, mirroring :81-82 on the way out. PAIRED.
 #   the setters    gear_core.gd:293 and :297   set_dynamic_zone_active / set_aura_active. The ONLY
-#                                              unpaired writers - and nothing in engine/ calls
-#                                              either. Every caller in the tree is content:
-#                                              the Drake's Fortress Protocol, Hardlight Defense
-#                                              System, and our own action_fungal_network.gd.
+#                                              unpaired writers.
 #
-# So the flags cannot drift on their own. They can only be driven apart by the one script that drives
-# them, which is why action_fungal_network.gd now sets both, and why
+# THE ZONE SETTER ALSO HAS AN ENGINE-SIDE CALLER THAT THE AURA ONE DOES NOT, which this comment used
+# to deny outright (corrected at the 2026-09-16 review). BuffCore declares its own
+# set_dynamic_zone_active(is_active, map) at buff_core.gd:177-181, resolving a buff's from_gear to a
+# GearCore (:113-116) and forwarding to the setter; buff_core.gd declares no aura equivalent - the
+# string "aura" does not occur in that file. It is what vanilla's zone-toggling buffs use
+# (buff_defense_net_aegis.gd, buff_cloaking_field_scout_active.gd, buff_swarm_body.gd, and
+# buff_hardlight_defense_system.gd, which wants both and pairs them by hand at :17 and :19), and
+# other cards reach a GearCore directly - action_self_destruct.gd:16, the Drake's Fortress Protocol
+# and its deactivate, and our own action_fungal_network.gd.
+#
+# So the flags cannot drift on their own: the forwarder fires only when a buff SCRIPT calls it, and
+# only against the gear that applied that buff, and no buff of ours does. They can only be driven
+# apart by a caller we write, which is why action_fungal_network.gd sets both, and why
 # test_the_two_activation_flags_never_disagree asserts their VALUES against each other at all three
 # stages rather than trusting that paragraph.
 #
@@ -1047,9 +1065,11 @@ func test_the_ground_cloud_is_dark_before_the_protocol() -> void:
 		'control: the very same query DOES find the cloud once the protocol is pressed')
 
 ## THE WHOLE POINT, asserted as far down the chain as a spec can reach: after the press there is a
-## live FxEndless node parented to the Myconid's token controller at every tile of the burst, and
-## every one of them is the scene this passive names. See the section header for what that still does
-## NOT say about anything being visible.
+## live FxEndless node instantiated and registered on the Myconid's token controller at every tile of
+## the burst, and every one of them is the scene this passive names. "Registered", not "parented" -
+## fxe_map membership is what is read here, and reconstruct_add only add_child()s on the main thread
+## (fx_endless_controller.gd:74 versus :77-86). See the section header for that, and for what this
+## still does NOT say about anything being visible.
 ##
 ## Reddened by: T5-M1 (dropping passive_fungal_network_zone.tres from cp_quietus_machines.tres) and
 ## T5-M4 (dropping the set_dynamic_zone_active line from action_fungal_network.gd) - two different
