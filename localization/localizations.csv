@@ -127,3 +127,6 @@ frame.mf_myconid.flavor,"Horus pattern groups have always been a contentious sub
 gear.mt_symbiosis.name,Symbiosis
 gear.mt_symbiosis.effect,"1/round, the Myconid may use a |reaction| an additional time. This cannot be used on |reactions| that are 1/scene or 1/mission."
 gear.mt_symbiosis.refused.log,{unit} cannot spend the Symbiosis reaction on a 1/scene or 1/mission reaction.
+,
+gear.mt_halo.name,Halo
+gear.mt_halo.effect,"1/round, when the Myconid takes damage, an allied character within |Sensors| gains |OVERSHIELD| equal to |GRIT|."
