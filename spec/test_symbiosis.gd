@@ -721,6 +721,29 @@ func test_the_extra_use_raises_the_cap_by_exactly_one():
 	assert_eq(effective_round_cap(RXN_PLAIN_A), 1,
 		'And once it has, the cap is back to the action s own: the bonus is not permanent.')
 
+func test_the_same_consuming_reaction_twice_in_a_round_bills_one_point_per_use():
+	# THE ACTIVATION-LEVEL HALF of the test above, and the fourth budget state the take-back's own
+	# header does not enumerate. Everything else in this file that fires one gear twice in a round is
+	# the Gyre or Halo, both consumes_rxn = false, where the activation moves no point and the
+	# take-back is the only thing that bills it. rxn_a CONSUMES: UnitAction.spend has already taken
+	# the point at unit_action.gd:257 by the time the UNIT_ACTION POST runs, so a take-back on top
+	# charges one activation twice and leaves the Myconid with nothing on a turn it reacted once.
+	#
+	# The cap-level assertions above cannot see any of that - they read effective_round_cap and
+	# is_under_per_round_limit, both of which sit upstream of the point spend, and record_one_use
+	# bypasses activation entirely. This is the test that walks the whole path.
+	await react_with(rxn_a)                   # turn A: 2 -> 1, uses 1, under its own cap, no stamp
+	assert_false(extra_spent(), 'fixture: one use is within the action s own cap, so nothing is spent yet.')
+
+	await SpecFactory.start_turn(game, dummy) # turn B: refilled to 2, the stamp is still unset
+	assert_eq(reactions_left(), 2, 'fixture: the refill stands while the extra is unspent.')
+
+	await react_with(rxn_a)                   # the same gear again, allowed ONLY by the raised cap
+	assert_eq(rxn_a.fired, 2, 'CONTROL: the raised cap really offered the same gear a second time.')
+	assert_true(extra_spent(), 'The round s extra is stamped spent by the over-cap use.')
+	assert_eq(reactions_left(), 1,
+		'And one reaction costs one point: the engine s spend is not doubled by the take-back.')
+
 func test_a_third_gyre_in_the_round_is_refused():
 	# "an additional time", singular. The second use is Symbiosis's; the third has nothing left to
 	# relieve it, because taking the second set the stamp and the stamp is what

@@ -40,7 +40,14 @@
 ## maxi(current - 1, 0) rather than the new_turn branch's mini(current, max - 1) because it has to be
 ## right at every budget: at a full 2 it leaves the ordinary allowance intact, at 1 (an ordinary
 ## reaction already taken this turn) it leaves nothing, and at 0 the value path has already claimed
-## the activation and this branch never runs. Pinned in both orders by
+## the activation and this branch never runs. **A FOURTH STATE was missing from that list until the
+## frame close (2026-09-16), and the sentence heading this paragraph is only true of a reaction that
+## did not pay: when the cap-relieved use is itself a CONSUMING reaction, the engine has already
+## taken its point and the budget reads 1 for a reason this branch cannot distinguish from the
+## second state above. Taking another billed one activation twice and left a Myconid that had
+## reacted ONCE on that turn holding nothing - a net gain of zero uses from the round's extra, where
+## the Gyre path correctly gains one. spends_its_own_point() is that fourth state.** Pinned by
+## test_the_same_consuming_reaction_twice_in_a_round_bills_one_point_per_use, and in both orders by
 ## test_an_extra_ordinary_reaction_is_refused_after_a_second_gyre and
 ## test_a_second_gyre_is_refused_after_an_extra_ordinary_reaction.
 ##
@@ -121,6 +128,18 @@ static func is_cap_relieved_use(context:Context) -> bool:
 		context.action.get_per_round_hard_limit(specific)
 	)
 
+## DID THE ACTIVATION PAY ITS OWN POINT? UnitAction.spend takes one for any action whose
+## consumes_reaction() is true (unit_action.gd:257), and it does so BEFORE the usage counter moves
+## (:279) and before this POST is queued (event_gear_activate.gd:111) - so by the time we run, that
+## point has already gone. The take-back must not bill the same activation a second time.
+##
+## This is the case the cap path did not originally separate. A non-consuming reaction (the Gyre,
+## Halo) trips the cap while moving no point, which is what the take-back exists for; an ORDINARY
+## consuming reaction trips the same cap having already paid, and is_point_spend() only notices when
+## the budget has reached 0. On a turn the Myconid entered with both points, it does not have.
+static func spends_its_own_point(context:Context) -> bool:
+	return context != null and context.action != null and context.action.consumes_reaction()
+
 func triggers_on_event(core:BuffCore, unit:Unit, triggering_event:EventCore) -> bool:
 	if not Unit.is_valid(unit): return false
 	match triggering_event.base.event_type:
@@ -146,11 +165,14 @@ func activate(core:BuffCore, activation:EventCore) -> void:
 		&'event_unit_action':
 			var was_already_spent:bool = bool(core.get_state(SPENT_KEY, false))
 			core.set_state(SPENT_KEY, true)
-			# THE TAKE-BACK, and only on the FIRST stamp of the round. A cap-relieved use spends no
-			# reaction point of its own, so without this the round's extra would be available a second
-			# time through the point economy. The value path needs nothing: its point has already gone.
+			# THE TAKE-BACK, and only on the FIRST stamp of the round. A cap-relieved use by a
+			# NON-CONSUMING reaction spends no reaction point of its own, so without this the round's
+			# extra would be available a second time through the point economy. The value path needs
+			# nothing: its point has already gone. Nor does a CONSUMING reaction that tripped the cap -
+			# the engine billed it at unit_action.gd:257 before we ran, and taking another point here
+			# charges one activation twice (see spends_its_own_point).
 			# See the header for why maxi(current - 1, 0) and not the new_turn branch's mini().
-			if was_already_spent or is_point_spend(unit): return
+			if was_already_spent or is_point_spend(unit) or spends_its_own_point(triggering.context): return
 			unit.core.current.reactions = maxi(unit.core.current.reactions - 1, 0)
 		&'event_turn_start':
 			# The refill has already run for every unit on the map (event_turn_start.gd:43-44) and
