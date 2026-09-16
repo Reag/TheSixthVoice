@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mw_psychopomp_fold_pike/action_psychopomp_strike.gd" id="1_strike"]
 [ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="2_onhit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mw_psychopomp_fold_pike/onhit_uffish_gyre.tres" id="3_gyreonhit"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_psychopomp_fold_pike.svg" id="4_icon"]
 
 [resource]
 script = ExtResource("1_strike")
@@ -92,5 +93,7 @@ usage_group = &"psychopomp_strike"
 ; Kept because the card says so in as many words, and because the alternative is shipping a weapon
 ; whose targeting silently disagrees with its own trigger.
 requires_line_of_sight_baseline = false
-; NO icon_override, deliberately. SP2 ships no icons and
-; test_every_player_facing_kit_and_action_has_a_real_icon is expected RED on this row until SP3.
+; SHARES THE PIKE KIT'S GLYPH rather than bespoke art - vanilla's own pattern for a Kit and its
+; primary action (cp_m35_mjolnir_cannon.tres / action_m35_mjolnir.tres both icon_override the same
+; file). The author confirmed this at the SP3 contact-sheet gate.
+icon_override = ExtResource("4_icon")

@@ -1,6 +1,7 @@
 [gd_resource type="Resource" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/armor/buff_armor_statblock.gd" id="1_statblock"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_psychopomp_fold_pike.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_statblock")
@@ -13,9 +14,10 @@ script = ExtResource("1_statblock")
 ; restated for this frame as design ruling 8.
 to = &"statblock"
 armor_amount = 2
+icon = ExtResource("2_icon")
 ; DELIBERATELY VISIBLE: the Gyre fires on someone ELSE's turn, off screen from the Myconid's player,
 ; and this chip is the struck ally's only notice that it happened at all. VISIBLE_BUFFS lists it
-; (Task 5); the SP3 icon pass owes it an icon.
+; (Task 5); wears mw_psychopomp_fold_pike.svg, per decision 2.
 ;
 ; START_OF_TURN (Lancer.UNTIL, lancer.gd:46-56, so 3) - "until the start of their next turn", and it
 ; is the HOLDER's turn that clears it: UnitCondition.new_turn_for_statuses runs

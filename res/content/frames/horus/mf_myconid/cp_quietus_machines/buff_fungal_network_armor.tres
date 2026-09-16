@@ -1,6 +1,7 @@
 [gd_resource type="Resource" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/armor/buff_armor_statblock.gd" id="1_statblock"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_quietus_machines.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_statblock")
@@ -12,8 +13,9 @@ script = ExtResource("1_statblock")
 ; (rulings.md row 37), restated for this frame as design ruling 8.
 to = &"statblock"
 armor_amount = 1
+icon = ExtResource("2_icon")
 ; DELIBERATELY VISIBLE: this chip and the immunity chip are the ally's only signal that the cloud is
-; helping. VISIBLE_BUFFS lists it; the SP3 icon pass owes it an icon.
+; helping. VISIBLE_BUFFS lists it; wears cp_quietus_machines.svg, per decision 2.
 ;
 ; `until` stays at MANUAL, and it MUST MATCH buff_fungal_network_armor_reduction.tres's. The two
 ; halves disagreeing is how this mechanic tears in half - a chip that no longer blunts anything, or

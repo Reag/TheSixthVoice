@@ -1,6 +1,7 @@
 [gd_resource type="Resource" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mw_psychopomp_fold_pike/action_uffish_gyre.gd" id="1_gyre"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_uffish_gyre.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_gyre")
@@ -47,7 +48,4 @@ consumes_rxn = false
 ; activate() header for the whole of it. Pinned by test_the_gyre_announces_itself_before_the_roll,
 ; which reads the Gyre's per-round counter from an ATTACK/PRE probe and the ordered battle log.
 emit_text_popcorn_on_use = true
-; NO icon_override, deliberately. SP2 ships no icons and
-; test_every_player_facing_kit_and_action_has_a_real_icon is expected RED on this row until SP3 - it
-; carries a `.trigger` row, so Action.show_in_tooltip draws it on the trait card with its own icon
-; slot (the mt_juggernaut_drive / action_draw_fire shape, not the hidden-reaction one).
+icon_override = ExtResource("2_icon")

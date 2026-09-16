@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="Buff" format=3]
 
 [ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_quietus_machines.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_buff")
@@ -50,9 +51,10 @@ script = ExtResource("1_buff")
 ;
 ; Lancer.STATUS.SLOWED and .IMPAIRED (lancer.gd:67, :65).
 applies_statuses = Array[StringName]([&"slowed", &"impaired"])
+icon = ExtResource("2_icon")
 ; DELIBERATELY VISIBLE. This is the hostile's only explanation for why it is Slowed and Impaired, so
 ; hide_from_player stays at its false default and test_content_integrity.gd's VISIBLE_BUFFS lists it.
-; The hostile shows this chip plus the two status icons; the SP3 icon pass owes it an icon.
+; The hostile shows this chip plus the two status icons; wears cp_quietus_machines.svg, per decision 2.
 ;
 ; `until` is left at its MANUAL default (Lancer.UNTIL.MANUAL = 0) and that is load-bearing: the AURA
 ; owns this buff's lifetime. PassiveAura.update_unit clears it the moment the hostile is out of range

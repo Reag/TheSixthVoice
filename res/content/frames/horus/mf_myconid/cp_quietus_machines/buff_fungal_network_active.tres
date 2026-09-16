@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="Buff" format=3]
 
 [ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_quietus_machines.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_buff")
@@ -26,6 +27,7 @@ script = ExtResource("1_buff")
 ; test_fungal_network.gd would notice. test_the_chip_carries_no_mechanical_effect pins it, together
 ; with the empty applies_statuses and triggers_on.
 to = &"none"
+icon = ExtResource("2_icon")
 ; DELIBERATELY VISIBLE: hide_from_player stays at its false default (buff.gd:127), because being
 ; seen is the whole job. test_content_integrity.gd's VISIBLE_BUFFS lists it, and its size assertion
 ; is what stops the pair drifting apart.
