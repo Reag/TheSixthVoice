@@ -76,12 +76,13 @@ func core_gear() -> GearCore:
 	var gear:GearCore = myconid.get_gear(CORE_ID)
 	return gear if GearCore.is_valid(gear) else null
 
-## Press the protocol. The turn start is NOT decoration: unit_action.gd:119 refuses a protocol unless
-## unit.state.is_using_protocols, which only event_turn_start opens. Without it every test here would
-## fail with "Gear not available / reason : protocol" and read as broken content.
+## Press the protocol. DELEGATES to MyconidFixture.fungal_network (SP2 Task 5), which is this same
+## body lifted verbatim - its own header carries the reason the turn start is not decoration:
+## unit_action.gd:119 refuses a protocol unless unit.state.is_using_protocols, which only
+## event_turn_start opens. Without it every test here would fail with "Gear not available / reason :
+## protocol" and read as broken content.
 func press_protocol() -> void:
-	await MyconidFixture.open_turn(game, myconid)
-	await SpecFactory.use(game, myconid, CORE_ID, PROTOCOL_ID)
+	await MyconidFixture.fungal_network(game, myconid)
 
 func ally(tile:Vector2i) -> Unit:
 	return MyconidFixture.create_dummy(game, tile, 10, Faction.PLAYER)

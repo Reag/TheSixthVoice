@@ -34,6 +34,7 @@ extends GutTest
 const FrameIsolation := preload('res://testkit/frame_isolation.gd')
 const SubutaiFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/subutai_fixture.gd')
 const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
+const MyconidFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/myconid_fixture.gd')
 
 ## EACH TEST BUILDS ITS OWN GAME, deliberately, and there is no before_each.
 ##
@@ -116,3 +117,34 @@ func test_the_fitzgerald_still_has_broadside_as_its_core_system() -> void:
 	assert_eq(Translate.gear(&'cp_broadside', 'name'), 'Broadside', 'and still carries its own name.')
 	assert_false(core.kit.has_weapon(),
 		'It no longer carries a weapon: MORE BLACK POWDER is a protocol, not a gun.')
+
+# ---------------------------------------------------------------- Myconid
+
+func test_the_myconids_integrated_weapon_is_called_the_psychopomp_fold_pike() -> void:
+	var game:Gamemaster = MyconidFixture.create_game(self)
+	var unit:Unit = MyconidFixture.create_myconid(game, Vector2i(8, 8))
+	var shown := shown_integrated_weapons(unit)
+
+	assert_eq(shown.size(), 1, 'The Myconid draws exactly one integrated weapon box.')
+	if shown.is_empty(): return
+
+	assert_eq(names_of(shown)[0], 'PFP// "PSYCHOPOMP" Fold Pike',
+		'The integrated weapon box is titled with the WEAPON, as Bel names it on the card.')
+	assert_does_not_have(names_of(shown), 'QUIETUS MACHINES',
+		'and never with the core SYSTEM, which is a different thing with its own name.')
+
+func test_the_myconid_still_has_quietus_machines_as_its_core_system() -> void:
+	var game:Gamemaster = MyconidFixture.create_game(self)
+	var unit:Unit = MyconidFixture.create_myconid(game, Vector2i(8, 8))
+
+	# The other half of the split: QUIETUS MACHINES must survive as the core system's own card,
+	# carrying FUNGAL NETWORK, and must not carry a weapon of its own - that is what keeps it out of
+	# the integrated-weapon box above.
+	var core:GearCore = unit.get_gear(&'cp_quietus_machines')
+	assert_true(GearCore.is_valid(core), 'cp_quietus_machines is still equipped.')
+	if not GearCore.is_valid(core): return
+
+	assert_eq(Translate.gear(&'cp_quietus_machines', 'name'), 'QUIETUS MACHINES',
+		'and still carries its own name.')
+	assert_false(core.kit.has_weapon(),
+		'It no longer carries a weapon: FUNGAL NETWORK is a protocol, not a gun.')

@@ -31,6 +31,8 @@ const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzg
 const FRAME_ID := &'mf_myconid'
 const SYMBIOSIS_ID := &'mt_symbiosis'
 const HALO_ID := &'mt_halo'
+const CORE_ID := &'cp_quietus_machines'
+const PROTOCOL_ID := &'action_fungal_network'
 
 static func create_game(test:GutTest, map_size:Vector2i = FitzgeraldFixture.DEFAULT_MAP_SIZE) -> Gamemaster:
 	return FitzgeraldFixture.create_game(test, map_size)
@@ -67,6 +69,23 @@ static func create_ally(game:Gamemaster, tile:Vector2i) -> Unit:
 
 static func open_turn(game:Gamemaster, unit:Unit) -> void:
 	await FitzgeraldFixture.open_turn(game, unit)
+
+## Open the Myconid's turn and press FUNGAL NETWORK, so both of QUIETUS MACHINES' PassiveAuras go
+## live (SP2 Task 3). Lifted out of test_fungal_network.gd's own press_protocol(), which now
+## delegates here (SP2 Task 5) rather than duplicating it.
+##
+## THE TURN MUST BE OPEN FIRST, and not merely for tidiness: unit_action.gd:119 refuses a PROTOCOL
+## unless unit.state.is_using_protocols, which only event_turn_start opens. Without it every caller
+## of this function would fail with "Gear not available / reason : protocol" and read as broken
+## content rather than a missing turn. Grep a red run's output for `Gear not available` before
+## suspecting the .tres; the reason string names the exact gate.
+##
+## SpecFactory.use(game, unit, kit_id, action_id) rather than use_solo(): cp_quietus_machines could
+## grow a second action the way cp_siege_engine did, and this mirrors SubutaiFixture.gather_round's
+## shape rather than depending on the action count staying at one.
+static func fungal_network(game:Gamemaster, myconid:Unit) -> void:
+	await open_turn(game, myconid)
+	await SpecFactory.use(game, myconid, CORE_ID, PROTOCOL_ID)
 
 ## A hostile NON-character: the vanilla Jericho cover. Fungal Network's hostile aura sets
 ## applies_only_to_characters, and this is the only way to prove that clause does anything - a

@@ -261,6 +261,20 @@ const ICON_TARGETS := {
 	# SP2 Task 4 lands, because weapon_mount_item.gd:101 titles the character sheet's
 	# integrated-weapon box from the KIT that holds the weapon action.
 	&'cp_quietus_machines': [&'action_fungal_network'],
+	# SP2 Task 4 (Myconid). Its own mw_ Kit (ruling 9), listed separately from cp_quietus_machines
+	# for the same reason as mw_diversion_rail above: weapon_mount_item.gd:101 titles the character
+	# sheet's integrated-weapon box from the KIT that holds the weapon action, so a strike living on
+	# the core Kit would title the box "QUIETUS MACHINES" instead of the weapon's own name.
+	#
+	# BOTH ACTIONS EARN A ROW, and for different reasons. The strike is the weapon profile
+	# weapon_mount_item.gd:71 always draws for an integrated mount's first weapon action
+	# (core.kit.get_weapon_actions()[0], with no is_situationally_activated or show_in_tooltip check
+	# of its own), so it needs a real icon on the character sheet even though
+	# is_situationally_activated keeps it off the gear bar (gear_bar.gd:149) and off the trait card
+	# (ActionAttack.show_in_tooltip, action_attack.gd:90). The Gyre carries a `.trigger` row, so the
+	# BASE Action.show_in_tooltip (action.gd:341-344) draws it on the trait card with its own row -
+	# the mt_juggernaut_drive / action_draw_fire shape, not the strike's.
+	&'mw_psychopomp_fold_pike': [&'action_psychopomp_strike', &'action_uffish_gyre'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -316,6 +330,13 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# ABSENT: the pair is one mechanic, and two chips for one effect would read as two effects. Same
 	# reasoning as buff_reinforcement_blast_reduction above.
 	&'buff_fungal_network_immunity', &'buff_fungal_network_armor', &'buff_fungal_network_spores',
+	# SP2 Task 4 (Myconid). The Gyre's on-hit chip - the reaction fires on somebody ELSE's turn, so
+	# this chip is the only on-map signal the mover gets that the Pike's strike landed. Same
+	# reasoning as buff_reinforcement_blast and buff_fungal_network_armor above:
+	# buff_uffish_gyre_armor_reduction is the hidden half that does the actual damage reduction and
+	# is deliberately ABSENT - the pair is one mechanic, and two chips for one effect would read as
+	# two.
+	&'buff_uffish_gyre_armor',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
