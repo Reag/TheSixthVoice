@@ -423,16 +423,29 @@ func test_the_statuses_cannot_be_cleared_while_the_hostile_stands_inside() -> vo
 
 ## "Hostile CHARACTERS". A deployable standing in the cloud is untouched.
 ##
-## THE GROUND LOCK IS NOT TIDYING - WITHOUT IT THIS TEST STOPS MEASURING ANYTHING, and the reason is
-## worth the paragraph because it will bite the next spec that stands a prop near something.
+## THE PROP IS GROUND-LOCKED BY THE FIXTURE, AND WITHOUT THAT THIS TEST STOPS MEASURING ANYTHING.
+## THE LOCK IS THE ENGINE'S OWN GUARD, NOT A SPEC TRICK AND NOT AN ENGINE BUG.
+## UnitCondition.apply_lock_to_ground_height (unit_condition.gd:920-927) sets the flag for any unit
+## whose gear carries a PassiveTerrainZone with terrain_data.obstruction, and its comment at :922
+## names this exact frame: "jericho cover needs to ignore itself when determining its floor height".
+## The engine runs it on every unit add (map_node_3d.gd:125) and from apply_buffs_from_passive_gear
+## (unit_condition.gd:873), so a cover the GAME deploys is locked from birth and never climbs -
+## ActionSystemDeploy builds the core WITH the frame before spawning (action_system_deploy.gd:117).
+## What bypassed the guard was the FIXTURE'S SHAPE: FitzgeraldFixture.create_deployable took a
+## SpecFactory.create_unit knockoff Everest (spec_factory.gd:76-77), let it be added to the map with
+## the auto-setter running against that wrong frame, and only then swapped in dep_jericho_cover -
+## and nothing recomputed the flag. Fixed at the source 2026-09-16 (SP2.5 Task 4 review): the
+## fixture now calls apply_lock_to_ground_height itself, and that call's header carries the full
+## account. The paragraphs below are what it costs THIS test when the flag is wrong.
 ##
 ## THE FIXTURE'S DEPLOYABLE IS A JERICHO COVER, and a Jericho cover is dynamic TERRAIN as well as a
-## unit: its mt_obstruction_hard_cover trait writes an obstruction voxel, and MapState raises the
-## tile's surface to one above it (map_state.gd:462 and :467, whose own comment names the Jericho).
-## The prop's effective_floor is then read back OFF that surface (unit_tile.gd:211-218 via
-## unit_battle_state.gd:226) - so on every single pass of UnitTile.update_tracking_and_statuses the
-## cover climbs one layer onto its own roof, without bound. MEASURED 2026-09-16, SP2.5 Task 4: floor
-## 1, 2, 3, 4, 5 ... over four bare tracking passes with no mod content involved at all.
+## unit: its mt_obstruction_hard_cover trait writes an obstruction voxel (map_state.gd:427-433) and
+## MapState raises the tile's surface to one above it (map_state.gd:462 and :467, whose own comment
+## names the Jericho). An UNLOCKED cover then reads its effective_floor back OFF that surface
+## (unit_tile.gd:211-218 via unit_battle_state.gd:226) - so on every single pass of
+## UnitTile.update_tracking_and_statuses it climbs one layer onto its own roof, without bound.
+## MEASURED 2026-09-16, SP2.5 Task 4: floor 1, 2, 3, 4, 5 ... over four bare tracking passes with no
+## mod content involved at all.
 ##
 ## AND THE BURST IS A 3-D MEASUREMENT. distance_between is maxi(horizontal, vertical)
 ## (unit_relation.gd:13-25, the maxi at :25), the vertical term is get_elevation_distance_between
@@ -447,19 +460,24 @@ func test_the_statuses_cannot_be_cleared_while_the_hostile_stands_inside() -> vo
 ## ZERO. Task 4's chip is applied to the MYCONID by an aura, and UnitCondition.apply_buffs runs a
 ## whole further tracking pass whenever the applying gear carries a PassiveAura
 ## (unit_condition.gd:713-714) - one more pass, floor 5, vertical 3, out of the burst. Any content
-## that applies one more aura buff would have done the same, so the fragility is the test's, not the
-## chip's.
+## that applies one more aura buff would have done the same, so the fragility was the test's, not
+## the chip's.
 ##
-## lock_to_ground_height IS THE ENGINE'S OWN ANSWER, not a spec trick: effective_floor_alt reads
-## elevation_ground instead of the obstruction-raised surface when it is set (unit_tile.gd:213-214),
-## and ground_height is not raised by the cover. Measured with it: floor 1, unmoved over seven
-## passes, distance a stable 2, the prop still untouched and the control hostile still Slowed.
+## HOW THE FLAG BUYS THE MARGIN BACK: effective_floor_alt reads elevation_ground instead of the
+## obstruction-raised surface when it is set (unit_tile.gd:213-214), and ground_height is not raised
+## by the cover. Measured with it: floor 1, unmoved over seven passes, distance a stable 2, the prop
+## still untouched and the control hostile still Slowed.
+##
+## THE LINE THAT USED TO BE IN THIS TEST IS GONE. Between 2026-09-16 and this review the body set
+## `prop.state.lock_to_ground_height = true` by hand. That asserted the right value for the wrong
+## reason - it hardcoded one unit's flag instead of DERIVING it from the frame, and left the six
+## other specs sharing create_deployable on the same stale flag. The fixture call replaces it, and
+## the T4-M6/M7 pair was re-run against this shape to prove the test still discriminates.
 ##
 ## Reddened by: applies_only_to_characters = false.
 func test_a_hostile_deployable_is_untouched() -> void:
 	var foe := hostile(NEAR_TILE)
 	var prop := MyconidFixture.create_deployable(game, DIAGONAL_TILE)
-	prop.state.lock_to_ground_height = true # the cover does not climb onto itself; see above
 	await press_protocol()
 
 	assert_true(foe.has_status(Lancer.STATUS.SLOWED), 'control: a character at range IS caught')
@@ -733,10 +751,12 @@ func test_the_core_kit_has_no_effect_row_because_the_lcp_has_no_description() ->
 # buff list on hide_from_player and on nothing else, so a visible buff IS a chip however empty it is.
 #
 # WHY A THIRD AURA RATHER THAN AN apply_buff INSIDE THE PROTOCOL. is_aura_active is per-GEAR, not
-# per-passive (SP2 Task 3's finding: UnitPrinter.full_repair sets one flag per piece of gear and
-# pulls it down if ANY PassiveAura on the Kit declares starts_active = false, unit_printer.gd:19-21;
-# UnitCondition does the same at :880 and :899). So a PassiveAura on this Kit reads the very flag the
-# zone runs on, and is cleared and applied by the very pass that clears and applies the zone
+# per-passive (SP2 Task 3's finding: UnitPrinter.prep_for_initial_spawn sets one flag per piece of
+# gear and pulls it down if ANY PassiveAura on the Kit declares starts_active = false,
+# unit_printer.gd:19-21; UnitCondition does the same at unit_condition.gd:880 and :899 - NOT
+# full_repair, which SP2 Task 3 named and the SP2.5 Task 4 review corrected: it takes a UnitCore
+# (unit_printer.gd:61) and never touches the flag). So a PassiveAura on this Kit reads the very flag
+# the zone runs on, and is cleared and applied by the very pass that clears and applies the zone
 # (passive_aura.gd:37, :55-59, :62-64). There is one lifetime, and the chip cannot be up while the
 # zone is down or the reverse.
 #

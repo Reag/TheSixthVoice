@@ -30,10 +30,13 @@ applies_to_enemies = false
 ; DARK UNTIL THE PROTOCOL IS PRESSED. GearCore.set_aura_active(true, ...) in action_fungal_network.gd
 ; is what lights it, and that call runs the tracking pass itself so everyone already standing in
 ; range is caught at the moment of the press. The Drake's passive_fortress_aura.tres is the shape.
-; THE FLAG IS PER-GEAR, NOT PER-PASSIVE, AND BOTH PASSIVES SHARE IT. UnitPrinter.full_repair sets
-; `gear.is_aura_active = true` once per piece of gear and then loops every PassiveAura ON THAT KIT,
-; pulling the single flag down if ANY of them declares starts_active = false (unit_printer.gd:19-21;
-; UnitCondition does the same at :880 and :899). PassiveAura.update_unit reads that one gear-level
+; THE FLAG IS PER-GEAR, NOT PER-PASSIVE, AND BOTH PASSIVES SHARE IT.
+; UnitPrinter.prep_for_initial_spawn sets `gear.is_aura_active = true` once per piece of gear and
+; then loops every PassiveAura ON THAT KIT, pulling the single flag down if ANY of them declares
+; starts_active = false (unit_printer.gd:19-21; UnitCondition does the same at
+; unit_condition.gd:880 and :899). It is NOT full_repair, which this comment named until the SP2.5
+; Task 4 review: full_repair takes a UnitCore (unit_printer.gd:61) and never touches the flag.
+; PassiveAura.update_unit reads that one gear-level
 ; flag (:37). So this line and the hostile passive's cannot be set independently: neither aura can be
 ; lit or darkened on its own, and set_aura_active necessarily wakes BOTH.
 ;

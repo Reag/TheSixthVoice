@@ -13,13 +13,13 @@ script = ExtResource("1_aura")
 ; WHY IT IS AN AURA.
 ;
 ; AN AURA IS NOT A DETOUR HERE - IT IS THE ONLY MECHANISM THAT SHARES THE ZONE'S LIFETIME.
-; is_aura_active is per-GEAR, not per-passive: UnitPrinter.full_repair sets `gear.is_aura_active =
-; true` once per piece of gear and then pulls it down if ANY PassiveAura on that Kit declares
-; starts_active = false (unit_printer.gd:19-21), and UnitCondition does the same on gear
-; reapplication (:880 and :899). PassiveAura.update_unit reads that one gear-level flag
-; (passive_aura.gd:37) and, in one pass, applies what should be on and clears what should be off
-; (:62-64 and :55-59). So this passive is lit and darkened by the very flag and the very pass that
-; light and darken the cloud. There is ONE lifetime, not two.
+; is_aura_active is per-GEAR, not per-passive: UnitPrinter.prep_for_initial_spawn sets
+; `gear.is_aura_active = true` once per piece of gear and then pulls it down if ANY PassiveAura on
+; that Kit declares starts_active = false (unit_printer.gd:19-21), and UnitCondition does the same
+; on gear reapplication (unit_condition.gd:880 and :899). PassiveAura.update_unit reads that one
+; gear-level flag (passive_aura.gd:37) and, in one pass, applies what should be on and clears what
+; should be off (:62-64 and :55-59). So this passive is lit and darkened by the very flag and the
+; very pass that light and darken the cloud. There is ONE lifetime, not two.
 ;
 ; THE ALTERNATIVE, AND WHY IT WAS REJECTED. The obvious shape is one line in
 ; action_fungal_network.gd's activate() - UnitCondition.apply_buff(activation, unit, chip, gear) -

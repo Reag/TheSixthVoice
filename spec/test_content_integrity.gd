@@ -259,7 +259,10 @@ const ICON_TARGETS := {
 	# cp_auxiliary_power_rerouter's shape. The Kit's THREE PassiveAuras (SP2.5 Task 4 added
 	# passive_fungal_network_self) are passives and wear nothing - but the chip that third one applies
 	# does, and the author's instruction is that it SHARES this Kit's icon rather than getting one of
-	# its own. See buff_fungal_network_active.tres, and VISIBLE_BUFFS below.
+	# its own. That sharing is the ENGINE'S DEFAULT and needs no property: BuffCore.get_icon falls
+	# back to the owner gear's Kit icon when the Buff has none (buff_core.gd:81-86), and the chip's
+	# owner gear is this Kit. SP3 still has to set the field, because the visible-buff guard reads it
+	# raw (:398). See buff_fungal_network_active.tres, and VISIBLE_BUFFS below.
 	#
 	# The Pike is deliberately NOT here: it is its own mw_ Kit (ruling 9), listed separately when
 	# SP2 Task 4 lands, because weapon_mount_item.gd:101 titles the character sheet's
@@ -343,11 +346,15 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# was the one unit in its own cloud wearing nothing. Visible is therefore not a choice here the
 	# way it is for the three above; hide it and the buff has no reason to exist at all.
 	#
-	# ITS ICON IS NOT ITS OWN. The author's instruction is that it SHARES the core power's icon
-	# ("shares icon with the core power"), so the SP3 pass owes it the same glyph as
-	# cp_quietus_machines / action_fungal_network rather than a new one. It is listed here all the
-	# same, because this guard checks that the Texture2D is non-null and non-placeholder and does not
-	# care whether two entries point at one file.
+	# ITS ICON IS NOT ITS OWN, AND THE ENGINE ALREADY SHARES IT. BuffCore.get_icon falls back to the
+	# OWNER GEAR'S KIT icon when the Buff declares none (buff_core.gd:81-86), and this chip's owner
+	# gear is cp_quietus_machines - so "shares icon with the core power" is what the game does today,
+	# with no property set at all. What SP3 is satisfying here is a GUARD, not the behaviour: the
+	# assertion below reads `buff.icon` RAW (:398), never Buff.get_icon(), so the fallback is
+	# invisible to it and a null field fails the row however the chip actually draws. Give it the
+	# same glyph as cp_quietus_machines rather than a new one; this guard checks only that the
+	# Texture2D is non-null and non-placeholder and does not care whether two entries point at one
+	# file.
 	&'buff_fungal_network_active',
 	# SP2 Task 4 (Myconid). The Gyre's on-hit chip - the reaction fires on somebody ELSE's turn, so
 	# this chip is the only on-map signal the mover gets that the Pike's strike landed. Same

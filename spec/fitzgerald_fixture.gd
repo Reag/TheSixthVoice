@@ -154,4 +154,38 @@ static func create_deployable(
 	dep.core.frame.stat.armor = armor
 	dep.core.frame.stat.evasion = evasion
 	dep.core.full_repair()
+	# THE FRAME SWAP ABOVE STEPS AROUND THE ENGINE'S OWN GROUND-LOCK AUTO-SETTER; THIS RE-RUNS IT.
+	# Not tidying, and NOT a workaround for an engine bug - the engine has a purpose-built guard for
+	# precisely this frame, and the order this fixture builds a unit in is what bypasses it.
+	#
+	# THE GUARD. UnitCondition.apply_lock_to_ground_height (unit_condition.gd:920-927) sets
+	# state.lock_to_ground_height on any unit whose gear carries a PassiveTerrainZone with
+	# terrain_data.obstruction, and its own comment at :922 names the case outright - "jericho cover
+	# needs to ignore itself when determining its floor height". The engine runs it on every unit add
+	# (map_node_3d.gd:125) and again from apply_buffs_from_passive_gear (unit_condition.gd:873).
+	#
+	# THE REAL DEPLOY PATH NEVER HAS THE GAP, which is why no player ever sees a cover climb:
+	# ActionSystemDeploy.place_deployable builds the core WITH the deployable frame -
+	# UnitCore.create(unit.get_faction(), frame), action_system_deploy.gd:117 - and only then queues
+	# the spawn, so map_node_3d.gd:125 is looking at the Jericho and locks it from birth.
+	#
+	# THIS FIXTURE BUILDS IT THE OTHER WAY ROUND. SpecFactory.create_unit hands out a knockoff Everest
+	# (spec_factory.gd:76-77) and adds it to the map (:95) - so the auto-setter runs against a frame
+	# with no obstruction and lands the flag FALSE. The frame is swapped afterwards (:151 above), and
+	# the full_repair() on the line above rebuilds the loadout from the NEW frame (unit_printer.gd:83
+	# -> loadout_core.gd:139 and :154), so mt_obstruction_hard_cover genuinely IS on the loadout that
+	# map_state.gd:427-433 reads when it writes the obstruction voxel. Only the flag is left stale,
+	# and a cover that does not ignore its own obstruction reads its floor off its own raised surface
+	# (map_state.gd:462 and :467 via unit_tile.gd:211-218) - climbing one layer on every
+	# UnitTile.update_tracking_and_statuses pass, without bound.
+	#
+	# MEASURED 2026-09-16 with a throwaway probe on this fixture's own deployable: straight out of
+	# create_deployable the flag is false while the loadout already reads [mt_obstruction_hard_cover];
+	# this one call flips it to true, and effective_floor is then a stable 1 over seven bare tracking
+	# passes instead of 1, 2, 3, 4, 5 ...
+	#
+	# ORDER IS LOAD-BEARING: this must come AFTER full_repair(), because the setter reads
+	# unit.core.loadout.get_all_gear(false) (unit_condition.gd:921) and full_repair is what puts the
+	# new frame's traits there.
+	UnitCondition.apply_lock_to_ground_height(dep)
 	return dep

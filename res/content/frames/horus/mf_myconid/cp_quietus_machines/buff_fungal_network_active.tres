@@ -30,11 +30,22 @@ to = &"none"
 ; seen is the whole job. test_content_integrity.gd's VISIBLE_BUFFS lists it, and its size assertion
 ; is what stops the pair drifting apart.
 ;
-; SP3'S ICON PASS: THIS CHIP SHARES THE CORE POWER'S ICON. That is the author's own instruction in
-; the quote above, and it is the point of the chip - it means "QUIETUS MACHINES is running", so the
-; glyph the player already reads on that button is the one that says so. No icon_override here (SP2
-; ships no icons), but do NOT invent a new icon for it: point it at whatever cp_quietus_machines.tres
-; and action_fungal_network.tres end up wearing.
+; SP3'S ICON PASS: THIS CHIP SHARES THE CORE POWER'S ICON, AND THE ENGINE ALREADY DOES THAT FOR
+; FREE. BuffCore.get_icon falls back to the OWNER GEAR'S KIT ICON when the Buff itself declares none
+; - `if base.icon: return base.icon` then `owner_gear.kit.icon_and_flavor().icon`
+; (buff_core.gd:81-86) - and this chip's owner gear IS cp_quietus_machines, because
+; PassiveAura.apply_aura_buffs_to_unit stamps the aura gear as the source (passive_aura.gd:82 hands
+; aura_gear to UnitCondition.apply_buffs, which writes it onto the BuffCore at unit_condition.gd:706
+; and :709) and get_owner_gear resolves it back off from_gear (buff_core.gd:113-116). So the
+; author's instruction is the engine's own default behaviour with no property set at all, and it is
+; already true today.
+;
+; SP3 MUST STILL SET AN EXPLICIT icon, and should know it is satisfying a GUARD rather than creating
+; the behaviour: test_content_integrity.gd:398 reads `buff.icon` RAW - the field, not
+; Buff.get_icon() - so the fallback above is invisible to it and a null field fails the row however
+; the chip actually draws. Point it at whatever cp_quietus_machines.tres ends up wearing (the KIT's
+; icon is what the fallback resolves to, not action_fungal_network.tres's), and do NOT invent a new
+; icon for it.
 ;
 ; `until` stays at its MANUAL default for the reason every other buff in this folder gives: the AURA
 ; owns the lifetime. passive_fungal_network_self.tres applies and clears it, and
