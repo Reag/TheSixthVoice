@@ -1,15 +1,32 @@
-## REINFORCEMENT BLAST's armor, MITIGATING HALF: "All characters within the area gain 1 armor until
-## the end of your next turn."
+## THE MOD'S SHARED ARMOR-GRANT: the MITIGATING half of "gains N armor".
 ##
-## THIS BUFF IS HALF THE MECHANIC, AND IT IS THE HALF NOBODY CAN SEE. Its sibling
-## buff_reinforcement_blast (Buff.TO.STATBLOCK, armor = 1, player-visible) is what the unit readout
-## shows and what every unit.get_armor() gate reads - this mod's own Ripper Mod included - and it
-## reduces no incoming damage at all. This one reduces the damage and shows nothing. The action
-## applies both; neither alone is the mechanic. Read buff_reinforcement_blast.gd's header first: it
-## carries the display half's side of the same story.
+## PROMOTED HERE 2026-09-16 (Myconid SP2 Task 2, design ruling 8) from
+## res/content/gear/ipsn/systems/ms_grit_latch_magnets/buff_reinforcement_blast_reduction.gd, where
+## it was written for the Fitzgerald's REINFORCEMENT BLAST alone. Nothing about the script changed
+## in the move: it was already amount-agnostic, because `reduction_amount` and `until` live on each
+## user's .tres and not here.
+##
+## THREE USERS, EACH WITH ITS OWN .tres POINTING AT THIS ONE SCRIPT:
+##   - Fitzgerald, REINFORCEMENT BLAST: buff_reinforcement_blast_reduction.tres, 1, until the end of
+##     the OWNER's next turn (7 = END_OF_OWNERS_NEXT_TURN).
+##   - Myconid, FUNGAL NETWORK: buff_fungal_network_armor_reduction.tres, 1, held by the aura
+##     (MANUAL) - the aura applies and clears it, so it lasts exactly as long as the ally stands in
+##     the zone.
+##   - Myconid, UFFISH GYRE: buff_uffish_gyre_armor_reduction.tres, 2, until the struck ALLY's own
+##     next turn start (START_OF_TURN).
+##
+## EVERY USER IS A PAIR, AND THIS IS THE HALF NOBODY CAN SEE. Each one also applies a visible
+## Buff.TO.STATBLOCK sibling carrying the same armor number - that is what the unit readout shows
+## and what every unit.get_armor() gate reads, this mod's own Ripper Mod included, and it reduces no
+## incoming damage at all. This script reduces the damage and shows nothing. Whatever applies them
+## applies BOTH; neither alone is the mechanic, and the two halves' `until` must always match or the
+## mechanic tears in half - blunting hits with no chip to explain it, or showing a chip that no
+## longer blunts anything. Read the display half's own header for its side of the same story.
 ##
 ## WHY THERE ARE TWO FILES AT ALL. Buff.to holds a SINGLE StringName, so one resource cannot be both
-## a STATBLOCK buff and a RESIST_DAMAGE buff. Task 3 confirmed that directly. The author ruled the
+## a STATBLOCK buff and a RESIST_DAMAGE buff. Fitzgerald SP4 Task 3 confirmed that directly (the
+## sub-project that first hit it - the reference was a bare "Task 3" while this file lived in the
+## Reinforcement Blast folder). The author ruled the
 ## pair on 2026-09-14 (rulings.md row 37, design/2026-09-13-fitzgerald-design.md §5.2's RESOLVED
 ## block) after three separate derivations reached the same wall, so this is settled and not to be
 ## re-litigated in a later session.
@@ -92,6 +109,10 @@
 ##      gear.ms_grit_latch_magnets.action_reinforcement_blast.name. (telegraph_when_relevant is also
 ##      unset, so unit_condition.gd:1051 never telegraphs this hidden buff - no display bug there,
 ##      just this cosmetic log line.)
+##      NOTE FOR THE OTHER USERS: that fall-through wants the owning Kit to have exactly ONE action.
+##      cp_quietus_machines has one (the protocol) and mw_psychopomp_fold_pike has two (the strike
+##      and the Gyre), so the Gyre's reduction may log a different name or a raw id. Cosmetic in
+##      exactly the same way, and accepted on the same ruling.
 ##
 ## SHREDDED IS NOT A DIVERGENCE, and that is worth knowing because it looks like one. The Shredded
 ## early return (damage_modifications.gd:73-77) happens after `other_reduction` has been accumulated

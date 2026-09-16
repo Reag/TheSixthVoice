@@ -22,8 +22,16 @@
 ##   - every `unit.get_armor()` GATE seeing it - including THIS MOD'S OWN Ripper Mod, whose "+1d6
 ##     bonus damage against targets with at least 1 Armor" clause reads exactly that getter.
 ##
+## SINCE MYCONID SP2 (2026-09-16) THERE IS A SHARED VERSION OF THIS FILE:
+## res/content/gear/shared/armor/buff_armor_statblock.gd, identical except that the armor is an
+## `@export` on the .tres. This file was deliberately NOT folded into it, because most of its length
+## below is a RECORD of Fitzgerald SP3/SP4 measurements rather than a description of the code.
+## Consolidating the two is author-facing work for a frame close. If you are writing a NEW armor
+## grant, use the shared one.
+##
 ## THE HALF THAT ACTUALLY MITIGATES IS `buff_reinforcement_blast_reduction`, a BuffResistDamage
-## subclass applied by the same action. Neither buff alone is the mechanic; the pair is. The author
+## subclass applied by the same action. Its SCRIPT was promoted to
+## res/content/gear/shared/armor/buff_armor_reduction.gd at the same time; only the .tres stayed. Neither buff alone is the mechanic; the pair is. The author
 ## ruled this shape on 2026-09-14 (rulings.md row 37, design §5.2's RESOLVED block) after SP3's
 ## spec/test_ripper_mod.gd test_temporary_armor_counts proved the STATBLOCK channel display-only.
 ## Never "simplify" this to one channel: dropping the reduction buff silently un-armours the system
