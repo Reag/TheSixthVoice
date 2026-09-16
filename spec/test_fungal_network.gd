@@ -50,10 +50,18 @@
 #     cloud - and there the mutation is real. Rulings row 2026-09-16.
 #
 # GEOMETRY. The Myconid is SIZE 2, and "adjacent" / "burst 2" are UnitRelation.distance_between,
-# which measures CLOSEST TILES (passive_aura.gd:87). So the ranges below are measured from the
-# NEAREST of the Myconid's four tiles, not from its anchor - and at least one hostile test stands
-# diagonally off a non-anchor tile so the spec can tell the two apart. Get this wrong and every
-# range assertion in the file is measuring an anchor-only aura that happens to agree.
+# which measures CLOSEST TILES; PassiveAura.is_within_range compares it against aura_range at
+# passive_aura.gd:85. So the ranges below are measured from the NEAREST of the Myconid's four tiles,
+# not from its anchor - and at least one hostile test stands diagonally off a non-anchor tile so the
+# spec can tell the two apart. Get this wrong and every range assertion in the file is measuring an
+# anchor-only aura that happens to agree.
+#
+# THAT CITATION WAS :87 UNTIL THE WHOLE-SUB-PROJECT REVIEW, 2026-09-16, AND :87 IS A DIFFERENT RULE:
+# it is the `applies_only_when_in_los` test, two rows down the same function. Same failure mode as
+# the `unit_action.gd:119` error Task 5 corrected - a line that exists, sits in the right function
+# and tells a coherent but WRONG story, so a reader who checks the load-bearing citation for every
+# range constant in this file comes away believing the range test is a line-of-sight test. Written
+# once in Task 3 and copied into both passive .tres files; all three corrected together.
 extends GutTest
 
 const MyconidFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/myconid_fixture.gd')
@@ -73,6 +81,9 @@ const SPORES_BUFF := &'buff_fungal_network_spores'
 const MYCONID_TILE := Vector2i(4, 4)
 
 const ADJACENT_TILE := Vector2i(6, 4)      # 1 from (5,4): inside the ALLY aura
+const ADJACENT_TILE_2 := Vector2i(6, 5)    # 1 from (5,5): the SAME range as ADJACENT_TILE, off a
+                                           # different corner, so an ally and a hostile can stand
+                                           # inside the ally aura at once and be compared
 const NEAR_TILE := Vector2i(7, 4)          # 2 from (5,4): outside the ally aura, inside the hostile one
 const FAR_TILE := Vector2i(8, 4)           # 3 from (5,4): outside both
 const DIAGONAL_TILE := Vector2i(7, 7)      # 2 from (5,5), the NON-ANCHOR corner - 3 from the anchor.
@@ -288,6 +299,45 @@ func test_the_myconid_is_not_sheltered_by_its_own_cloud() -> void:
 	assert_true(has(friend, ARMOR_BUFF), 'control: the ally aura IS live')
 	assert_false(has(myconid, ARMOR_BUFF), 'and the Myconid is outside it')
 	assert_false(has(myconid, IMMUNITY_BUFF), 'both buffs')
+
+## "all adjacent ALLIES" - so a hostile that closes to adjacent gets the hostile cloud and NOTHING
+## from the ally one. Added at the SP2 whole-sub-project review, 2026-09-16, and it closes the one
+## genuine coverage hole in this file: until it existed, no test in the suite ever placed a hostile
+## within range 1 of the Myconid (the hostiles above stand at 2 and 3, and ADJACENT_TILE was only
+## ever given to an ally), so applies_to_enemies = false on passive_fungal_network_allies.tres was
+## unpinned - and DELETING the line would not even have looked like a change, because the export
+## defaults to true (passive_aura.gd:10).
+##
+## WHY THAT FAILURE IS CARD-BREAKING AND SILENT. An adjacent hostile would gain the +1 armor pair -
+## real, and read by every get_armor() gate including this mod's own Ripper Mod - and, worse,
+## buff_fungal_network_immunity. The immunity is the serious half: get_current_statuses checks
+## has_gained_immunity_to_status before folding a buff-supplied status in (unit_condition.gd:379-382),
+## so the cloud's own Impaired would be SUPPRESSED on that hostile. "Hostile characters within burst 2
+## are Slowed and Impaired" would quietly become "...and Impaired unless they close to adjacent",
+## while every other test in this file stayed green. Hence the last assertion: it is the card's, not
+## the flag's.
+##
+## THREE POSITIVE CONTROLS, because all-negative assertions on a unit nothing reached would pass with
+## both auras dark: an ally at the SAME range does get the pair, the hostile does get the spores chip,
+## and the range is asked of the engine rather than assumed.
+##
+## Reddened by: M18, applies_to_enemies = true (or deleted) on passive_fungal_network_allies.tres.
+func test_an_adjacent_hostile_gets_nothing_from_the_ally_cloud() -> void:
+	var friend := ally(ADJACENT_TILE)
+	var foe := hostile(ADJACENT_TILE_2)
+	await press_protocol()
+
+	assert_eq(UnitRelation.distance_between(myconid, foe), 1,
+		'precondition: the hostile really is ADJACENT, i.e. inside the ally aura range')
+	assert_true(has(friend, ARMOR_BUFF), 'control: an ally at that same range IS sheltered')
+	assert_true(has(friend, IMMUNITY_BUFF), 'control: with both of the ally chips')
+	assert_true(has(foe, SPORES_BUFF), 'control: and the hostile IS reached - by the other aura')
+
+	assert_false(has(foe, ARMOR_BUFF), 'but the hostile gets no armor chip')
+	assert_false(has(foe, REDUCTION_BUFF), 'nor the hidden reduction that does the work')
+	assert_false(has(foe, IMMUNITY_BUFF), 'nor the Impaired immunity')
+	assert_true(foe.has_status(Lancer.STATUS.IMPAIRED),
+		'so the cloud still Impairs it - which is the card, and what the immunity would suppress')
 
 
 # ===================== C. THE HOSTILE HALF =====================

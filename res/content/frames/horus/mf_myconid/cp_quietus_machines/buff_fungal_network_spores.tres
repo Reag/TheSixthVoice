@@ -12,8 +12,16 @@ script = ExtResource("1_buff")
 ; applies_statuses into the unit's status list - checking immunity against the buff's from_gear as it
 ; goes - and unit_battle_state.gd:187-190 is what writes that list into cached_statuses, which
 ; Unit.has_status reads (unit.gd:210-211). A source-qualified UnitCondition.has_status (:386-393)
-; finds it too, through get_buffs_that_apply_status (:809-817). So the statuses are live for exactly
-; as long as the aura holds this buff on the hostile, and gone the instant it clears it.
+; finds it too, through get_buffs_that_apply_status (:809-817) - an ENGINE MECHANISM, NOT A PATH
+; ANYTHING IN THIS CONTENT TAKES, and deliberately pinned by no test. It is here to characterise the
+; channel, not to claim anything about this card: get_buffs_that_apply_status has exactly one caller
+; tree-wide (the second disjunct of has_status at :392), every source-qualified has_status call in
+; engine/ and content/ passes the CALLER'S OWN gear id asking "did I apply this?", and Quietus
+; Machines' only script is four lines and asks nothing of the sort. A test would exercise a path no
+; content reaches. The survey is in test_fungal_network.gd's header; the sentence was re-verified
+; against the engine at the SP2 whole-sub-project review, 2026-09-16, and kept as characterisation.
+; So the statuses are live for exactly as long as the aura holds this buff on the hostile, and gone
+; the instant it clears it.
 ;
 ; THE DESIGN SAID THIS NEEDED A SCRIPT. It does not. Ruling 7 as written (2026-09-15) had
 ; on_application applying both statuses and on_clear clearing them by source, because design §4

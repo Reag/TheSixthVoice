@@ -13,9 +13,12 @@ script = ExtResource("1_aura")
 ; THREE BUFFS FOR TWO PROMISES. The immunity is one buff; the armor is TWO, because an armor grant in
 ; this mod is always a visible STATBLOCK chip plus a hidden reduction - see either of those files.
 buffs = Array[ExtResource("2_buff")]([ExtResource("3_immunity"), ExtResource("4_armor"), ExtResource("5_reduction")])
-; "ADJACENT" = 1. UnitRelation.distance_between measures CLOSEST TILES (passive_aura.gd:87), so on a
-; size-2 Myconid this is adjacency to any of its four tiles, which is what adjacency means on the
-; board. Ruling 6.
+; "ADJACENT" = 1. UnitRelation.distance_between measures CLOSEST TILES, and passive_aura.gd:85 is
+; where it is compared against this number - so on a size-2 Myconid this is adjacency to any of its
+; four tiles, which is what adjacency means on the board. Ruling 6.
+; (NOT :87, which is the applies_only_when_in_los line two rows further down the same function. The
+; wrong number was written here at the SP2 Task 3 build and copied into two other files; corrected at
+; the whole-sub-project review, 2026-09-16.)
 aura_range = 1
 ; "allies", not the Myconid. NOTE that unlike the hostile passive, applies_to_self is NOT redundant
 ; here: a unit is its own ally (Faction.is_ally(f, f) is true, faction.gd:30), so with

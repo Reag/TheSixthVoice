@@ -12,7 +12,8 @@ script = ExtResource("1_aura")
 ; ONE BUFF CARRIES BOTH STATUSES, declaratively, with no script. That file has the whole story,
 ; including why the statuses are LOCKED while a hostile stands in the cloud.
 buffs = Array[ExtResource("2_buff")]([ExtResource("3_spores")])
-; "BURST 2". UnitRelation.distance_between measures CLOSEST TILES (passive_aura.gd:87), so a size-2
+; "BURST 2". UnitRelation.distance_between measures CLOSEST TILES, and passive_aura.gd:85 is where it
+; is compared against this number (:87 is the line-of-sight line, not this one) - so a size-2
 ; Myconid's burst is measured from all four of its tiles, not from an anchor. Ruling 6, and the spec
 ; places at least one hostile diagonally off a non-anchor tile so it can tell the two apart.
 aura_range = 2
