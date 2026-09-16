@@ -6,7 +6,7 @@
 script = ExtResource("1_immunity")
 ; "all adjacent allies gain immunity to Impaired". The vanilla archetype does the whole job:
 ; BuffStatusImmunity.check_if_passive_applies (buff_status_immunity.gd:8-9) answers the engine's
-; immunity query, and on_application (:11-13) CLEARS any matching status the ally already has, so an
+; immunity query, and on_application (:10-12) CLEARS any matching status the ally already has, so an
 ; Impaired ally walking into the cloud is cleaned up rather than merely protected from the next one.
 ;
 ; TWO DIFFERENT MECHANISMS REACH THE SAME PLACE, and a spec should know which it is testing:

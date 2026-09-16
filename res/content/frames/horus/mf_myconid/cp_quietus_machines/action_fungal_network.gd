@@ -6,7 +6,7 @@
 ## the two PassiveAuras on this Kit, which are declared with `starts_active = false` and are
 ## therefore dark from the start of the scene. All this action does is wake them and then remove
 ## itself. The Drake's Fortress Protocol is the vanilla shape, line for line
-## (content/frames/ipsn/mf_drake/cp_fortress_protocol/action_fortress_protocol.gd:9-18), minus the
+## (content/frames/ipsn/mf_drake/cp_fortress_protocol/action_fortress_protocol.gd:17-19), minus the
 ## deploy and minus one thing - see below.
 ##
 ## WHY THERE IS NO DEACTIVATE, AND THE DRAKE HAS ONE. The Drake wakes an
@@ -17,7 +17,9 @@
 ##
 ## The zone therefore ends exactly one way, by the Myconid dying. Aura buffs carry the aura gear as
 ## `from_gear` (passive_aura.gd:82, via UnitCondition.apply_buffs), and owner death clears them -
-## measured end to end in spec/test_spike_status_aura.gd before any of this was written.
+## measured end to end by the probe (spec/test_spike_status_aura.gd) before any of this was written.
+## The probe was deleted at SP2 Task 5 (d6f1ab3); the claim is now pinned against the real Kit by
+## test_fungal_network.gd's test_the_myconids_death_strips_everything (section E).
 ##
 ## WHY set_aura_active IS NOT FOLLOWED BY AN UPDATE CALL. GearCore.set_aura_active does it itself:
 ## gear_core.gd:297-299 flips the flag and then calls UnitTile.update_tracking_and_statuses(unit.map,

@@ -47,11 +47,13 @@
 ## expiry with no hook from us.
 ##
 ## THE AURA CASE, WHICH THE FITZGERALD NEVER HAD. When this buff is applied by a PassiveAura,
-## UnitCondition.apply_buffs (unit_condition.gd:711-713) additionally sets
+## UnitCondition.apply_buffs (unit_condition.gd:713-714) additionally sets
 ## update_tracking_and_statuses, so the refresh below is reached through a re-entrant aura pass. That
-## pass terminates - PassiveAura.already_has_all_buffs (passive_aura.gd:94-95) is true the second
-## time round - and spec/test_spike_status_aura.gd measured it as exactly one application per
-## occupant before any of this frame's content was written.
+## pass terminates - PassiveAura.already_has_all_buffs (passive_aura.gd:95-96) is true the second
+## time round - and the probe (spec/test_spike_status_aura.gd) measured it as exactly one application
+## per occupant before any of this frame's content was written. The probe was deleted at SP2 Task 5
+## (d6f1ab3); the same fact is now pinned against the real Kit by test_fungal_network.gd's
+## test_the_cloud_applies_its_chip_exactly_once_per_hostile.
 extends Buff
 
 ## The armor this grant is worth. Lives on the .tres so one script serves every amount - the same

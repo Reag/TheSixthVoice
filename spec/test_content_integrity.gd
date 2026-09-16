@@ -271,9 +271,12 @@ const ICON_TARGETS := {
 	# (core.kit.get_weapon_actions()[0], with no is_situationally_activated or show_in_tooltip check
 	# of its own), so it needs a real icon on the character sheet even though
 	# is_situationally_activated keeps it off the gear bar (gear_bar.gd:149) and off the trait card
-	# (ActionAttack.show_in_tooltip, action_attack.gd:90). The Gyre carries a `.trigger` row, so the
-	# BASE Action.show_in_tooltip (action.gd:341-344) draws it on the trait card with its own row -
-	# the mt_juggernaut_drive / action_draw_fire shape, not the strike's.
+	# (ActionAttack.show_in_tooltip, action_attack.gd:90). The Gyre's `.trigger` row does NOT reach the
+	# BASE Action.show_in_tooltip's trigger clause (action.gd:344) - that clause reads the KIT's own
+	# `gear.mw_psychopomp_fold_pike.trigger` key, which this mod does not have; the mod's trigger row
+	# is action-keyed instead. It draws because its own `.effect` row is non-empty and differs from
+	# the Kit's generic one (action.gd:350-353) - the mt_juggernaut_drive / action_draw_fire shape,
+	# not the strike's.
 	&'mw_psychopomp_fold_pike': [&'action_psychopomp_strike', &'action_uffish_gyre'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.

@@ -231,7 +231,7 @@ func test_a_burn_hit_on_an_adjacent_ally_is_not_reduced() -> void:
 
 ## "gain immunity to Impaired" has to mean an ALREADY-Impaired ally is cleaned up, not merely
 ## protected from the next application. BuffStatusImmunity.on_application (buff_status_immunity.gd:
-## 11-13) is what does it.
+## 10-12) is what does it.
 ##
 ## Reddened by: immune_to_statuses = [] on buff_fungal_network_immunity.tres.
 func test_an_already_impaired_ally_loses_impaired_on_entering() -> void:
@@ -252,7 +252,7 @@ func test_an_ally_inside_cannot_be_given_impaired() -> void:
 
 	UnitCondition.apply_status(SpecFactory.dummy_event(), friend, Lancer.STATUS.IMPAIRED, Lancer.UNTIL.MANUAL)
 
-	assert_false(friend.has_status(Lancer.STATUS.IMPAIRED), 'apply_status refuses it at unit_condition.gd:88')
+	assert_false(friend.has_status(Lancer.STATUS.IMPAIRED), 'apply_status refuses it at unit_condition.gd:93-99')
 
 ## THE SECOND IMMUNITY PATH, and it is a different mechanism reaching the same place. An Impaired
 ## supplied by another BUFF's applies_statuses is not in unit.state.statuses, so
@@ -663,9 +663,10 @@ func test_the_core_kit_is_a_trait_on_the_frame() -> void:
 	assert_true(gear.kit.is_trait, 'as a frame trait, not equippable gear')
 
 ## The localisation rows are the LCP verbatim once the glossary pipes are stripped - the author's
-## standing directive. Asserted against OUR OWN compiled artifact rather than tr(), which would pass
-## against a stale translation; the byte-exactness against the LCP itself is checked by script at the
-## sub-project close.
+## standing directive. Asserted through tr(), which is the compiled artifact's own lookup path - not
+## a guard against a stale translation (test_myconid_frame.test_every_new_display_row_resolves reads
+## the artifact directly for the core rows); the byte-exactness against the LCP itself is checked by
+## script at the sub-project close.
 func test_the_display_rows_resolve() -> void:
 	assert_ne(tr('gear.cp_quietus_machines.name'), 'gear.cp_quietus_machines.name',
 		'the core system has a name row')

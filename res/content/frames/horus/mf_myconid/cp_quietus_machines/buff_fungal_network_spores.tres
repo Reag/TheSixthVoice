@@ -26,9 +26,12 @@ script = ExtResource("1_buff")
 ; THE DESIGN SAID THIS NEEDED A SCRIPT. It does not. Ruling 7 as written (2026-09-15) had
 ; on_application applying both statuses and on_clear clearing them by source, because design §4
 ; believed "Slowed and Impaired are read ONLY as statuses, never from buffs". The second half of that
-; is wrong, and spec/test_spike_status_aura.gd proved it before this file was written (15/15,
-; mutation-verified: emptying applies_statuses reddens every test in the probe). Corrected in the
-; design, in rulings.md and in the roadmap, 2026-09-16. The card is unchanged either way.
+; is wrong, and the probe (spec/test_spike_status_aura.gd) proved it before this file was written
+; (15/15, mutation-verified: emptying applies_statuses reddens every test in the probe). The probe
+; was deleted at SP2 Task 5 (d6f1ab3); its load-bearing findings are ported into
+; test_fungal_network.gd's section C2 (test_a_hostile_in_the_cloud_is_really_refused_a_boost and
+; neighbors), which pin the same fact against the real Kit. Corrected in the design, in rulings.md
+; and in the roadmap, 2026-09-16. The card is unchanged either way.
 ;
 ; VANILLA PRECEDENT FOR THE CHANNEL ON AN AURA: content/gear/ssc/systems/ms_lb_oc_cloaking_field/
 ; passive_lb_oc_cloaking_field_aura.tres, whose one buff carries applies_statuses = [invisible]; the
@@ -45,7 +48,7 @@ script = ExtResource("1_buff")
 ; Rulings row 2026-09-16, and a warning for later frames: this channel cannot express "Slowed until
 ; they save against it".
 ;
-; Lancer.STATUS.SLOWED and .IMPAIRED (lancer.gd:65, :67).
+; Lancer.STATUS.SLOWED and .IMPAIRED (lancer.gd:67, :65).
 applies_statuses = Array[StringName]([&"slowed", &"impaired"])
 ; DELIBERATELY VISIBLE. This is the hostile's only explanation for why it is Slowed and Impaired, so
 ; hide_from_player stays at its false default and test_content_integrity.gd's VISIBLE_BUFFS lists it.
