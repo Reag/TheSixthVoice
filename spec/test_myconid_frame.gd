@@ -36,6 +36,30 @@ const GORGON_RANK_2_GEAR:Array[StringName] = [&'ms_monitor_module', &'ms_scorpio
 ## li_minotaur and leaves the Gorgon alone. The dict and the loop stay so that the day one arrives it
 ## is one row, not a new test; test_subutai_frame.gd and test_mk2_frame.gd both have live rows and
 ## this is the same shape.
+##
+## BECAUSE IT IS EMPTY, test_the_other_extenders_of_li_gorgon_also_land's loop below never runs, so
+## THAT TEST IS INERT AS A CO-EXISTENCE GUARD FOR THIS LICENCE - it reduces to a duplicate of
+## test_the_gorgon_licence_grants_the_myconid_at_rank_two and cannot redden on a broken queue-erase.
+##
+## AND THE QUEUE-ERASE AT mod_main.gd:110 IS NOT OBSERVABLE FROM ANY SPEC AT ALL - measured at the
+## frame close, 2026-09-16, DO NOT RE-PROPOSE THE OBVIOUS TEST. The whole-branch review's fix was to
+## read `ModLibrary.get_installed_mod(MOD_ID).queued_resource_modifications` directly and assert our
+## key is gone. That test was written, run, and MEASURED VACUOUS: deleting mod_main.gd:110 left the
+## file 21/21 green. The reason is six lines past the fold the review stopped at -
+## ModApplier.apply_installed_queued_extensions merges every mod's dictionary at mod_applier.gd:220
+## and then calls mod.clear_installation_queues() on EVERY installed mod at :227, which empties
+## queued_resource_modifications outright (mod_core.gd:41-45). pre_run_hook awaits all of that before
+## GUT runs a single test, so the dict reads {} for every mod either way.
+##
+## The other candidate observable is no better: with no competitor installed, the granted-frames list
+## is provably identical whether or not :110 ran, because li_gorgon.tres_ext.gd's
+## `if not ...has(frame)` makes a second queue-path application of our OWN extension a no-op.
+##
+## So this is a REAL, RECORDED GAP and not a missing test someone forgot to write: the mechanism only
+## does anything when a competing queue-path extender exists, and a 1.4.x testkit run cannot contain
+## one. It belongs to the CROSS-MOD COMPATIBILITY SWEEP scheduled in the roadmap, which is the first
+## context that will have a real competitor to point at. Adding a row above is still the fix the day
+## a parked mod starts extending li_gorgon.
 const OTHER_EXTENDERS := {}
 
 ## The sheet's table (specs/sixth-voice/04-myconid.md), in the engine's field names. Transcribed
@@ -111,11 +135,13 @@ func test_the_frame_has_a_sprite_that_actually_loaded():
 	# (80x80) and mf_placeholder_160.png - so pointing a size-2 frame at the 80x80 one renders it at
 	# half scale on the board.
 	#
-	# THE "NOT THE PLACEHOLDER" HALF IS SP3's, DELIBERATELY. SP1 and SP2 ship no art (ruling,
-	# 2026-09-15), so the assertion test_subutai_frame.gd carries -
-	# assert_false(sprite.resource_path.contains('placeholder')) - would be a SECOND deliberate red
-	# here, and the Global Constraints of this sub-project allow exactly one. SP3 adds that line in
-	# the same commit that drops in the commissioned art.
+	# THE "NOT THE PLACEHOLDER" HALF IS LIVE, as of SP3's commissioned art (e8eb61f). It was
+	# deliberately deferred through SP1 and SP2, which shipped no art (ruling, 2026-09-15) and would
+	# have made the assertion test_subutai_frame.gd carries a SECOND deliberate red here, against the
+	# Global Constraints of this sub-project allowing exactly one. Now that the real art has landed,
+	# the size assertion alone cannot catch a revert to the stand-in - mf_placeholder_160.png is ALSO
+	# 160x160 - so the resource_path check below is what actually pins the art, matching
+	# test_subutai_frame.gd:123-124, test_mk2_frame.gd:104-105 and test_fitzgerald_frame.gd:98-99.
 	var frame:Frame = _frame()
 	assert_not_null(frame, 'mf_myconid loads.')
 	if frame == null: return
@@ -125,6 +151,8 @@ func test_the_frame_has_a_sprite_that_actually_loaded():
 	assert_not_null(sprite, 'The sprite texture loaded.')
 	if sprite == null: return
 	assert_eq(sprite.get_size(), Vector2(160, 160), 'A size-2 frame uses a 160x160 sprite.')
+	assert_false(sprite.resource_path.contains('placeholder'),
+		'The frame wears its commissioned art, not the stand-in (%s).' % sprite.resource_path)
 
 func test_the_frame_has_a_colour_scheme():
 	# Cloned from the Gorgon's own inline scheme (tone_highhue, a grey, a plum and a rose), so the
@@ -203,7 +231,7 @@ func test_a_pilot_with_the_licence_at_rank_two_can_pick_the_myconid():
 	assert_has(ids, GORGON_ID, 'And is still offered the Gorgon itself.')
 
 	# The rank actually gates it. get_all_unlocked_ranks_for_rank is cumulative
-	# (unlock_tree.gd:44-49), so an extension that appended to rank_1 by mistake would still show up
+	# (unlock_tree.gd:34-39), so an extension that appended to rank_1 by mistake would still show up
 	# at rank 2 and every assertion above would stay green - this is the half that notices.
 	var rank_1_pilot := PilotCore.create()
 	rank_1_pilot.set_license_to_rank(LICENSE_ID, 1)
@@ -253,7 +281,7 @@ func test_the_instance_content_library_serves_is_the_one_mod_main_retains():
 func test_the_other_extenders_of_li_gorgon_also_land():
 	# LICENCE GUARD 3 of 3. Whoever else touched li_gorgon in this run must still have their frame in
 	# it - the queue collision (mod_main.gd's header) drops a queue-path extender silently, and
-	# apply_resource_extensions_directly erases OUR key from the shared dictionary at :109 precisely
+	# apply_resource_extensions_directly erases OUR key from the shared dictionary at :110 precisely
 	# so that theirs survives.
 	#
 	# OTHER_EXTENDERS is empty today (see its own comment: no parked mod extends this licence), so

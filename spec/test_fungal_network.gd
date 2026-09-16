@@ -137,7 +137,16 @@ func damage_taken(unit:Unit, amount:int, type:Lancer.DAMAGE_TYPE, flags:Array = 
 
 # ===================== A. NOTHING HAPPENS UNTIL THE PROTOCOL IS PRESSED =====================
 
-## Reddened by: starts_active = true on either passive.
+## Reddened by: starts_active = true on ALL THREE PassiveAura .tres files on this Kit -
+## passive_fungal_network_allies.tres, passive_fungal_network_hostiles.tres AND
+## passive_fungal_network_self.tres - not "either passive". is_aura_active is per-GEAR, not
+## per-passive: UnitPrinter.prep_for_initial_spawn sets it true once per piece of gear and then pulls
+## it down if ANY PassiveAura on the Kit declares starts_active = false (unit_printer.gd:19-21;
+## UnitCondition does the same on gear reapplication at unit_condition.gd:880 and :899), so flipping
+## fewer than all three still leaves the flag down and this test green. CORRECTED at the
+## whole-sub-project review, 2026-09-16: this line was written for the two auras SP2 Task 3 shipped:
+## SP2.5 Task 4 added a third (passive_fungal_network_self.tres) without it being updated, and the
+## .tres files' own notes recording "flipping both" went stale the same day.
 func test_before_the_protocol_nothing_is_applied() -> void:
 	var friend := ally(ADJACENT_TILE)
 	var foe := hostile(NEAR_TILE)
@@ -190,6 +199,46 @@ func test_an_adjacent_ally_takes_one_less_kinetic_damage() -> void:
 
 	assert_eq(exposed, DAMAGE, 'control: an ally outside the cloud takes it all')
 	assert_eq(sheltered, DAMAGE - 1, 'and one inside takes 1 less')
+
+## THE PAIR-AGREEMENT GUARD, and the one this file did not have (Substantive finding, whole-sub-project
+## review, 2026-09-16). Every other REDUCTION_BUFF assertion in this file only checks presence or
+## absence of the chip (test_an_adjacent_ally_gains_the_armor_chip_and_the_immunity_chip,
+## test_an_ap_hit_on_an_adjacent_ally_is_not_reduced's precondition, and
+## test_an_adjacent_hostile_gets_nothing_from_the_ally_cloud's negative control) or measures ONE hit
+## (test_an_adjacent_ally_takes_one_less_kinetic_damage above, which never re-measures after a moment a
+## mismatched lifetime would have lapsed) - so `is_onetime = true` on
+## buff_fungal_network_armor_reduction.tres, or an `until` mismatch between the two halves, shipped
+## entirely green until this test existed. Both files' own headers spend paragraphs warning about
+## exactly this tear; this is what enforces it.
+##
+## PORTED FROM THE FITZGERALD'S OWN ARMOR PAIR, which has had this guard from the start -
+## test_reinforcement_blast.gd:570-586, test_the_reduction_buff_is_hidden_and_permanent_for_its_lifetime
+## - same shape, against this Kit's two files instead.
+##
+## PROPERTIES, NOT BEHAVIOUR, AND THAT IS THE RIGHT SHAPE HERE: a behavioural test of the tear would
+## partly heal itself, because the aura re-applies both buffs on its very next tracking pass. An
+## `is_onetime` reduction would still blunt a second hit after re-application; a short `until` would
+## simply be topped back up. Either symptom is easy to miss behaviourally and certain to show up as a
+## property mismatch.
+##
+## Reddened by: is_onetime = true on buff_fungal_network_armor_reduction.tres (after :22), or setting
+## `until` on either half to anything but its MANUAL default (buff.gd:119) while leaving the other at
+## MANUAL.
+func test_the_armor_pair_agrees_on_its_lifetime() -> void:
+	var reduction:Buff = ContentLibrary.get_buff(REDUCTION_BUFF)
+	assert_not_null(reduction, 'buff_fungal_network_armor_reduction is in the buffs index')
+	if reduction == null: return
+	assert_true(reduction is BuffResistDamage, 'it is a BuffResistDamage, the mitigating channel')
+	assert_eq(reduction.to, Buff.TO.RESIST_DAMAGE, 'registered to the channel the damage pipeline reads')
+	assert_true(reduction.hide_from_player, 'hidden: the visible half already wears the chip')
+	assert_false(reduction.is_onetime,
+		'not consumed by the hit it blunts - is_onetime would turn 1 armor into a single-use shield')
+
+	var visible:Buff = ContentLibrary.get_buff(ARMOR_BUFF)
+	assert_not_null(visible, 'fixture: the visible half is indexed too')
+	if visible == null: return
+	assert_eq(reduction.until, visible.until,
+		'both halves run on exactly the same clock - a mismatch is how this mechanic tears in half')
 
 ## Real armor does not stop AP, and neither may this. The guard lives in buff_armor_reduction.gd's
 ## check_if_passive_applies override, because damage_modifications.gd:110 subtracts other_reduction
@@ -379,8 +428,13 @@ func test_a_hostile_at_3_is_not() -> void:
 ## fallback the design would have taken if the probe had failed (statuses applied on entry and at
 ## turn start, which would leave a hostile Slowed after walking out).
 ##
-## Reddened by: giving buff_fungal_network_spores.tres an `until` of its own, or anything that
-## stopped PassiveAura clearing it on the way out.
+## Reddened by: aura_range = 3 on passive_fungal_network_hostiles.tres:19 - FAR_TILE (8,4) is
+## Chebyshev 3 from the Myconid's (5,4) tile, so the foe never actually leaves the aura and nothing
+## lifts. CORRECTED at the whole-sub-project review, 2026-09-16: NOT "giving buff_fungal_network_spores
+## an `until` of its own", as this line previously read. PassiveAura.update_unit's out-of-range clear
+## (passive_aura.gd:55-59) fires on distance and the aura-active flag alone and never reads `until` at
+## all, and an `until` that fired early would simply be re-applied by the very next in-range pass
+## (:62-64) - so no value of `until` on that file changes this test's outcome.
 func test_a_hostile_stepping_from_2_to_3_loses_both() -> void:
 	var foe := hostile(NEAR_TILE)
 	await press_protocol()
@@ -394,7 +448,9 @@ func test_a_hostile_stepping_from_2_to_3_loses_both() -> void:
 
 ## And it comes back, which is what "are Slowed and Impaired" means for a zone.
 ##
-## Reddened by: the same mutations.
+## Reddened by: the same mutation as above - aura_range = 3, NOT an `until` on
+## buff_fungal_network_spores.tres. See the corrected comment on
+## test_a_hostile_stepping_from_2_to_3_loses_both for why no `until` value can redden either test.
 func test_a_hostile_stepping_back_in_regains_both() -> void:
 	var foe := hostile(NEAR_TILE)
 	await press_protocol()
@@ -676,6 +732,70 @@ func test_the_protocol_is_refused_outside_the_protocol_window() -> void:
 	assert_eq(UnitAction.get_gear_unavailable_reason(specific), UnitAction.REASON.PROTOCOL,
 		'and a protocol is refused outside its window')
 
+## THE PROTOCOL WINDOW, CLOSED BY MOVING - the scenario design §2.1 names by name and which had no
+## test. test_the_protocol_is_refused_outside_the_protocol_window above is NOT this: its own
+## precondition is 'no turn has been opened', so it only ever exercises the never-opened case. This is
+## the other way the window closes: event_unit_move.gd:88-89 calls unit.state.end_protocol_phase() for
+## any move with spend_move, which unit_battle_state.gd:267 backs with `is_using_protocols = false` -
+## the exact flag unit_action.gd:144 reads to refuse a protocol with REASON.PROTOCOL. A Myconid that
+## repositions before pressing loses Fungal Network for the rest of that turn, which for a Defender
+## frame is the constraint a playtester hits first.
+##
+## THE MOVE MUST SPEND MOVEMENT, not merely relocate the token. UnitTile.move_to - used elsewhere in
+## this file to reposition allies and hostiles without spending anything - never runs
+## event_unit_move.gd at all, so it would leave the window open and this test would measure nothing.
+## MovementType.create_for_standard_move sets spend_move = true (movement_type.gd:58-61), which is
+## what a real player move does; the mod already owns this idiom for the ordnance window -
+## test_rapid_stabilization_jets.gd:93-96, test_moving_closes_the_window - and it is ported here for
+## the protocol one.
+##
+## HONESTLY, THIS IS NOT A NEW DISCRIMINATOR. The reddening mutation below is the SAME action_type flip
+## that already reddens test_the_protocol_is_refused_outside_the_protocol_window - a protocol refused
+## outside its window is refused the same way whether the window never opened or opened and then
+## closed. What this test buys is the scenario design §2.1 names, plus an open-window positive control
+## the never-opened test cannot provide (its own precondition is that no turn is open at all).
+##
+## Reddened by: action_type = 1 (QUICK) on action_fungal_network.tres:13 - the same mutation as
+## test_the_protocol_is_refused_outside_the_protocol_window's.
+func test_the_protocol_cannot_be_pressed_after_moving() -> void:
+	var gear := core_gear()
+	assert_not_null(gear, 'precondition: the core Kit is on the frame')
+	if gear == null: return
+	var specific := SpecificAction.create(myconid, gear, gear.get_action(PROTOCOL_ID))
+
+	await MyconidFixture.open_turn(game, myconid)
+	assert_eq(UnitAction.get_gear_unavailable_reason(specific), UnitAction.REASON.NONE,
+		'control: the window really is open right after turn start')
+
+	await SpecFactory.move(game, myconid, Vector2i(2, 4), MovementType.create_for_standard_move(myconid))
+
+	assert_eq(UnitAction.get_gear_unavailable_reason(specific), UnitAction.REASON.PROTOCOL,
+		'and a standard move closed it')
+
+## THE usage_group LINE, CLOSED AS UNTESTABLE BY BEHAVIOUR rather than carried forward again (Note,
+## whole-sub-project review, 2026-09-16). GearCore.get_usage_group_for_action (gear_core.gd:166-168)
+## falls the key back to kit.compcon_id whenever an action's own usage_group is empty, and
+## cp_quietus_machines carries exactly ONE action - so &"fungal_network" and the fallback
+## &"cp_quietus_machines" are the same single key, and deleting the line is BEHAVIOUR-PRESERVING: no
+## activation test can go red on it. (The Subutai's case genuinely differs - cp_siege_engine carries a
+## protocol plus two pressables, so the fallback there really did collide; see
+## spec/test_diversion_rail.gd:482-491, where emptying one usage_group reddened seven tests.) This is
+## therefore a PROPERTY guard, not a behavioural one, in exactly the shape the mod already uses for the
+## same reason - spec/test_draw_fire.gd:1108 - and it exists so a later reader does not "upgrade" it
+## looking for a behavioural discriminator and find nothing reddens.
+##
+## Reddened by: deleting usage_group = &"fungal_network" from action_fungal_network.tres:21 - a
+## PROPERTY mutation only; no behavioural test can be written against it, for the reason above.
+func test_the_protocol_has_its_own_usage_group() -> void:
+	var kit:Kit = ContentLibrary.get_kit(CORE_ID)
+	assert_true(Kit.is_valid(kit), 'cp_quietus_machines loads')
+	if not Kit.is_valid(kit): return
+	var action:Action = kit.get_action(PROTOCOL_ID)
+	assert_not_null(action, 'the Kit carries action_fungal_network')
+	if action == null: return
+	assert_eq(action.usage_group, &'fungal_network',
+		'its own usage group - a property guard, not a behavioural one; see the doc comment above')
+
 
 # ===================== E. THE ZONE DIES WITH ITS OWNER =====================
 
@@ -685,8 +805,15 @@ func test_the_protocol_is_refused_outside_the_protocol_window() -> void:
 ## unit's auras, :71 clears the outgoing buffs, :92 re-runs the tracking pass. The OUTCOME is the
 ## card, and the outcome is what this pins.
 ##
-## This test stays green with the feature deleted - it is a characterisation of engine cleanup, not
-## of our content - and is here so a regression in that cleanup is not silent.
+## THIS DOES NOT, IN FACT, STAY GREEN WITH THE FEATURE DELETED - corrected at the whole-sub-project
+## review, 2026-09-16, which found this line's own claim false. Its own preconditions below
+## (`assert_true(has(friend, ARMOR_BUFF), ...)` and `assert_true(foe.has_status(Lancer.STATUS.SLOWED),
+## ...)`) assert the ally and hostile halves are actually up BEFORE the kill, so deleting either aura
+## reddens this test at the precondition - the same way it reddens every other test in this file that
+## presses the protocol. What the paragraph above actually characterises is narrower: the DEATH-CLEANUP
+## assertions that follow the kill describe EventService.remove_unit_from_game's own behaviour, which
+## our content asks nothing of, so a regression THERE specifically would not otherwise be caught by
+## anything that presses the protocol and stops short of killing the owner.
 func test_the_myconids_death_strips_everything() -> void:
 	var friend := ally(ADJACENT_TILE)
 	var foe := hostile(NEAR_TILE)
@@ -1211,9 +1338,15 @@ func test_the_two_activation_flags_never_disagree() -> void:
 ##
 ## WHAT IT CHARACTERISES. The behaviour is the ENGINE'S - event_service.gd:65-68 puts both flags down
 ## on the owner's death and our content asks nothing of it - so, like section E's death test, this
-## pins an outcome rather than a line of ours. Unlike section E's, it does NOT stay green with the
-## feature deleted: the precondition catches that (T5-M1). What it guards is a regression in that
-## cleanup, which would leave a cloud hanging over a wreck with nothing left to announce.
+## pins an outcome rather than a line of ours. LIKE section E's - NOT "unlike" it - this also does NOT
+## stay green with the feature deleted: the precondition below (`assert_gt(zone.get_attached_fx(gear,
+## myconid).size(), 0, 'control: the cloud was up')`, T5-M1) catches that. CORRECTED at the
+## whole-sub-project review, 2026-09-16: this line used to draw an explicit contrast with section E's
+## death test, resting on that test's own docstring claiming IT stays green with the feature deleted -
+## which is also wrong; see the correction on test_the_myconids_death_strips_everything. Both tests'
+## preconditions catch a deleted feature before either one reaches its death assertions. What both
+## guard is a regression in the DEATH cleanup specifically, which would leave a cloud (or a shelter)
+## hanging over a wreck with nothing left to announce.
 func test_the_cloud_goes_out_with_its_owner() -> void:
 	await press_protocol()
 	var gear := core_gear()

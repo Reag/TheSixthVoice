@@ -93,10 +93,14 @@ func after_each() -> void:
 
 ## Hit the Myconid, and hand back the unit prompts that hit opened. Sliced from a `before` mark
 ## rather than read whole, so a test that pokes twice can tell the two apart.
-func take_damage(amount:int, type:Lancer.DAMAGE_TYPE) -> Array[Dictionary]:
+##
+## `flags` defaults to none, i.e. an ordinary hit. test_a_burn_tick_offers_halo (finding 5, frame
+## close 2026-09-16) is the one caller that passes [NO_REDUCE, IS_EOT_BURN], to actually be the
+## end-of-turn tick its name claims (event_turn_end.gd:101-106) rather than a bare BURN hit.
+func take_damage(amount:int, type:Lancer.DAMAGE_TYPE, flags:Array = []) -> Array[Dictionary]:
 	var before:int = watcher.kinds(PromptWatcher.KIND.unit).size()
 	await game.execute_event(&'event_unit_damage', {
-		unit = myconid, number = amount, category = type,
+		unit = myconid, number = amount, category = type, flags = flags,
 	})
 	return watcher.kinds(PromptWatcher.KIND.unit).slice(before)
 
@@ -182,6 +186,11 @@ func test_kinetic_damage_offers_halo_and_the_chosen_ally_gains_overshield_equal_
 	assert_eq(uses_this_round(), 1, 'The 1/round is spent.')
 
 func test_heat_does_not_offer_halo():
+	# CONTROL (frame close, finding 3, 2026-09-16): without this, the negative below is also green with
+	# mt_halo deleted from the frame outright - it cannot tell "the HEAT clause refused it" from "the
+	# trait is not there". Same shape as test_grit_zero_means_no_offer's control.
+	assert_true(would_offer(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC),
+		'CONTROL: the engine offers Halo for an ordinary hit, so the clause below is doing the work.')
 	# Heat is not damage in Lancer, and it reaches DAMAGE POST through the same event - so this is a
 	# gate the trait has to carry rather than something the engine does for it.
 	var prompts := await take_damage(3, Lancer.DAMAGE_TYPE.HEAT)
@@ -199,6 +208,18 @@ func test_a_hit_zeroed_by_armor_does_not_offer_halo():
 	assert_eq(myconid.core.current.health, health_before, 'fixture: armor really stopped all of it.')
 	assert_eq(prompts.size(), 0, 'No prompt.')
 
+	# CONTROL, AFTER the assertions above rather than before (frame close, finding 3, 2026-09-16): a
+	# would_offer() control would be MISLEADING here, not just redundant. would_offer() BUILDS the event
+	# rather than running execute_preblock (see its own header), so its context.number is always the RAW
+	# pre-armor amount - it cannot see the zeroing this test is about, and would read positive whether or
+	# not the gate's `context.number <= 0` clause exists. A REAL hit is the only way to show mt_halo is
+	# still there and would have opened a prompt, and it has to come SECOND so it does not spend the
+	# round's one use before the case under test runs.
+	responder.chosen_unit = ally
+	var control := await take_damage(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(control.size(), 1,
+		'CONTROL: an ordinary hit still offers Halo, so the clause above is doing the work.')
+
 func test_damage_fully_soaked_by_overshield_does_offer_halo():
 	# The soak happens inside damage() at :215-220 against a local `damage_amount`, and never writes
 	# back to context.number - so soaked damage still reads positive at the gate, and is damage that
@@ -214,11 +235,27 @@ func test_damage_fully_soaked_by_overshield_does_offer_halo():
 	assert_eq(Overshield.current(ally), TEST_GRIT, 'And the ally still gained Overshield.')
 
 func test_a_burn_tick_offers_halo():
-	# Burn ticks are ordinary damage events of type BURN, including the end-of-turn ones.
+	# A REAL end-of-turn tick's damage event, not a bare BURN hit (frame close, finding 5, 2026-09-16).
+	# The failed-save branch of a tick fires event_unit_damage carrying
+	# flags = [NO_REDUCE, IS_EOT_BURN] (event_turn_end.gd:101-106). IS_EOT_BURN is not cosmetic:
+	# event_unit_damage.gd:121-122 adds the amount to unit.state.burn ONLY when IS_EOT_BURN is absent,
+	# so the unflagged event this test used to fire was quietly leaving BITING_DAMAGE worth of burn
+	# sitting on the Myconid while claiming to model a tick.
+	#
+	# THE GATE OUTCOME IS UNCHANGED (verified, not assumed). triggers_on_event reads only context.unit
+	# (action_halo.gd:99), context.category_int (:102-103) and context.number (:107); Overshield.grit and
+	# eligible_allies read unit state, not the event's flags. NO_REDUCE returns damage_modifications
+	# early at :59, before armor/resistance/exposure run - but BURN never reaches the armor step anyway
+	# (damage_modifications.gd:90 is the HEAT/BURN branch, and only 'resisted' halving and
+	# 'other_reduction' apply there), and this fixture's Myconid carries no resist or cap buff, so
+	# context.number lands on BITING_DAMAGE either way.
 	responder.chosen_unit = ally
-	var prompts := await take_damage(BITING_DAMAGE, Lancer.DAMAGE_TYPE.BURN)
+	var prompts := await take_damage(BITING_DAMAGE, Lancer.DAMAGE_TYPE.BURN,
+		[EventService.DAMAGE_FLAG.NO_REDUCE, EventService.DAMAGE_FLAG.IS_EOT_BURN])
 	assert_eq(prompts.size(), 1, 'Burn offers Halo.')
 	assert_eq(Overshield.current(ally), TEST_GRIT, 'And the ally gained Overshield.')
+	assert_eq(myconid.state.burn, 0,
+		'fixture: correctly flagged as an EOT tick, so it does not re-add to burn (event_unit_damage.gd:121-122).')
 
 # ---------------------------------------------------------------- the 1/round
 
@@ -293,6 +330,11 @@ func test_declining_leaves_the_one_per_round_unspent():
 # ---------------------------------------------------------------- who is eligible
 
 func test_no_ally_within_sensors_means_no_offer():
+	# CONTROL, before the ally moves out of range (frame close, finding 3, 2026-09-16): proves mt_halo
+	# is present and would be offered for this very ally at its current distance, so moving it away is
+	# what the Sensors clause below actually answers, rather than the trait simply not being there.
+	assert_true(would_offer(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC),
+		'CONTROL: the engine offers Halo while the ally is still in range.')
 	# Not "the prompt opens and is empty": a prompt about nobody is worse than no prompt.
 	UnitTile.move_to(ally, FAR_ALLY_TILE)
 	assert_gt(UnitRelation.distance_between(myconid, ally), myconid.get_sensor_range(),
@@ -302,6 +344,11 @@ func test_no_ally_within_sensors_means_no_offer():
 	assert_eq(uses_this_round(), 0, 'And nothing was spent.')
 
 func test_an_enemy_within_sensors_is_not_an_ally():
+	# CONTROL, before the ally moves out of range (frame close, finding 3, 2026-09-16): the same proof
+	# as test_no_ally_within_sensors_means_no_offer - that mt_halo really is wired up and would be
+	# offered here, so its absence below is the are_allies clause at work, not an absent trait.
+	assert_true(would_offer(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC),
+		'CONTROL: the engine offers Halo while an ally is in range.')
 	# The other half of the same clause. Without it "allied character" would be doing no work, and an
 	# in-Sensors hostile would be handed Overshield by the Myconid it just shot.
 	UnitTile.move_to(ally, FAR_ALLY_TILE)

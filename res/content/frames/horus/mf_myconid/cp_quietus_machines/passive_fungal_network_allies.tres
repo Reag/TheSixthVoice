@@ -41,9 +41,12 @@ applies_to_enemies = false
 ; lit or darkened on its own, and set_aura_active necessarily wakes BOTH.
 ;
 ; That is exactly what this card wants, so it costs nothing - but it is not obvious from the export's
-; name, and it means a mutation of this line ALONE reddens nothing. Measured 2026-09-16: flipping
-; either passive leaves the suite green, and only flipping both reddens
-; test_before_the_protocol_nothing_is_applied.
+; name, and it means a mutation of this line ALONE reddens nothing. Measured 2026-09-16: flipping any
+; ONE OR TWO of the three PassiveAuras on this Kit (this file, passive_fungal_network_hostiles.tres,
+; passive_fungal_network_self.tres) leaves the suite green; only flipping ALL THREE reddens
+; test_before_the_protocol_nothing_is_applied. (This note used to say "either... both", measured
+; against the two auras SP2 Task 3 shipped; SP2.5 Task 4 added the third the same day and the note went
+; stale without being updated. Corrected at the whole-sub-project review, 2026-09-16.)
 starts_active = false
 ; applies_only_to_characters is left at its TRUE default. The card says "allies", and the ally half
 ; grants armor and status immunity, which only characters can meaningfully hold.

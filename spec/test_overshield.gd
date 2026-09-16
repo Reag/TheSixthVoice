@@ -129,6 +129,35 @@ func test_the_frozen_interface_pins_these_five_signatures():
 			assert_eq(actual_arg.class_name, expected_arg[2],
 				'%s arg %d ("%s") has the frozen class_name.' % [required, i, expected_arg[0]])
 
+		# PINS `static`, NOT ONLY THE NAME (frame close, finding 4, 2026-09-16). Every caller spells
+		# Overshield.<fn>(...) on the preloaded script CONSTANT, never on an instance, and GDScript
+		# refuses that at PARSE time if `static` is dropped. That is not one failing assertion - it is
+		# this whole file AND test_halo.gd (which preloads the same constant) going unparsable, and GUT
+		# logs 'Ignoring script ...' and drops each one from the totals rather than failing it
+		# (test_collector.gd:130) - the suite reads GREEN, with two scripts' worth of tests missing from
+		# it. A bitwise AND against the single bit, not equality against a guessed total flags value, so
+		# some other bit a future engine build sets on an ordinary static method cannot fail this for an
+		# unrelated reason - addons/gut/script_parser.gd:41-42 tests the same bit the same way, to decide
+		# whether a method is safe to double.
+		#
+		# MEASURED AT THE FRAME CLOSE, AND THE ASSERTION BELOW IS NOT WHAT CATCHES THAT PARSE BREAK -
+		# it CANNOT be, because this file never runs when it happens. Dropping `static` from grit()
+		# was run for real on 2026-09-16: GUT logged 'Ignoring script ... because it does not extend
+		# GutTest', all 14 tests here vanished from the totals, and the process exited ZERO. What
+		# catches that is the ignored-scripts / test-count check the suite is read with, never an
+		# assertion inside the file that stopped parsing.
+		#
+		# So what IS this assertion for? The case that still parses: a future session converting the
+		# helper to instance methods and updating every caller to match. That leaves the suite green
+		# and fully populated while silently breaking a contract FIVE LATER FRAMES depend on (roadmap
+		# section 4 freezes it). This is the only thing that would notice.
+		assert_true((entry.flags & METHOD_FLAG_STATIC) != 0,
+			'%s is still static - a caller spells it on the class, not an instance.' % required)
+		# default_args is unpinned for the same reason, to a smaller effect (finding 4): none of the
+		# five takes a default argument today, and one that silently grew one would change calling
+		# semantics for five later frames with nothing here to notice.
+		assert_eq(entry.default_args.size(), 0, '%s takes no default arguments.' % required)
+
 		assert_eq(entry.return.type, expected.return_type,
 			'%s has the frozen return Variant.Type.' % required)
 		assert_eq(entry.return.class_name, expected.return_class,

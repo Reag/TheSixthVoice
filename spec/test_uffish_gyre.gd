@@ -571,10 +571,35 @@ func test_a_crit_is_a_plain_hit():
 	assert_true(recorder.last().crit, 'CONTROL: an ordinary weapon taking the same 20 does crit.')
 
 func test_no_damage_is_ever_dealt():
-	# "Damage: none". get_damage_for_attack returns {}, so nothing is rolled at all - an empty
-	# damage_dice alone would still build a zero-damage summary and log a damage line. Reddened by
-	# deleting the override.
+	# "Damage: none". THIS CLAUSE IS DOUBLE-GUARDED, and the health assertion below cannot see
+	# either guard fail alone: action_psychopomp_strike.tres:27-31 leaves damage_dice empty, AND
+	# action_psychopomp_strike.gd:76-77 overrides get_damage_for_attack to return {} outright.
+	# Deleting the override leaves the base (action_attack.gd:77) reading the still-empty
+	# damage_dice and building the same zero-damage summary, so the ally still takes nothing either
+	# way - MEASURED, not assumed: action_psychopomp_strike.gd:69-71 records this exact mutation
+	# (replacing the override's body with `return super(...)`) as reddening NOTHING (mutation 14,
+	# 2026-09-16).
+	#
+	# THE COMMENT USED TO CLAIM THE OPPOSITE - "Reddened by deleting the override" - which its own
+	# implementation file disproves in as many words. That claim is withdrawn (frame-close review).
+	#
+	# So the assertion below adds a second, mechanism-level check that DOES discriminate the
+	# override, called directly rather than through a full attack: with no roll ever made, the
+	# override must still hand back an empty dict. Reddened by deleting
+	# action_psychopomp_strike.gd:76-77 - the base then falls through to
+	# damage_data.get_for_attack_roll(attack_roll) (action_attack.gd:77), and since a bare
+	# AttackRoll.new() defaults hit = false (attack_roll.gd:11), that resolves to get_miss()'s
+	# {primary_type: reliable} = {KINETIC: 0} (attack_util.gd:118-126), not {} - in practice the base
+	# runs one statement further still, to attack_roll.pre.applied_buffs (action_attack.gd:80), and
+	# `pre` is null on a bare AttackRoll.new(), so the mutation reddens this assertion with a runtime
+	# error rather than a clean mismatch. Either way the suite goes red.
+	#
+	# THE .tres's OWN EMPTY damage_dice - the other guard - is still not discriminated by anything
+	# here. Labelled gap, not a claim: there is no cheap honest assertion for "and stays empty" that
+	# is not the vacuous property-presence check the brief warns against.
 	var ally := create_ally(AT_8)
+	assert_eq(strike().get_damage_for_attack(strike_specific().to_context(), ally, AttackUtil.DamageRollSummary.new(), AttackRoll.new()), {},
+		'The strike declares no damage at all, whatever the .tres carries - the mechanism the outcome assertion below cannot see alone.')
 	var before:int = ally.core.current.health
 
 	queue_dice(D20_HITS)
@@ -658,6 +683,34 @@ func test_an_ap_hit_on_the_ally_is_not_reduced():
 	before = ally.core.current.health
 	await SpecFactory.damage(game, ally, 5, Lancer.DAMAGE_TYPE.KINETIC)
 	assert_eq(before - ally.core.current.health, 3, 'CONTROL: the same hit without AP lands as three.')
+
+func test_the_allys_own_self_inflicted_damage_is_still_blunted():
+	# Real armor covers self-inflicted non-AP damage too, and so must this stand-in for it:
+	# buff_resist_damage.gd:44 is `if not resist_self_inflicted and context.flags.has(
+	# EventService.DAMAGE_FLAG.SELF_INFLICTED): return false`, so without the export on
+	# buff_uffish_gyre_armor_reduction.tres:23 an ally standing in its own area damage would be the
+	# one case its Gyre-granted armor did not cover. UNGUARDED UNTIL THIS TEST (frame-close review):
+	# `grep -rn "SELF_INFLICTED" spec/` used to return only test_reinforced_chassis.gd's two hits, a
+	# different buff entirely - no spec anywhere in the mod drove a SELF_INFLICTED event at any of
+	# the three armor-reduction buffs this shared script backs.
+	#
+	# NOT THE AP CASE: buff_armor_reduction.gd:137-139 returns false before reaching super() (and
+	# therefore before buff_resist_damage.gd:44) on an AP context, which would refuse this test for
+	# the wrong reason if AP were also set - test_an_ap_hit_on_the_ally_is_not_reduced above already
+	# covers that guard on its own. This test's damage carries no AP flag, so it is the AP guard's
+	# sibling case, not a repeat of it.
+	#
+	# Reddened by deleting `resist_self_inflicted = true` from
+	# buff_uffish_gyre_armor_reduction.tres:23.
+	var ally := create_ally(AT_8)
+	queue_dice(D20_HITS)
+	await moves_east(ally)
+	assert_true(UnitCondition.has_buff(ally, ARMOR_REDUCTION), 'fixture: the reduction is on.')
+
+	var before:int = ally.core.current.health
+	await SpecFactory.damage(game, ally, 5, Lancer.DAMAGE_TYPE.KINETIC, [EventService.DAMAGE_FLAG.SELF_INFLICTED])
+	assert_eq(before - ally.core.current.health, 3,
+		'Self-inflicted kinetic is blunted exactly like an ordinary hit.')
 
 func test_the_battle_log_names_the_pike_for_the_reduction():
 	# COSMETIC, MEASURED, AND PINNED SO IT CANNOT MOVE UNNOTICED. buff_armor_reduction.gd's

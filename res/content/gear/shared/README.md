@@ -6,8 +6,10 @@ frozen the moment that sub-project ships, recorded in roadmap §4 and in memory
 `sixth-voice-build-state`. A later frame that needs more extends the helper in its own sub-project,
 with every earlier spec still green.
 
-The shape is the Draugr's: a static-function script plus whatever `.tres` it needs, no autoload, no
-`class_name`. Every consumer reaches it by `preload`.
+The shape is usually the Draugr's: a static-function script plus whatever `.tres` it needs, no
+autoload, no `class_name`. Every consumer reaches it by `preload`. **Armor is the one family that
+isn't**: see its row below — two `Buff` subclasses (one `TO.STATBLOCK`, one `TO.RESIST_DAMAGE`)
+parameterised by `@export`s on each consumer's own `.tres`, not a static-function script at all.
 
 **Why no `class_name`**: global class names are registered from `project.godot`'s class list, which
 is built at startup — so a `class_name` declared in a script a mod loads at runtime is never
@@ -21,6 +23,7 @@ Built, and the interface frozen when its sub-project shipped:
 | Family | Born with | Interface | Consumers |
 |---|---|---|---|
 | Overshield | 4 Myconid, SP1 | `current` `has` `grant` `increase` `grit` | Sluagh, Hazard, Naga, Primrose, Black Mountain |
+| Armor | 2 Fitzgerald, SP4 (promoted at 4 Myconid, SP2; the Fitzgerald's own `.tres` re-pointed at the frame close) | `buff_armor_statblock.gd` `armor_amount` + `buff_armor_reduction.gd` `reduction_amount` `damage_types` `until` — always applied as a PAIR, with matching `until` | Reinforcement Blast, Fungal Network, Uffish Gyre |
 
 Planned:
 

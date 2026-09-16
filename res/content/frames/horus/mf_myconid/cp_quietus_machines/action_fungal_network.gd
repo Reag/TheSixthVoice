@@ -83,7 +83,7 @@
 ## WHY hibernate_action RATHER THAN A USAGE COUNTER. `gear.is_action_hibernating` is consulted by
 ## UnitAction.get_gear_unavailable_reason at unit_action.gd:154 and yields REASON.HIBERNATING - a
 ## real, named refusal the UI can explain, ahead of the generic REASON.SPECIFIC. It is cleared only
-## by GearCore.reset() (gear_core.gd:139-142), which is scene setup and not a turn or round
+## by GearCore.short_repair() (gear_core.gd:139-142), which is scene setup and not a turn or round
 ## boundary, so "the rest of the scene" is precisely what it buys.
 ##
 ## AND IT IS BELT-AND-BRACES, MEASURED. get_gear_unavailable_reason is an elif chain, and

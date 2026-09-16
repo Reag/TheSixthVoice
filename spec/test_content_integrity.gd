@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.3.0'
+const EXPECTED_VERSION := '0.4.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -394,6 +394,52 @@ func test_every_player_facing_kit_and_action_has_a_real_icon():
 			assert_true(by_id.has(action_id), '%s carries %s.' % [kit.compcon_id, action_id])
 			if not by_id.has(action_id): continue
 			_assert_real_icon(by_id[action_id].icon_override, '%s.%s' % [kit.compcon_id, action_id])
+		# Added at the MYCONID FRAME CLOSE, 2026-09-16 (close review slice 5, finding B): the two checks above only
+		# look at what IS listed - nothing compares it against kit.actions, so an action quietly
+		# dropped from ICON_TARGETS is invisible to every assertion above this line. Walk the OTHER
+		# direction - every action the Kit actually carries - and assert its presence in `listed`
+		# agrees with whether the engine would ever draw it with an icon of its own. See
+		# _action_reaches_a_player_facing_surface's header for the three surfaces and the rule.
+		var first_weapon_action:Action = null
+		var weapon_actions:Array[ActionAttackWeapon] = kit.get_weapon_actions() # kit.gd:129-132
+		if not weapon_actions.is_empty(): first_weapon_action = weapon_actions[0]
+		for action:Action in kit.actions:
+			var should_be_listed:bool = _action_reaches_a_player_facing_surface(action, kit, first_weapon_action)
+			assert_eq(listed.has(action.get_id()), should_be_listed,
+				'%s.%s is listed in ICON_TARGETS exactly when it reaches a player-facing surface.' % [kit.compcon_id, action.get_id()])
+
+## Whether ACTION would be drawn with an icon of its own by some real player-facing surface, rather
+## than borrowing the Kit's - i.e. whether it belongs in ICON_TARGETS at all. Three surfaces do
+## this, and each clause below transcribes that surface's actual gate rather than guessing, so the
+## rule tracks the engine instead of drifting from it as new content lands:
+##
+##  1. The character sheet's integrated-weapon box always draws a Kit's FIRST weapon action, with no
+##     is_situationally_activated or show_in_tooltip check of its own
+##     (weapon_mount_item.gd:53,71 - `var attack:ActionAttackWeapon = core.kit.get_weapon_actions()[0]`,
+##     gated only on the Kit having at least one weapon action). This is the one surface
+##     is_situationally_activated does NOT hide an action from - it is why action_psychopomp_strike
+##     needs a row despite being off both the gear bar and the trait card (ruling 9).
+##  2. The gear bar draws every action that is not a reaction and not situationally activated
+##     (gear_bar.gd:141-156's collect_gear_actions, the ActionReaction / is_situationally_activated
+##     clauses at :145/:149 - its hibernating and hide_if_disabled clauses are per-instance runtime
+##     state, not a fixed shape, so they have no equivalent here).
+##  3. The trait card draws whatever Action.show_in_tooltip(kit) returns. Called directly rather
+##     than re-derived: it already reads live translation state (action.gd:341-353) and is
+##     overridden per archetype (action_attack.gd:90 is `return not is_situationally_activated`),
+##     which is what earns action_draw_fire, action_juggernaut_drive and action_uffish_gyre their
+##     rows despite being reactions that never reach the gear bar (path 2 above always excludes a
+##     reaction, so this path is the only one that can list one).
+##
+## A hidden bookkeeping reaction (mt_blasting_powder's, ms_heaer's, mt_halo's) fails all three and is
+## correctly unlisted; the Pike's strike is caught only by path 1, and the Gyre only by path 3 - both
+## load-bearing, not redundant.
+##
+## first_weapon_action is kit.get_weapon_actions()[0], or null - passed in so it is computed once per
+## Kit rather than once per action.
+func _action_reaches_a_player_facing_surface(action:Action, kit:Kit, first_weapon_action:Action) -> bool:
+	if action == first_weapon_action: return true
+	if action is not ActionReaction and not action.is_situationally_activated: return true
+	return action.show_in_tooltip(kit)
 
 func test_every_visible_buff_has_a_real_icon():
 	# Same shape: driven by what the mod contributed, so VISIBLE_BUFFS cannot fall behind. A buff

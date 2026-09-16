@@ -5,18 +5,23 @@
 ## reduces nothing, and the four accepted divergences from real armor. This file is the half the
 ## player can see, and it is the half that reduces nothing.
 ##
-## WHY THIS FILE EXISTS ALONGSIDE buff_reinforcement_blast.gd. The Fitzgerald's display half
-## (res/content/gear/ipsn/systems/ms_grit_latch_magnets/buff_reinforcement_blast.gd) does the same
-## job with `statblock.armor = 1` hardcoded, and was written first. It was NOT folded into this file
-## at the Myconid SP2 promotion, deliberately: most of its length is a RECORD of measurements taken
-## during Fitzgerald SP3 and SP4 - the get_armor() gate survey, the Ripper Mod interaction, and a
-## mutation run establishing that its `on_application` refresh is belt-and-braces on 1.4.3 rather
-## than load-bearing. Those records are about that sub-project, and generalising them would either
-## lose them or bury this file. Consolidating the two is AUTHOR-FACING work for the frame close, not
-## something to do silently; if it happens, the Fitzgerald's .tres re-points here with
-## `armor_amount = 1` and its header moves to the design doc.
+## THE FOLD. Until 2026-09-16 this file had a duplicate: the Fitzgerald's REINFORCEMENT BLAST ran
+## its own copy, res/content/gear/ipsn/systems/ms_grit_latch_magnets/buff_reinforcement_blast.gd,
+## identical to this one except `statblock.armor = 1` hardcoded where this file reads the `.tres`
+## export below. Its REDUCTION sibling was promoted to buff_armor_reduction.gd at Myconid SP2
+## (2026-09-16, design ruling 8); this DISPLAY half stayed un-folded a while longer because most of
+## the old file's length was a RECORD of Fitzgerald SP3/SP4 measurements rather than a description of
+## the code - the get_armor() gate survey and the Ripper Mod interaction said the same thing "WHAT
+## THIS BUFF ACTUALLY BUYS" below already said, and are not repeated a third time; the
+## `on_application` mutation run is folded into that section's own paragraph below, with its
+## citations corrected against 1.4.3 source rather than just carried over. THE FOLD LANDED at the
+## frame close (2026-09-16): buff_reinforcement_blast.tres now points here with `armor_amount = 1`,
+## and the old dedicated .gd and its .gd.uid are deleted.
 ##
-## USERS OF THIS FILE (the Fitzgerald's own is the third pair, on its own script):
+## USERS OF THIS FILE:
+##   - Fitzgerald, REINFORCEMENT BLAST: buff_reinforcement_blast.tres, amount 1, until the end of the
+##     OWNER's next turn (Lancer.UNTIL.END_OF_OWNERS_NEXT_TURN = 7). The first user; folded in at the
+##     frame close, 2026-09-16 - see "THE FOLD" above.
 ##   - Myconid, FUNGAL NETWORK: buff_fungal_network_armor.tres, amount 1, held by the aura (MANUAL).
 ##   - Myconid, UFFISH GYRE: buff_uffish_gyre_armor.tres, amount 2, until the struck ALLY's own next
 ##     turn start (START_OF_TURN).
@@ -39,10 +44,31 @@
 ## identical line - the Hydra's content/frames/horus/mf_hydra/mt_system_link/buff_system_link.gd and
 ## the Goblin's content/frames/horus/mf_goblin/cp_instinct_rig/buff_symbiosis_statblock.gd - so a
 ## reader comparing them finds the same shape. On 1.4.3 it is belt-and-braces on every path that
-## ships rather than load-bearing (measured for the Fitzgerald's copy, 2026-09-14: every shipping
-## caller reaches `post_apply_buff_cache_update`, whose first act is this same call). It stays for
-## the reason that file gives: it costs one idempotent call, and it is the only defence if some path
-## ever applies this buff with `update_caches = false`. CLEARING NEEDS NO EQUIVALENT -
+## ships rather than load-bearing.
+##
+## MEASURED, NOT ASSUMED, FOR THE FITZGERALD'S COPY BEFORE THE FOLD (2026-09-14, mutation run
+## originally logged at .superpowers/sdd/sp4-t3-mutation-onapplication.log - that log has since
+## rotated off disk, so this is a carried-forward historical record, not independently re-run here):
+## deleting the equivalent line and re-running spec/test_reinforcement_blast.gd left that file green
+## in full, 12/12 as Task 3 left it (the file has grown since; that count is a record of the run, not
+## a figure to reconcile against the suite today).
+##
+## THE MECHANISM, RE-VERIFIED AGAINST 1.4.3 AT THE FOLD (2026-09-16, and one citation corrected):
+## ActionSystemApplyBuff.apply_buffs runs through UnitCondition.apply_buffs (unit_condition.gd:
+## 703-715), which passes `update_caches = false` to each per-buff apply_buff_alt call (:710) and
+## calls post_apply_buff_cache_update once at the end (:715); that function's actual cache-refresh
+## call is `unit.update_cached_values_and_token(...)` at unit_condition.gd:775 - NOT :772, a bare
+## local-variable line just above it, which is what the original record of this measurement cited.
+## The singular apply_buff/apply_buff_alt default `update_caches` to true (unit_condition.gd:718)
+## and reach the same :775 call, and every caller of apply_buff_alt outside unit_condition.gd itself
+## takes that default. So no shipping path applies a buff without refreshing the cache, and the
+## vanilla comment both sibling files carry is stale for 1.4.3.
+##
+## IT STAYS ANYWAY, for three reasons: it is what both vanilla STATBLOCK buffs do, so a reader
+## comparing them finds the same shape; it costs one idempotent call; and it is the only defence if
+## some future path ever applies this buff with `update_caches = false` and no post-update, which is
+## a one-word change away in engine code we do not control. Do not delete it on the strength of the
+## mutation - just do not believe a green suite is evidence it runs. CLEARING NEEDS NO EQUIVALENT -
 ## `UnitCondition.clear_buff` runs `post_clear_buff_cache_update` itself, so the armor drops off on
 ## expiry with no hook from us.
 ##
