@@ -7,25 +7,40 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/passive_fungal_network_allies.tres" id="5_allies"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/passive_fungal_network_hostiles.tres" id="6_hostiles"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/passive_fungal_network_self.tres" id="7_self"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/passive_fungal_network_zone.tres" id="8_zone"]
 
 [resource]
 script = ExtResource("1_kit")
-; QUIETUS MACHINES, the Myconid's core system. One button and three auras.
+; QUIETUS MACHINES, the Myconid's core system. One button, three auras and the cloud they draw.
 ;
 ; THE PASSIVES ARE WHAT PUT THIS KIT IN LoadoutCore.auras. regenerate_caches
 ; (loadout_core.gd:298-301) walks every piece of gear and appends any whose Kit
 ; has_passive_type(PassiveAura) - that list is what PassiveAura.update_unit iterates (:31), so a
-; Kit without them is invisible to the whole aura system however its passives are shaped.
+; Kit without them is invisible to the whole aura system however its passives are shaped. The
+; PassiveDynamicZone added by SP2.5 Task 5 does NOT go through that list: attached fx are collected
+; per unit by UnitToken.update_attached_fx, which walks every passive of every piece of gear
+; (unit_token.gd:215-219) without asking whether the Kit is an aura carrier.
 actions = Array[ExtResource("2_action")]([ExtResource("4_protocol")])
-; TWO OF THESE ARE THE CARD AND THE THIRD IS THE READOUT. _allies and _hostiles are the two halves of
-; the printed rules; _self carries no rules text at all and exists to chip the Myconid while the zone
-; is running (SP2.5 Task 4, the author's request). It is a PassiveAura precisely so that it shares
-; the Kit's single is_aura_active flag and cannot outlive what it announces - its own header has the
-; reasoning, and test_fungal_network.gd's section G is the guard.
+; TWO OF THESE ARE THE CARD; THE OTHER TWO ARE THE READOUT AND THE PICTURE. _allies and _hostiles
+; are the two halves of the printed rules; _self carries no rules text at all and exists to chip the
+; Myconid while the zone is running (SP2.5 Task 4, the author's request); _zone carries no rules text
+; either and exists to DRAW the burst-2 cloud on the ground (SP2.5 Task 5, the author again: "I dont
+; see a FX for the cloud"). Each of the four has its own header; the two additions say at length why
+; they are shaped the way they are and cannot outlive what they announce, and
+; test_fungal_network.gd's sections G and H are the guards.
+;
+; THE FIRST THREE ARE PassiveAuras AND THE FOURTH IS A PassiveDynamicZone, so this array carries TWO
+; per-gear activation flags, not one - is_aura_active and is_dynamic_zone_active (gear_core.gd:25
+; and :28). They are set together everywhere the engine sets them (unit_printer.gd:16-21,
+; unit_condition.gd:879-880 and :898-899, event_service.gd:67-68) and apart only by the two setters
+; at gear_core.gd:293 and :297, which nothing in engine/ calls. action_fungal_network.gd's activate()
+; calls BOTH, which is what keeps the picture and the mechanic on one lifetime;
+; passive_fungal_network_zone.tres's header carries the full trace.
 ;
 ; DROPPING _self FROM THIS ARRAY IS MUTATION T4-M1 and reddens
 ; test_pressing_the_protocol_chips_the_myconid.
-passives = Array[ExtResource("3_passive")]([ExtResource("5_allies"), ExtResource("6_hostiles"), ExtResource("7_self")])
+; DROPPING _zone IS MUTATION T5-M1 and reddens test_pressing_the_protocol_raises_the_ground_cloud.
+passives = Array[ExtResource("3_passive")]([ExtResource("5_allies"), ExtResource("6_hostiles"), ExtResource("7_self"), ExtResource("8_zone")])
 ; A frame trait, not equippable gear: it costs no SP and cannot be unequipped. cp_siege_engine and
 ; cp_broadside are the same.
 is_trait = true

@@ -2,10 +2,12 @@
 ## spores around itself. For the rest of the scene all adjacent allies gain immunity to Impaired and
 ## have +1 armor. Hostile characters within burst 2 of the Myconid are Slowed and Impaired."
 ##
-## THIS SCRIPT IS FOUR LINES BECAUSE THE ZONE IS NOT ITS JOB. Everything the card describes lives in
-## the two PassiveAuras on this Kit, which are declared with `starts_active = false` and are
-## therefore dark from the start of the scene. All this action does is wake them and then remove
-## itself. The Drake's Fortress Protocol is the vanilla shape, line for line
+## THIS SCRIPT IS FIVE LINES BECAUSE THE ZONE IS NOT ITS JOB. Everything the card describes lives in
+## the two PassiveAuras that carry it, and everything the PLAYER sees lives in the other two passives
+## beside them - the chip aura (SP2.5 Task 4) and the ground cloud (SP2.5 Task 5). All four declare
+## `starts_active = false` and are therefore dark from the start of the scene. All this action does is
+## wake them and then remove itself. (It was four lines until Task 5; the fifth is the second
+## activation flag, explained below.) The Drake's Fortress Protocol is the vanilla shape, line for line
 ## (content/frames/ipsn/mf_drake/cp_fortress_protocol/action_fortress_protocol.gd:17-19), minus the
 ## deploy and minus one thing - see below.
 ##
@@ -27,6 +29,29 @@
 ## (unit_tile.gd:20-24). That is what applies both auras' buffs to everyone ALREADY standing in range
 ## at the moment of the press - without it the cloud would only catch units that moved afterwards.
 ## Calling it a second time by hand would be a second whole O(n^2) map pass for no effect.
+##
+## WHY THE PROTOCOL SETS TWO FLAGS (SP2.5 Task 5). The Kit's fourth passive,
+## passive_fungal_network_zone.tres, is a PassiveDynamicZone and draws the cloud on the ground. It is
+## NOT gated on is_aura_active: PassiveDynamicZone.should_show_attached_fx returns
+## `gear.is_dynamic_zone_active` (passive_dynamic_zone.gd:13-14), a second per-gear flag declared
+## three lines above the aura one (gear_core.gd:25 and :28). The engine always sets the two together
+## - unit_printer.gd:16-21 at spawn, unit_condition.gd:879-880 and :898-899 on a gear reapplication,
+## event_service.gd:67-68 on the owner's death, each pair under one comment - and the ONLY writers
+## that move one without the other are GearCore.set_dynamic_zone_active (gear_core.gd:293) and
+## GearCore.set_aura_active (gear_core.gd:297), neither of which is called anywhere in engine/.
+##
+## So the two flags agree in play if and only if THIS FUNCTION keeps them agreeing. Hence two lines
+## rather than one. Delete the set_dynamic_zone_active line and the mechanic still works and the
+## cloud is never drawn (mutation T5-M4); light the zone without the aura and the board shows a
+## burst that does nothing. Both are reddened by section H of test_fungal_network.gd, which asserts
+## the two flags' VALUES against each other rather than trusting this comment.
+##
+## THE ORDER MATTERS, mildly and for one reason: set_aura_active runs
+## UnitTile.update_tracking_and_statuses and then unit.update_token() (gear_core.gd:299-300), and
+## update_token is what re-collects every passive's attached fx (unit.gd:165-169 into
+## unit_token.gd:215-219). Setting the zone flag FIRST means that single token rebuild already sees
+## the cloud. The reverse order is not wrong - set_dynamic_zone_active calls update_token itself
+## (gear_core.gd:295) - it just does the work twice.
 ##
 ## WHY hibernate_action RATHER THAN A USAGE COUNTER. `gear.is_action_hibernating` is consulted by
 ## UnitAction.get_gear_unavailable_reason at unit_action.gd:154 and yields REASON.HIBERNATING - a
@@ -57,5 +82,6 @@ func activate(context:Context, activation:EventCore) -> void:
 	spend_actions(activation)
 
 	var gear:GearCore = context.gear
-	gear.set_aura_active(true, context.unit, activation) # wakes BOTH passives; updates tracking itself
+	gear.set_dynamic_zone_active(true, context.unit) # the ground cloud: a SECOND flag, see above
+	gear.set_aura_active(true, context.unit, activation) # wakes all three auras; updates tracking itself
 	gear.hibernate_action(&'action_fungal_network') # for the rest of the scene: no second press

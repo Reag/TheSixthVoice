@@ -831,6 +831,12 @@ func test_the_chip_is_on_the_myconid_and_nobody_else() -> void:
 ## that the chip's absence is the chip FOLLOWING the zone rather than the chip never having been
 ## there. The preconditions above it prove both were up first.
 ##
+## "THE ZONE" HERE MEANS THE AURAS, NOT THE GROUND CLOUD. Since SP2.5 Task 5 the Kit also carries a
+## PassiveDynamicZone on a SECOND per-gear flag, and set_aura_active does not touch it
+## (gear_core.gd:298 writes one field) - so the cloud is still drawn after the call below. That is
+## not a bug and not a gap: no path in the game makes this call, which is why nothing in section H
+## uses it. Read section H's header before concluding the two are out of step.
+##
 ## Reddened by: T4-M3, applying the chip from action_fungal_network.gd's activate() with
 ## UnitCondition.apply_buff instead of from the passive - the parallel lifetime nothing clears.
 func test_the_chip_is_gone_when_the_zone_is_down() -> void:
@@ -883,3 +889,349 @@ func test_the_chip_carries_no_mechanical_effect() -> void:
 	assert_eq(chip.to, Buff.TO.NONE, 'because it declares no channel at all')
 	assert_true(chip.applies_statuses.is_empty(), 'nor any status')
 	assert_true(chip.triggers_on.is_empty(), 'and nothing active either: it exists to be seen')
+
+
+# ===================== H. THE GROUND CLOUD =====================
+#
+# SP2.5 Task 5, and the author's words after playtesting: "I dont see a FX for the cloud." They chose
+# a zone effect on the ground so the burst-2 edge is visible in play.
+#
+# WHAT IT IS. passive_fungal_network_zone.tres - a PassiveDynamicZone, the FOURTH passive on
+# cp_quietus_machines, drawing the reused vanilla scene res://content/fx_endless/gear/aura/
+# fxe_nanites.tscn at every tile of the burst. It applies no buff, no status and no rule; that file's
+# header says why that scene, and why every gameplay knob on its DynamicZone is left at the inert
+# default.
+#
+# ============ WHAT THESE TESTS PROVE, AND WHAT THEY DO NOT ============
+#
+# AN FX IS HARD TO ASSERT ON, so it is worth being exact about where these stop.
+#
+# THEY PROVE, as far as live nodes in the scene tree: after the press, the Myconid's token owns an
+# FxEndlessController (unit_token.gd:53) whose fxe_map holds one instantiated FxEndless per tile of
+# the burst, each with id `fxe_nanites`. That is the real chain, not a stand-in for it -
+# UnitToken.update_attached_fx walks every passive on every piece of gear and feeds each returned
+# ticket to FxEndlessController.reconstruct_add (unit_token.gd:209-219), which instantiates the
+# scene ContentLibrary maps that id to and add_child()s it (fx_endless_controller.gd:72-78 into
+# :88-91). Nothing here fakes a step of that.
+#
+# THEY DO NOT PROVE THAT ANYTHING IS VISIBLE. Not one assertion below looks at the viewport. A node
+# that exists at the right tile may still be invisible, mis-coloured, the wrong size, at the wrong
+# height, or drawn under the terrain, and every test in this section would stay green. The height
+# lock in particular - LOCK_TO.SURFACE, which is what makes this "on the ground" rather than at the
+# token's centre (fx_endless.gd:11-18) - is a property of a VANILLA scene we reference and is not
+# measured here at all. Whether the cloud reads as a cloud is the author's call in play, and the
+# playtest note this task answers is exactly the evidence a spec cannot produce.
+#
+# THEY ALSO DO NOT PROVE the picture matches the ALLY half. It deliberately does not: the ally aura
+# is range 1 and the cloud is drawn at 2, because two nested clouds would be two pictures. Only the
+# hostile half's footprint is checked against the drawing, in
+# test_the_cloud_is_drawn_over_the_burst_the_hostile_half_catches.
+#
+# ============ THE TWO FLAGS, WHICH ARE THE REAL RISK ============
+#
+# The cloud does NOT ride the is_aura_active flag the three PassiveAuras follow. PassiveDynamicZone
+# is gated on gear.is_dynamic_zone_active (passive_dynamic_zone.gd:13-14), declared three lines above
+# the aura flag on the same object (gear_core.gd:25 and :28). A picture on a lifetime of its own
+# could outlive the mechanic it draws, so the writers of both flags were traced before this was
+# built, and there are exactly four:
+#
+#   spawn          unit_printer.gd:16-21       both set true, each then pulled down by its own
+#                                              passive type's starts_active. PAIRED.
+#   gear reapply   unit_condition.gd:879-880   both set true...
+#                  unit_condition.gd:898-899   ...and each pulled down the same way. PAIRED.
+#   owner death    event_service.gd:65-68      both set false under one comment, "all auras and
+#                                              zones turn off". PAIRED.
+#   the setters    gear_core.gd:293 and :297   set_dynamic_zone_active / set_aura_active. The ONLY
+#                                              unpaired writers - and nothing in engine/ calls
+#                                              either. Every caller in the tree is content:
+#                                              the Drake's Fortress Protocol, Hardlight Defense
+#                                              System, and our own action_fungal_network.gd.
+#
+# So the flags cannot drift on their own. They can only be driven apart by the one script that drives
+# them, which is why action_fungal_network.gd now sets both, and why
+# test_the_two_activation_flags_never_disagree asserts their VALUES against each other at all three
+# stages rather than trusting that paragraph.
+#
+# ONE CONSEQUENCE FOR READERS OF SECTION G. That section darkens the zone with
+# `gear.set_aura_active(false, myconid)`, and THAT CALL DOES NOT PUT THE CLOUD OUT - it writes one
+# flag (gear_core.gd:298) and never touches the other. Measured, not assumed: the Task 5 probe pressed
+# the protocol, made that call, and read is_aura_active=false alongside is_dynamic_zone_active=true.
+# It is a synthetic lever no path in the game pulls on this Kit - ruling 6 gives this card no off
+# switch - so nothing below uses it. The cloud's lifetime is tested on the path the game really
+# takes, the owner's death, which writes both.
+
+# ---------------------------------------------------------------- section H helpers
+
+const CLOUD_FXE := &'fxe_nanites' # the reused vanilla scene; FxEndless ids are scene BASENAMES
+const CLOUD_RADIUS := 2           # passive_fungal_network_zone.tres, matching the hostile aura
+
+func zone_passive() -> PassiveDynamicZone:
+	var gear := core_gear()
+	if gear == null: return null
+	for passive:Passive in gear.kit.passives:
+		if passive is PassiveDynamicZone: return passive
+	return null
+
+## The tiles the Myconid's token is ACTUALLY drawing the cloud on, read back off the live
+## FxEndlessController rather than off the passive that fed it. fxe_map is keyed by the ticket's
+## LOCAL tile (passive_dynamic_zone.gd:27 stores global - unit.tile()), so it is shifted back here.
+func drawn_cloud_tiles() -> Array[Vector2i]:
+	var out:Array[Vector2i] = []
+	if not Unit.is_valid(myconid) or not is_instance_valid(myconid.token): return out
+	var controller:FxEndlessController = myconid.token.AttachedFxEndless
+	if not is_instance_valid(controller): return out
+	for local_tile:Vector2i in controller.fxe_map.keys():
+		for fxe in controller.fxe_map[local_tile]:
+			if is_instance_valid(fxe) and fxe.id == CLOUD_FXE:
+				out.append(local_tile + myconid.tile())
+				break
+	return out
+
+## What the burst SHOULD cover, worked out here from the Myconid's footprint instead of asked of the
+## engine - UnitTile.get_tiles_within is the function under test, so using it to build the
+## expectation would assert nothing. Chebyshev over closest tiles is what "burst N from a size-2
+## unit" means on this board: distance_between takes its horizontal reading from
+## closest_tiles_between (unit_relation.gd:16 into :30-31), which minimises Tile.distance, and that
+## is max(dx, dy) (tile.gd:380-387). Ruling 6.
+func chebyshev_to_myconid(tile:Vector2i) -> int:
+	var nearest := 99
+	for occupied:Vector2i in myconid.occupied_tiles():
+		nearest = mini(nearest, maxi(absi(tile.x - occupied.x), absi(tile.y - occupied.y)))
+	return nearest
+
+## Every on-map tile within CLOUD_RADIUS of the footprint, EXCLUDING the footprint itself
+## (is_fxe_at_unit_tiles = false). On the default 15x9 map with the Myconid at (4,4) this is the 6x6
+## block (2,2)..(7,7) less its four middle tiles: 36 - 4 = 32 tiles, none of them clipped by an edge.
+func expected_cloud_tiles() -> Array[Vector2i]:
+	var out:Array[Vector2i] = []
+	for y:int in game.map.size.y:
+		for x:int in game.map.size.x:
+			var tile := Vector2i(x, y)
+			var distance := chebyshev_to_myconid(tile)
+			if distance > 0 and distance <= CLOUD_RADIUS: out.append(tile)
+	return out
+
+## ONE assertion instead of thirty-two, and a readable failure either way round.
+func assert_cloud_covers(expected:Array[Vector2i], context:String) -> void:
+	var drawn := drawn_cloud_tiles()
+	var missing:Array = expected.filter(func(tile:Vector2i) -> bool: return not drawn.has(tile))
+	var extra:Array = drawn.filter(func(tile:Vector2i) -> bool: return not expected.has(tile))
+	assert_eq(drawn.size(), expected.size(), '%s: %s tiles drawn' % [context, expected.size()])
+	assert_true(missing.is_empty(), '%s: nothing missing from the cloud (missing %s)' % [context, missing])
+	assert_true(extra.is_empty(), '%s: and nothing outside it (extra %s)' % [context, extra])
+
+
+## THE FLOOR OF THE WHOLE SECTION: a dark protocol draws nothing, and the SAME query finds the cloud
+## once it is pressed. The control is what makes the first half mean anything - "nothing is drawn" is
+## also what an unset `fxe` and a misspelt scene id produce, since get_attached_fx returns [] for a
+## blank id before it ever consults the flag (passive_dynamic_zone.gd:19). The precondition above
+## covers the third way to ship no picture, the passive simply not being on the Kit.
+##
+## Reddened by: T5-M2, starts_active = true on passive_fungal_network_zone.tres.
+func test_the_ground_cloud_is_dark_before_the_protocol() -> void:
+	var gear := core_gear()
+	assert_not_null(gear, 'precondition: the core Kit is on the frame')
+	if gear == null: return
+	var zone := zone_passive()
+	assert_not_null(zone, 'precondition: the Kit carries a PassiveDynamicZone')
+	if zone == null: return
+
+	myconid.update_token() # a full fx rebuild happens before the press, and still draws nothing
+	assert_false(gear.is_dynamic_zone_active, 'the zone flag is down at spawn')
+	assert_true(zone.get_attached_fx(gear, myconid).is_empty(), 'so the passive offers no tickets')
+	assert_eq(drawn_cloud_tiles().size(), 0, 'and the token is drawing no cloud')
+
+	await press_protocol()
+
+	assert_gt(drawn_cloud_tiles().size(), 0,
+		'control: the very same query DOES find the cloud once the protocol is pressed')
+
+## THE WHOLE POINT, asserted as far down the chain as a spec can reach: after the press there is a
+## live FxEndless node parented to the Myconid's token controller at every tile of the burst, and
+## every one of them is the scene this passive names. See the section header for what that still does
+## NOT say about anything being visible.
+##
+## Reddened by: T5-M1 (dropping passive_fungal_network_zone.tres from cp_quietus_machines.tres) and
+## T5-M4 (dropping the set_dynamic_zone_active line from action_fungal_network.gd) - two different
+## ways to ship the card with no picture.
+func test_pressing_the_protocol_raises_the_ground_cloud() -> void:
+	assert_eq(drawn_cloud_tiles().size(), 0, 'control: nothing is drawn before the press')
+
+	await press_protocol()
+
+	assert_cloud_covers(expected_cloud_tiles(), 'after the press')
+
+	# ...and it is really the named scene, instantiated, not an empty ticket or some other fx.
+	var controller:FxEndlessController = myconid.token.AttachedFxEndless
+	var live_nodes := 0
+	var foreign_ids:Array[StringName] = []
+	for local_tile:Vector2i in controller.fxe_map.keys():
+		for fxe in controller.fxe_map[local_tile]:
+			if not is_instance_valid(fxe): continue
+			if fxe.id == CLOUD_FXE: live_nodes += 1
+			elif not foreign_ids.has(fxe.id): foreign_ids.append(fxe.id)
+	assert_eq(live_nodes, expected_cloud_tiles().size(), 'one live FxEndless per tile of the burst')
+	assert_true(foreign_ids.is_empty(),
+		'and every one of them is that scene, not another fx (found %s)' % [foreign_ids])
+	assert_ne(ContentLibrary.get_fxendless_path(CLOUD_FXE), '',
+		'the id resolves through ContentLibrary, which is how reconstruct_add found the scene')
+
+## THE PICTURE AND THE RULE ON THE SAME THREE TILES. This is the test that earns the radius: each
+## tile is asserted twice over, once for what the board SHOWS and once for what the hostile half
+## DOES, and the two are computed by unrelated code - UnitTile.get_tiles_within for the drawing
+## (passive_dynamic_zone.gd:24), UnitRelation.distance_between for the aura (passive_aura.gd:85).
+## A cloud drawn at the wrong radius passes every other test in this section.
+##
+## DIAGONAL_TILE is the one that matters most: it is 2 from the Myconid's NON-anchor corner and 3
+## from its anchor, so a drawing measured from the anchor alone would leave it clear while the
+## hostile standing on it choked.
+##
+## Reddened by: T5-M5, radius = 1 on the DynamicZone sub-resource - which shrinks the picture and
+## leaves NEAR_TILE and DIAGONAL_TILE Slowed under clear ground.
+func test_the_cloud_is_drawn_over_the_burst_the_hostile_half_catches() -> void:
+	var near_foe := hostile(NEAR_TILE)
+	var diagonal_foe := hostile(DIAGONAL_TILE)
+	var far_foe := hostile(FAR_TILE)
+
+	await press_protocol()
+	var drawn := drawn_cloud_tiles()
+
+	assert_true(drawn.has(NEAR_TILE), 'the cloud is drawn at range 2...')
+	assert_true(has(near_foe, SPORES_BUFF), '...where the hostile half catches')
+	assert_true(drawn.has(DIAGONAL_TILE), 'and on the non-anchor diagonal...')
+	assert_true(has(diagonal_foe, SPORES_BUFF), '...where it also catches')
+
+	assert_false(drawn.has(FAR_TILE), 'and NOT at range 3...')
+	assert_false(has(far_foe, SPORES_BUFF), '...where it does not catch either')
+
+## The cloud is a ring around the frame, not a blanket over it: a particle haze on the Myconid's own
+## four tiles would hide the mech, and both vanilla HORUS nanite zones leave them clear for the same
+## reason (mt_hive_drone.tres, ms_swarm_body.tres). It also makes the drawn set exactly the set of
+## tiles a hostile can stand in and be caught.
+##
+## THE POSITIVE CONTROL IS THE RING one tile out from each of those four: without it, "the footprint
+## is clear" would pass just as well with the whole cloud dark.
+##
+## Reddened by: T5-M6, is_fxe_at_unit_tiles = true.
+func test_the_cloud_leaves_the_myconids_own_tiles_clear() -> void:
+	await press_protocol()
+	var drawn := drawn_cloud_tiles()
+	var occupied := myconid.occupied_tiles()
+	assert_eq(occupied.size(), 4, 'precondition: the Myconid is size 2 and holds four tiles')
+
+	for tile:Vector2i in occupied:
+		assert_false(drawn.has(tile), 'no haze on %s, which the frame is standing on' % [tile])
+
+	for tile:Vector2i in [Vector2i(3, 4), Vector2i(6, 4), Vector2i(4, 3), Vector2i(4, 6)]:
+		assert_true(drawn.has(tile),
+			'control: %s is one step off the footprint and IS drawn' % [tile])
+
+## THE FLAG-AGREEMENT GUARD, and the reason this task was worth doing carefully. The cloud rides
+## is_dynamic_zone_active and the three auras ride is_aura_active; if the two ever disagree the board
+## shows a burst that is not there, or hides one that is. Asserted at all three stages the engine
+## writes them - spawn, the press, the owner's death - and asserted AGAINST EACH OTHER, so the test
+## fails whichever of the two goes wrong.
+##
+## THE ALLY IS THE POSITIVE CONTROL ON THE LAST STAGE: it proves the death really tore the mechanic
+## down, so that "both flags false" is the pair agreeing rather than a corpse answering anything.
+##
+## Reddened by: T5-M4, dropping set_dynamic_zone_active from action_fungal_network.gd - after which
+## the press lights the auras and leaves the zone dark, and the middle stage disagrees.
+func test_the_two_activation_flags_never_disagree() -> void:
+	var friend := ally(ADJACENT_TILE)
+	var gear := core_gear()
+	assert_not_null(gear, 'precondition: the core Kit is on the frame')
+	if gear == null: return
+
+	assert_eq(gear.is_dynamic_zone_active, gear.is_aura_active, 'at spawn the two flags agree')
+	assert_false(gear.is_aura_active, 'and they agree on DARK (unit_printer.gd:16-21)')
+
+	await press_protocol()
+
+	assert_eq(gear.is_dynamic_zone_active, gear.is_aura_active, 'after the press they still agree')
+	assert_true(gear.is_aura_active, 'and they agree on LIT')
+	assert_true(has(friend, ARMOR_BUFF), 'control: the mechanic really is up')
+
+	await game.execute_event(&'event_unit_damage', {
+		unit = myconid, number = 9999, category = Lancer.DAMAGE_TYPE.KINETIC,
+	})
+
+	assert_false(Unit.is_valid(myconid), 'precondition: the Myconid is dead')
+	assert_eq(gear.is_dynamic_zone_active, gear.is_aura_active, 'and after death they agree again')
+	assert_false(gear.is_aura_active, 'on DARK (event_service.gd:65-68 writes both)')
+	assert_false(has(friend, ARMOR_BUFF), 'control: the mechanic really did go down with it')
+
+## The cloud ends the one way the card allows - see section E. Asked of the PASSIVE rather than of the
+## token, because the token goes with the unit and a dead Myconid has none; get_attached_fx is safe on
+## a corpse precisely because should_show_attached_fx is consulted before the unit is touched
+## (passive_dynamic_zone.gd:19 returns [] before reaching UnitTile.get_tiles_within at :24).
+##
+## THE PRE-DEATH READING IS THE CONTROL, and it is not optional: an empty ticket list is ALSO what an
+## unset fxe or a misspelt scene id produces (passive_dynamic_zone.gd:19 returns [] for a blank id),
+## so "empty after death" on its own would be green for three different reasons.
+##
+## WHAT IT CHARACTERISES. The behaviour is the ENGINE'S - event_service.gd:65-68 puts both flags down
+## on the owner's death and our content asks nothing of it - so, like section E's death test, this
+## pins an outcome rather than a line of ours. Unlike section E's, it does NOT stay green with the
+## feature deleted: the precondition catches that (T5-M1). What it guards is a regression in that
+## cleanup, which would leave a cloud hanging over a wreck with nothing left to announce.
+func test_the_cloud_goes_out_with_its_owner() -> void:
+	await press_protocol()
+	var gear := core_gear()
+	var zone := zone_passive()
+	assert_not_null(zone, 'precondition: the Kit carries a PassiveDynamicZone')
+	if zone == null: return
+	assert_gt(zone.get_attached_fx(gear, myconid).size(), 0, 'control: the cloud was up')
+
+	await game.execute_event(&'event_unit_damage', {
+		unit = myconid, number = 9999, category = Lancer.DAMAGE_TYPE.KINETIC,
+	})
+
+	assert_false(Unit.is_valid(myconid), 'precondition: the Myconid is dead')
+	assert_false(gear.is_dynamic_zone_active, 'the zone flag went down with it')
+	assert_true(zone.get_attached_fx(gear, myconid).is_empty(), 'and the cloud offers no tickets')
+
+## A DynamicZone IS A RULES OBJECT, and this one is registered with the map like any other
+## (map_state.gd:435-438). Every rule it could carry is a separate export left at its inert default,
+## because this task is a picture and not a balance change.
+##
+## OF THE FOUR KNOBS CHECKED BELOW, THREE ARE CHECKED BY OUTCOME rather than by reading the export:
+## the zone's absence from map.dynamic_zones_that_affect_sight and from shape.effect_barrier_shards
+## are things MapState.update_tile_tracking did or did not do (map_state.gd:439-442), and
+## is_guide_checked is the very function UnitTile.get_tiles_with_guide calls at unit_tile.gd:755. So
+## a knob flipped by hand on the sub-resource is caught by what it would DO.
+##
+## THE FOURTH IS NOT, AND IT IS WORTH SAYING SO. `can_cross_boundary` is asserted as a raw property,
+## because the only places it does anything are inside a path computation (pathfinder.gd:172 and
+## :361) and inside a move event (event_unit_move.gd:388), and reaching either needs a movement
+## fixture this file does not have. That assertion therefore proves the export is at its default and
+## NOT that a unit can walk out of the cloud. Recorded as a deliberate gap rather than dressed up.
+##
+## THE FIRST ASSERTION IS THE POSITIVE CONTROL for the two that follow: the zone really IS in the
+## map's list, so "not in the sight list" and "not in the barrier list" are exclusions rather than an
+## unregistered zone being absent from everything.
+##
+## Reddened by: T5-M7, can_see_into = false on the DynamicZone sub-resource - which puts the cloud
+## into dynamic_zones_that_affect_sight (map_state.gd:439-440) and makes a decoration block line of
+## sight for every unit on the board; T5-M10, can_effects_cross_boundary = false, which fences every
+## effect at the cloud's edge; and T5-M8, ai_guides = AVOID_TRY, which makes the AI treat the
+## decoration as dangerous ground.
+func test_the_ground_zone_is_a_picture_and_not_a_rule() -> void:
+	await press_protocol()
+	UnitTile.update_tracking_and_statuses(game.map)
+
+	assert_eq(game.map.dynamic_zones.size(), 1,
+		'control: the cloud is registered with the map as a real dynamic zone')
+	assert_eq(game.map.dynamic_zones_that_affect_sight.size(), 0,
+		'and blocks no line of sight (map_state.gd:439-440 never collected it)')
+	assert_eq(game.map.shape.effect_barrier_shards.size(), 0,
+		'and fences no effects (map_state.gd:441-442 never collected it either)')
+
+	var zone := zone_passive()
+	assert_not_null(zone, 'precondition: the Kit carries a PassiveDynamicZone')
+	if zone == null: return
+	assert_true(zone.dynamic_zone.can_cross_boundary,
+		'and fences no movement - pathfinder.gd:172 and :361 only act when this is false')
+	for guide:int in Zone.GUIDE.values():
+		assert_false(zone.dynamic_zone.is_guide_checked(guide),
+			'and steers the AI nowhere: no guide %s (unit_tile.gd:755)' % [guide])

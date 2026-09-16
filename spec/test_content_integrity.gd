@@ -256,8 +256,11 @@ const ICON_TARGETS := {
 	&'mt_halo': [],
 	# SP2 Task 3 (Myconid). The core system. FUNGAL NETWORK is a PROTOCOL the player presses on the
 	# gear bar, so it wears its own icon as well as the Kit's - cp_siege_engine's and
-	# cp_auxiliary_power_rerouter's shape. The Kit's THREE PassiveAuras (SP2.5 Task 4 added
-	# passive_fungal_network_self) are passives and wear nothing - but the chip that third one applies
+	# cp_auxiliary_power_rerouter's shape. The Kit's FOUR passives - three PassiveAuras (SP2.5 Task 4
+	# added passive_fungal_network_self) and one PassiveDynamicZone drawing the ground cloud (SP2.5
+	# Task 5, passive_fungal_network_zone) - wear nothing: Passive.get_icon exists (passive.gd:20-22)
+	# but nothing player-facing reads it for these, and the zone's picture is a reused VANILLA fx
+	# scene, so SP3 has no art to draw for it. The chip the third aura applies
 	# does, and the author's instruction is that it SHARES this Kit's icon rather than getting one of
 	# its own. That sharing is the ENGINE'S DEFAULT and needs no property: BuffCore.get_icon falls
 	# back to the owner gear's Kit icon when the Buff has none (buff_core.gd:81-86), and the chip's
