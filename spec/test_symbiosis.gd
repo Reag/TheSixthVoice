@@ -660,6 +660,14 @@ func test_a_non_consuming_reaction_is_neither_refused_nor_stamped():
 	# unspent), so current < max and not is_extra_spent() are both true too. Only the
 	# consumes_reaction() clause can be what lets it through - which is exactly what deleting it
 	# (below, as a mutation check) is here to prove.
+	#
+	# THE NAME IS NARROWER THAN IT READS, SINCE SP2.5. A non-consuming reaction CAN be stamped now -
+	# that is the whole point of buff_symbiosis_extra_use, and it is how the Gyre and Halo get their
+	# second use. THIS one escapes for a different reason: it declares no get_per_round_hard_limit
+	# override, so action_reaction.gd:69 hands it 99, and buff_symbiosis.is_cap_relieved_use asks
+	# uses_this_round > hard_limit - 1 > 99, false. Neither the stamp nor the take-back runs. Read
+	# the assertion below as "not stamped BECAUSE its cap was never relieved", not as a claim about
+	# non-consuming reactions in general.
 	await react_with(rxn_a)
 	assert_eq(reactions_left(), reactions_max() - 1,
 		'fixture: the ordinary reaction has been taken, one point short of the max.')

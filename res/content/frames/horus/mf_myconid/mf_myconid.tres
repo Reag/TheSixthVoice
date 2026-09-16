@@ -1,7 +1,6 @@
-[gd_resource type="Resource" script_class="Frame" format=3 uid="uid://dmewm6sw72amf"]
+[gd_resource type="Resource" script_class="Frame" format=3]
 
 [ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="1_frame"]
-[ext_resource type="Texture2D" uid="uid://652sybhq2bad" path="res://assets/palettes/toneramps/tone_standard.png" id="1_y6bxp"]
 [ext_resource type="Script" uid="uid://bxpc46igtsmvw" path="res://engine/character/unit/statblock.gd" id="2_statblock"]
 [ext_resource type="Script" uid="uid://dch85ypcupfgo" path="res://engine/character/unit_core/color_scheme.gd" id="3_colorscheme"]
 [ext_resource type="Texture2D" uid="uid://6tm738lnctjy" path="res://assets/palettes/toneramps/tone_highhue.png" id="4_toneramp"]
