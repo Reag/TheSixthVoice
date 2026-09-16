@@ -23,11 +23,13 @@ const OVERSHIELD_EVENT := &'event_unit_overshield'
 
 ## This unit's overshield. 0 for anything that is not a live Unit - every consumer calls this from
 ## inside a reaction gate, which the bus runs for every unit's every gear on every event, so a null
-## here would be an error storm rather than a wrong answer.
+## here would be an error storm rather than a wrong answer. Unit.is_valid includes is_alive, so a
+## DEAD unit reads 0 here too, not whatever overshield it held before dying.
 static func current(unit:Unit) -> int:
 	if not Unit.is_valid(unit): return 0
 	return unit.state.overshield
 
+## True only above zero - see current() for what makes a unit read as having none.
 static func has(unit:Unit) -> bool:
 	return current(unit) > 0
 
