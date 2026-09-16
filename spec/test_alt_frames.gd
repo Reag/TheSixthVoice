@@ -60,14 +60,22 @@ const BASE_LICENSES := {
 ## nothing from the KTB or the Long Rim, so these three have nowhere to attach. Named rather than
 ## quietly missing, so "why is Seraphim not built" has an answer in the suite and not just in a doc.
 const ALTS_WITHOUT_A_BASE := {
-	'Six Sky': 'Sunzi (HA, Long Rim) - the ha-sunzi mod, optional dependency, phase 6',
-	'Black Mountain': 'Emperor (SSC, KTB) - the ssc-emperor mod, optional dependency, phase 6',
-	'Seraphim': 'Lich (HORUS, Long Rim) - no mod adds the Lich; BLOCKED',
+	'Six Sky': {license = &'li_sunzi', why = 'Sunzi (HA, Long Rim) - the ha-sunzi mod, optional dependency, phase 6'},
+	'Black Mountain': {license = &'li_emperor', why = 'Emperor (SSC, KTB) - the ssc-emperor mod, optional dependency, phase 6'},
+	'Seraphim': {license = &'li_lich', why = 'Lich (HORUS, Long Rim) - no mod adds the Lich; BLOCKED'},
 }
 
 func _license(license_id:StringName) -> UnlockTree:
 	var tree = ContentLibrary.get_license_tree(license_id)
 	return tree if tree is UnlockTree else null
+
+## Which resident mod supplies a licence, or '' when nothing does (or the modkit itself does).
+## res://unpacked/gavstarb-ssc_emperor/res/content/licenses/ssc/li_emperor.tres => gavstarb-ssc_emperor
+static func _supplier_of(license_paths:Dictionary, license_id:StringName) -> String:
+	if not license_paths.has(license_id): return ''
+	var path := String(license_paths[license_id])
+	if not path.begins_with('res://unpacked/'): return ''
+	return path.trim_prefix('res://unpacked/').get_slice('/', 0)
 
 ## Every licence path the engine knows, vanilla and modded, by id.
 ##
@@ -185,9 +193,20 @@ func test_the_everest_is_reachable_at_any_licence_level():
 	assert_false(tree.rank_1.granted_frames.is_empty(), 'li_gms rank 1 grants at least one frame.')
 
 func test_the_three_alts_without_a_base_are_known_absent():
-	# Not a to-do: a guard. If a future modkit ships the Sunzi, the Emperor or the Lich, these
-	# licences appear and this test goes red - which is the signal to re-plan phase 6 rather than
-	# keep paying for an optional-dependency release nobody needs.
+	# Not a to-do: a guard. If one of these licences APPEARS, this test says WHERE IT CAME FROM,
+	# because the two routes mean opposite things:
+	#
+	#  - THE MODKIT ships it -> RED. The base is now universal, phase 6 needs no optional dependency
+	#    at all, and the release plan should be re-cut. That is this guard's original trigger.
+	#  - A RESIDENT MOD supplies it -> green, and reported. The base is available to US, so the alt
+	#    becomes buildable - but it is still optional for players, so the dependency stands and the
+	#    phase 6 plan is unchanged.
+	#
+	# The second case was added 2026-09-16, when gavstarb-ssc_emperor joined the residency set and
+	# tripped the old blanket assert_false. Before that the distinction could not arise: no
+	# third-party mod was ever installed in a test run.
+	# See lancer-tactics-claude/specs/2026-09-16-mod-compatibility-design.md §1.7.
+	#
 	# Asked of the licence paths rather than through _license(), which would route each miss through
 	# ContentLibrary.load_compcon_id_resource and printerr three "Could not find compcon ID" lines
 	# into every run forever. Those do not fail the suite, but noise in a green run is how a real
@@ -195,7 +214,14 @@ func test_the_three_alts_without_a_base_are_known_absent():
 	var license_paths := _license_paths_by_id()
 	assert_gt(license_paths.size(), 0, 'The licences index loaded, so absence means something.')
 	for license_id:StringName in [&'li_sunzi', &'li_emperor', &'li_lich']:
-		assert_false(license_paths.has(license_id),
-			'%s is still absent from the modkit.' % license_id)
+		if not license_paths.has(license_id): continue
+		assert_true(String(license_paths[license_id]).begins_with('res://unpacked/'),
+			'%s exists only because a MOD adds it (%s); the modkit still does not ship it.'
+			% [license_id, license_paths[license_id]])
 	for alt:String in ALTS_WITHOUT_A_BASE:
-		gut.p('  %-16s blocked on %s' % [alt, ALTS_WITHOUT_A_BASE[alt]])
+		var supplier := _supplier_of(license_paths, ALTS_WITHOUT_A_BASE[alt].license)
+		if supplier.is_empty():
+			gut.p('  %-16s blocked on %s' % [alt, ALTS_WITHOUT_A_BASE[alt].why])
+		else:
+			gut.p('  %-16s BASE NOW SUPPLIED BY %s - buildable; dependency stays optional'
+				% [alt, supplier])
