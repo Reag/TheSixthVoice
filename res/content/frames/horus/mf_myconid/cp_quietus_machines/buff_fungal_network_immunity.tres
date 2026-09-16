@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="BuffStatusImmunity" format=3]
+
+[ext_resource type="Script" uid="uid://cm107udeeibkt" path="res://engine/character/buff/archtypes/buff_status_immunity.gd" id="1_immunity"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_quietus_machines.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_immunity")
+; "all adjacent allies gain immunity to Impaired". The vanilla archetype does the whole job:
+; BuffStatusImmunity.check_if_passive_applies (buff_status_immunity.gd:8-9) answers the engine's
+; immunity query, and on_application (:10-12) CLEARS any matching status the ally already has, so an
+; Impaired ally walking into the cloud is cleaned up rather than merely protected from the next one.
+;
+; TWO DIFFERENT MECHANISMS REACH THE SAME PLACE, and a spec should know which it is testing:
+;   - an ordinary Impaired (a StatusCondition in unit.state.statuses) is CLEARED on application by
+;     the line above;
+;   - an Impaired supplied by some OTHER buff's applies_statuses is not in that array and so is not
+;     cleared - it is instead SUPPRESSED, because get_current_statuses (unit_condition.gd:379-382)
+;     checks has_gained_immunity_to_status before folding it in.
+; Both leave the ally un-Impaired, which is what the card asks. Task 3's spec tests both paths.
+;
+; Vanilla precedent, same archetype on the same kind of aura: the Drake's
+; content/frames/ipsn/mf_drake/cp_fortress_protocol/buff_fortress_immunity.tres.
+immune_to_statuses = Array[StringName]([&"impaired"])
+to = &"status_immunity"
+icon = ExtResource("2_icon")
+; DELIBERATELY VISIBLE, and this is where we diverge from the Drake. buff_fortress_immunity sets
+; hide_from_player = true because Fortress applies three buffs at once and would otherwise wear three
+; chips. Here the immunity is one of the two things the card promises an ally, and the ally has no
+; other signal that standing next to the Myconid is doing anything - so it wears a chip and
+; test_content_integrity.gd's VISIBLE_BUFFS lists it. SP3, 2026-09-16: there is in fact no Fortress
+; immunity icon to reuse - buff_fortress_immunity.tres is hide_from_player with no icon at all - so
+; this wears cp_quietus_machines.svg instead, per decision 2 (a visible chip wears its source gear's
+; icon, vanilla-style).
+;
+; `until` stays at MANUAL for the reason buff_fungal_network_spores.tres gives at length: the AURA
+; owns the lifetime of everything it applies.

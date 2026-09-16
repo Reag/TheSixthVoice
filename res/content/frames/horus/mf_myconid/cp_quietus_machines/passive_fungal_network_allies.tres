@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="PassiveAura" format=3]
+
+[ext_resource type="Script" uid="uid://dw0igjjw1k5s3" path="res://engine/character/gear_passive/passive_aura.gd" id="1_aura"]
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="2_buff"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/buff_fungal_network_immunity.tres" id="3_immunity"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/buff_fungal_network_armor.tres" id="4_armor"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/buff_fungal_network_armor_reduction.tres" id="5_reduction"]
+
+[resource]
+script = ExtResource("1_aura")
+; THE ALLY HALF OF FUNGAL NETWORK: "all adjacent allies gain immunity to Impaired and have +1 armor."
+;
+; THREE BUFFS FOR TWO PROMISES. The immunity is one buff; the armor is TWO, because an armor grant in
+; this mod is always a visible STATBLOCK chip plus a hidden reduction - see either of those files.
+buffs = Array[ExtResource("2_buff")]([ExtResource("3_immunity"), ExtResource("4_armor"), ExtResource("5_reduction")])
+; "ADJACENT" = 1. UnitRelation.distance_between measures CLOSEST TILES, and passive_aura.gd:85 is
+; where it is compared against this number - so on a size-2 Myconid this is adjacency to any of its
+; four tiles, which is what adjacency means on the board. Ruling 6.
+; (NOT :87, which is the applies_only_when_in_los line two rows further down the same function. The
+; wrong number was written here at the SP2 Task 3 build and copied into two other files; corrected at
+; the whole-sub-project review, 2026-09-16.)
+aura_range = 1
+; "allies", not the Myconid. NOTE that unlike the hostile passive, applies_to_self is NOT redundant
+; here: a unit is its own ally (Faction.is_ally(f, f) is true, faction.gd:30), so with
+; applies_to_allies left true the Myconid WOULD catch itself at passive_aura.gd:69 without this line.
+; This flag is the only thing keeping the Myconid out of its own ally cloud, and a spec pins it.
+applies_to_self = false
+; Not hostiles - they get the other passive.
+applies_to_enemies = false
+; DARK UNTIL THE PROTOCOL IS PRESSED. GearCore.set_aura_active(true, ...) in action_fungal_network.gd
+; is what lights it, and that call runs the tracking pass itself so everyone already standing in
+; range is caught at the moment of the press. The Drake's passive_fortress_aura.tres is the shape.
+; THE FLAG IS PER-GEAR, NOT PER-PASSIVE, AND BOTH PASSIVES SHARE IT.
+; UnitPrinter.prep_for_initial_spawn sets `gear.is_aura_active = true` once per piece of gear and
+; then loops every PassiveAura ON THAT KIT, pulling the single flag down if ANY of them declares
+; starts_active = false (unit_printer.gd:19-21; UnitCondition does the same at
+; unit_condition.gd:880 and :899). It is NOT full_repair, which this comment named until the SP2.5
+; Task 4 review: full_repair takes a UnitCore (unit_printer.gd:61) and never touches the flag.
+; PassiveAura.update_unit reads that one gear-level
+; flag (:37). So this line and the hostile passive's cannot be set independently: neither aura can be
+; lit or darkened on its own, and set_aura_active necessarily wakes BOTH.
+;
+; That is exactly what this card wants, so it costs nothing - but it is not obvious from the export's
+; name, and it means a mutation of this line ALONE reddens nothing. Measured 2026-09-16: flipping any
+; ONE OR TWO of the three PassiveAuras on this Kit (this file, passive_fungal_network_hostiles.tres,
+; passive_fungal_network_self.tres) leaves the suite green; only flipping ALL THREE reddens
+; test_before_the_protocol_nothing_is_applied. (This note used to say "either... both", measured
+; against the two auras SP2 Task 3 shipped; SP2.5 Task 4 added the third the same day and the note went
+; stale without being updated. Corrected at the whole-sub-project review, 2026-09-16.)
+starts_active = false
+; applies_only_to_characters is left at its TRUE default. The card says "allies", and the ally half
+; grants armor and status immunity, which only characters can meaningfully hold.
+;
+; applies_to_other_copies_of_this_frame is left at its TRUE default, deliberately and unlike the
+; Drake's aura: two Myconids should shelter each other. Nothing in the card excludes it, and
+; UnitCondition.apply_buffs refuses a duplicate from any source (passive_aura.gd:80), so two
+; overlapping clouds do not stack to +2 armor.

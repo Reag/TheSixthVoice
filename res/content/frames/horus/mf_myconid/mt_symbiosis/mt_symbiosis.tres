@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="2_passive"]
+[ext_resource type="Script" uid="uid://v1e8t0rrmu2f" path="res://engine/character/gear_passive/passive_stat_increase.gd" id="3_statincrease"]
+[ext_resource type="Script" uid="uid://bxpc46igtsmvw" path="res://engine/character/unit/statblock.gd" id="4_statblock"]
+[ext_resource type="Script" uid="uid://dy4kg537rc55e" path="res://engine/character/gear_passive/passive_buff_applicator.gd" id="5_applicator"]
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="6_buff"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mt_symbiosis/buff_symbiosis.tres" id="7_bookkeeping"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mt_symbiosis/buff_symbiosis_exclusion.tres" id="8_exclusion"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mt_symbiosis/buff_symbiosis_extra_use.tres" id="9_extra_use"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_symbiosis.svg" id="10_icon"]
+
+[sub_resource type="Resource" id="Resource_statblock"]
+script = ExtResource("4_statblock")
+reactions = 1
+
+[sub_resource type="Resource" id="Resource_statincrease"]
+script = ExtResource("3_statincrease")
+stat = SubResource("Resource_statblock")
+
+; THREE HIDDEN BUFFS, ONE APPLICATOR, AND THE COUNT IS NOT ARBITRARY. Buff.trigger_timing is a single
+; @export that ReactionBus.does_buff_trigger compares directly (reaction_bus.gd:135), so a Buff
+; subscribes at ONE timing for every trigger it names - which is why the bookkeeping (POST) and the
+; exclusion (PRE) cannot be one resource. The third is a different kind again: it names no trigger at
+; all, because Buff.TO.ACTION_PER_ROUND is a channel the engine QUERIES rather than one the bus fires.
+;
+;   buff_symbiosis            POST  stamps the round's extra as spent, caps the refill, clears on new round
+;   buff_symbiosis_exclusion  PRE   aborts a 1/scene or 1/mission reaction taken as the extra
+;   buff_symbiosis_extra_use  -     +1 to a reaction's per-round hard limit while the extra is unspent
+;
+; THE THIRD IS SP2.5 TASK 1, and it exists because the first two only ever reached ONE of the two
+; gates a reaction can be refused by. They live in the reaction-POINT economy (is_gear_affordable,
+; unit_action.gd:182), which never refuses a reaction with consumes_rxn = false - so the Uffish Gyre's
+; and Halo's 1/round, which is the OTHER gate (is_under_per_round_limit, unit_action.gd:170-175), was
+; untouched by the trait and a second one was never offered. See buff_symbiosis_extra_use.gd.
+;
+; ONE PassiveBuffApplicator carries all three deliberately: the exclusion reads the bookkeeping's
+; SPENT_KEY and so does the extra use, so "either all three are on the unit or none are" is what
+; keeps those reads from having to handle a half-applied trait.
+;
+; reapply_at_the_start_of_each_turn IS STILL UNSET, and the third buff does not change that. A
+; re-application hands over fresh BuffCores and would wipe the stamp mid-round;
+; test_the_myconids_own_turn_start_also_caps_once_the_extra_is_spent is what falsifies setting it.
+[sub_resource type="Resource" id="Resource_applicator"]
+script = ExtResource("5_applicator")
+applied_buffs = Array[ExtResource("6_buff")]([ExtResource("7_bookkeeping"), ExtResource("8_exclusion"), ExtResource("9_extra_use")])
+
+[resource]
+script = ExtResource("1_kit")
+passives = Array[ExtResource("2_passive")]([SubResource("Resource_statincrease"), SubResource("Resource_applicator")])
+is_trait = true
+icon_override = ExtResource("10_icon")

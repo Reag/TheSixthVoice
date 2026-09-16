@@ -1,0 +1,31 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/armor/buff_armor_statblock.gd" id="1_statblock"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_psychopomp_fold_pike.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_statblock")
+; "on hit the allied character gains +2 armor until the start of their next turn" - the DISPLAY half.
+; Read buff_armor_statblock.gd's header, and its sibling buff_armor_reduction.gd's: an armor grant in
+; this mod is always TWO buffs, because Buff.to holds a single StringName and no engine channel
+; grants real armor. This one shows the number and blunts nothing;
+; buff_uffish_gyre_armor_reduction.tres blunts the damage and shows nothing. onhit_uffish_gyre.tres
+; applies both, and neither alone is the mechanic. Author's ruling 2026-09-14 (rulings.md row 37),
+; restated for this frame as design ruling 8.
+to = &"statblock"
+armor_amount = 2
+icon = ExtResource("2_icon")
+; DELIBERATELY VISIBLE: the Gyre fires on someone ELSE's turn, off screen from the Myconid's player,
+; and this chip is the struck ally's only notice that it happened at all. VISIBLE_BUFFS lists it
+; (Task 5); wears mw_psychopomp_fold_pike.svg, per decision 2.
+;
+; START_OF_TURN (Lancer.UNTIL, lancer.gd:46-56, so 3) - "until the start of their next turn", and it
+; is the HOLDER's turn that clears it: UnitCondition.new_turn_for_statuses runs
+; clear_buffs_until(START_OF_TURN) on the unit whose turn is starting (unit_condition.gd:22-23).
+; That is the struck ally, which is exactly the card. START_OF_OWNERS_TURN would have been the
+; MYCONID's turn instead, and is the wrong one.
+;
+; IT MUST MATCH buff_uffish_gyre_armor_reduction.tres's `until` EXACTLY. The two halves disagreeing
+; is how this mechanic tears in half - a chip that no longer blunts anything, or damage quietly going
+; missing with nothing on screen to explain it.
+until = 3

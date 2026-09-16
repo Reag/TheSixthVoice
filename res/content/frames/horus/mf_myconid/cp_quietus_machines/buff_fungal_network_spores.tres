@@ -1,0 +1,62 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_quietus_machines.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_buff")
+; THE HOSTILE HALF OF FUNGAL NETWORK: "Hostile characters within burst 2 of the Myconid are Slowed
+; and Impaired." One buff, both statuses, NO SCRIPT.
+;
+; applies_statuses IS A NATIVE DECLARATIVE CHANNEL, and this file is the whole mechanic.
+; UnitCondition.get_current_statuses (unit_condition.gd:372-385) folds every held buff's
+; applies_statuses into the unit's status list - checking immunity against the buff's from_gear as it
+; goes - and unit_battle_state.gd:187-190 is what writes that list into cached_statuses, which
+; Unit.has_status reads (unit.gd:210-211). A source-qualified UnitCondition.has_status (:386-393)
+; finds it too, through get_buffs_that_apply_status (:809-817) - an ENGINE MECHANISM, NOT A PATH
+; ANYTHING IN THIS CONTENT TAKES, and deliberately pinned by no test. It is here to characterise the
+; channel, not to claim anything about this card: get_buffs_that_apply_status has exactly one caller
+; tree-wide (the second disjunct of has_status at :392), every source-qualified has_status call in
+; engine/ and content/ passes the CALLER'S OWN gear id asking "did I apply this?", and Quietus
+; Machines' only script is four lines and asks nothing of the sort. A test would exercise a path no
+; content reaches. The survey is in test_fungal_network.gd's header; the sentence was re-verified
+; against the engine at the SP2 whole-sub-project review, 2026-09-16, and kept as characterisation.
+; So the statuses are live for exactly as long as the aura holds this buff on the hostile, and gone
+; the instant it clears it.
+;
+; THE DESIGN SAID THIS NEEDED A SCRIPT. It does not. Ruling 7 as written (2026-09-15) had
+; on_application applying both statuses and on_clear clearing them by source, because design §4
+; believed "Slowed and Impaired are read ONLY as statuses, never from buffs". The second half of that
+; is wrong, and the probe (spec/test_spike_status_aura.gd) proved it before this file was written
+; (15/15, mutation-verified: emptying applies_statuses reddens every test in the probe). The probe
+; was deleted at SP2 Task 5 (d6f1ab3); its load-bearing findings are ported into
+; test_fungal_network.gd's section C2 (test_a_hostile_in_the_cloud_is_really_refused_a_boost and
+; neighbors), which pin the same fact against the real Kit. Corrected in the design, in rulings.md
+; and in the roadmap, 2026-09-16. The card is unchanged either way.
+;
+; VANILLA PRECEDENT FOR THE CHANNEL ON AN AURA: content/gear/ssc/systems/ms_lb_oc_cloaking_field/
+; passive_lb_oc_cloaking_field_aura.tres, whose one buff carries applies_statuses = [invisible]; the
+; Scout NPC's cloaking field is the same shape. The precedent is for the CHANNEL, not the
+; configuration - both of those are self/ally cloaks, where this is hostile-facing.
+;
+; THE STATUSES ARE LOCKED WHILE THE BUFF IS HELD, AND THAT IS THE POINT.
+; UnitCondition.clear_status (:310-324) rebuilds unit.state.statuses and touches nothing else, and a
+; buff-supplied status was never in that array - so a cleanse, a save, or any engine effect that
+; strips Slowed leaves a hostile still inside the cloud Slowed. buff.gd:133 documents the export as
+; exactly that: "Locks these statuses on the unit for as long as this buff is applied." It lifts by
+; LEAVING, and only by leaving. That is the right reading of a card that says hostiles within burst 2
+; ARE Slowed and Impaired - a condition of standing inside, not an effect applied on the way in.
+; Rulings row 2026-09-16, and a warning for later frames: this channel cannot express "Slowed until
+; they save against it".
+;
+; Lancer.STATUS.SLOWED and .IMPAIRED (lancer.gd:67, :65).
+applies_statuses = Array[StringName]([&"slowed", &"impaired"])
+icon = ExtResource("2_icon")
+; DELIBERATELY VISIBLE. This is the hostile's only explanation for why it is Slowed and Impaired, so
+; hide_from_player stays at its false default and test_content_integrity.gd's VISIBLE_BUFFS lists it.
+; The hostile shows this chip plus the two status icons; wears cp_quietus_machines.svg, per decision 2.
+;
+; `until` is left at its MANUAL default (Lancer.UNTIL.MANUAL = 0) and that is load-bearing: the AURA
+; owns this buff's lifetime. PassiveAura.update_unit clears it the moment the hostile is out of range
+; or the aura goes inactive (passive_aura.gd:55-59), and any `until` short of MANUAL would let it
+; expire on a clock of its own while the hostile was still standing in the cloud.

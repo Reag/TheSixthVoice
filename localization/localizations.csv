@@ -119,3 +119,37 @@ gear.buff_diversion_rail.effect,"The target takes |+2 difficulty| on all attacks
 gear.cp_siege_engine.action_draw_fire.name,Draw Fire
 gear.cp_siege_engine.action_draw_fire.trigger,"A hostile character within |Range| of the Diversion Rail and |line of sight| makes a |ranged attack| against an allied character within |Sensors|."
 gear.cp_siege_engine.action_draw_fire.effect,"The attack is made against you instead. After the attack, you may make an attack against the hostile character with the Diversion Rail."
+,
+frame.mf_myconid.name,Myconid
+frame.mf_myconid.flavor.short,Halos of Shimmering Spores
+frame.mf_myconid.flavor,"Horus pattern groups have always been a contentious subject, the lines between one group and another can be blurry and heated debates about them are a common sight on the omninet. Originally, the Myconid was thought to be an offshoot of the Balor, its form comprised of thousands of tiny nanites shifting and rippling like water. However, after the official designation of greenwash, the Myconid began to be more clearly differentiated due to its more benevolent properties. Unlike other types of nanites, greenwash is incapable of tearing apart material and can not replicate itself, working only to surround and protect its designated targets. These less aggressive properties have led many to misunderstand the Myconid, thinking it a kindness compared to its siblings. They could not be more wrong. It is myriad, a shambling mound of churning wash, an angel emitting halos of shimmering nanite spores, a machine of propagation and rot. To those who endanger the network, it is nightmare made material."
+,
+gear.mt_symbiosis.name,Symbiosis
+gear.mt_symbiosis.effect,"1/round, the Myconid may use a |reaction| an additional time. This cannot be used on |reactions| that are 1/scene or 1/mission."
+gear.mt_symbiosis.refused.log,{unit} cannot spend the Symbiosis reaction on a 1/scene or 1/mission reaction.
+,
+gear.mt_halo.name,Halo
+gear.mt_halo.effect,"1/round, when the Myconid takes damage, an allied character within |Sensors| gains |OVERSHIELD| equal to |GRIT|."
+,
+gear.cp_quietus_machines.name,QUIETUS MACHINES
+gear.cp_quietus_machines.action_fungal_network.name,Fungal Network
+gear.cp_quietus_machines.action_fungal_network.effect,"The Myconid releases a cloud of nanite spores around itself. For the rest of the scene all adjacent allies gain immunity to |Impaired| and have |+1 armor|. Hostile characters within |burst 2| of the Myconid are |Slowed| and |Impaired|."
+,
+gear.buff_fungal_network_immunity.name,Fungal Network
+gear.buff_fungal_network_immunity.effect,Immune to |Impaired|.
+gear.buff_fungal_network_armor.name,Fungal Network
+gear.buff_fungal_network_armor.effect,|+1 armor|.
+gear.buff_fungal_network_spores.name,Fungal Network
+gear.buff_fungal_network_spores.effect,|Slowed| and |Impaired| while within |burst 2| of the Myconid.
+gear.buff_fungal_network_active.name,Fungal Network
+gear.buff_fungal_network_active.effect,A cloud of nanite spores surrounds the Myconid.
+,
+gear.mw_psychopomp_fold_pike.name,"PFP// ""PSYCHOPOMP"" Fold Pike"
+gear.mw_psychopomp_fold_pike.effect,"Gain the Uffish Gyre reaction, which is the only way you can attack with this weapon."
+gear.mw_psychopomp_fold_pike.action_psychopomp_strike.name,Uffish Gyre
+gear.mw_psychopomp_fold_pike.action_uffish_gyre.name,Uffish Gyre
+gear.mw_psychopomp_fold_pike.action_uffish_gyre.trigger,"An allied character within |threat| starts to move. This does not require |line of sight| or a clear path between you and the target."
+gear.mw_psychopomp_fold_pike.action_uffish_gyre.effect,"Make a melee attack against evasion 8, on hit the allied character gains +2 armor until the start of their next turn. This doesn’t count against the maximum number of |reactions| you can make in a turn."
+,
+gear.buff_uffish_gyre_armor.name,Uffish Gyre
+gear.buff_uffish_gyre_armor.effect,|+2 armor| until the start of your next turn.

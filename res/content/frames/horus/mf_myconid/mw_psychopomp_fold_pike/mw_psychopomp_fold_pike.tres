@@ -1,0 +1,56 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="2_action"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mw_psychopomp_fold_pike/action_psychopomp_strike.tres" id="3_strike"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mw_psychopomp_fold_pike/action_uffish_gyre.tres" id="4_gyre"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_psychopomp_fold_pike.svg" id="5_icon"]
+
+[resource]
+script = ExtResource("1_kit")
+; PFP// "PSYCHOPOMP" Fold Pike - the Myconid's integrated weapon (design ruling 9).
+;
+; ITS OWN mw_ KIT, NOT AN ACTION ON cp_quietus_machines. The character sheet titles an
+; integrated-weapon box from the KIT that holds the weapon - Translate.gear(core.kit.compcon_id,
+; 'name') at weapon_mount_item.gd:101 - so a strike living on the core Kit would label the box
+; "QUIETUS MACHINES". That is the integrated-weapon lesson of 8604d00 and of the Subutai's
+; mw_diversion_rail, and test_integrated_weapon_names.gd is the guard - it GAINED the Myconid row in
+; SP2 Task 5 and has it now (test_the_myconids_integrated_weapon_is_called_the_psychopomp_fold_pike,
+; :123-134; the sentence used to read "it gains the row in Task 5" and was stale by SP2.5).
+;
+; THE SHAPE IS DELIBERATE AND DATED, NOT AN OVERSIGHT (SP2.5 Task 3, 2026-09-16). The author's own
+; long-term target is the RALEIGH's shape, which is the opposite arrangement - the integrated weapon
+; lives ON the core-power Kit. content/frames/ipsn/mf_raleigh/cp_m35_mjolnir_cannon/
+; cp_m35_mjolnir_cannon.tres is a single is_trait Kit, listed in mf_raleigh.tres's `traits`
+; (mf_raleigh.tres:49), whose own `actions` (cp_m35_mjolnir_cannon.tres:15) hold FOUR, in this
+; order: action_thunder_god (the core power), action_thunder_god_chamber_rounds, action_m35_mjolnir
+; (the shot) and action_m35_mjolnir_free_attack; the Kit is named "M35 Mjolnir Cannon" and the
+; weapon action "M35 Mjolnir" (keys gear.cp_m35_mjolnir_cannon.name and .action_m35_mjolnir.name in
+; assets/localization/localizations.csv).
+;
+; SP2.5 Task 3 renamed action_psychopomp_strike's OWN name to "Uffish Gyre" - the author,
+; playtesting: "integrated weapon is wrong. It should read 'Uffish Gyre'" - and stopped there.
+; Rename-only was the author's choice for now, with the Raleigh's shape scheduled as a SEPARATE
+; rework after this frame closes, covering the Fitzgerald's mw_bizarre_cannon, the Subutai's
+; mw_diversion_rail and this Kit together. Until that step lands all three stay standalone mw_ Kits,
+; and none of the three core-power Kits holds its frame's weapon action (verified 2026-09-16 by
+; reading their `actions`: cp_broadside carries its protocol, cp_quietus_machines its protocol, and
+; cp_siege_engine its protocol plus the Draw Fire reaction - no weapon among them). This note is the
+; record that the divergence from the Raleigh is a SCHEDULED DEFERRAL, not something a future reader
+; should "fix" as a one-off.
+;
+; THE STRIKE IS FIRST, AND THAT IS NOT COSMETIC. GearCore.get_solo_action() returns kit.actions[0]
+; with no arity check (gear_core.gd:337-339), and Translate.buff falls through to it when a buff has
+; no row of its own (translate.gd:72-75) - so the order here decides what the battle log calls the
+; Gyre's hidden armor reduction. See buff_uffish_gyre_armor_reduction.tres's closing note for the
+; measurement. It is also the order the character sheet prints the two rows in.
+; SWAPPING THESE TWO REDDENS spec/test_uffish_gyre.test_the_battle_log_names_the_pike_for_the_reduction,
+; which asserts get_solo_action() itself - measured by mutation T3-M2, 2026-09-16. The string
+; assertion beside it would NOT catch a swap any more: since the Task 3 rename above, both candidate
+; rows read "Uffish Gyre", so the text the player sees does not move when the order does.
+actions = Array[ExtResource("2_action")]([ExtResource("3_strike"), ExtResource("4_gyre")])
+; A frame trait, not equippable gear: it costs no SP (the card says SP 0) and cannot be unequipped.
+; mw_diversion_rail is the same.
+is_trait = true
+icon_override = ExtResource("5_icon")
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

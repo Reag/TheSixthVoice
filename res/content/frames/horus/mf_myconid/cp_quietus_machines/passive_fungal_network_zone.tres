@@ -1,0 +1,191 @@
+[gd_resource type="Resource" script_class="PassiveDynamicZone" format=3]
+
+[ext_resource type="Script" uid="uid://g8ycgtxd1y6n" path="res://engine/character/gear_passive/passive_dynamic_zone.gd" id="1_zone"]
+[ext_resource type="Script" uid="uid://b2xlpsu4kynfl" path="res://engine/gamemaster/map/command_zone/dynamic_zone.gd" id="2_shape"]
+[ext_resource type="PackedScene" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/fxe_fungal_network.tscn" id="3_cloud"]
+
+; THE SHAPE OF THE CLOUD, AND NOTHING ELSE IT NORMALLY CARRIES. A DynamicZone is a real gameplay
+; object - it can block sight, fence movement, fence effects and steer the AI - and every one of
+; those is a separate export defaulted OFF. Left at their defaults this resource is INERT, and that
+; is deliberate: this task is a picture, not a rules change.
+;
+;   can_see_into / can_see_outof (dynamic_zone.gd:8-9)   both true, so map_state.gd:439-440 never
+;       adds the zone to dynamic_zones_that_affect_sight - the only list
+;       MapState.does_dynamic_zone_block_sight reads (map_state.gd:211).
+;   can_cross_boundary (dynamic_zone.gd:11)              true, so the three places that fence a move
+;       on it skip the zone: pathfinder.gd:172 and :361, event_unit_move.gd:388, each guarded by
+;       `if not zone.base.can_cross_boundary`.
+;   can_effects_cross_boundary (dynamic_zone.gd:12)      true, so map_state.gd:441-442 never pushes
+;       the zone into shape.effect_barrier_shards, and the guard that gates
+;       UnitTargeting.strip_tiles_from_inaccessible_dynamic_zones - `any(... not
+;       can_effects_cross_boundary)` at unit_targeting.gd:207 - stays false, so no targeting set is
+;       ever intersected or subtracted against this zone (:210-215).
+;   ai_guides (dynamic_zone.gd:15-17)                    0, so is_guide_checked (dynamic_zone.gd:24)
+;       is false for every guide and UnitTile.get_tiles_with_guide skips it at unit_tile.gd:755.
+;       mt_hive_drone.tres sets AVOID_TRY here because standing in ITS nanites hurts; standing in
+;       this cloud is already handled by passive_fungal_network_hostiles.tres, and a second opinion
+;       shouted at the AI from a decorative resource would be a balance change nobody asked for.
+;
+; The one thing left over is bookkeeping: map_state.gd:399-400 records which characters are inside
+; every registered zone, and that array is read by exactly one line - map_state.gd:212, inside the
+; loop over dynamic_zones_that_affect_sight, which this zone is not in. So it is written and never
+; read. THAT IS THE WHOLE RESIDUE of registering a zone for its picture.
+[sub_resource type="Resource" id="Resource_shape"]
+script = ExtResource("2_shape")
+; BURST 2, THE SAME NUMBER passive_fungal_network_hostiles.tres carries as aura_range - and the
+; number the author asked to be able to SEE ("a zone effect on the ground, so the burst-2 edge is
+; visible"). It is not the ally half's 1: the ally half is a one-tile ring inside this and drawing
+; both would be two clouds, not one.
+;
+; THE TWO FOOTPRINTS ARE COMPUTED BY DIFFERENT CODE AND AGREE ON THE FLAT. The aura asks
+; UnitRelation.distance_between, whose horizontal reading is the minimum Tile.distance over CLOSEST
+; occupied tiles - max(dx, dy), i.e. Chebyshev (unit_relation.gd:16 into :30-31, and tile.gd:380-387)
+; - and is then maxi'd against the elevation distance (unit_relation.gd:19-25). The FX asks
+; UnitTile.get_tiles_within(unit, radius, false) (passive_dynamic_zone.gd:24), whose candidate box
+; runs from anchor-radius to anchor+radius+unit_size (unit_tile.gd:581-582) - which for this size-2
+; frame is exactly Chebyshev 2 from the 2x2 block - and then filters on
+; can_unit_touch_tile_elevationwise (:592). So on level ground the drawn set is the caught set; on
+; broken ground both fall away with height by arithmetic that is CLOSE but not identical. The
+; picture is an honest guide, not a contract, and no spec here claims otherwise.
+radius = 2
+
+[resource]
+script = ExtResource("1_zone")
+; A GROUND FX FOR FUNGAL NETWORK. The author playtested QUIETUS MACHINES and said "I dont see a FX
+; for the cloud", and chose a zone effect on the ground so the burst-2 edge is visible in play
+; (SP2.5 Task 5). This passive draws that and does nothing else: it applies no buff, no status and
+; no rule. Everything the card promises is still the two PassiveAuras that carry it
+; (passive_fungal_network_allies.tres and _hostiles.tres).
+;
+; ================= THE FLAG QUESTION, WHICH IS THE WHOLE RISK OF THIS FILE =================
+;
+; A PassiveDynamicZone is gated on gear.is_dynamic_zone_active (passive_dynamic_zone.gd:13-14), and
+; that is a DIFFERENT per-gear flag from the is_aura_active the three PassiveAuras follow
+; (gear_core.gd:25 and :28 declare the two side by side). A picture on a flag of its own could
+; outlive the mechanic it draws, which is worse than no picture. So the two flags were traced before
+; this file was written. FIVE places write them, and the first four write BOTH:
+;
+;   1. spawn        unit_printer.gd:16-21   - BOTH set true, then each pulled down by its own
+;                                             passive type's starts_active = false. Paired.
+;   2. gear reapply unit_condition.gd:879-880 and :898-899 - the same pairing, line for line.
+;   3. owner death  event_service.gd:67-68  - BOTH set false, under one comment that says
+;                                             "all auras and zones turn off". Paired.
+;   4. save reload  gear_core.gd:112-113    - adjacent entries in GearCore.deserialize's attribute
+;                                             list, mirroring :81-82 on the way out. Paired.
+;   5. the setters  gear_core.gd:293 and :297 - set_dynamic_zone_active and set_aura_active. The
+;                                             ONLY unpaired writers.
+;
+; AND THE ZONE SETTER HAS AN ENGINE-SIDE CALLER THE AURA ONE DOES NOT. BuffCore declares its own
+; set_dynamic_zone_active(is_active, map) at buff_core.gd:177-181, which resolves a buff's from_gear
+; to a GearCore (:113-116) and forwards to the setter above. buff_core.gd declares no aura
+; equivalent - the string "aura" does not occur in that file at all. So the engine does ship an
+; unpaired lever for exactly this flag, and it is the one vanilla's zone-toggling buffs use:
+; buff_defense_net_aegis.gd, buff_cloaking_field_scout_active.gd, buff_swarm_body.gd, and
+; buff_hardlight_defense_system.gd, which wants both and pairs them by hand at :17 and :19. Other
+; callers skip the forwarder and reach a GearCore directly - action_self_destruct.gd:16, the Drake's
+; Fortress Protocol and its deactivate, and our own action_fungal_network.gd.
+;
+; IT STILL CANNOT DRIFT ON THIS KIT, because that forwarder fires only when a buff SCRIPT calls it,
+; and only against the gear that APPLIED that buff - and no buff of ours calls it. The only calls to
+; either setter in this mod are the two lines in action_fungal_network.gd (read the paragraph headed
+; WHY THE PROTOCOL SETS TWO FLAGS). The flags can only be driven apart by a caller we write, so a
+; later off switch must set both, and the forwarder alone will not do. starts_active below is the
+; other half: without it this zone would be LIT FROM THE START OF THE SCENE while the auras were
+; still dark, which is the exact failure this passive was asked not to have.
+;
+; ================= WHY THE FX IS THE MOD'S OWN SCENE =================
+;
+; THIS USED TO POINT AT VANILLA'S res://content/fx_endless/gear/aura/fxe_nanites.tscn. The author
+; playtested Task 5's grey cloud and asked for "a pink tinge to match the frames color scheme", so it
+; now points at fxe_fungal_network.tscn beside this file: vanilla's scene copied with ONE property
+; changed, the ParticleProcessMaterial's colour. THAT FILE'S HEADER CARRIES THE FULL ACCOUNT - the
+; colour arithmetic and how to re-derive it, why the copy could not be an edit or a .tscn_ext.gd, and
+; why its path must be new rather than a mirror of vanilla's. What stays true here:
+;
+; THE SHAPE IS STILL VANILLA'S, AND DELIBERATELY. fxe_nanites.tscn is HORUS' own nanite cloud: a
+; particle haze on an icosphere_smoke mesh whose root declares lock_height_to = 3, which is
+; LOCK_TO.SURFACE - "sets to surface elevation (terrain blocks + setpieces + obstructing units)"
+; (fx_endless.gd:11-18). That is literally the author's Task 5 request: the haze sits ON THE GROUND
+; rather than floating at the token's centre, which is the LOCK_TO.UNIT default. The copy carries
+; every one of those numbers over unchanged, so this is still the picture vanilla ships, recoloured.
+;
+; AND IT IS STILL MODELLED ON THAT SCENE BECAUSE VANILLA HAS ALREADY ANSWERED THIS EXACT QUESTION.
+; mt_hive_drone.tres pairs it with a radius-2 DynamicZone (:16) and a range-2 PassiveAura (:30) on a
+; HORUS deployable - the same radius, the same pairing of picture to aura, the same manufacturer - so
+; the game already shows what a burst-2 nanite cloud looks like on this board, and the card here is
+; literally "a cloud of nanite spores". fxe_nanobots.tscn and fxe_swarm_body.tscn are the near misses
+; (the Hive's razor swarm and HORUS' own Swarm Body; the latter is what ms_swarm_body.tres:22 really
+; draws - it is NOT a second user of the nanite scene, which an earlier note here got wrong).
+; fxe_smoke_cloud.tscn was rejected on meaning rather than looks - but NOT for the reason first
+; written here, which the 2026-09-16 review took apart. That haze is not the tree's private sign for
+; "you cannot see through this":
+;
+;   - It has SEVEN users under content/, not one, and six of them are terrain rather than zones:
+;     mt_smoke_cloud_0/2/3.tres, passive_smoke_cloud_cone.tres and setpiece_smoke.tres all lay
+;     terrain carrying cover = 1, and mt_expose_power_cells_cloud.tres lays terrain with nothing set
+;     on it at all. None of the six touches a sight flag, because none of them has a DynamicZone.
+;   - The seventh, mt_shroud_projector_assassin.tres, DOES block sight - but not with this scene.
+;     Its sight-blocking half is a DynamicZoneNotOwner drawn with fxe_flash.tscn (:17-29); the smoke
+;     is on the DynamicZoneOnlyOwner half (:31-41), whose can_see_into / can_see_outof are both left
+;     at their true defaults (dynamic_zone.gd:8-9).
+;   - Nor is that zone alone in shutting sight both ways: three resources in the tree set BOTH flags
+;     false - mt_shroud_projector_assassin.tres:20-21, mt_blinkshield.tres:13-14 and
+;     ms_hardlight_defense_system.tres:16-17.
+;
+; What the haze does consistently mean on this board is COVER, which this zone does not grant either,
+; so the rejection survives its own evidence being wrong.
+;
+; STILL NO NEW ART. The copy references vanilla's icosphere_smoke mesh by path, so nothing has to be
+; drawn and nothing new has to be imported; icons and art remain SP3's business.
+;
+; THE ID THE ENGINE LOOKS UP HAS CHANGED WITH THE SCENE, and that is the one thing a reader must not
+; miss. It is the scene's BASENAME - now `fxe_fungal_network`, not `fxe_nanites` - because
+; Passive.get_fxe_id (passive.gd:31) forwards to FxEndless.get_id_from_scene, which returns
+; resource_path.get_file().get_basename() (fx_endless.gd:93-96). It is resolved through
+; ContentLibrary.fxendless_library, built by globbing files named `fxe_*` containing `.tscn` under
+; res://content (content_library.gd:319-321, the prefix at :108), a list that reaches into mod
+; directories via get_all_files_recursive_mod_inclusive (:419-433). A name that index has no entry for
+; is a SILENT NO-DRAW: content_library.gd:215-219 logs an error and returns "", after which
+; FxEndless.create_from_id hands back null and reconstruct_add appends nothing (fx_endless.gd:83-91
+; into fx_endless_controller.gd:72-74). spec/test_fungal_network.gd's
+; test_the_cloud_is_the_mods_own_scene_and_not_vanillas exists to keep that honest.
+;
+; NO FX-ID COLLISION WAS FIXED BY THIS, AND IT IS WORTH SAYING SO because the change was proposed as
+; if one had been. The worry was that sharing `fxe_nanites` with the Hive Drone would make a Myconid
+; standing in the drone's cloud lose one of the two, per the rule that a unit shows one instance of an
+; fx id per local tile. IT DOES NOT HOLD, ON EITHER LEG, AND BOTH WERE MEASURED (2026-09-16 probe):
+;   - FX CONTROLLERS ARE PER TOKEN. UnitToken declares one AttachedFxEndless (unit_token.gd:53), bound
+;     to a node instanced inside the token scene itself (:96, unit_token.tscn:101), and
+;     update_attached_fx only ever walks THAT unit's own loadout (:215, into
+;     LoadoutCore.get_all_gear at loadout_core.gd:511-518). The drone's tickets go to the drone's
+;     controller. Two units in the probe returned two distinct controller instances.
+;   - AND TWO IDENTICAL TICKETS ON ONE CONTROLLER DO NOT COLLAPSE ANYWAY. reconstruct_add's re-use
+;     loop ERASES the pending node it matched (fx_endless_controller.gd:65) before returning, so the
+;     second ticket matches the second node. The probe fed one controller the same (tile, id) twice
+;     and read 2 nodes on a fresh pass, 2 again through the re-use path, and 1 after a pass carrying
+;     only one ticket - so the count is real bookkeeping, not an artefact.
+; The new scene is justified by the colour and nothing else.
+fxe = ExtResource("3_cloud")
+dynamic_zone = SubResource("Resource_shape")
+; DARK UNTIL THE PROTOCOL IS PRESSED - the same declaration all three PassiveAuras make, on the
+; other flag. passive_dynamic_zone.gd:7-8 spells the semantics out: "If ANY passive dynamic zones on
+; this gear set this to false, all dynamic zones on this gear start inactive." Per-GEAR, like the
+; aura flag. This Kit has one dynamic zone, so unlike starts_active on the three auras this line is
+; NOT redundant with a neighbour - it is the only thing holding the cloud down at spawn, and
+; mutating it alone reddens test_the_ground_cloud_is_dark_before_the_protocol (T5-M2).
+starts_active = false
+; THE MYCONID'S OWN FOUR TILES ARE LEFT CLEAR. passive_dynamic_zone.gd:25 drops any drawn tile the
+; unit occupies when this is false, so the cloud is a solid block with a 2x2 hole where the frame
+; stands. Both vanilla HORUS nanite zones do the same (mt_hive_drone.tres, ms_swarm_body.tres),
+; for the obvious reason that a particle haze over the mech hides the mech - and here it also makes
+; the drawn set EXACTLY the set of tiles a hostile can stand in and be caught, since nothing can
+; share the Myconid's space without Buff.TO.CAN_SHARE_SPACE or a PassiveAttachment stackup - the
+; filter at pathfinder.gd:117-122 and the append at :123-125, which together are the whole of
+; can_share_space_units.
+;
+; It is a one-line flip if the author wants the haze over the frame too; no rule depends on it, and
+; test_the_cloud_leaves_the_myconids_own_tiles_clear is what would have to change with it.
+is_fxe_at_unit_tiles = false
+; is_fxe_at_all_tiles is left at its TRUE default, and it is what makes this a ZONE rather than a
+; single puff: false collapses the whole thing to one ticket at the unit's own tile
+; (passive_dynamic_zone.gd:28-29), which is the opposite of what was asked for. Mutation T5-M3.

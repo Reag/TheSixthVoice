@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.3.0'
+const EXPECTED_VERSION := '0.4.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -243,6 +243,51 @@ const ICON_TARGETS := {
 	# integrated-weapon box "Diversion Rail" instead of "Siege Engine"
 	# (weapon_mount_item.gd:101 reads the KIT's name). See test_integrated_weapon_names.gd.
 	&'mw_diversion_rail': [&'action_diversion_rail'],
+	# SP1 Task 3 (Myconid). Pure passives: a Gaze-shaped PassiveStatIncrease and a
+	# PassiveBuffApplicator carrying THREE hidden bookkeeping buffs since SP2.5 Task 1 (the third
+	# relieves a non-consuming reaction's per-round cap). No actions at all, so it wears the Kit's
+	# icon and lists none. All three set hide_from_player and are correctly absent from
+	# VISIBLE_BUFFS - none is ever a chip on the unit.
+	&'mt_symbiosis': [],
+	# SP1 Task 5 (Myconid). Its one action (action_halo) is a hidden reaction: reactions never reach
+	# the gear bar (gear_bar.gd:145) and it overrides show_in_tooltip to false, so nothing the player
+	# sees ever wears an icon for it - the ms_heaer shape, not the mt_juggernaut_drive one. The Kit's
+	# own icon still has to be real.
+	&'mt_halo': [],
+	# SP2 Task 3 (Myconid). The core system. FUNGAL NETWORK is a PROTOCOL the player presses on the
+	# gear bar, so it wears its own icon as well as the Kit's - cp_siege_engine's and
+	# cp_auxiliary_power_rerouter's shape. The Kit's FOUR passives - three PassiveAuras (SP2.5 Task 4
+	# added passive_fungal_network_self) and one PassiveDynamicZone drawing the ground cloud (SP2.5
+	# Task 5, passive_fungal_network_zone) - wear nothing: Passive.get_icon exists (passive.gd:20-22)
+	# but nothing player-facing reads it for these, and the zone's picture is a reused VANILLA fx
+	# scene, so SP3 has no art to draw for it. The chip the third aura applies
+	# does, and the author's instruction is that it SHARES this Kit's icon rather than getting one of
+	# its own. That sharing is the ENGINE'S DEFAULT and needs no property: BuffCore.get_icon falls
+	# back to the owner gear's Kit icon when the Buff has none (buff_core.gd:81-86), and the chip's
+	# owner gear is this Kit. SP3 still has to set the field, because the visible-buff guard reads it
+	# raw (:398). See buff_fungal_network_active.tres, and VISIBLE_BUFFS below.
+	#
+	# The Pike is deliberately NOT here: it is its own mw_ Kit (ruling 9), listed separately when
+	# SP2 Task 4 lands, because weapon_mount_item.gd:101 titles the character sheet's
+	# integrated-weapon box from the KIT that holds the weapon action.
+	&'cp_quietus_machines': [&'action_fungal_network'],
+	# SP2 Task 4 (Myconid). Its own mw_ Kit (ruling 9), listed separately from cp_quietus_machines
+	# for the same reason as mw_diversion_rail above: weapon_mount_item.gd:101 titles the character
+	# sheet's integrated-weapon box from the KIT that holds the weapon action, so a strike living on
+	# the core Kit would title the box "QUIETUS MACHINES" instead of the weapon's own name.
+	#
+	# BOTH ACTIONS EARN A ROW, and for different reasons. The strike is the weapon profile
+	# weapon_mount_item.gd:71 always draws for an integrated mount's first weapon action
+	# (core.kit.get_weapon_actions()[0], with no is_situationally_activated or show_in_tooltip check
+	# of its own), so it needs a real icon on the character sheet even though
+	# is_situationally_activated keeps it off the gear bar (gear_bar.gd:149) and off the trait card
+	# (ActionAttack.show_in_tooltip, action_attack.gd:90). The Gyre's `.trigger` row does NOT reach the
+	# BASE Action.show_in_tooltip's trigger clause (action.gd:344) - that clause reads the KIT's own
+	# `gear.mw_psychopomp_fold_pike.trigger` key, which this mod does not have; the mod's trigger row
+	# is action-keyed instead. It draws because its own `.effect` row is non-empty and differs from
+	# the Kit's generic one (action.gd:350-353) - the mt_juggernaut_drive / action_draw_fire shape,
+	# not the strike's.
+	&'mw_psychopomp_fold_pike': [&'action_psychopomp_strike', &'action_uffish_gyre'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -289,6 +334,38 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# RAW into the roll breakdown - NOT through Buff.get_icon(), so BuffBonus's accuracy-svg fallback
 	# never runs on that path and a null icon draws a blank beside the -2.
 	&'buff_diversion_rail',
+	# SP2 Task 3 (Myconid). All three of FUNGAL NETWORK's player-facing chips. The cloud draws nothing
+	# else on the map, so these are the only signal that the zone exists at all - one on each sheltered
+	# ally (two chips, because the immunity and the armor are separate promises of the card) and one on
+	# each choked hostile.
+	#
+	# buff_fungal_network_armor_reduction is the hidden half of the armor grant and is deliberately
+	# ABSENT: the pair is one mechanic, and two chips for one effect would read as two effects. Same
+	# reasoning as buff_reinforcement_blast_reduction above.
+	&'buff_fungal_network_immunity', &'buff_fungal_network_armor', &'buff_fungal_network_spores',
+	# SP2.5 Task 4 (Myconid). The Myconid's own chip, and the only buff in this mod that is visible
+	# and NOTHING else - no `to`, no statuses, no triggers. It exists to be drawn: after playtesting,
+	# the author asked for a way to tell at a glance that FUNGAL NETWORK is running, and the Myconid
+	# was the one unit in its own cloud wearing nothing. Visible is therefore not a choice here the
+	# way it is for the three above; hide it and the buff has no reason to exist at all.
+	#
+	# ITS ICON IS NOT ITS OWN, AND THE ENGINE ALREADY SHARES IT. BuffCore.get_icon falls back to the
+	# OWNER GEAR'S KIT icon when the Buff declares none (buff_core.gd:81-86), and this chip's owner
+	# gear is cp_quietus_machines - so "shares icon with the core power" is what the game does today,
+	# with no property set at all. What SP3 is satisfying here is a GUARD, not the behaviour: the
+	# assertion below reads `buff.icon` RAW (:398), never Buff.get_icon(), so the fallback is
+	# invisible to it and a null field fails the row however the chip actually draws. Give it the
+	# same glyph as cp_quietus_machines rather than a new one; this guard checks only that the
+	# Texture2D is non-null and non-placeholder and does not care whether two entries point at one
+	# file.
+	&'buff_fungal_network_active',
+	# SP2 Task 4 (Myconid). The Gyre's on-hit chip - the reaction fires on somebody ELSE's turn, so
+	# this chip is the only on-map signal the mover gets that the Pike's strike landed. Same
+	# reasoning as buff_reinforcement_blast and buff_fungal_network_armor above:
+	# buff_uffish_gyre_armor_reduction is the hidden half that does the actual damage reduction and
+	# is deliberately ABSENT - the pair is one mechanic, and two chips for one effect would read as
+	# two.
+	&'buff_uffish_gyre_armor',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -317,6 +394,52 @@ func test_every_player_facing_kit_and_action_has_a_real_icon():
 			assert_true(by_id.has(action_id), '%s carries %s.' % [kit.compcon_id, action_id])
 			if not by_id.has(action_id): continue
 			_assert_real_icon(by_id[action_id].icon_override, '%s.%s' % [kit.compcon_id, action_id])
+		# Added at the MYCONID FRAME CLOSE, 2026-09-16 (close review slice 5, finding B): the two checks above only
+		# look at what IS listed - nothing compares it against kit.actions, so an action quietly
+		# dropped from ICON_TARGETS is invisible to every assertion above this line. Walk the OTHER
+		# direction - every action the Kit actually carries - and assert its presence in `listed`
+		# agrees with whether the engine would ever draw it with an icon of its own. See
+		# _action_reaches_a_player_facing_surface's header for the three surfaces and the rule.
+		var first_weapon_action:Action = null
+		var weapon_actions:Array[ActionAttackWeapon] = kit.get_weapon_actions() # kit.gd:129-132
+		if not weapon_actions.is_empty(): first_weapon_action = weapon_actions[0]
+		for action:Action in kit.actions:
+			var should_be_listed:bool = _action_reaches_a_player_facing_surface(action, kit, first_weapon_action)
+			assert_eq(listed.has(action.get_id()), should_be_listed,
+				'%s.%s is listed in ICON_TARGETS exactly when it reaches a player-facing surface.' % [kit.compcon_id, action.get_id()])
+
+## Whether ACTION would be drawn with an icon of its own by some real player-facing surface, rather
+## than borrowing the Kit's - i.e. whether it belongs in ICON_TARGETS at all. Three surfaces do
+## this, and each clause below transcribes that surface's actual gate rather than guessing, so the
+## rule tracks the engine instead of drifting from it as new content lands:
+##
+##  1. The character sheet's integrated-weapon box always draws a Kit's FIRST weapon action, with no
+##     is_situationally_activated or show_in_tooltip check of its own
+##     (weapon_mount_item.gd:53,71 - `var attack:ActionAttackWeapon = core.kit.get_weapon_actions()[0]`,
+##     gated only on the Kit having at least one weapon action). This is the one surface
+##     is_situationally_activated does NOT hide an action from - it is why action_psychopomp_strike
+##     needs a row despite being off both the gear bar and the trait card (ruling 9).
+##  2. The gear bar draws every action that is not a reaction and not situationally activated
+##     (gear_bar.gd:141-156's collect_gear_actions, the ActionReaction / is_situationally_activated
+##     clauses at :145/:149 - its hibernating and hide_if_disabled clauses are per-instance runtime
+##     state, not a fixed shape, so they have no equivalent here).
+##  3. The trait card draws whatever Action.show_in_tooltip(kit) returns. Called directly rather
+##     than re-derived: it already reads live translation state (action.gd:341-353) and is
+##     overridden per archetype (action_attack.gd:90 is `return not is_situationally_activated`),
+##     which is what earns action_draw_fire, action_juggernaut_drive and action_uffish_gyre their
+##     rows despite being reactions that never reach the gear bar (path 2 above always excludes a
+##     reaction, so this path is the only one that can list one).
+##
+## A hidden bookkeeping reaction (mt_blasting_powder's, ms_heaer's, mt_halo's) fails all three and is
+## correctly unlisted; the Pike's strike is caught only by path 1, and the Gyre only by path 3 - both
+## load-bearing, not redundant.
+##
+## first_weapon_action is kit.get_weapon_actions()[0], or null - passed in so it is computed once per
+## Kit rather than once per action.
+func _action_reaches_a_player_facing_surface(action:Action, kit:Kit, first_weapon_action:Action) -> bool:
+	if action == first_weapon_action: return true
+	if action is not ActionReaction and not action.is_situationally_activated: return true
+	return action.show_in_tooltip(kit)
 
 func test_every_visible_buff_has_a_real_icon():
 	# Same shape: driven by what the mod contributed, so VISIBLE_BUFFS cannot fall behind. A buff

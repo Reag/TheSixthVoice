@@ -33,6 +33,7 @@ const OUR_MOD_MAIN := 'res://unpacked/Reag-TheSixthVoice/mod_main.gd'
 const ALT_FRAMES := {
 	&'li_gms': {frame = &'mf_mk2', rank = 1}, # M/K2, the Everest alt (spike 2, 2026-09-14)
 	&'li_barbarossa': {frame = &'mf_subutai', rank = 2}, # Subutai, the Barbarossa alt (SP1, 2026-09-15)
+	&'li_gorgon': {frame = &'mf_myconid', rank = 2}, # Myconid, the Gorgon alt (SP1, 2026-09-15)
 }
 
 ## The vanilla licences the alts extend, with the rank each alt attaches to, and the frame that
@@ -88,7 +89,7 @@ func _license_paths_by_id() -> Dictionary:
 ## ALT_FRAMES row. It is the tripwire for an alt silently dropping out of the table - a frame that
 ## stops being granted would otherwise just make the loop below shorter, and a shorter loop reads
 ## exactly like a pass.
-const ALTS_BUILT := 2
+const ALTS_BUILT := 3
 
 ## The same tripwire for BASE_LICENSES, which ALTS_BUILT does not cover. Three tests below loop over
 ## it, and emptying it ENTIRELY is caught indirectly (test_every_alt_frame_reaches_its_licence

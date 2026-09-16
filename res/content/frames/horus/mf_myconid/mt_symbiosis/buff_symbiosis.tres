@@ -1,0 +1,9 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mt_symbiosis/buff_symbiosis.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+hide_from_player = true
+triggers_on = Array[StringName]([&"unit_action", &"new_turn", &"new_round"])
+trigger_timing = 1
