@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="PassiveAura" format=3]
+
+[ext_resource type="Script" uid="uid://dw0igjjw1k5s3" path="res://engine/character/gear_passive/passive_aura.gd" id="1_aura"]
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="2_buff"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/buff_fungal_network_spores.tres" id="3_spores"]
+
+[resource]
+script = ExtResource("1_aura")
+; THE HOSTILE HALF OF FUNGAL NETWORK: "Hostile characters within burst 2 of the Myconid are Slowed
+; and Impaired."
+;
+; ONE BUFF CARRIES BOTH STATUSES, declaratively, with no script. That file has the whole story,
+; including why the statuses are LOCKED while a hostile stands in the cloud.
+buffs = Array[ExtResource("2_buff")]([ExtResource("3_spores")])
+; "BURST 2". UnitRelation.distance_between measures CLOSEST TILES (passive_aura.gd:87), so a size-2
+; Myconid's burst is measured from all four of its tiles, not from an anchor. Ruling 6, and the spec
+; places at least one hostile diagonally off a non-anchor tile so it can tell the two apart.
+aura_range = 2
+; Hostiles only. BOTH of the next two lines are set and only the SECOND does any work: a unit is its
+; own ally (Faction.is_ally(f, f) is true, faction.gd:30), so applies_to_allies = false already
+; refuses the Myconid at passive_aura.gd:70, one line after the applies_to_self test at :69 has
+; fallen through. Measured - probe mutation 4 flipped applies_to_self and reddened nothing.
+;
+; IT STAYS SET ANYWAY. The redundancy is an engine detail that could change; the card cannot; and a
+; reader of this file should not have to know faction.gd:30 to see that the Myconid is out of its own
+; cloud. But NO SPEC MAY CLAIM TO PIN applies_to_self here - it cannot. Rulings row 2026-09-16.
+applies_to_self = false
+applies_to_allies = false
+; "Hostile CHARACTERS": a deployable, a drone or a piece of cover standing in the cloud is untouched.
+; This is the engine's default, spelled out because the card says the word.
+applies_only_to_characters = true
+; DARK UNTIL THE PROTOCOL IS PRESSED - see passive_fungal_network_allies.tres.
+starts_active = false

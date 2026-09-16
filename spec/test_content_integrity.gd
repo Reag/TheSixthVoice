@@ -253,6 +253,14 @@ const ICON_TARGETS := {
 	# sees ever wears an icon for it - the ms_heaer shape, not the mt_juggernaut_drive one. The Kit's
 	# own icon still has to be real.
 	&'mt_halo': [],
+	# SP2 Task 3 (Myconid). The core system. FUNGAL NETWORK is a PROTOCOL the player presses on the
+	# gear bar, so it wears its own icon as well as the Kit's - cp_siege_engine's and
+	# cp_auxiliary_power_rerouter's shape. The Kit's two PassiveAuras are passives and wear nothing.
+	#
+	# The Pike is deliberately NOT here: it is its own mw_ Kit (ruling 9), listed separately when
+	# SP2 Task 4 lands, because weapon_mount_item.gd:101 titles the character sheet's
+	# integrated-weapon box from the KIT that holds the weapon action.
+	&'cp_quietus_machines': [&'action_fungal_network'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -299,6 +307,15 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# RAW into the roll breakdown - NOT through Buff.get_icon(), so BuffBonus's accuracy-svg fallback
 	# never runs on that path and a null icon draws a blank beside the -2.
 	&'buff_diversion_rail',
+	# SP2 Task 3 (Myconid). All three of FUNGAL NETWORK's player-facing chips. The cloud draws nothing
+	# else on the map, so these are the only signal that the zone exists at all - one on each sheltered
+	# ally (two chips, because the immunity and the armor are separate promises of the card) and one on
+	# each choked hostile.
+	#
+	# buff_fungal_network_armor_reduction is the hidden half of the armor grant and is deliberately
+	# ABSENT: the pair is one mechanic, and two chips for one effect would read as two effects. Same
+	# reasoning as buff_reinforcement_blast_reduction above.
+	&'buff_fungal_network_immunity', &'buff_fungal_network_armor', &'buff_fungal_network_spores',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

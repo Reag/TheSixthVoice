@@ -68,6 +68,15 @@ static func create_ally(game:Gamemaster, tile:Vector2i) -> Unit:
 static func open_turn(game:Gamemaster, unit:Unit) -> void:
 	await FitzgeraldFixture.open_turn(game, unit)
 
+## A hostile NON-character: the vanilla Jericho cover. Fungal Network's hostile aura sets
+## applies_only_to_characters, and this is the only way to prove that clause does anything - a
+## deployable standing in the cloud must be untouched (passive_aura.gd:73).
+##
+## The numbers are this frame's, not the Fitzgerald's: 200 HP so nothing here can kill it and end a
+## scene, 0 armor so a damage assertion is the weapon's number, and evasion 10 to match create_dummy.
+static func create_deployable(game:Gamemaster, tile:Vector2i) -> Unit:
+	return FitzgeraldFixture.create_deployable(game, tile, 200, 0, 10, Faction.AI_ENEMY)
+
 ## Give a unit a pilot Grit, which is what Halo grants Overshield equal to.
 ##
 ## PilotCore.get_grit() is Util.half(license_level), and Util.half is CEILI (util.gd:14-15) - the

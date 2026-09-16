@@ -1,0 +1,26 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/action_fungal_network.gd" id="1_action"]
+[ext_resource type="PackedScene" uid="uid://bfq34dqe4ydxy" path="res://content/fx_groups/actions/fxg_super_activation.tscn" id="2_superfx"]
+
+[resource]
+script = ExtResource("1_action")
+; Lancer.ACTION.PROTOCOL (lancer.gd:27 - NONE, QUICK, FULL, FREE, PROTOCOL, RXN, so PROTOCOL is 4).
+; The card's activation is "Protocol". UnitAction.get_gear_unavailable_reason refuses a protocol
+; outside the protocol window with REASON.PROTOCOL (unit_action.gd:119 via is_protocol), which is
+; what confines this to the start of the Myconid's turn.
+action_type = 4
+; It is the frame's CORE POWER: pressing it spends the core power, which is what makes this
+; once-a-mission rather than once-a-scene on its own. The hibernate in the script is the
+; "rest of the scene" half; this is the Lancer-side cost. cp_fortress and cp_siege_engine both set it.
+consumes_cp = true
+; A protocol and a pressable on one Kit need a usage_group EACH (unit_action.gd:167-168, the Subutai
+; SP2 lesson). Only one button lives on this Kit today - the Pike is its own Kit per ruling 9 - but
+; the group costs nothing and removes the trap if that changes.
+usage_group = &"fungal_network"
+; The core-power activation flash, as cp_fortress and cp_siege_engine use.
+fxg_use = ExtResource("2_superfx")
+emit_text_popcorn_on_use = true
+; NO icon_override, deliberately. SP2 ships no icons and
+; test_every_player_facing_kit_and_action_has_a_real_icon is expected RED on this row until SP3.
+; ICON_TARGETS lists it regardless.

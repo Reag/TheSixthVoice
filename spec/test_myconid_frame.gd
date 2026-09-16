@@ -306,15 +306,15 @@ func test_the_map_indexes_the_whole_footprint():
 
 ## The sheet's trait order (specs/sixth-voice/04-myconid.md). The frame card lists traits in array
 ## order, so this is player-visible.
-const SHEET_TRAITS:Array[StringName] = [&'mt_symbiosis', &'mt_halo', &'mt_guardian']
+const SHEET_TRAITS:Array[StringName] = [&'mt_symbiosis', &'mt_halo', &'mt_guardian', &'cp_quietus_machines']
 
-func test_the_traits_are_the_sheets_three_in_the_sheets_order():
+func test_the_traits_are_the_sheets_three_in_the_sheets_order_then_the_core():
 	var frame:Frame = _frame()
 	assert_not_null(frame, 'mf_myconid loads.')
 	if frame == null: return
 	var ids:Array[StringName] = []
 	for kit:Kit in frame.traits: ids.append(kit.compcon_id)
-	assert_eq(ids, SHEET_TRAITS, 'Three traits, in sheet order.')
+	assert_eq(ids, SHEET_TRAITS, 'Three traits in sheet order, then the core system.')
 
 func test_guardian_is_vanillas_own_resource():
 	# Asserted by IDENTITY against ContentLibrary rather than by id, which is what proves the frame
@@ -350,11 +350,32 @@ func test_every_new_display_row_resolves():
 	assert_not_null(translation, 'This mod has a compiled translation.')
 	if translation == null: return
 	var traits:Array = _frame().traits
-	assert_eq(traits.size(), SHEET_TRAITS.size(), 'Guard: the trait list is not empty.')
+	assert_eq(traits.size(), SHEET_TRAITS.size(), 'Guard: the trait list is the pinned one.')
 	for kit:Kit in traits:
 		assert_ne(kit.name(), 'gear.%s.name' % kit.compcon_id,
 			'%s resolves a display name.' % kit.compcon_id)
 		if kit.compcon_id == &'mt_guardian': continue # vanilla's own rows
-		for suffix:String in ['name', 'effect']:
+
+		# THE CORE SYSTEM HAS NO .effect ROW, ON PURPOSE (ruling 14, 2026-09-15). The LCP's core
+		# `description` field is EMPTY for this frame, and the standing localisation directive is that
+		# an empty LCP field means NO ROW rather than invented prose - vanilla itself leaves 189 of its
+		# 431 kits without one. Its effect text lives on the PROTOCOL instead
+		# (gear.cp_quietus_machines.action_fungal_network.effect), which is where the card puts it and
+		# where the character sheet reads it, and both of those rows are asserted just below.
+		#
+		# The absence is pinned by test_fungal_network.gd's
+		# test_the_core_kit_has_no_effect_row_because_the_lcp_has_no_description, so skipping it here
+		# cannot quietly become "nobody checks this key at all".
+		# Spelled out rather than as a ternary: `['name'] if c else ['name','effect']` builds an
+		# untyped Array, which GDScript refuses to assign to an Array[String] at runtime.
+		var suffixes:Array[String] = ['name', 'effect']
+		if kit.compcon_id == &'cp_quietus_machines': suffixes = ['name']
+		for suffix:String in suffixes:
 			var key := 'gear.%s.%s' % [kit.compcon_id, suffix]
 			assert_ne(String(translation.get_message(key)), '', 'Our artifact carries %s.' % key)
+
+	# The core system's own rows, which the loop above deliberately does not cover: its ACTION carries
+	# the card text, and a name row of its own.
+	for key:String in ['gear.cp_quietus_machines.action_fungal_network.name',
+			'gear.cp_quietus_machines.action_fungal_network.effect']:
+		assert_ne(String(translation.get_message(key)), '', 'Our artifact carries %s.' % key)

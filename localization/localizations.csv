@@ -130,3 +130,14 @@ gear.mt_symbiosis.refused.log,{unit} cannot spend the Symbiosis reaction on a 1/
 ,
 gear.mt_halo.name,Halo
 gear.mt_halo.effect,"1/round, when the Myconid takes damage, an allied character within |Sensors| gains |OVERSHIELD| equal to |GRIT|."
+,
+gear.cp_quietus_machines.name,QUIETUS MACHINES
+gear.cp_quietus_machines.action_fungal_network.name,Fungal Network
+gear.cp_quietus_machines.action_fungal_network.effect,"The Myconid releases a cloud of nanite spores around itself. For the rest of the scene all adjacent allies gain immunity to |Impaired| and have |+1 armor|. Hostile characters within |burst 2| of the Myconid are |Slowed| and |Impaired|."
+,
+gear.buff_fungal_network_immunity.name,Fungal Network
+gear.buff_fungal_network_immunity.effect,Immune to |Impaired|.
+gear.buff_fungal_network_armor.name,Fungal Network
+gear.buff_fungal_network_armor.effect,|+1 armor|.
+gear.buff_fungal_network_spores.name,Fungal Network
+gear.buff_fungal_network_spores.effect,|Slowed| and |Impaired| while within |burst 2| of the Myconid.
