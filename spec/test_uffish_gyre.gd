@@ -675,16 +675,28 @@ func test_the_battle_log_names_the_pike_for_the_reduction():
 	# row (gear.buff_uffish_gyre_armor.name), while this one still arrives via the three-hop
 	# fall-through above, landing on the STRIKE's row
 	# (gear.mw_psychopomp_fold_pike.action_psychopomp_strike.name). Two different keys, one string,
-	# by coincidence of the rename - the fall-through did not start reading the chip's row. Still
-	# pinned for the original reason: reordering the Kit's actions would silently swap which of the
-	# two rows this assertion is actually reading, even though the string would not currently show
-	# it.
+	# by coincidence of the rename - the fall-through did not start reading the chip's row.
+	#
+	# AND THAT RENAME COST THE REORDER GUARD, SO THE MECHANISM IS NOW ASSERTED DIRECTLY (SP2.5 Task
+	# 3 review). This test's other job has always been that reordering the Kit's `actions` cannot
+	# silently change what the player reads. Before the rename the two candidate rows held DIFFERENT
+	# strings - action_psychopomp_strike.name was "Psychopomp Fold Pike", action_uffish_gyre.name
+	# "Uffish Gyre" - so swapping the array reddened the string assertion below all by itself. Both
+	# rows now read "Uffish Gyre", so the string cannot tell them apart any more and a swap would
+	# leave it green. The get_solo_action() assertion puts the guard back by pinning the HOP instead
+	# of its output: it is the very call translate.gd:72 makes, so it is what a reorder breaks.
+	# MEASURED, not reasoned - mutation T3-M2 swapped mw_psychopomp_fold_pike.tres's actions to
+	# [gyre, strike] and this test went RED on exactly that assertion while both string assertions
+	# stayed green, which is the whole finding in one run.
 	var ally := create_ally(AT_8)
 	queue_dice(D20_HITS)
 	await moves_east(ally)
 	var reduction:BuffCore = UnitCondition.get_buff(ally, ARMOR_REDUCTION)
 	assert_not_null(reduction, 'fixture: the reduction is on the ally.')
 	if reduction == null: return
+	var solo:Action = pike_gear().get_solo_action()
+	assert_eq(solo.get_id() if solo != null else &'', STRIKE_ID,
+		'THE GUARD: kit.actions[0], the hop translate.gd:72 takes, is still the strike - so the row read below is the strike s.')
 	assert_eq(reduction.name_text(), 'Uffish Gyre',
 		'The hidden reduction still reads as the strike, the Kit s first action - now the same text as the chip, for a different reason (see header).')
 	assert_eq(UnitCondition.get_buff(ally, ARMOR_CHIP).name_text(), 'Uffish Gyre',

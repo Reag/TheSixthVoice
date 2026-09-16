@@ -115,11 +115,16 @@
 ##      no arity check, that Kit's actions are [strike, gyre], and so the Gyre's reduction logs the
 ##      STRIKE's own name - the right weapon, the wrong half of it. Cosmetic in exactly the same way,
 ##      and accepted on the same ruling. Pinned by
-##      spec/test_uffish_gyre.test_the_battle_log_names_the_pike_for_the_reduction, so reordering
-##      that Kit's actions cannot change what the player reads without a test noticing. (SP2.5 Task 3,
+##      spec/test_uffish_gyre.test_the_battle_log_names_the_pike_for_the_reduction, which asserts the
+##      string AND - since the SP2.5 Task 3 review - get_solo_action() itself, so reordering that
+##      Kit's actions cannot change WHICH ROW the log reads without a test noticing. (SP2.5 Task 3,
 ##      2026-09-16, renamed that row from "Psychopomp Fold Pike" to "Uffish Gyre" - the same string
 ##      the Gyre's OWN visible chip prints, by coincidence of the rename, not because the fall-through
-##      started reading the Gyre's row instead of the strike's.)
+##      started reading the Gyre's row instead of the strike's. That collision is what forced the
+##      second assertion: with both candidate rows holding the identical string, a reorder stops
+##      changing the TEXT at all, so a string assertion has nothing left to notice. Any future user
+##      of this buff whose Kit has more than one action wants the mechanism assertion, not a string
+##      one.)
 ##
 ## SHREDDED IS NOT A DIVERGENCE, and that is worth knowing because it looks like one. The Shredded
 ## early return (damage_modifications.gd:73-77) happens after `other_reduction` has been accumulated
