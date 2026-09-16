@@ -857,10 +857,19 @@ func test_the_gyre_asks_the_player_nothing():
 	# routing the strike past choice_bus.choose_compcon_plan at :200 into the supplied-target branch
 	# at :230-242.
 	#
-	# THE CONTROL IS THE VERY SAME STRIKE AT THE VERY SAME ALLY, pressed directly with the target
-	# made mandatory - i.e. the Gyre's own call shape with the one flag removed. That is what makes
-	# the two zeroes above evidence about the FLAG rather than about the fixture: an absent prompt
-	# proves nothing unless something in the same test proves the watcher would have seen it.
+	# THE CONTROL IS THE SAME STRIKE AT THE SAME ALLY, pressed directly with the target made
+	# mandatory - NEAR-IDENTICAL to the Gyre's own call shape, not the same shape with one flag
+	# removed. choose_and_use unconditionally injects Action.FLAG.AS_FREEBIE alongside
+	# TARGETS_ARE_MANDATORY (common_action_util.gd:693-696), and the Gyre's additional_action_flags
+	# carry CAN_FOLLOWUP beside SKIP_PLAYER_DECISIONS; SpecFactory.use passes its `flags` argument
+	# straight through with no additions of its own (spec_factory.gd:248-265, `flags = flags`), so
+	# the control below carries TARGETS_ARE_MANDATORY alone. That does not touch the conclusion: the
+	# two things this test reads a confirm result off of are CONTROLLED_BY_OPPONENT and
+	# SKIP_PLAYER_DECISIONS (target_action_util.gd:432-433 for the yes/no, :150-162 for the picker),
+	# and the control matches the Gyre's real call on both. What makes the two zeroes above evidence
+	# about the FLAG rather than about the fixture is that match, not an identical call shape - an
+	# absent prompt proves nothing unless something in the same test proves the watcher would have
+	# seen it.
 	var ally := create_ally(AT_8)
 	queue_dice(D20_HITS)
 	await moves_east(ally)
@@ -933,6 +942,24 @@ func test_the_conditional_spend_now_only_guards_the_refusal_paths():
 		'And the Gyre spent nothing for it: an unconditional spend would read 2 here.')
 	assert_true(pike_gear().is_action_hibernating(STRIKE_ID),
 		'And the strike was put back to sleep even though the activation aborted.')
+
+	# POSITIVE CONTROL, closing the loop the way test_a_stunned_myconid_cannot_strike:796-802 does
+	# (and the way the test this replaced did): the SAME ally, from the SAME pre-move tile, still
+	# fires a Gyre once unstunned - so the four negatives above are evidence that Stunned refused
+	# THIS trigger, not evidence of a trigger that had quietly stopped matching from AT_7_LOW.
+	# Without this, a future range regression at AT_7_LOW would make this half pass for exactly the
+	# "wrong reason" the comment above warns about. "Starts to move" means the trigger reads the
+	# PRE-move tile (this file's own header, and event_unit_move.gd:71), and `second`'s refused move
+	# already carried it from distance 7 to distance 8 - still within threat - so this further move
+	# starts from 8 and fires the round's SECOND Gyre, Symbiosis's extra use, same arithmetic as
+	# test_a_further_gyre_is_refused_once_symbiosis_is_spent's second case.
+	UnitCondition.clear_status(SpecFactory.dummy_event(), myconid, Lancer.STATUS.STUNNED)
+	queue_dice(D20_HITS)
+	await moves_east(second)
+	assert_true(UnitCondition.has_buff(second, ARMOR_CHIP), 'CONTROL: unstunned, the strike lands.')
+	assert_eq(strike_uses_this_round(), 2, 'CONTROL: and the strike really activated a second time.')
+	assert_eq(gyre_uses_this_round(), 2,
+		'CONTROL: and the Gyre spends its use - the round s SECOND, Symbiosis s extra.')
 
 func test_the_gyre_announces_itself_before_the_roll():
 	# THE ORDER THE PLAYER SEES, and the whole justification for the .tres's emit_text_popcorn_on_use:

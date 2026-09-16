@@ -253,6 +253,15 @@ func spend_the_gyres_use(activation:EventCore, _using:SpecificAction, _chosen:Sp
 ## ActionAttack.get_attack_plan passes context.flags straight back out to the targeting
 ## (action_attack.gd:141).
 ##
+## THE SAME READ HAS A TWIN, ON THE SAME CALL SITE, AND THE EARLIER CUT OF THIS HEADER MISSED IT.
+## TargetActionUtil.confirm_aoe_no_targets tests the flag identically at target_action_util.gd:440,
+## and action_attack.gd:247/:249 is an if/elif chain, so confirm_aoe_no_targets always runs right
+## after confirm_friendly_fire returns without aborting - which our flag guarantees it does. It is
+## BEHAVIOURALLY INERT here regardless: :441 returns true the moment all_attacked_units is
+## non-empty, and the Gyre always hands the strike a mandatory target_unit, so the twin would have
+## returned true unflagged too. Recorded because it IS on this path and a "checked rather than
+## assumed" claim has to say so, not because it changes anything.
+##
 ## THE SAME FLAG ALSO RETIRES THE COMPCON TARGET PICKER, AND THAT IS WANTED, NOT TOLERATED.
 ## target_action_util.gd:150 reads it into skip_player_decision and :162 turns player_decides off,
 ## which routes the strike to the "use these supplied tiles/units automatically" branch at :230-242
@@ -281,13 +290,44 @@ func spend_the_gyres_use(activation:EventCore, _using:SpecificAction, _chosen:Sp
 ##
 ## THE THIRD READER THIS FLAG REACHES, checked rather than assumed. event_gear_activate.gd:82-89
 ## treats it exactly like "not player controlled" and composes the DEFAULT variant of any
-## VariantActionGroup instead of opening the variant menu. The mod ships no variant buffs, but
-## eighteen vanilla .tres files declare variant_actions (Lunge, Sledgehammer, Throughbolt Rounds,
-## Grapple Cable...) and a pilot could carry one. The default is the conservative one:
-## get_chosen_variant_for_group takes index 0 (variant_action_group.gd:192) and a blankable group
-## inserts UNMODIFIED at index 0 (:76-83, is_blankable defaults true), so a player Myconid loses the
-## menu and gets the plain strike rather than a variant it did not ask for. Consistent with the
-## rest of this block - an off-turn reaction the card gives no decisions asks for none.
+## VariantActionGroup instead of opening the variant menu, via get_chosen_variant_for_group taking
+## index 0 (variant_action_group.gd:192) against an empty override dictionary (:88). The mod ships
+## no variant buffs, but eighteen vanilla .tres files declare variant_actions (Lunge, Sledgehammer,
+## Throughbolt Rounds, Grapple Cable...) and a pilot could carry one.
+##
+## "INDEX 0 IS THE CONSERVATIVE UNMODIFIED DEFAULT" IS NOT TRUE OF EVERY GROUP, AND AN EARLIER CUT
+## OF THIS HEADER SAID IT WAS WITHOUT CHECKING. A blankable group inserts UNMODIFIED at index 0
+## (variant_action_group.gd:76-83, is_blankable defaults true at :17) - but is_blankable is a
+## per-group flag set by whoever builds the group, not a constant, and two of the four named
+## examples above pass can_be_blank = false to VariantActionGroup.create (signature :26-33):
+## buff_sledgehammer.gd:20 and buff_grapple_cable.gd:18. For a non-blankable group index 0 IS the
+## variant, applied unasked, and merge (:43-54) keeps a merged group non-blankable if either half is
+## (:49), so a second buff cannot blank one back.
+##
+## THE CONCLUSION SURVIVES ANYWAY, BUT FOR A DIFFERENT REASON, WHICH IS WHAT HAS TO BE WRITTEN HERE
+## INSTEAD. Neither of those two groups can reach this strike: buff_sledgehammer.gd:12 filters to
+## context.action.get_id() == &'action_improvised_attack' and buff_grapple_cable.gd:9 to
+## &'action_grapple', and ours is action_psychopomp_strike. That leaves the other two named
+## examples and the rest of the eighteen unaccounted for, so every VariantActionGroup.create call in
+## the base game was surveyed for a broader hazard, not just the two reader-3 originally cited: 23
+## call sites under content/, found by grepping for the call, plus engine's own single use for the
+## THROWN tag (action_attack_weapon.gd:353-375). Every OTHER non-blankable group in the tree is
+## gated exactly as narrowly: to one action id (buff_siege_ram.gd:17 -> action_ram) or one kit id
+## (buff_tear_down_witch.gd:10-13 -> ms_stabilize / npcf_stabilize), or is a BuffWeaponType
+## conversion additionally gated by a status (buff_limit_break_convert_damage.gd:6-9, EXPOSED;
+## buff_fusion_hemorrhage_convert_damage.gd:7-12, DANGERZONE) that only rewrites KINETIC or
+## EXPLOSIVE damage_type (:26 and :29 respectively) - and the Pike's strike declares no damage_dice
+## at all (action_psychopomp_strike.tres:26), so even an unfiltered damage-type conversion would
+## have nothing to convert. The Pike is also not THROWN, so the engine's own non-blankable-looking
+## group (action_attack_weapon.gd:353-375) never builds for it at all - and that one is blankable
+## regardless, the THROWN tag gate is what keeps it off, not is_blankable. No non-blankable group in
+## the tree applies to an arbitrary melee weapon with no id filter, so a player Myconid still loses
+## the variant menu and gets the plain strike on THIS action specifically, exactly as claimed -
+## consistent with the rest of this block, an off-turn reaction the card gives no decisions asks for
+## none. NOT WORTH A TEST: exercising the bad case would mean building a synthetic non-blankable,
+## unfiltered VariantActionGroup from scratch, since nothing in the tree reaches it, and that
+## fixture costs more than the consequence it would be guarding against. Flagged here for the
+## author instead, same as before.
 ##
 ## AND THE FOURTH READER IS NOT ON THIS PATH AT ALL: CommonActionUtil.confirm_use_alt's test at
 ## common_action_util.gd:330 is reached from confirm_use (:312), from
