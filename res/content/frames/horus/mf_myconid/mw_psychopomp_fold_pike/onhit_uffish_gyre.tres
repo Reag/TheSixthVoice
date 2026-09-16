@@ -1,0 +1,30 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="1_onhit"]
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="2_buff"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mw_psychopomp_fold_pike/buff_uffish_gyre_armor.tres" id="3_chip"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mw_psychopomp_fold_pike/buff_uffish_gyre_armor_reduction.tres" id="4_reduction"]
+
+[resource]
+script = ExtResource("1_onhit")
+; "on hit the allied character gains +2 armor until the start of their next turn".
+;
+; OnHitEffect.STAGE (on_hit_effect.gd:8) is {ON_ATTACK, ON_HIT, ON_CRIT, ON_TARGETED_TILES,
+; ON_RESOLUTION}, so 1 is ON_HIT - the Subutai's onhit_diversion_rail.tres value, confirmed against
+; that enum rather than copied. ON_ATTACK would grant the armor on a MISS too, and ON_CRIT would
+; never fire at all: action_psychopomp_strike.gd overrides can_crit to false.
+apply_on = 1
+; BOTH HALVES OF THE ARMOR GRANT, and the pair is one mechanic - buff_uffish_gyre_armor.tres shows
+; the number and every unit.get_armor() gate reads it; buff_uffish_gyre_armor_reduction.tres is what
+; actually blunts the damage. Read buff_armor_reduction.gd's header. Dropping either leaves a chip
+; that does nothing or damage quietly going missing, so
+; test_a_hit_applies_the_chip_and_the_reduction asserts both are on the ally by id.
+;
+; apply_buffs_to_self IS DELIBERATELY UNSET: these go to the ATTACKED unit, which for this weapon is
+; the ALLY (on_hit_effect.gd:85-88). That is the card - the Myconid pikes its friend and the friend
+; gains the armor.
+;
+; from_gear IS SET FOR BOTH BY THE ENGINE: apply_statuses_and_buffs passes context.gear into
+; UnitCondition.apply_buffs (on_hit_effect.gd:88), so both halves are owned by the Pike and are
+; cleared with it if the weapon is destroyed or the Myconid dies.
+buffs = Array[ExtResource("2_buff")]([ExtResource("3_chip"), ExtResource("4_reduction")])

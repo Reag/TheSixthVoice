@@ -1,0 +1,43 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/armor/buff_armor_reduction.gd" id="1_reduction"]
+
+[resource]
+script = ExtResource("1_reduction")
+; "on hit the allied character gains +2 armor until the start of their next turn" - the MITIGATING
+; half, and the half nobody can see. Its sibling buff_uffish_gyre_armor.tres wears the chip. Read
+; buff_armor_reduction.gd's header for the whole account: why there are two files, why a STATBLOCK
+; buff reduces nothing, why the AP guard is there, why damage_types is spelled out instead of
+; resist_everything, and the four accepted divergences from real armor. None of that is repeated
+; here; only what is specific to this user is.
+to = &"resist_damage"
+; REDUCE, not resist and not cap: a flat subtraction, which is what armor is.
+reduce_instead_of_resist = true
+; Rolled through Dice.roll_string (buff_resist_damage.gd:73), so a literal is a constant 2.
+reduction_amount = "2"
+; KINETIC, ENERGY, EXPLOSIVE (lancer.gd:110) - the three armor reduces - and deliberately NOT heat or
+; burn. Spelled out rather than resist_everything, which excludes HEAT but NOT burn.
+damage_types = Array[int]([0, 1, 2])
+; Real armor covers self-inflicted non-AP damage, so without this an ally standing in its own area
+; damage would be the one case the grant did not cover.
+resist_self_inflicted = true
+; Invisible on purpose: the STATBLOCK half already wears the chip, and two chips for one effect would
+; read as two effects. test_content_integrity.gd's VISIBLE_BUFFS therefore must NOT list this file.
+hide_from_player = true
+; START_OF_TURN (3), matching buff_uffish_gyre_armor.tres exactly - the struck ALLY's own next turn
+; start, which is the unit UnitCondition.new_turn_for_statuses clears START_OF_TURN buffs on
+; (unit_condition.gd:22-23). See that file's note on why the two must never disagree.
+;
+; is_onetime IS DELIBERATELY ABSENT and its false default is load-bearing - setting it true would
+; turn 2 armor into a single-use shield. buff_armor_reduction.gd's header has the mechanism.
+until = 3
+; WHAT THE BATTLE LOG CALLS THIS, MEASURED FOR THIS USER (2026-09-16, SP2 Task 4; the note
+; buff_armor_reduction.gd's divergence 4 left for whoever built the Pike). A blunted hit logs the
+; reducing buff's NAME, and this buff has no localisation row of its own, so Translate.buff falls
+; through: gear.<buff_id>.* first (translate.gd:56-58), then gear.<kit_id>.<buff_id>.* (:68-70),
+; then gear.<kit_id>.<SOLO ACTION>.* (:72-75). get_solo_action() is `kit.actions[0]`
+; (gear_core.gd:337-339) with no arity check, and this Kit's actions are [strike, gyre] - so the
+; fall-through lands on gear.mw_psychopomp_fold_pike.action_psychopomp_strike.name and the log reads
+; "Psychopomp Fold Pike", not "Uffish Gyre". A real string, the right weapon, the wrong half of it.
+; Cosmetic, and accepted on the same ruling as the other three divergences; pinned by
+; test_the_battle_log_names_the_pike_for_the_reduction so it cannot change unnoticed.

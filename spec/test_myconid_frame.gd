@@ -306,7 +306,9 @@ func test_the_map_indexes_the_whole_footprint():
 
 ## The sheet's trait order (specs/sixth-voice/04-myconid.md). The frame card lists traits in array
 ## order, so this is player-visible.
-const SHEET_TRAITS:Array[StringName] = [&'mt_symbiosis', &'mt_halo', &'mt_guardian', &'cp_quietus_machines']
+const SHEET_TRAITS:Array[StringName] = [
+	&'mt_symbiosis', &'mt_halo', &'mt_guardian', &'cp_quietus_machines', &'mw_psychopomp_fold_pike',
+]
 
 func test_the_traits_are_the_sheets_three_in_the_sheets_order_then_the_core():
 	var frame:Frame = _frame()
@@ -314,7 +316,8 @@ func test_the_traits_are_the_sheets_three_in_the_sheets_order_then_the_core():
 	if frame == null: return
 	var ids:Array[StringName] = []
 	for kit:Kit in frame.traits: ids.append(kit.compcon_id)
-	assert_eq(ids, SHEET_TRAITS, 'Three traits in sheet order, then the core system.')
+	assert_eq(ids, SHEET_TRAITS,
+		'Three traits in sheet order, then the core system, then the integrated weapon.')
 
 func test_guardian_is_vanillas_own_resource():
 	# Asserted by IDENTITY against ContentLibrary rather than by id, which is what proves the frame

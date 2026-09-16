@@ -1,0 +1,41 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mw_psychopomp_fold_pike/action_uffish_gyre.gd" id="1_gyre"]
+
+[resource]
+script = ExtResource("1_gyre")
+; "Trigger: An allied character within threat starts to move."
+;
+; ENTIRE_MOVEMENT (ReactionBus.TRIGGER, reaction_bus.gd:26) is Overwatch's own trigger - the tabletop
+; wording is the same sentence - and PRE (ReactionBus.TIMING is {PRE, POST}, :5, so 0) is what makes
+; it "STARTS to move": event_unit_move.gd:71 fires the PRE block before the unit takes a step, while
+; POST at :121 would fire after it had already arrived. The BOOST trigger is deliberately NOT listed
+; as well: a boost that leads to a move raises entire_movement anyway, and Overwatch's own comment
+; (action_overwatch.gd:12) records that a bare boost event does not carry enough information to tell
+; whether it ignores reactions.
+triggers_on = Array[StringName]([&"entire_movement"])
+trigger_timing = 0
+; "This doesn't count against the maximum number of reactions you can make in a turn." The card's
+; last sentence, and the whole of it: consumes_rxn = false means ActionReaction.is_available_to_
+; activate returns early without asking UnitAction.can_take_reactions (action_reaction.gd:49), so no
+; point is spent and none is required.
+;
+; IT ALSO COSTS THE "1/round", which action_uffish_gyre.gd's get_per_round_hard_limit puts back:
+; ActionReaction gives a non-consuming reaction a limit of 99 (action_reaction.gd:69). And it opens
+; the four can_be_used_while_* gates (:62-66), which is why a Stunned Myconid is refused by the
+; STRIKE rather than here - see that file's header and ruling 11.
+consumes_rxn = false
+; NO usage_group, and that is the correct choice here rather than an omission. The default is the
+; KIT id (gear_core.gd:166-168), and the only other action on this Kit -
+; action_psychopomp_strike.tres - names its own group explicitly, so the two counters are already
+; distinct. Naming one here as well would be a third id to keep in step for no gain; what the
+; per-round limit must not share is the STRIKE's counter, and that is settled on the strike's side.
+;
+; A popcorn over the Myconid, as Overwatch and Draw Fire both do (action_overwatch.tres,
+; action_draw_fire.tres). This reaction fires on somebody ELSE's turn, so without it the first thing
+; the player sees is an attack roll from a unit they were not looking at.
+emit_text_popcorn_on_use = true
+; NO icon_override, deliberately. SP2 ships no icons and
+; test_every_player_facing_kit_and_action_has_a_real_icon is expected RED on this row until SP3 - it
+; carries a `.trigger` row, so Action.show_in_tooltip draws it on the trait card with its own icon
+; slot (the mt_juggernaut_drive / action_draw_fire shape, not the hidden-reaction one).

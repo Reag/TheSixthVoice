@@ -1,0 +1,95 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mw_psychopomp_fold_pike/action_psychopomp_strike.gd" id="1_strike"]
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="2_onhit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mw_psychopomp_fold_pike/onhit_uffish_gyre.tres" id="3_gyreonhit"]
+
+[resource]
+script = ExtResource("1_strike")
+; "Main Melee ... Damage: none | Range: Threat 8". Lancer.WEAPON_TYPE is
+; {CQB, CANNON, MELEE, RIFLE, LAUNCHER, NEXUS} (lancer.gd:107) so MELEE is 2; Lancer.WEAPON_SIZE is
+; {AUX, MAIN, HEAVY, SUPERHEAVY, NONE} (:104) so MAIN is 1. MAIN is also the export's default and is
+; written out anyway: the character sheet prints "Main Melee" off these two
+; (action_attack_weapon.gd:107-108), so both belong where a reader checks them against the card.
+weapon_type = 2
+weapon_size = 1
+; aim_range 0 and threat 8: vanilla's own spelling of a melee weapon
+; (content/gear/gms/weapons/mw_tactical_melee_weapon.tres). ActionAttackWeapon.get_target_range
+; (action_attack_weapon.gd:197-205) routes a melee weapon with threat > 0 through threat_distance and
+; never reads aim_range, so the 0 is documentation rather than a second range.
+;
+; THE 8 IS ALSO THE GYRE'S TRIGGER RANGE. action_uffish_gyre.gd reads it back off this action
+; (strike_range()) instead of holding a constant, so the card's "within threat" can never disagree
+; with the weapon. test_an_ally_at_9_does_not is reddened by changing this number, not the gate.
+aim_range = 0
+threat = 8
+; NO damage_dice. The card's Damage is "none", and this is the line that makes it so:
+; action_psychopomp_strike.gd's get_damage_for_attack override says the same thing a second time,
+; and was measured to be belt-and-braces WHILE this stays empty (mutation 14). See that file.
+;
+; "on hit the allied character gains +2 armor until the start of their next turn".
+on_hit_effects = Array[ExtResource("2_onhit")]([ExtResource("3_gyreonhit")])
+; OFF THE GEAR BAR, THE TOOLTIP AND THE AI'S FIRST PASS - the DISPLAY half of "the reaction is the
+; only way you can attack with this weapon" (design ruling 9; design §4 is right that this is a
+; display flag and not a gate). Three readers: gear_bar.gd:149 keeps it off the action bar,
+; ActionAttack.show_in_tooltip (action_attack.gd:90) keeps it off the trait card, and
+; ai_action_decider.gd:75 keeps it out of the AI's ordinary action list. It is NOT a refusal -
+; unit_action.gd:41 collects situational actions into a separate list that is still offered - which
+; is why the gate below is also needed.
+;
+; MEASURED WHILE BUILDING THE GATE (2026-09-16), and it refines design ruling 9: this action would
+; not reach that situational list even WITHOUT the hibernate, because unit_action.gd:49 additionally
+; requires Action.can_be_used_situationally_by, whose base returns false (action.gd:180-181) and
+; which nothing here overrides. So the situational list is not the hole the gate exists to plug; the
+; GEAR BAR is not either (line 149 above already excludes this action by this very flag). The hole is
+; the FREEBIE path - Overwatch's weapon collection and the Gyre's own follow-up - and only a
+; get_gear_unavailable_reason branch reaches that. No spec asserts the empty situational list: it
+; would be a negative that passes for the wrong reason.
+is_situationally_activated = true
+; THE GATE, AND IT IS THE ENGINE'S OWN. GearCore.short_repair clears and re-applies action
+; hibernation at scene setup (gear_core.gd:139-142, reached from UnitPrinter.short_repair,
+; unit_printer.gd:31-32), so this action is unavailable from the first frame with no script at all.
+; UnitAction.get_gear_unavailable_reason turns it into REASON.HIBERNATING (unit_action.gd:154), a
+; real player-facing reason that sits AHEAD of REASON.SPECIFIC (:156) in the same elif chain - so it
+; is what the player is shown, not a silent nothing.
+;
+; IT COVERS THE FREEBIE PATH TOO, which is the whole reason it was chosen over design §2.2's
+; gear-state flag on is_available_to_activate: can_activate_gear calls is_gear_available BEFORE its
+; `if as_freebie: return true` early-out (unit_action.gd:112-114), so the hibernate refuses the gear
+; bar, the situational list, Overwatch's weapon collection (UnitRelation.get_weapons_that_can_
+; overwatch, unit_relation.gd:220) AND the Gyre's own AS_FREEBIE follow-up alike. That last one is
+; why action_uffish_gyre.gd brackets its choose_and_use with wake_action/hibernate_action.
+;
+; MEASURED, NOT ASSUMED (2026-09-16, the brief's judgment call). Deleting this line reddens
+; test_the_strike_cannot_be_pressed_from_the_gear_bar, which was written first and watched go RED
+; against this .tres without it; and test_the_gyre_wakes_the_strike_only_for_its_own_shot shows the
+; freebie really is refused while it holds, which is what makes the bracket load-bearing rather than
+; ceremonial. The Drake's Fortress Protocol is vanilla's own use of the same wake/hibernate pair for
+; a sibling action on one Kit (action_fortress_protocol.gd:16-18).
+starts_hibernating = true
+; ITS OWN USAGE GROUP, AND HERE THAT IS LOAD-BEARING rather than the defence in depth Draw Fire's
+; header calls it. usage_group defaults to the KIT id (gear_core.gd:166-168), and this Kit carries
+; two actions: without this line the strike and the Gyre would SHARE a counter, and the Gyre's
+; get_per_round_hard_limit of 1 - read off gear.get_uses_this_round (unit_action.gd:170-175) - would
+; be spent by the strike inside the Gyre's own activation, refusing the reaction from its second use
+; onward for a reason no player could see.
+usage_group = &"psychopomp_strike"
+; "This does not require line of sight or a clear path between you and the target." One sentence
+; covering the trigger AND the strike: action_uffish_gyre.gd asks no can_see, and this turns it off
+; for the attack as well. Action.requires_line_of_sight returns this baseline (action.gd:36, :124)
+; and UnitTargeting reads it twice - once to build the tiles in range (unit_targeting.gd:36) and once
+; to filter the tiles that can see a target (:142).
+;
+; NO SPEC CAN SEE THIS LINE, MEASURED, AND IT STAYS. Mutation 3b (flipping it to true) reddened
+; NOTHING, and the reason is the test double rather than the engine. The Gyre hands the strike a
+; MANDATORY target, so TargetActionUtil.ask_for_targets_alt routes a player-controlled Myconid
+; straight to choice_bus.choose_compcon_plan with that unit (target_action_util.gd:199-200) - and
+; SpecFactory's responder answers it by building a plan out of the mandatory target directly
+; (spec_factory.gd:457-458), never asking UnitTargeting anything. The LIVE picker does ask:
+; tilepicker_compcon.gd:439 calls UnitTargeting.get_tiles_targetable, which is where the baseline
+; binds. So the flag governs what a real player is allowed to click and nothing a GUT run reaches.
+; Kept because the card says so in as many words, and because the alternative is shipping a weapon
+; whose targeting silently disagrees with its own trigger.
+requires_line_of_sight_baseline = false
+; NO icon_override, deliberately. SP2 ships no icons and
+; test_every_player_facing_kit_and_action_has_a_real_icon is expected RED on this row until SP3.

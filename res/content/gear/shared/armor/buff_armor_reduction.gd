@@ -110,9 +110,13 @@
 ##      unset, so unit_condition.gd:1051 never telegraphs this hidden buff - no display bug there,
 ##      just this cosmetic log line.)
 ##      NOTE FOR THE OTHER USERS: that fall-through wants the owning Kit to have exactly ONE action.
-##      cp_quietus_machines has one (the protocol) and mw_psychopomp_fold_pike has two (the strike
-##      and the Gyre), so the Gyre's reduction may log a different name or a raw id. Cosmetic in
-##      exactly the same way, and accepted on the same ruling.
+##      cp_quietus_machines has one (the protocol). mw_psychopomp_fold_pike has TWO - and the answer
+##      is now measured (Myconid SP2 Task 4, 2026-09-16): get_solo_action() is `kit.actions[0]` with
+##      no arity check, that Kit's actions are [strike, gyre], and so the Gyre's reduction logs
+##      "Psychopomp Fold Pike" - a real string, the right weapon, the wrong half of it. Cosmetic in
+##      exactly the same way, and accepted on the same ruling. Pinned by
+##      spec/test_uffish_gyre.test_the_battle_log_names_the_pike_for_the_reduction, so reordering
+##      that Kit's actions cannot change what the player reads without a test noticing.
 ##
 ## SHREDDED IS NOT A DIVERGENCE, and that is worth knowing because it looks like one. The Shredded
 ## early return (damage_modifications.gd:73-77) happens after `other_reduction` has been accumulated
