@@ -16,6 +16,25 @@
 # file re-asserts them against the real Kit, because a green probe says nothing about whether this
 # frame's .tres files are wired the way the probe's synthetic ones were.
 #
+# TWO MORE WERE PORTED IN THE SP2 TASK 5 REVIEW, and section C2 is where they live: the engine GATE
+# that consumes the status (without it every other hostile test reads the same cache and a dead
+# mechanic looks green), and the idempotence of the re-entrant aura pass.
+#
+# THE ONE THE PROBE HAD THAT IS DELIBERATELY NOT HERE is its source-qualified query
+# (UnitCondition.has_status(unit, status, gear.persistent_id), which reaches a buff-carried status
+# through get_buffs_that_apply_status, unit_condition.gd:809-817). Nothing takes that path on these
+# statuses. get_buffs_that_apply_status has exactly ONE caller in the whole tree - the second
+# disjunct of has_status at unit_condition.gd:392 - and every source-qualified has_status call in
+# engine/ and content/ passes the CALLER'S OWN gear id, asking "did I apply this?"
+# (event_gear_destroy.gd:36 and action_jump.gd:60 for FLYING, the two mf_vlad dismemberment actions
+# for SHREDDED, both mw_pinaka_missiles actions for SLOWED); the only engine-generic one is
+# unit_condition.gd:582, which asks for SLOWED from StatusType.SOURCE_UNDERWATER_STATUS_KEY and can
+# never match our from_gear. Quietus Machines asks nothing of the sort, and its only script is four
+# lines. The source-aware machinery this content DOES reach is the immunity check inside
+# get_current_statuses, which keys on the buff's from_gear (unit_condition.gd:381) - and that is
+# already pinned, by test_an_ally_impaired_by_another_buff_is_suppressed_while_inside. Recorded as a
+# deliberate gap in progress-myconid-sp2.md rather than covered by a test of a path nothing takes.
+#
 # TWO FACTS THAT CHANGE HOW TESTS HERE MUST BE WRITTEN, both measured by the probe:
 #
 #  1. THE STATUSES ARE LOCKED. UnitCondition.clear_status (unit_condition.gd:310-324) rebuilds
@@ -78,7 +97,7 @@ func core_gear() -> GearCore:
 
 ## Press the protocol. DELEGATES to MyconidFixture.fungal_network (SP2 Task 5), which is this same
 ## body lifted verbatim - its own header carries the reason the turn start is not decoration:
-## unit_action.gd:119 refuses a protocol unless unit.state.is_using_protocols, which only
+## unit_action.gd:144 refuses a protocol unless unit.state.is_using_protocols, which only
 ## event_turn_start opens. Without it every test here would fail with "Gear not available / reason :
 ## protocol" and read as broken content.
 func press_protocol() -> void:
@@ -398,6 +417,114 @@ func test_the_myconid_is_not_caught_by_its_own_cloud() -> void:
 	assert_false(myconid.has_status(Lancer.STATUS.SLOWED), 'it does not Slow itself')
 
 
+# ========== C2. THE STATUSES ARE REAL TO THE ENGINE, AND APPLIED ONCE ==========
+#
+# PORTED FROM THE DELETED PROBE (SP2 Task 5 review). Deleting test_spike_status_aura.gd took three
+# characterisations with it that nothing in section C replaces, and two of them are load-bearing for
+# THIS content precisely because buff_fungal_network_spores.tres is a script-less .tres whose entire
+# mechanism is applies_statuses: if that channel stops reaching the engine, nothing else here would
+# say so. Re-asserted below against the real Kit and a real hostile, not the probe's synthetic Kit.
+# The third - a SOURCE-QUALIFIED UnitCondition.has_status - was deliberately not ported; the file
+# header says why.
+
+## THE TEST THAT MATTERS MOST IN THIS FILE, and the one the probe's own commentary warned would be
+## missing without it. Every other hostile-half test above asks has_status or is_slowed, and both of
+## those read unit.state.cached_statuses (unit.gd:210-211) - the very array
+## UnitCondition.get_current_statuses wrote when it folded in the buff's applies_statuses
+## (unit_condition.gd:379-382). A status that lived only in that cache, consulted by nothing, would
+## leave all of section C green over a dead mechanic.
+##
+## So ask an engine GATE instead. UnitAction.is_boost_prohibited (unit_action.gd:497-510) tests
+## UnitCondition.is_slowed at :499, which is has_status for SLOWED or PRONE (unit_condition.gd:
+## 407-411) - the same predicate the movement archetype consults before allowing a voluntary move
+## (action_system_movement.gd:25). A hostile in the cloud is really refused a Boost, which is what
+## the card's "Slowed" has to mean.
+##
+## Reddened by: M17 (applies_statuses = [impaired] on buff_fungal_network_spores.tres).
+func test_a_hostile_in_the_cloud_is_really_refused_a_boost() -> void:
+	var foe := hostile(NEAR_TILE)
+	assert_false(UnitAction.is_boost_prohibited(foe),
+		'control: the gate is OPEN before the press - without this the two below measure nothing')
+
+	await press_protocol()
+
+	assert_true(UnitCondition.is_slowed(foe), 'the engine predicate agrees with the cache')
+	assert_true(UnitAction.is_boost_prohibited(foe), 'and an engine GATE acts on it')
+
+## The other half of the same fact: the GATE follows the zone. A hostile that walks out of the cloud
+## can Boost again, which is what makes this a zone rather than a status applied on the way in - and
+## it is the gate, not just the chip, that lifts.
+##
+## Reddened by: M17.
+func test_a_hostile_stepping_out_of_the_cloud_can_boost_again() -> void:
+	var foe := hostile(NEAR_TILE)
+	await press_protocol()
+	assert_true(UnitAction.is_boost_prohibited(foe), 'precondition: the gate is shut while inside')
+
+	UnitTile.move_to(foe, FAR_TILE)
+
+	assert_false(UnitAction.is_boost_prohibited(foe),
+		'the gate lifts with the zone, which is what "while inside" has to mean')
+
+## THE RE-ENTRANT AURA PASS IS IDEMPOTENT, and the re-entry is real rather than theoretical.
+## UnitCondition.apply_buffs sets update_tracking_and_statuses whenever the applying gear carries a
+## PassiveAura (unit_condition.gd:713-714); post_apply_buff_cache_update then hands the real event to
+## unit.update_cached_values_and_token (:775), which at unit.gd:158-160 calls UnitTile.move_to - a
+## WHOLE FRESH aura pass. So applying the spore buff re-enters the pass that applied it. What stops
+## that repeating is passive_aura.gd:80's has_buff skip and already_has_all_buffs (:95-96), both of
+## which already see the buff because unit.state.buffs.append happens at unit_condition.gd:757,
+## BEFORE on_application at :758 and long before the re-entry.
+##
+## HOW THIS DIFFERS FROM THE PROBE'S VERSION, which counted on_application calls from a Buff
+## subclass: buff_fungal_network_spores.tres is script-less by design, so there is nothing to
+## subclass without inventing content. The observable used instead is the BuffCore's IDENTITY. A
+## re-application would NOT show up as a second chip - multiple_copies_can_stack is false by default
+## (buff.gd:131), so apply_buff_alt clears the matching old one first (:741-747) - but it would
+## replace the BuffCore, and BuffCore.create stamps a fresh random persistent_id on every instance
+## (buff_core.gd:26-32, the id at :29). A stable id across a second pass is therefore the same fact
+## the counter gave, read from the other end, and it catches the clear-and-re-apply case a bare count
+## would miss.
+##
+## Reddened by: M16 (the spores buff listed TWICE on passive_fungal_network_hostiles.tres with
+## multiple_copies_can_stack = true). That is the only way our content can reach a double application
+## at all: the guard is engine-side, so no ordinary mutation of a .tres can force one.
+func test_the_cloud_applies_its_chip_exactly_once_per_hostile() -> void:
+	var foe := hostile(NEAR_TILE)
+	await press_protocol()
+
+	assert_true(foe.has_status(Lancer.STATUS.SLOWED), 'control: the cloud really did apply')
+	var chips:Array[BuffCore] = UnitCondition.get_buffs(foe, SPORES_BUFF)
+	assert_eq(chips.size(), 1, 'ONE chip for one hostile, however often the pass re-enters')
+	if chips.is_empty(): return
+	var first_id:StringName = chips.front().persistent_id
+
+	UnitTile.update_tracking_and_statuses(game.map) # a whole further pass over a hostile already in
+
+	var after:Array[BuffCore] = UnitCondition.get_buffs(foe, SPORES_BUFF)
+	assert_eq(after.size(), 1, 'still exactly one after a second pass')
+	if after.is_empty(): return
+	assert_eq(after.front().persistent_id, first_id,
+		'and the SAME BuffCore - the pass did not quietly clear and re-apply it')
+
+## Two occupants, two applications: one each, not one between them and not one per re-entrant pass.
+##
+## NOT A STATEMENT ABOUT COST. The applications are linear in occupants; the WORK is not, and nothing
+## here measures it. update_tracking_and_statuses loops every unit on the map (unit_tile.gd:20) and
+## PassiveAura.update_unit loops them all again inside that (passive_aura.gd:28) - so one pass is
+## already O(n^2), and per the note above each application triggers another whole pass.
+##
+## Reddened by: M16.
+func test_a_second_hostile_is_one_more_chip_not_a_multiple() -> void:
+	var first := hostile(NEAR_TILE)
+	var second := hostile(Vector2i(2, 4)) # 2 from the (4,4) corner, the far side of the footprint
+	await press_protocol()
+
+	assert_true(first.has_status(Lancer.STATUS.SLOWED), 'control: the first really is in the cloud')
+	assert_true(second.has_status(Lancer.STATUS.SLOWED), 'control: and so is the second')
+	assert_eq(UnitCondition.get_buffs(first, SPORES_BUFF).size(), 1, 'one chip on the first')
+	assert_eq(UnitCondition.get_buffs(second, SPORES_BUFF).size(), 1, 'and one on the second')
+
+
 # ===================== D. THE PROTOCOL ITSELF =====================
 
 ## "For the rest of the scene" with no off switch: one press, and the button is gone.
@@ -432,7 +559,7 @@ func test_a_second_press_in_the_same_scene_is_refused() -> void:
 	assert_true(gear.is_action_hibernating(PROTOCOL_ID),
 		'the action hibernated itself all the same - that is what "rest of the scene" means')
 
-## A protocol is confined to the protocol window. Without an open turn unit_action.gd:119 refuses it
+## A protocol is confined to the protocol window. Without an open turn unit_action.gd:144 refuses it
 ## with REASON.PROTOCOL - which is also the failure mode every other test in this file would show if
 ## press_protocol() stopped opening a turn, so it is worth naming once.
 ##

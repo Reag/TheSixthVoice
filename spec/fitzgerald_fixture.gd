@@ -116,7 +116,7 @@ static func create_dummy(
 ## its one place that needs an open turn - routed through here too, for the same effect, since its
 ## turn is never already open at that point either).
 ##
-## THE TURN START IS NOT DECORATION. unit_action.gd:119 refuses a PROTOCOL unless
+## THE TURN START IS NOT DECORATION. unit_action.gd:144 refuses a PROTOCOL unless
 ## unit.state.is_using_protocols, which only event_turn_start opens - and More Black Powder is a
 ## protocol on this same Kit. The weapon profiles are QUICK actions and would activate without it;
 ## going through one helper means every test fires from the same state, and means a test that uses

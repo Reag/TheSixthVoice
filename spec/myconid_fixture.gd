@@ -74,8 +74,12 @@ static func open_turn(game:Gamemaster, unit:Unit) -> void:
 ## live (SP2 Task 3). Lifted out of test_fungal_network.gd's own press_protocol(), which now
 ## delegates here (SP2 Task 5) rather than duplicating it.
 ##
-## THE TURN MUST BE OPEN FIRST, and not merely for tidiness: unit_action.gd:119 refuses a PROTOCOL
-## unless unit.state.is_using_protocols, which only event_turn_start opens. Without it every caller
+## THE TURN MUST BE OPEN FIRST, and not merely for tidiness: unit_action.gd:144 refuses a PROTOCOL
+## unless unit.state.is_using_protocols, which only event_turn_start opens. (The gate is the
+## `is_protocol(specific) and not is_using_protocols and not as_freebie` branch of
+## get_gear_unavailable_reason's elif chain. NOT :119 - that line is the overcharge fallback in
+## can_activate_gear, and the wrong number was copied from here into three other files before the
+## SP2 Task 5 review caught it.) Without it every caller
 ## of this function would fail with "Gear not available / reason : protocol" and read as broken
 ## content rather than a missing turn. Grep a red run's output for `Gear not available` before
 ## suspecting the .tres; the reason string names the exact gate.

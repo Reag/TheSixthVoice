@@ -7,7 +7,7 @@
 script = ExtResource("1_action")
 ; Lancer.ACTION.PROTOCOL (lancer.gd:27 - NONE, QUICK, FULL, FREE, PROTOCOL, RXN, so PROTOCOL is 4).
 ; The card's activation is "Protocol". UnitAction.get_gear_unavailable_reason refuses a protocol
-; outside the protocol window with REASON.PROTOCOL (unit_action.gd:119 via is_protocol), which is
+; outside the protocol window with REASON.PROTOCOL (unit_action.gd:144 via is_protocol), which is
 ; what confines this to the start of the Myconid's turn.
 action_type = 4
 ; It is the frame's CORE POWER: pressing it spends the core power, which is what makes this
