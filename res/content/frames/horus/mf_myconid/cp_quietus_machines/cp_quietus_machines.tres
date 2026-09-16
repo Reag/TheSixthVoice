@@ -6,17 +6,26 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/action_fungal_network.tres" id="4_protocol"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/passive_fungal_network_allies.tres" id="5_allies"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/passive_fungal_network_hostiles.tres" id="6_hostiles"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/passive_fungal_network_self.tres" id="7_self"]
 
 [resource]
 script = ExtResource("1_kit")
-; QUIETUS MACHINES, the Myconid's core system. One button and two auras.
+; QUIETUS MACHINES, the Myconid's core system. One button and three auras.
 ;
-; THE TWO PASSIVES ARE WHAT PUT THIS KIT IN LoadoutCore.auras. regenerate_caches
+; THE PASSIVES ARE WHAT PUT THIS KIT IN LoadoutCore.auras. regenerate_caches
 ; (loadout_core.gd:298-301) walks every piece of gear and appends any whose Kit
 ; has_passive_type(PassiveAura) - that list is what PassiveAura.update_unit iterates (:31), so a
 ; Kit without them is invisible to the whole aura system however its passives are shaped.
 actions = Array[ExtResource("2_action")]([ExtResource("4_protocol")])
-passives = Array[ExtResource("3_passive")]([ExtResource("5_allies"), ExtResource("6_hostiles")])
+; TWO OF THESE ARE THE CARD AND THE THIRD IS THE READOUT. _allies and _hostiles are the two halves of
+; the printed rules; _self carries no rules text at all and exists to chip the Myconid while the zone
+; is running (SP2.5 Task 4, the author's request). It is a PassiveAura precisely so that it shares
+; the Kit's single is_aura_active flag and cannot outlive what it announces - its own header has the
+; reasoning, and test_fungal_network.gd's section G is the guard.
+;
+; DROPPING _self FROM THIS ARRAY IS MUTATION T4-M1 and reddens
+; test_pressing_the_protocol_chips_the_myconid.
+passives = Array[ExtResource("3_passive")]([ExtResource("5_allies"), ExtResource("6_hostiles"), ExtResource("7_self")])
 ; A frame trait, not equippable gear: it costs no SP and cannot be unequipped. cp_siege_engine and
 ; cp_broadside are the same.
 is_trait = true

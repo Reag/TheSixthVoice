@@ -256,7 +256,10 @@ const ICON_TARGETS := {
 	&'mt_halo': [],
 	# SP2 Task 3 (Myconid). The core system. FUNGAL NETWORK is a PROTOCOL the player presses on the
 	# gear bar, so it wears its own icon as well as the Kit's - cp_siege_engine's and
-	# cp_auxiliary_power_rerouter's shape. The Kit's two PassiveAuras are passives and wear nothing.
+	# cp_auxiliary_power_rerouter's shape. The Kit's THREE PassiveAuras (SP2.5 Task 4 added
+	# passive_fungal_network_self) are passives and wear nothing - but the chip that third one applies
+	# does, and the author's instruction is that it SHARES this Kit's icon rather than getting one of
+	# its own. See buff_fungal_network_active.tres, and VISIBLE_BUFFS below.
 	#
 	# The Pike is deliberately NOT here: it is its own mw_ Kit (ruling 9), listed separately when
 	# SP2 Task 4 lands, because weapon_mount_item.gd:101 titles the character sheet's
@@ -334,6 +337,18 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# ABSENT: the pair is one mechanic, and two chips for one effect would read as two effects. Same
 	# reasoning as buff_reinforcement_blast_reduction above.
 	&'buff_fungal_network_immunity', &'buff_fungal_network_armor', &'buff_fungal_network_spores',
+	# SP2.5 Task 4 (Myconid). The Myconid's own chip, and the only buff in this mod that is visible
+	# and NOTHING else - no `to`, no statuses, no triggers. It exists to be drawn: after playtesting,
+	# the author asked for a way to tell at a glance that FUNGAL NETWORK is running, and the Myconid
+	# was the one unit in its own cloud wearing nothing. Visible is therefore not a choice here the
+	# way it is for the three above; hide it and the buff has no reason to exist at all.
+	#
+	# ITS ICON IS NOT ITS OWN. The author's instruction is that it SHARES the core power's icon
+	# ("shares icon with the core power"), so the SP3 pass owes it the same glyph as
+	# cp_quietus_machines / action_fungal_network rather than a new one. It is listed here all the
+	# same, because this guard checks that the Texture2D is non-null and non-placeholder and does not
+	# care whether two entries point at one file.
+	&'buff_fungal_network_active',
 	# SP2 Task 4 (Myconid). The Gyre's on-hit chip - the reaction fires on somebody ELSE's turn, so
 	# this chip is the only on-map signal the mover gets that the Pike's strike landed. Same
 	# reasoning as buff_reinforcement_blast and buff_fungal_network_armor above:

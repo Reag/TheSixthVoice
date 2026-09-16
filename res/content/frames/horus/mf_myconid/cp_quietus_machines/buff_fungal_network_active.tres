@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+; THE MYCONID'S OWN "FUNGAL NETWORK IS RUNNING" CHIP, and a dummy: it announces the zone and does
+; nothing else. The author asked for it after playtesting - "we should probably put a dummy chip on
+; the Myconid that has activated Fungal Network (shares icon with the core power) so that you can
+; tell its running at a glance" - because the cloud draws nothing on the map and the Myconid, alone
+; of everyone standing in it, wore nothing to say the protocol had been pressed. Its allies get two
+; chips, its enemies get one and two status icons, and the unit the whole thing hangs off got none.
+;
+; EFFECT-LESS IS ENOUGH TO BE DRAWN, WHICH IS THE FACT THIS FILE RESTS ON. mech_info.gd:34 puts
+; every buff without hide_from_player into the unit's chip row and tooltip_organ_unit.gd:130 does the
+; same for the inspector; neither consults `to`, applies_statuses, triggers_on or anything else about
+; the Buff. Vanilla says so outright twenty lines further down that same file:
+; tooltip_organ_unit.gd:149, skipping an actionless trait in the loadout list, reads "if an empty
+; trait wants to make itself known, it'll do so via a visible buff". buff_gather_round.tres - the
+; Subutai's core-power chip - is this mod's own precedent for the shape: a plain Buff whose entire
+; content is an icon.
+;
+; `to` IS SPELLED OUT even though &"none" is the export's default (buff.gd:123), because it is the
+; one thing here worth being unable to miss. The card gives the Myconid ITSELF nothing, so a channel
+; on this chip would be a rules change nobody asked for - and a silent one, since no other test in
+; test_fungal_network.gd would notice. test_the_chip_carries_no_mechanical_effect pins it, together
+; with the empty applies_statuses and triggers_on.
+to = &"none"
+; DELIBERATELY VISIBLE: hide_from_player stays at its false default (buff.gd:127), because being
+; seen is the whole job. test_content_integrity.gd's VISIBLE_BUFFS lists it, and its size assertion
+; is what stops the pair drifting apart.
+;
+; SP3'S ICON PASS: THIS CHIP SHARES THE CORE POWER'S ICON. That is the author's own instruction in
+; the quote above, and it is the point of the chip - it means "QUIETUS MACHINES is running", so the
+; glyph the player already reads on that button is the one that says so. No icon_override here (SP2
+; ships no icons), but do NOT invent a new icon for it: point it at whatever cp_quietus_machines.tres
+; and action_fungal_network.tres end up wearing.
+;
+; `until` stays at its MANUAL default for the reason every other buff in this folder gives: the AURA
+; owns the lifetime. passive_fungal_network_self.tres applies and clears it, and
+; PassiveAura.update_unit does both off the Kit's single is_aura_active flag (passive_aura.gd:37,
+; :55-59). Any `until` short of MANUAL would let the chip expire on a clock of its own while the zone
+; was still up - which is the same lie this chip exists to prevent, told the other way round.

@@ -73,6 +73,7 @@ const IMMUNITY_BUFF := &'buff_fungal_network_immunity'
 const ARMOR_BUFF := &'buff_fungal_network_armor'
 const REDUCTION_BUFF := &'buff_fungal_network_armor_reduction'
 const SPORES_BUFF := &'buff_fungal_network_spores'
+const ACTIVE_BUFF := &'buff_fungal_network_active' # the Myconid's own "the zone is running" chip
 
 # The Myconid anchors at (4,4) and, being size 2, OCCUPIES (4,4) (5,4) (4,5) (5,5). Every tile below
 # is chosen against that footprint, and the comment on each says which of its tiles it is measured
@@ -422,10 +423,43 @@ func test_the_statuses_cannot_be_cleared_while_the_hostile_stands_inside() -> vo
 
 ## "Hostile CHARACTERS". A deployable standing in the cloud is untouched.
 ##
+## THE GROUND LOCK IS NOT TIDYING - WITHOUT IT THIS TEST STOPS MEASURING ANYTHING, and the reason is
+## worth the paragraph because it will bite the next spec that stands a prop near something.
+##
+## THE FIXTURE'S DEPLOYABLE IS A JERICHO COVER, and a Jericho cover is dynamic TERRAIN as well as a
+## unit: its mt_obstruction_hard_cover trait writes an obstruction voxel, and MapState raises the
+## tile's surface to one above it (map_state.gd:462 and :467, whose own comment names the Jericho).
+## The prop's effective_floor is then read back OFF that surface (unit_tile.gd:211-218 via
+## unit_battle_state.gd:226) - so on every single pass of UnitTile.update_tracking_and_statuses the
+## cover climbs one layer onto its own roof, without bound. MEASURED 2026-09-16, SP2.5 Task 4: floor
+## 1, 2, 3, 4, 5 ... over four bare tracking passes with no mod content involved at all.
+##
+## AND THE BURST IS A 3-D MEASUREMENT. distance_between is maxi(horizontal, vertical)
+## (unit_relation.gd:13-25, the maxi at :25), the vertical term is get_elevation_distance_between
+## (unit_tile.gd:320-321), and PassiveAura.is_within_range uses the full call because this passive
+## leaves applies_regardless_of_elevation at false (passive_aura.gd:85). A levitating cover therefore
+## leaves the burst VERTICALLY while sitting on the same tile, and the aura genuinely stops reaching
+## it - at which point every negative assertion below passes for the wrong reason and the
+## applies_only_to_characters mutation stops reddening anything.
+##
+## THIS TEST WAS SITTING ON EXACTLY THAT BOUNDARY. Before SP2.5 Task 4 the press ran just few enough
+## passes to leave the prop at floor 4: vertical = 4 - (1 + 2 - 1) = 2, equal to the burst, margin
+## ZERO. Task 4's chip is applied to the MYCONID by an aura, and UnitCondition.apply_buffs runs a
+## whole further tracking pass whenever the applying gear carries a PassiveAura
+## (unit_condition.gd:713-714) - one more pass, floor 5, vertical 3, out of the burst. Any content
+## that applies one more aura buff would have done the same, so the fragility is the test's, not the
+## chip's.
+##
+## lock_to_ground_height IS THE ENGINE'S OWN ANSWER, not a spec trick: effective_floor_alt reads
+## elevation_ground instead of the obstruction-raised surface when it is set (unit_tile.gd:213-214),
+## and ground_height is not raised by the cover. Measured with it: floor 1, unmoved over seven
+## passes, distance a stable 2, the prop still untouched and the control hostile still Slowed.
+##
 ## Reddened by: applies_only_to_characters = false.
 func test_a_hostile_deployable_is_untouched() -> void:
 	var foe := hostile(NEAR_TILE)
 	var prop := MyconidFixture.create_deployable(game, DIAGONAL_TILE)
+	prop.state.lock_to_ground_height = true # the cover does not climb onto itself; see above
 	await press_protocol()
 
 	assert_true(foe.has_status(Lancer.STATUS.SLOWED), 'control: a character at range IS caught')
@@ -674,7 +708,7 @@ func test_the_display_rows_resolve() -> void:
 		'gear.cp_quietus_machines.action_fungal_network.name', 'and the protocol has one')
 	assert_ne(tr('gear.cp_quietus_machines.action_fungal_network.effect'),
 		'gear.cp_quietus_machines.action_fungal_network.effect', 'and an effect row')
-	for buff_id:StringName in [IMMUNITY_BUFF, ARMOR_BUFF, SPORES_BUFF]:
+	for buff_id:StringName in [IMMUNITY_BUFF, ARMOR_BUFF, SPORES_BUFF, ACTIVE_BUFF]:
 		assert_ne(tr('gear.%s.name' % buff_id), 'gear.%s.name' % buff_id,
 			'%s has a chip name row' % buff_id)
 
@@ -684,3 +718,148 @@ func test_the_display_rows_resolve() -> void:
 func test_the_core_kit_has_no_effect_row_because_the_lcp_has_no_description() -> void:
 	assert_eq(tr('gear.cp_quietus_machines.effect'), 'gear.cp_quietus_machines.effect',
 		'no effect row: the LCP core description is empty and we do not write our own')
+
+
+# ===================== G. THE CHIP ON THE MYCONID ITSELF =====================
+#
+# SP2.5 Task 4, and the author's words: "we should probably put a dummy chip on the Myconid that has
+# activated Fungal Network (shares icon with the core power) so that you can tell its running at a
+# glance."
+#
+# WHAT IT IS. buff_fungal_network_active.tres - a plain Buff with no `to`, no statuses and no
+# triggers, put on the Myconid alone by a THIRD PassiveAura on the same Kit
+# (passive_fungal_network_self.tres). It exists to be DRAWN, and nothing else about a Buff is
+# consulted to get it drawn: mech_info.gd:34 and tooltip_organ_unit.gd:130 both filter the unit's
+# buff list on hide_from_player and on nothing else, so a visible buff IS a chip however empty it is.
+#
+# WHY A THIRD AURA RATHER THAN AN apply_buff INSIDE THE PROTOCOL. is_aura_active is per-GEAR, not
+# per-passive (SP2 Task 3's finding: UnitPrinter.full_repair sets one flag per piece of gear and
+# pulls it down if ANY PassiveAura on the Kit declares starts_active = false, unit_printer.gd:19-21;
+# UnitCondition does the same at :880 and :899). So a PassiveAura on this Kit reads the very flag the
+# zone runs on, and is cleared and applied by the very pass that clears and applies the zone
+# (passive_aura.gd:37, :55-59, :62-64). There is one lifetime, and the chip cannot be up while the
+# zone is down or the reverse.
+#
+# A buff applied by action_fungal_network.gd's activate() would be a SECOND lifetime with nothing to
+# end it. The flag is pulled down by paths the protocol never sees - a mid-mission gear reapplication
+# reaches unit_condition.gd:899, death reaches event_service.gd:67 - and a hand-applied chip would
+# survive all of them and go on announcing a zone that had stopped. That is the failure this section
+# exists to hold shut, and test_the_chip_is_gone_when_the_zone_is_down is the test that holds it.
+#
+# WHY THIS SECTION IS LAST RATHER THAN NEXT TO THE PROTOCOL. The section letters are cited from
+# OUTSIDE this file - action_fungal_network.gd's header names "section E" for the death test - so
+# inserting a letter in the middle would silently mis-point that comment at the wrong section.
+# Appending breaks nothing.
+
+## THE WHOLE POINT: press it, and the Myconid says so at a glance.
+##
+## THE LAST ASSERTION IS WHAT MAKES IT A CHIP rather than merely a buff. Both things that draw a
+## unit's conditions filter on hide_from_player alone (mech_info.gd:34, tooltip_organ_unit.gd:130),
+## so an effect-less buff really is rendered - and an effect-less buff with hide_from_player is
+## rendered by nothing at all and would be a silent no-op that every other assertion here still
+## passes.
+##
+## Reddened by: T4-M1, dropping passive_fungal_network_self.tres from cp_quietus_machines.tres's
+## passives - i.e. never applying the buff.
+func test_pressing_the_protocol_chips_the_myconid() -> void:
+	UnitTile.update_tracking_and_statuses(game.map)
+	assert_false(has(myconid, ACTIVE_BUFF),
+		'control: a whole aura pass runs before the press and does NOT chip it')
+
+	await press_protocol()
+
+	assert_true(has(myconid, ACTIVE_BUFF), 'and the press does')
+	var chips:Array[BuffCore] = UnitCondition.get_buffs(myconid, ACTIVE_BUFF)
+	assert_eq(chips.size(), 1, 'exactly one chip, however often the aura pass re-enters')
+	if chips.is_empty(): return
+	assert_false(chips.front().base.hide_from_player,
+		'and the player can see it - a hidden buff is drawn by nothing')
+
+## "It goes on the Myconid only - not on allies, not on hostiles. They already carry their own
+## chips." THREE POSITIVE CONTROLS, because three negative assertions over units nothing reached
+## would pass just as well with the whole Kit dark.
+##
+## Reddened by: T4-M2, listing buff_fungal_network_active on passive_fungal_network_allies.tres
+## instead - applying it through one of the BROADCAST auras. That moves it onto every adjacent ally
+## AND off the Myconid at the same time, because that passive sets applies_to_self = false.
+func test_the_chip_is_on_the_myconid_and_nobody_else() -> void:
+	var friend := ally(ADJACENT_TILE)
+	var foe := hostile(NEAR_TILE)
+	var distant := ally(FAR_TILE)
+
+	await press_protocol()
+
+	assert_true(has(myconid, ACTIVE_BUFF), 'control: the Myconid wears it')
+	assert_true(has(friend, ARMOR_BUFF), 'control: the ally cloud DID reach the adjacent ally')
+	assert_true(has(foe, SPORES_BUFF), 'control: and the hostile cloud DID reach the hostile')
+
+	assert_false(has(friend, ACTIVE_BUFF), 'the sheltered ally does not wear it')
+	assert_false(has(foe, ACTIVE_BUFF), 'nor the choked hostile')
+	assert_false(has(distant, ACTIVE_BUFF), 'nor an ally standing outside both clouds')
+
+## THE LIFETIME, AND THE WHOLE REASON THE CHIP IS AN AURA. The chip must not be able to outlive the
+## zone it announces.
+##
+## WHY THIS REACHES FOR THE FLAG DIRECTLY. Ruling 6 gives this card no off switch - the zone runs
+## "for the rest of the scene" and the protocol hibernates itself - so there is no in-game button
+## that turns it off for a spec to press. GearCore.set_aura_active (gear_core.gd:297) is the same
+## call the protocol makes, with false instead of true, and it is the single flag every other path
+## that darkens an aura also writes (unit_condition.gd:899 on a gear reapplication,
+## event_service.gd:67 on death). Asserting against it is asserting against all of them.
+##
+## THE ALLY CONTROL IS NOT DECORATION: it is what proves the zone really went down in that call, so
+## that the chip's absence is the chip FOLLOWING the zone rather than the chip never having been
+## there. The preconditions above it prove both were up first.
+##
+## Reddened by: T4-M3, applying the chip from action_fungal_network.gd's activate() with
+## UnitCondition.apply_buff instead of from the passive - the parallel lifetime nothing clears.
+func test_the_chip_is_gone_when_the_zone_is_down() -> void:
+	var friend := ally(ADJACENT_TILE)
+	await press_protocol()
+	var gear := core_gear()
+	assert_not_null(gear, 'precondition: the core Kit is on the frame')
+	if gear == null: return
+	assert_true(has(myconid, ACTIVE_BUFF), 'precondition: the chip is up')
+	assert_true(has(friend, ARMOR_BUFF), 'precondition: and so is the zone it stands for')
+
+	gear.set_aura_active(false, myconid)
+
+	assert_false(has(friend, ARMOR_BUFF), 'control: the zone really did go down')
+	assert_false(has(myconid, ACTIVE_BUFF), 'and the chip went with it, in the same pass')
+
+## A DUMMY CHIP: it announces the zone and does nothing else. The card gives the Myconid itself
+## nothing, so a chip on it that carried a `to` would be a rules change nobody asked for - and a
+## quiet one, since every other test in this file would stay green.
+##
+## THE ALLY IS THE POSITIVE CONTROL ON BOTH HALVES: buff_fungal_network_armor is a chip from this
+## same press that DOES carry a `to` (&"statblock"), so the armor readout moving on the ally and not
+## on the Myconid is one measurement of the difference, and has_buff_to answering for the ally and
+## not for the Myconid is the other. Without them, two assertions that a number did not move and a
+## query found nothing would pass with the whole cloud dark.
+##
+## Reddened by: T4-M4, giving buff_fungal_network_active.tres a `to` - to = &"statblock" with a
+## Statblock of armor 1 reddens the readout assertion, the query assertion and the `to` assertion at
+## once.
+func test_the_chip_carries_no_mechanical_effect() -> void:
+	var friend := ally(ADJACENT_TILE)
+	var myconid_armor:int = myconid.get_armor()
+	var friend_armor:int = friend.get_armor()
+
+	await press_protocol()
+
+	var chips:Array[BuffCore] = UnitCondition.get_buffs(myconid, ACTIVE_BUFF)
+	assert_eq(chips.size(), 1, 'precondition: the Myconid is wearing the chip')
+	if chips.is_empty(): return
+	var chip:Buff = chips.front().base
+
+	assert_eq(friend.get_armor(), friend_armor + 1,
+		'control: a chip from this same press that DOES carry a `to` moves a number (unit.gd:309)')
+	assert_true(UnitCondition.has_buff_to(friend, Buff.TO.STATBLOCK),
+		'control: and answers the query that moved it')
+
+	assert_eq(myconid.get_armor(), myconid_armor, 'the Myconid is no tougher for wearing this one')
+	assert_false(UnitCondition.has_buff_to(myconid, Buff.TO.STATBLOCK),
+		'and it answers no such query')
+	assert_eq(chip.to, Buff.TO.NONE, 'because it declares no channel at all')
+	assert_true(chip.applies_statuses.is_empty(), 'nor any status')
+	assert_true(chip.triggers_on.is_empty(), 'and nothing active either: it exists to be seen')

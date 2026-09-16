@@ -141,6 +141,8 @@ gear.buff_fungal_network_armor.name,Fungal Network
 gear.buff_fungal_network_armor.effect,|+1 armor|.
 gear.buff_fungal_network_spores.name,Fungal Network
 gear.buff_fungal_network_spores.effect,|Slowed| and |Impaired| while within |burst 2| of the Myconid.
+gear.buff_fungal_network_active.name,Fungal Network
+gear.buff_fungal_network_active.effect,A cloud of nanite spores surrounds the Myconid.
 ,
 gear.mw_psychopomp_fold_pike.name,"PFP// ""PSYCHOPOMP"" Fold Pike"
 gear.mw_psychopomp_fold_pike.effect,"Gain the |Uffish Gyre| reaction, which is the only way you can attack with this weapon."

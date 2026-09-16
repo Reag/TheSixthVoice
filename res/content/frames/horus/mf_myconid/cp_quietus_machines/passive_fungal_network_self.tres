@@ -1,0 +1,73 @@
+[gd_resource type="Resource" script_class="PassiveAura" format=3]
+
+[ext_resource type="Script" uid="uid://dw0igjjw1k5s3" path="res://engine/character/gear_passive/passive_aura.gd" id="1_aura"]
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="2_buff"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/buff_fungal_network_active.tres" id="3_active"]
+
+[resource]
+script = ExtResource("1_aura")
+; THE THIRD AURA ON QUIETUS MACHINES, AND THE ONLY ONE THE CARD DOES NOT DESCRIBE. It carries no
+; rules text: it exists to put buff_fungal_network_active.tres on the Myconid for exactly as long as
+; the other two are lit, so the player can see at a glance that the zone is running (SP2.5 Task 4,
+; the author's request after playtesting). Read that buff's header for the what; this file is the
+; WHY IT IS AN AURA.
+;
+; AN AURA IS NOT A DETOUR HERE - IT IS THE ONLY MECHANISM THAT SHARES THE ZONE'S LIFETIME.
+; is_aura_active is per-GEAR, not per-passive: UnitPrinter.full_repair sets `gear.is_aura_active =
+; true` once per piece of gear and then pulls it down if ANY PassiveAura on that Kit declares
+; starts_active = false (unit_printer.gd:19-21), and UnitCondition does the same on gear
+; reapplication (:880 and :899). PassiveAura.update_unit reads that one gear-level flag
+; (passive_aura.gd:37) and, in one pass, applies what should be on and clears what should be off
+; (:62-64 and :55-59). So this passive is lit and darkened by the very flag and the very pass that
+; light and darken the cloud. There is ONE lifetime, not two.
+;
+; THE ALTERNATIVE, AND WHY IT WAS REJECTED. The obvious shape is one line in
+; action_fungal_network.gd's activate() - UnitCondition.apply_buff(activation, unit, chip, gear) -
+; next to the set_aura_active call. It applies correctly and nothing ever clears it. The flag is
+; pulled down by paths the protocol never sees (unit_condition.gd:899 on a gear reapplication,
+; event_service.gd:67 on the owner's death), and a hand-applied chip survives every one of them, so
+; the Myconid would go on advertising a zone that had stopped. A chip that can outlive its own zone
+; is worse than no chip: it is a readout that lies. test_the_chip_is_gone_when_the_zone_is_down
+; reddens under exactly that mutation (T4-M3).
+;
+; A THIRD PASSIVE COSTS ONE MORE INNER ITERATION, NOT ONE MORE PASS. The Kit is already in
+; LoadoutCore.auras (loadout_core.gd:298-301 appends gear whose Kit has any PassiveAura, which the
+; other two already did), and PassiveAura.update_unit loops the passives of each aura gear at
+; :34 - so this adds one row to that innermost loop and no new traversal of the map.
+buffs = Array[ExtResource("2_buff")]([ExtResource("3_active")])
+; SELF ONLY, AND aura_range = 0 IS THE WHOLE OF HOW. UnitRelation.distance_between returns 0 for a
+; unit against ITSELF and nothing else (unit_relation.gd:13-14, the early return); every other unit
+; is measured by Tile.get_closest_pair_between over occupied tiles and so is at least 1 away. Range 0
+; is therefore "me", exactly - including on this size-2 frame, where the four tiles do not widen it.
+;
+; THE FLAG YOU WOULD REACH FOR DOES NOT WORK. applies_to_allies = false looks like the way to say
+; "not my allies", and it would ALSO refuse the Myconid: a unit is its own ally (Faction.is_ally(f, f)
+; is true, faction.gd:30) and passive_aura.gd:70 asks exactly that question of the unit being
+; updated. applies_to_other_copies_of_this_frame = false is the same trap one line down at :72 - the
+; Myconid is a copy of its own frame. BOTH MUST STAY AT THEIR TRUE DEFAULTS or this aura applies to
+; nobody at all, which is a silent failure: the chip would simply never appear and every other test
+; in test_fungal_network.gd would stay green. test_pressing_the_protocol_chips_the_myconid is the
+; guard. This is the mirror image of passive_fungal_network_allies.tres's problem, where
+; applies_to_self = false is the only thing keeping the Myconid OUT.
+;
+; No vanilla aura uses range 0 - there are none in content/ - so there is no precedent to copy here,
+; only the engine reading above.
+aura_range = 0
+; BELT-AND-BRACES, and untestable by design. At range 0 a hostile can only be reached by SHARING the
+; Myconid's space, which needs Buff.TO.CAN_SHARE_SPACE (giantkiller) or a PassiveAttachment stackup -
+; pathfinder.gd:117-125 is where both are honoured. No spec here can arrange that, and the worst it
+; could cost is cosmetic: a hostile wearing a "Fungal Network" chip that does nothing. The line costs
+; nothing and closes it. Note it is safe where applies_to_allies is not, because a unit is NOT its
+; own enemy (Faction.is_enemy returns false for a faction against itself, faction.gd:22-27), so
+; passive_aura.gd:71 never refuses the Myconid.
+applies_to_enemies = false
+; DARK UNTIL THE PROTOCOL IS PRESSED, exactly as the other two passives are - and for the same single
+; flag, which is why this line is REDUNDANT today and written anyway. Any one of the three declaring
+; starts_active = false pulls the Kit's one flag down, so mutating THIS line alone reddens nothing;
+; passive_fungal_network_allies.tres records the same measurement for its own copy (2026-09-16). It
+; is here because the file has to state what it wants of the flag rather than inherit it by accident
+; from its neighbours - delete all three and the zone is lit from the start of the scene.
+starts_active = false
+; applies_to_self and applies_only_to_characters are both left at their TRUE defaults. The first is
+; the one this aura depends on (it is what lets a unit be caught by its own aura at all,
+; passive_aura.gd:69); the second is free, since the Myconid is a character.
