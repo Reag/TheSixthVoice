@@ -37,7 +37,13 @@ until = 3
 ; through: gear.<buff_id>.* first (translate.gd:56-58), then gear.<kit_id>.<buff_id>.* (:68-70),
 ; then gear.<kit_id>.<SOLO ACTION>.* (:72-75). get_solo_action() is `kit.actions[0]`
 ; (gear_core.gd:337-339) with no arity check, and this Kit's actions are [strike, gyre] - so the
-; fall-through lands on gear.mw_psychopomp_fold_pike.action_psychopomp_strike.name and the log reads
-; "Psychopomp Fold Pike", not "Uffish Gyre". A real string, the right weapon, the wrong half of it.
-; Cosmetic, and accepted on the same ruling as the other three divergences; pinned by
+; fall-through lands on gear.mw_psychopomp_fold_pike.action_psychopomp_strike.name, the STRIKE's own
+; row, whatever string that row holds.
+;
+; SP2.5 TASK 3 UPDATE (2026-09-16): that row was renamed from "Psychopomp Fold Pike" to "Uffish
+; Gyre" (the author's own weapon-profile fix), so the log now happens to print "Uffish Gyre" - the
+; SAME text buff_uffish_gyre_armor.tres's own row prints for the visible chip. Still the wrong half
+; of it: this fall-through reads the STRIKE's row, not the Gyre's, and the match is coincidence, not
+; a fix - a future rename of either row independently would separate the two strings again exactly
+; as before. Cosmetic, and accepted on the same ruling as the other three divergences; pinned by
 ; test_the_battle_log_names_the_pike_for_the_reduction so it cannot change unnoticed.

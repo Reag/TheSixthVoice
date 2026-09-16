@@ -144,7 +144,7 @@ gear.buff_fungal_network_spores.effect,|Slowed| and |Impaired| while within |bur
 ,
 gear.mw_psychopomp_fold_pike.name,"PFP// ""PSYCHOPOMP"" Fold Pike"
 gear.mw_psychopomp_fold_pike.effect,"Gain the |Uffish Gyre| reaction, which is the only way you can attack with this weapon."
-gear.mw_psychopomp_fold_pike.action_psychopomp_strike.name,Psychopomp Fold Pike
+gear.mw_psychopomp_fold_pike.action_psychopomp_strike.name,Uffish Gyre
 gear.mw_psychopomp_fold_pike.action_uffish_gyre.name,Uffish Gyre
 gear.mw_psychopomp_fold_pike.action_uffish_gyre.trigger,"An allied character within |threat| starts to move. This does not require |line of sight| or a clear path between you and the target."
 gear.mw_psychopomp_fold_pike.action_uffish_gyre.effect,"Make a melee attack against evasion 8, on hit the allied character gains +2 armor until the start of their next turn. This doesn’t count against the maximum number of |reactions| you can make in a turn."

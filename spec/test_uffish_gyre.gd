@@ -668,16 +668,25 @@ func test_the_battle_log_names_the_pike_for_the_reduction():
 	# gear.<kit_id>.<SOLO ACTION> (:72-75), and get_solo_action() is kit.actions[0] with no arity
 	# check (gear_core.gd:337-339) - so it lands on the STRIKE's name, not the Gyre's.
 	#
-	# A real string and the right weapon, which is why it is accepted rather than fixed; it is pinned
-	# because reordering the Kit's actions would silently change what the player reads.
+	# SP2.5 TASK 3 RENAMED THE STRIKE ITSELF TO "Uffish Gyre" (the weapon-profile rename; the author
+	# reported the card was wrong, see mw_psychopomp_fold_pike.tres's header), so the expected string
+	# below moved from "Psychopomp Fold Pike" to "Uffish Gyre" - the SAME text the CONTROL below
+	# reads off the visible chip, but for an unrelated reason: the CONTROL has its own localisation
+	# row (gear.buff_uffish_gyre_armor.name), while this one still arrives via the three-hop
+	# fall-through above, landing on the STRIKE's row
+	# (gear.mw_psychopomp_fold_pike.action_psychopomp_strike.name). Two different keys, one string,
+	# by coincidence of the rename - the fall-through did not start reading the chip's row. Still
+	# pinned for the original reason: reordering the Kit's actions would silently swap which of the
+	# two rows this assertion is actually reading, even though the string would not currently show
+	# it.
 	var ally := create_ally(AT_8)
 	queue_dice(D20_HITS)
 	await moves_east(ally)
 	var reduction:BuffCore = UnitCondition.get_buff(ally, ARMOR_REDUCTION)
 	assert_not_null(reduction, 'fixture: the reduction is on the ally.')
 	if reduction == null: return
-	assert_eq(reduction.name_text(), 'Psychopomp Fold Pike',
-		'The hidden reduction reads as the strike, the Kit s first action.')
+	assert_eq(reduction.name_text(), 'Uffish Gyre',
+		'The hidden reduction still reads as the strike, the Kit s first action - now the same text as the chip, for a different reason (see header).')
 	assert_eq(UnitCondition.get_buff(ally, ARMOR_CHIP).name_text(), 'Uffish Gyre',
 		'CONTROL: the visible chip has a row of its own and reads correctly.')
 
@@ -1006,8 +1015,30 @@ func test_the_gyre_announces_itself_before_the_roll():
 		assert_eq(reading, 1,
 			'The Gyre had already spent its use - and so already popcorned and logged - when the attack was declared: %s' % [probe.readings])
 
+	# A THIRD CASUALTY OF THE SP2.5 TASK 3 RENAME, NOT NAMED IN THE BRIEF - found by running this file
+	# after the CSV edit, not by reading it. Renaming the strike to "Uffish Gyre" makes it share a
+	# name with the reaction, so a bare 'Psychopomp Fold Pike' search no longer finds the strike's
+	# line at all (assert_gte on strike_line went -1). battle_log_bus.gd's formatted_action (:89-94)
+	# is what still tells the two lines apart: it prefixes a line with the KIT's own name only when
+	# `specific.action is ActionAttackWeapon and action_name != kit_name` (:93) - true for the strike
+	# (an ActionAttackWeapon whose name now differs from the Kit's "PFP// \"PSYCHOPOMP\" Fold Pike"),
+	# false for the Gyre (an ActionReaction, never profiled this way) - so only the strike's line
+	# reads "...Fold Pike: Uffish Gyre" while the reaction's reads a bare "...Uffish Gyre triggered.".
+	# Search the composite fragment, not the bare name, or this half of the probe goes blind rather
+	# than red.
+	#
+	# MEASURED, NOT INFERRED (2026-09-16, by inverting the assert_lt below and reading the dump). The
+	# four lines this run writes, in order, BBCode stripped:
+	#   0  "Player Q0Y started turn."
+	#   1  "Player 5EU [Uffish Gyre] triggered."                                   <- the REACTION
+	#   2  "...and attacked with [PFP// "PSYCHOPOMP" Fold Pike: Uffish Gyre]."     <- the STRIKE
+	#   3  "...and rolled 9 against Player Q0Y (8 Eva): hit!"
+	# So the two searches below land on 1 and 2 - two DIFFERENT lines, which is what keeps the
+	# assert_lt honest. And it stays honest under regression: if the strike ever logged first, line 2
+	# would also be the first line containing 'Uffish Gyre', the two indices would be EQUAL, and
+	# assert_lt would go red. The weaker-looking search does not cost the test its teeth.
 	var reaction_line:int = logbook.first_containing('Uffish Gyre')
-	var strike_line:int = logbook.first_containing('Psychopomp Fold Pike')
+	var strike_line:int = logbook.first_containing('Fold Pike: Uffish Gyre')
 	assert_gte(reaction_line, 0, 'fixture: the reaction wrote a battle-log line: %s' % [logbook.lines])
 	assert_gte(strike_line, 0, 'fixture: and so did the strike: %s' % [logbook.lines])
 	if reaction_line < 0 or strike_line < 0: return

@@ -112,11 +112,14 @@
 ##      NOTE FOR THE OTHER USERS: that fall-through wants the owning Kit to have exactly ONE action.
 ##      cp_quietus_machines has one (the protocol). mw_psychopomp_fold_pike has TWO - and the answer
 ##      is now measured (Myconid SP2 Task 4, 2026-09-16): get_solo_action() is `kit.actions[0]` with
-##      no arity check, that Kit's actions are [strike, gyre], and so the Gyre's reduction logs
-##      "Psychopomp Fold Pike" - a real string, the right weapon, the wrong half of it. Cosmetic in
-##      exactly the same way, and accepted on the same ruling. Pinned by
+##      no arity check, that Kit's actions are [strike, gyre], and so the Gyre's reduction logs the
+##      STRIKE's own name - the right weapon, the wrong half of it. Cosmetic in exactly the same way,
+##      and accepted on the same ruling. Pinned by
 ##      spec/test_uffish_gyre.test_the_battle_log_names_the_pike_for_the_reduction, so reordering
-##      that Kit's actions cannot change what the player reads without a test noticing.
+##      that Kit's actions cannot change what the player reads without a test noticing. (SP2.5 Task 3,
+##      2026-09-16, renamed that row from "Psychopomp Fold Pike" to "Uffish Gyre" - the same string
+##      the Gyre's OWN visible chip prints, by coincidence of the rename, not because the fall-through
+##      started reading the Gyre's row instead of the strike's.)
 ##
 ## SHREDDED IS NOT A DIVERGENCE, and that is worth knowing because it looks like one. The Shredded
 ## early return (damage_modifications.gd:73-77) happens after `other_reduction` has been accumulated

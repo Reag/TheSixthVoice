@@ -13,8 +13,29 @@ script = ExtResource("1_kit")
 ; integrated-weapon box from the KIT that holds the weapon - Translate.gear(core.kit.compcon_id,
 ; 'name') at weapon_mount_item.gd:101 - so a strike living on the core Kit would label the box
 ; "QUIETUS MACHINES". That is the integrated-weapon lesson of 8604d00 and of the Subutai's
-; mw_diversion_rail, and test_integrated_weapon_names.gd is the guard (it gains the Myconid row in
-; Task 5).
+; mw_diversion_rail, and test_integrated_weapon_names.gd is the guard - it GAINED the Myconid row in
+; SP2 Task 5 and has it now (test_the_myconids_integrated_weapon_is_called_the_psychopomp_fold_pike,
+; :123-134; the sentence used to read "it gains the row in Task 5" and was stale by SP2.5).
+;
+; THE SHAPE IS DELIBERATE AND DATED, NOT AN OVERSIGHT (SP2.5 Task 3, 2026-09-16). The author's own
+; long-term target is the RALEIGH's shape, which is the opposite arrangement - the integrated weapon
+; lives ON the core-power Kit. content/frames/ipsn/mf_raleigh/cp_m35_mjolnir_cannon/
+; cp_m35_mjolnir_cannon.tres is a single is_trait Kit, listed in mf_raleigh.tres's `traits`
+; (mf_raleigh.tres:49), whose own `actions` (:15) hold action_m35_mjolnir (the shot) AND
+; action_thunder_god (the core power); the Kit is named "M35 Mjolnir Cannon" and the weapon action
+; "M35 Mjolnir" (keys gear.cp_m35_mjolnir_cannon.name and .action_m35_mjolnir.name in
+; assets/localization/localizations.csv).
+;
+; SP2.5 Task 3 renamed action_psychopomp_strike's OWN name to "Uffish Gyre" - the author,
+; playtesting: "integrated weapon is wrong. It should read 'Uffish Gyre'" - and stopped there.
+; Rename-only was the author's choice for now, with the Raleigh's shape scheduled as a SEPARATE
+; rework after this frame closes, covering the Fitzgerald's mw_bizarre_cannon, the Subutai's
+; mw_diversion_rail and this Kit together. Until that step lands all three stay standalone mw_ Kits,
+; and none of the three core-power Kits holds its frame's weapon action (verified 2026-09-16 by
+; reading their `actions`: cp_broadside carries its protocol, cp_quietus_machines its protocol, and
+; cp_siege_engine its protocol plus the Draw Fire reaction - no weapon among them). This note is the
+; record that the divergence from the Raleigh is a SCHEDULED DEFERRAL, not something a future reader
+; should "fix" as a one-off.
 ;
 ; THE STRIKE IS FIRST, AND THAT IS NOT COSMETIC. GearCore.get_solo_action() returns kit.actions[0]
 ; with no arity check (gear_core.gd:337-339), and Translate.buff falls through to it when a buff has
