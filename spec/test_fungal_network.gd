@@ -923,10 +923,11 @@ func test_the_chip_carries_no_mechanical_effect() -> void:
 #
 # THEY PROVE, as far as INSTANTIATED NODES REGISTERED ON THE CONTROLLER: after the press, the
 # Myconid's token owns an FxEndlessController (unit_token.gd:53) whose fxe_map holds one instantiated
-# FxEndless per tile of the burst, each with id `fxe_fungal_network`. That is the real chain, not a stand-in
-# for it - UnitToken.update_attached_fx walks every passive on every piece of gear and feeds each
-# returned ticket to FxEndlessController.reconstruct_add (unit_token.gd:209-219), which instantiates
-# the scene ContentLibrary maps that id to and records it in fxe_map (fx_endless_controller.gd:72-74).
+# FxEndless per tile of the burst, each with id `fxe_fungal_network`. That is the real chain, not a
+# stand-in for it - UnitToken.update_attached_fx walks every passive on every piece of gear and feeds
+# each returned ticket to FxEndlessController.reconstruct_add (unit_token.gd:209-219), which
+# instantiates the scene ContentLibrary maps that id to and records it in fxe_map
+# (fx_endless_controller.gd:72-74).
 # Nothing here fakes a step of that.
 #
 # THEY DO NOT PROVE THE NODES ARE PARENTED, and the wording above is careful for that reason.
@@ -1346,7 +1347,7 @@ func test_the_cloud_is_the_mods_own_scene_and_not_vanillas() -> void:
 			if not is_instance_valid(fxe): continue
 			if fxe.id == CLOUD_FXE: ours += 1
 			elif fxe.id == VANILLA_CLOUD_FXE: vanillas += 1
-	assert_eq(ours, expected_cloud_tiles().size(), 'every tile of the burst draws our scene')
+	assert_eq(ours, expected_cloud_tiles().size(), 'the number of our-id nodes across the burst equals the expected tile count')
 	assert_eq(vanillas, 0, 'and none of them draws vanilla\'s')
 
 ## THE COLOUR ITSELF, ASSERTED AS LOOSELY AS IT CAN BE AND STILL MEAN SOMETHING.

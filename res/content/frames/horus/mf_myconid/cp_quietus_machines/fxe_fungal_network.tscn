@@ -97,7 +97,7 @@ scale_curve = SubResource("CurveTexture_scale")
 ; TWO ALTERNATIVES WEIGHED AND NOT TAKEN:
 ;
 ;   - NORMALISING TO REC.709 LUMINANCE (0.2126 R + 0.7152 G + 0.0722 B) instead of to the channel
-;     mean gives (0.42804, 0.21660, 0.28747). That is the more perceptually honest "same brightness",
+;     mean gives (0.42803, 0.21660, 0.28747). That is the more perceptually honest "same brightness",
 ;     since this colour's green - the channel the eye weighs most - is the one the blend drops. It
 ;     was rejected as a STARTING point only because it is the brighter, louder of the two, and the
 ;     request was for a tinge; if the author wants the cloud to carry the same apparent weight as
