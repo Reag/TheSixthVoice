@@ -897,10 +897,25 @@ func test_the_chip_carries_no_mechanical_effect() -> void:
 # a zone effect on the ground so the burst-2 edge is visible in play.
 #
 # WHAT IT IS. passive_fungal_network_zone.tres - a PassiveDynamicZone, the FOURTH passive on
-# cp_quietus_machines, drawing the reused vanilla scene res://content/fx_endless/gear/aura/
-# fxe_nanites.tscn at every tile of the burst. It applies no buff, no status and no rule; that file's
-# header says why that scene, and why every gameplay knob on its DynamicZone is left at the inert
-# default.
+# cp_quietus_machines, drawing an FX scene at every tile of the burst. It applies no buff, no status
+# and no rule; that file's header says why every gameplay knob on its DynamicZone is left at the
+# inert default.
+#
+# THE SCENE IS THE MOD'S OWN, AND IT DID NOT START THAT WAY. Task 5 shipped this pointing at
+# vanilla's res://content/fx_endless/gear/aura/fxe_nanites.tscn. The author playtested it - "Cloud
+# releases correctly, though it could use with a a pink tinge to match the frames color scheme" - and
+# it now draws res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/
+# cp_quietus_machines/fxe_fungal_network.tscn: that same scene copied with ONE property changed, the
+# particle colour, derived from the frame's own base_1 and base_2. The copy exists because the
+# vanilla file is base game and is also the Hive Drone's cloud, so neither an edit nor a .tscn_ext.gd
+# could repaint ours alone; the new scene's header carries the arithmetic and the alternatives.
+#
+# THE CONSEQUENCE FOR THIS FILE IS THE ID. FxEndless ids are scene BASENAMES (fx_endless.gd:93-96,
+# reached from Passive.get_fxe_id at passive.gd:31), so changing the scene changed what every
+# assertion below looks up: `fxe_nanites` became `fxe_fungal_network`. A test that searches for an id
+# nothing draws finds nothing and can pass for the wrong reason, so every test here that could go
+# green on an empty result carries a positive control that fails on one - and
+# test_the_cloud_is_the_mods_own_scene_and_not_vanillas pins the id and the path outright.
 #
 # ============ WHAT THESE TESTS PROVE, AND WHAT THEY DO NOT ============
 #
@@ -908,7 +923,7 @@ func test_the_chip_carries_no_mechanical_effect() -> void:
 #
 # THEY PROVE, as far as INSTANTIATED NODES REGISTERED ON THE CONTROLLER: after the press, the
 # Myconid's token owns an FxEndlessController (unit_token.gd:53) whose fxe_map holds one instantiated
-# FxEndless per tile of the burst, each with id `fxe_nanites`. That is the real chain, not a stand-in
+# FxEndless per tile of the burst, each with id `fxe_fungal_network`. That is the real chain, not a stand-in
 # for it - UnitToken.update_attached_fx walks every passive on every piece of gear and feeds each
 # returned ticket to FxEndlessController.reconstruct_add (unit_token.gd:209-219), which instantiates
 # the scene ContentLibrary maps that id to and records it in fxe_map (fx_endless_controller.gd:72-74).
@@ -980,7 +995,10 @@ func test_the_chip_carries_no_mechanical_effect() -> void:
 
 # ---------------------------------------------------------------- section H helpers
 
-const CLOUD_FXE := &'fxe_nanites' # the reused vanilla scene; FxEndless ids are scene BASENAMES
+const CLOUD_FXE := &'fxe_fungal_network' # the MOD's scene; FxEndless ids are scene BASENAMES
+const VANILLA_CLOUD_FXE := &'fxe_nanites' # what Task 5 drew, and what this must never go back to
+const CLOUD_SCENE := 'res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/fxe_fungal_network.tscn'
+const VANILLA_CLOUD_SCENE := 'res://content/fx_endless/gear/aura/fxe_nanites.tscn'
 const CLOUD_RADIUS := 2           # passive_fungal_network_zone.tres, matching the hostile aura
 
 func zone_passive() -> PassiveDynamicZone:
@@ -1125,9 +1143,9 @@ func test_the_cloud_is_drawn_over_the_burst_the_hostile_half_catches() -> void:
 	assert_false(has(far_foe, SPORES_BUFF), '...where it does not catch either')
 
 ## The cloud is a ring around the frame, not a blanket over it: a particle haze on the Myconid's own
-## four tiles would hide the mech, and both vanilla HORUS nanite zones leave them clear for the same
-## reason (mt_hive_drone.tres, ms_swarm_body.tres). It also makes the drawn set exactly the set of
-## tiles a hostile can stand in and be caught.
+## four tiles would hide the mech, and both vanilla HORUS zones of this shape leave them clear for the
+## same reason (mt_hive_drone.tres:23, ms_swarm_body.tres:21). It also makes the drawn set exactly the
+## set of tiles a hostile can stand in and be caught.
 ##
 ## THE POSITIVE CONTROL IS THE RING one tile out from each of those four: without it, "the footprint
 ## is clear" would pass just as well with the whole cloud dark.
@@ -1255,3 +1273,123 @@ func test_the_ground_zone_is_a_picture_and_not_a_rule() -> void:
 	for guide:int in Zone.GUIDE.values():
 		assert_false(zone.dynamic_zone.is_guide_checked(guide),
 			'and steers the AI nowhere: no guide %s (unit_tile.gd:755)' % [guide])
+
+# ---------------------------------------------------------------- section H: the scene is OURS
+#
+# SP2.5, the author's second playtest note: "Cloud releases correctly, though it could use with a a
+# pink tinge to match the frames color scheme." The cloud stopped being vanilla's fxe_nanites.tscn
+# and became a mod-local copy of it with one property changed.
+#
+# WHY THAT NEEDS GUARDING AT ALL. Re-pointing `fxe` back at the vanilla scene is a one-token edit
+# that breaks NOTHING ELSE in this file: the id constant would follow it, the burst would still be
+# drawn over the right 32 tiles, every flag test would still pass, and the only visible difference
+# would be a grey cloud on a pink mech - which no assertion in this suite can see. So the two tests
+# below assert the things a spec CAN see: which file the passive names, and that the colour inside it
+# is not vanilla's neutral grey.
+
+## Reads the particle colour out of an FX scene the way the engine does - load, instantiate, walk the
+## children - rather than by parsing the .tscn as text, so a scene that has stopped loading fails
+## here instead of quietly matching a regex. instantiate() is the same call
+## FxEndless.create_from_id makes (fx_endless.gd:86-88).
+##
+## Returns a fully transparent black if the scene will not load or carries no particle material,
+## which no real colour here can be - so a miss reads as a miss rather than as a plausible colour.
+func particle_colour_of(scene_path:String) -> Color:
+	var scene:PackedScene = load(scene_path)
+	if scene == null or not scene.can_instantiate(): return Color(0, 0, 0, 0)
+	var root:Node = scene.instantiate()
+	var found := Color(0, 0, 0, 0)
+	for child:Node in root.get_children():
+		if child is GPUParticles3D and child.process_material is ParticleProcessMaterial:
+			found = (child.process_material as ParticleProcessMaterial).color
+			break
+	root.free() # never entered the tree, so a plain free is right and leaves no orphan
+	return found
+
+## THE ANTI-REGRESSION GUARD ON THE WHOLE TASK: the cloud is drawn from THE MOD'S OWN scene, and
+## vanilla's is left exactly where it was.
+##
+## THE SECOND HALF IS NOT DECORATION. The mod overlay maps res/... onto res:// by stripping the mod
+## prefix (lancer_tactics_mod.gd:42-46), so a copy placed at the mirror of vanilla's path would have
+## REPLACED fxe_nanites.tscn for the whole game - the Hive Drone's cloud included - instead of adding
+## a scene. The two library lookups are how that shows up: ours must resolve to our file AND
+## `fxe_nanites` must still resolve to vanilla's. If the file had been put at the mirror path, the
+## second assertion is the one that fires.
+##
+## Reddened by: P-M1, pointing `fxe` back at res://content/fx_endless/gear/aura/fxe_nanites.tscn.
+func test_the_cloud_is_the_mods_own_scene_and_not_vanillas() -> void:
+	var zone := zone_passive()
+	assert_not_null(zone, 'precondition: the Kit carries a PassiveDynamicZone')
+	if zone == null: return
+
+	assert_not_null(zone.fxe, 'precondition: it names an FX scene at all')
+	if zone.fxe == null: return
+	assert_eq(zone.fxe.resource_path, CLOUD_SCENE, 'the passive names the mod\'s own scene')
+
+	assert_eq(zone.get_fxe_id(), CLOUD_FXE,
+		'so the id it asks the engine for is that file\'s basename (fx_endless.gd:93-96)')
+	assert_ne(zone.get_fxe_id(), VANILLA_CLOUD_FXE, 'and it is NOT vanilla\'s nanite cloud')
+
+	assert_eq(ContentLibrary.get_fxendless_path(CLOUD_FXE), CLOUD_SCENE,
+		'and the library resolves that id to our file, which is what reconstruct_add will load')
+	assert_eq(ContentLibrary.get_fxendless_path(VANILLA_CLOUD_FXE), VANILLA_CLOUD_SCENE,
+		'control: vanilla\'s own entry is untouched - this mod ADDED a scene, it did not replace one')
+
+	# ...and what is actually drawn carries our id, not vanilla's. The count is the positive control:
+	# "no vanilla nodes" is also true of a cloud that never came up.
+	await press_protocol()
+	var controller:FxEndlessController = myconid.token.AttachedFxEndless
+	var ours := 0
+	var vanillas := 0
+	for local_tile:Vector2i in controller.fxe_map.keys():
+		for fxe in controller.fxe_map[local_tile]:
+			if not is_instance_valid(fxe): continue
+			if fxe.id == CLOUD_FXE: ours += 1
+			elif fxe.id == VANILLA_CLOUD_FXE: vanillas += 1
+	assert_eq(ours, expected_cloud_tiles().size(), 'every tile of the burst draws our scene')
+	assert_eq(vanillas, 0, 'and none of them draws vanilla\'s')
+
+## THE COLOUR ITSELF, ASSERTED AS LOOSELY AS IT CAN BE AND STILL MEAN SOMETHING.
+##
+## WHAT IT DELIBERATELY DOES NOT DO IS PIN THE TRIPLE. The shipped value is a derived STARTING point
+## - fxe_fungal_network.tscn's header shows the arithmetic - and the author is expected to nudge it on
+## screen, which is the one judgement no spec can make. A test asserting the exact Color would turn
+## every taste adjustment into a red suite. So this asserts the THREE PROPERTIES the request actually
+## named, each of which survives tuning:
+##
+##   1. it is not vanilla's colour, and vanilla's is still vanilla's;
+##   2. it has a HUE at all - a neutral grey has r == g == b, and "pink" at minimum means red and
+##      blue both above green, which is the magenta half of the wheel;
+##   3. it is a TINGE and not a repaint - it keeps roughly vanilla's weight. The band is wide on
+##      purpose (+/- 0.1 of vanilla's channel mean of 0.2666...); what it catches is a repaint, e.g.
+##      the frame's base_2 pasted in undiluted, whose mean is 0.562.
+##
+## THE VANILLA READING IS THE POSITIVE CONTROL for the helper: if particle_colour_of stopped finding
+## particle materials it would return transparent black for both scenes and assertion 1 would pass on
+## two equal misses, so vanilla's known grey is checked explicitly.
+##
+## Reddened by: P-M1 (pointing `fxe` back at vanilla, which makes the two colours equal) and P-M2
+## (pasting vanilla's grey into our own scene).
+func test_the_cloud_is_painted_in_the_frames_colours_and_not_vanillas_grey() -> void:
+	var vanilla := particle_colour_of(VANILLA_CLOUD_SCENE)
+	assert_eq(vanilla, Color(0.26666668, 0.26666668, 0.26666668, 1),
+		'control: vanilla\'s nanite haze is still its neutral grey (fxe_nanites.tscn:30)')
+
+	var zone := zone_passive()
+	assert_not_null(zone, 'precondition: the Kit carries a PassiveDynamicZone')
+	if zone == null: return
+	assert_not_null(zone.fxe, 'precondition: it names an FX scene at all')
+	if zone.fxe == null: return
+
+	var ours := particle_colour_of(zone.fxe.resource_path)
+	assert_ne(ours, vanilla, 'the spore cloud is not painted vanilla\'s grey')
+
+	assert_gt(ours.a, 0.0, 'precondition: a particle material was actually found in our scene')
+	assert_gt(ours.r, ours.g, 'it leans red of neutral...')
+	assert_gt(ours.b, ours.g, '...and blue of it too, which together is the pink/magenta half')
+
+	var mean := (ours.r + ours.g + ours.b) / 3.0
+	var vanilla_mean := (vanilla.r + vanilla.g + vanilla.b) / 3.0
+	assert_almost_eq(mean, vanilla_mean, 0.1,
+		'and it is a TINGE: within 0.1 of vanilla\'s channel mean, not a repaint (got %s)' % [mean])
+

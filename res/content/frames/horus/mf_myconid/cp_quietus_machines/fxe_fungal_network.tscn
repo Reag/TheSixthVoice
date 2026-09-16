@@ -1,0 +1,134 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://ck34knquhucbv" path="res://engine/gamemaster/effects_controller/fx_endless/fx_endless.gd" id="1_fxe"]
+[ext_resource type="ArrayMesh" uid="uid://dlvkhs8kmckpi" path="res://assets/fx/resources/icosphere_smoke.tres" id="2_smoke"]
+
+; THE SPORE CLOUD, IN THE MYCONID'S OWN COLOURS. The author playtested SP2.5 Task 5 and said "Cloud
+; releases correctly, though it could use with a a pink tinge to match the frames color scheme."
+;
+; THIS FILE IS res://content/fx_endless/gear/aura/fxe_nanites.tscn WITH ONE PROPERTY CHANGED - the
+; ParticleProcessMaterial's `color`, vanilla's neutral grey at fxe_nanites.tscn:30. Every curve,
+; velocity, damping, scale, emission extent, particle count, lifetime, speed and the mesh are
+; vanilla's numbers, copied so a reader can diff the two files and find exactly one line of physics
+; unchanged and one line of colour changed. (The two scenes are not byte-identical outside that: the
+; per-node `unique_id=` attributes vanilla carries are omitted here, as they are in our own
+; Reag-ThyHubris/res/content/fx_endless/gear/fxe_plague_fog.tscn, and this file has no `uid=` on its
+; [gd_scene] line for the same reason the mod's .tres files have none.)
+;
+; ================= WHY A NEW FILE AND NOT AN EDIT OR AN EXTENSION =================
+;
+; THE VANILLA SCENE IS BASE GAME AND IS SHARED. fxe_nanites.tscn has exactly one other user in the
+; tree - content/gear/horus/systems/ms_hive_drone/deployable/mt_hive_drone.tres:24, the Hive Drone's
+; own burst-2 nanite zone. (It is NOT also the Swarm Body's, which an earlier note claimed:
+; ms_swarm_body.tres:22 draws fxe_swarm_body.tscn.) A .tscn_ext.gd on the nanite path would therefore
+; recolour the Hive Drone's cloud too, which is not ours to repaint, and editing the vanilla file
+; itself is off limits outright.
+;
+; AND IT MUST NOT SIT AT THE VANILLA PATH. The mod overlay maps res/... onto res:// by stripping the
+; prefix (LancerTacticsMod.get_vanilla_path, lancer_tactics_mod.gd:42-46), so a file at
+; res/content/fx_endless/gear/aura/fxe_nanites.tscn would REPLACE vanilla's scene rather than add
+; one. This path is new, so it is additive: nothing vanilla changes and the Hive Drone keeps its grey.
+;
+; THE PATH STILL HAS TO BE UNDER res/content/ FOR THE ENGINE TO FIND IT AT ALL. FxEndless ids are
+; resolved through ContentLibrary.fxendless_library (fx_endless.gd:84 into content_library.gd:215-217),
+; which is filled by globbing files whose NAME begins with 'fxe_' and which contain '.tscn'
+; (content_library.gd:319-321, the prefix at :108), over a file list that is mod-inclusive only
+; because get_all_files_recursive_mod_inclusive appends a mod's own paths when their VANILLA mapping
+; begins with the scanned directory (content_library.gd:419-433, the test at :426). res://content is
+; that directory (:4), and this file's vanilla mapping is under it. A frame-folder location is also
+; what the rest of this Kit does, and it has a worked precedent in our other mod:
+; Reag-ThyHubris/res/content/frames/horus/mf_banshee/cp_the_keening/tear/fxe_void_tear.tscn.
+;
+; THE ID IS THE BASENAME, `fxe_fungal_network` - FxEndless.get_id_from_scene returns
+; resource_path.get_file().get_basename() (fx_endless.gd:93-96) and Passive.get_fxe_id just forwards
+; to it (passive.gd:31). So RENAMING THIS FILE CHANGES THE ID, and a name ContentLibrary has no entry
+; for is a silent no-draw: get_fxendless_path logs an error and returns '' (content_library.gd:215-219),
+; create_from_id then hands back null and reconstruct_add appends nothing (fx_endless.gd:84-91 into
+; fx_endless_controller.gd:72-74). spec/test_fungal_network.gd pins the id for that reason.
+
+[sub_resource type="Curve" id="Curve_scale"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.17627119, 1), 0.0, 0.0, 0, 0, Vector2(0.8440679, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="CurveTexture" id="CurveTexture_scale"]
+curve = SubResource("Curve_scale")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_spores"]
+lifetime_randomness = 0.6
+emission_shape = 3
+emission_box_extents = Vector3(0.5, 0.25, 0.5)
+direction = Vector3(0, 1, 0)
+initial_velocity_min = -0.19999999
+initial_velocity_max = 0.19999999
+orbit_velocity_min = -0.19999991
+orbit_velocity_max = 0.2000001
+radial_velocity_min = -0.20002235
+radial_velocity_max = 0.19997764
+gravity = Vector3(0, 0, 0)
+damping_min = 0.05
+damping_max = 0.05
+scale_min = 0.099999994
+scale_max = 0.19999999
+scale_curve = SubResource("CurveTexture_scale")
+; ================= THE ONE LINE THIS FILE EXISTS FOR, AND HOW TO RE-DERIVE IT =================
+;
+; A STARTING VALUE, NOT A FINISHED ONE. Nobody can judge a particle haze from a spec - every test in
+; spec/test_fungal_network.gd section H would stay green against any colour at all - so this is a
+; defensible first guess the author is expected to nudge on screen. Changing it is this one line.
+;
+; THE ARITHMETIC, from mf_myconid.tres's Resource_colorscheme. base_0 is the scheme's grey
+; (mf_myconid.tres:21) and carries no hue, so the tinge comes from the two that do:
+;
+;   base_1 = Color(0.39662534, 0.14987248, 0.37463072, 1)   deep purple-magenta   (mf_myconid.tres:22)
+;   base_2 = Color(0.8009519,  0.45614117, 0.42966625, 1)   dusty rose            (mf_myconid.tres:23)
+;
+;   1. blend them 50/50, channel by channel, in the same sRGB space the .tscn stores:
+;        mid = (0.59878862, 0.30300683, 0.40214849)      mean of the three channels = 0.43464798
+;   2. vanilla's haze is neutral grey 0.26666668 on all three channels (fxe_nanites.tscn:30), so its
+;      channel mean IS 0.26666668. Scale the blend to match it:
+;        k = 0.26666668 / 0.43464798 = 0.6135233
+;   3. mid * k = (0.3673708, 0.1859017, 0.2467275), whose three channels sum to exactly 0.8 and whose
+;      mean is therefore 0.26666667 - vanilla's weight, kept to seven places.
+;
+; WHAT THAT BUYS: a TINGE rather than a repaint. Hue lands at ~340 degrees (rose-pink, between the
+; scheme's magenta and its rose) with saturation ~0.49, and the haze reads at the same average
+; intensity vanilla's grey did, so the cloud does not suddenly become the loudest thing on the board.
+;
+; TWO ALTERNATIVES WEIGHED AND NOT TAKEN:
+;
+;   - NORMALISING TO REC.709 LUMINANCE (0.2126 R + 0.7152 G + 0.0722 B) instead of to the channel
+;     mean gives (0.42804, 0.21660, 0.28747). That is the more perceptually honest "same brightness",
+;     since this colour's green - the channel the eye weighs most - is the one the blend drops. It
+;     was rejected as a STARTING point only because it is the brighter, louder of the two, and the
+;     request was for a tinge; if the author wants the cloud to carry the same apparent weight as
+;     vanilla's rather than the same average channel, that triple is the one to paste in.
+;   - LETTING THE ENGINE COLOUR IT. Setting energy_color_override = true on the root (fx_endless.gd:19)
+;     makes sync_to_ticket push the UNIT's own base_2 into every child's process_material each time
+;     the ticket syncs (fx_endless.gd:72-74 into apply_color_recursive at :49-60). Vanilla uses it on
+;     eight scenes and gavstarb-horus_alts_1st_party's Hecatoncheires nanobots do too, so it is a real
+;     option. Rejected for THIS cloud on two counts. It does not read the FRAME's scheme: it reads
+;     unit.core.token_customization.colors, which TokenCore.create seeds as a DUPLICATE of the frame's
+;     default_color_scheme (token_core.gd:28-33) and which the player then repaints freely - so the
+;     tie to "the frame's colour scheme" is only as good as the paint job. And base_2 undiluted is
+;     Color(0.8009519, 0.45614117, 0.42966625) - a channel mean of 0.562, more than double vanilla's
+;     haze - which is a repaint, not a tinge. It also writes through a process_material that
+;     instances of one PackedScene share unless resource_local_to_scene is set, which nothing here
+;     sets, so the last unit to sync would be colouring everyone else's cloud as well.
+color = Color(0.3673708, 0.1859017, 0.2467275, 1)
+
+; lock_height_to = 3 is FxEndless.LOCK_TO.SURFACE - "sets to surface elevation (terrain blocks +
+; setpieces + obstructing units)" (fx_endless.gd:11-18, the export at :18). It is vanilla's value on
+; fxe_nanites.tscn:34 and it is what puts the haze ON THE GROUND rather than at the token's centre,
+; which is the LOCK_TO.UNIT default. That is the whole reason Task 5 picked this scene to copy, so it
+; is carried over unchanged; position_fxe reads it at fx_endless_controller.gd:123-134.
+[node name="Fxe" type="Node3D"]
+script = ExtResource("1_fxe")
+lock_height_to = 3
+
+[node name="SporeCloud" type="GPUParticles3D" parent="."]
+amount = 40
+lifetime = 1.5
+speed_scale = 0.5
+randomness = 0.6
+process_material = SubResource("ParticleProcessMaterial_spores")
+draw_pass_1 = ExtResource("2_smoke")

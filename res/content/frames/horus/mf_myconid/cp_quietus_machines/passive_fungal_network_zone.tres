@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://g8ycgtxd1y6n" path="res://engine/character/gear_passive/passive_dynamic_zone.gd" id="1_zone"]
 [ext_resource type="Script" uid="uid://b2xlpsu4kynfl" path="res://engine/gamemaster/map/command_zone/dynamic_zone.gd" id="2_shape"]
-[ext_resource type="PackedScene" uid="uid://cqvonn46ieu62" path="res://content/fx_endless/gear/aura/fxe_nanites.tscn" id="3_nanites"]
+[ext_resource type="PackedScene" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/fxe_fungal_network.tscn" id="3_cloud"]
 
 ; THE SHAPE OF THE CLOUD, AND NOTHING ELSE IT NORMALLY CARRIES. A DynamicZone is a real gameplay
 ; object - it can block sight, fence movement, fence effects and steer the AI - and every one of
@@ -93,22 +93,32 @@ script = ExtResource("1_zone")
 ; other half: without it this zone would be LIT FROM THE START OF THE SCENE while the auras were
 ; still dark, which is the exact failure this passive was asked not to have.
 ;
-; ================= WHY THE FX IS A REUSED VANILLA SCENE =================
+; ================= WHY THE FX IS THE MOD'S OWN SCENE =================
 ;
-; fxe_nanites.tscn is HORUS' own nanite cloud: a grey particle haze on an icosphere_smoke mesh whose
-; root declares lock_height_to = 3, which is LOCK_TO.SURFACE - "sets to surface elevation (terrain
-; blocks + setpieces + obstructing units)" (fx_endless.gd:11-18). That is literally the author's
-; request: the haze sits ON THE GROUND rather than floating at the token's centre, which is the
-; default LOCK_TO.UNIT.
+; THIS USED TO POINT AT VANILLA'S res://content/fx_endless/gear/aura/fxe_nanites.tscn. The author
+; playtested Task 5's grey cloud and asked for "a pink tinge to match the frames color scheme", so it
+; now points at fxe_fungal_network.tscn beside this file: vanilla's scene copied with ONE property
+; changed, the ParticleProcessMaterial's colour. THAT FILE'S HEADER CARRIES THE FULL ACCOUNT - the
+; colour arithmetic and how to re-derive it, why the copy could not be an edit or a .tscn_ext.gd, and
+; why its path must be new rather than a mirror of vanilla's. What stays true here:
 ;
-; IT IS PICKED OVER THE ALTERNATIVES BECAUSE VANILLA HAS ALREADY ANSWERED THIS EXACT QUESTION.
-; mt_hive_drone.tres pairs THAT VERY SCENE with a radius-2 DynamicZone and a range-2 PassiveAura on
-; a HORUS deployable - the same radius, the same pairing of picture to aura, the same manufacturer -
-; so the game already shows what a burst-2 nanite cloud looks like on this board, and the card here
-; is literally "a cloud of nanite spores". fxe_nanobots.tscn and fxe_swarm_body.tscn are the near
-; misses (the Hive's razor swarm and HORUS' own Swarm Body). fxe_smoke_cloud.tscn was rejected on
-; meaning rather than looks - but NOT for the reason first written here, which the 2026-09-16 review
-; took apart. That haze is not the tree's private sign for "you cannot see through this":
+; THE SHAPE IS STILL VANILLA'S, AND DELIBERATELY. fxe_nanites.tscn is HORUS' own nanite cloud: a
+; particle haze on an icosphere_smoke mesh whose root declares lock_height_to = 3, which is
+; LOCK_TO.SURFACE - "sets to surface elevation (terrain blocks + setpieces + obstructing units)"
+; (fx_endless.gd:11-18). That is literally the author's Task 5 request: the haze sits ON THE GROUND
+; rather than floating at the token's centre, which is the LOCK_TO.UNIT default. The copy carries
+; every one of those numbers over unchanged, so this is still the picture vanilla ships, recoloured.
+;
+; AND IT IS STILL MODELLED ON THAT SCENE BECAUSE VANILLA HAS ALREADY ANSWERED THIS EXACT QUESTION.
+; mt_hive_drone.tres pairs it with a radius-2 DynamicZone (:16) and a range-2 PassiveAura (:30) on a
+; HORUS deployable - the same radius, the same pairing of picture to aura, the same manufacturer - so
+; the game already shows what a burst-2 nanite cloud looks like on this board, and the card here is
+; literally "a cloud of nanite spores". fxe_nanobots.tscn and fxe_swarm_body.tscn are the near misses
+; (the Hive's razor swarm and HORUS' own Swarm Body; the latter is what ms_swarm_body.tres:22 really
+; draws - it is NOT a second user of the nanite scene, which an earlier note here got wrong).
+; fxe_smoke_cloud.tscn was rejected on meaning rather than looks - but NOT for the reason first
+; written here, which the 2026-09-16 review took apart. That haze is not the tree's private sign for
+; "you cannot see through this":
 ;
 ;   - It has SEVEN users under content/, not one, and six of them are terrain rather than zones:
 ;     mt_smoke_cloud_0/2/3.tres, passive_smoke_cloud_cone.tres and setpiece_smoke.tres all lay
@@ -123,19 +133,39 @@ script = ExtResource("1_zone")
 ;     ms_hardlight_defense_system.tres:16-17.
 ;
 ; What the haze does consistently mean on this board is COVER, which this zone does not grant either,
-; so the rejection survives its own evidence being wrong. The positive case is the one that carries
-; the decision: fxe_nanites already means "a HORUS aura is running here", by the hive-drone precedent
-; above.
+; so the rejection survives its own evidence being wrong.
 ;
-; NO NEW ART, deliberately: icons and art are SP3's business, and a referenced vanilla .tscn brings
-; its own already-imported .ctex with it. The id the engine will look up is the scene's BASENAME
-; (`fxe_nanites`, via FxEndless.get_id_from_scene, fx_endless.gd:93-96) resolved through
-; ContentLibrary.fxendless_library, which is built by globbing `fxe_*.tscn` under res://content
-; (content_library.gd:319-321). A vanilla scene is in that index already; a new one would have to be
-; named into it, and a mismatch there is a silent no-draw (content_library.gd:215-219 logs an error
-; and returns "", after which FxEndless.create_from_id hands back null and reconstruct_add appends
-; nothing, fx_endless.gd:83-91 into fx_endless_controller.gd:72-74).
-fxe = ExtResource("3_nanites")
+; STILL NO NEW ART. The copy references vanilla's icosphere_smoke mesh by path, so nothing has to be
+; drawn and nothing new has to be imported; icons and art remain SP3's business.
+;
+; THE ID THE ENGINE LOOKS UP HAS CHANGED WITH THE SCENE, and that is the one thing a reader must not
+; miss. It is the scene's BASENAME - now `fxe_fungal_network`, not `fxe_nanites` - because
+; Passive.get_fxe_id (passive.gd:31) forwards to FxEndless.get_id_from_scene, which returns
+; resource_path.get_file().get_basename() (fx_endless.gd:93-96). It is resolved through
+; ContentLibrary.fxendless_library, built by globbing files named `fxe_*` containing `.tscn` under
+; res://content (content_library.gd:319-321, the prefix at :108), a list that reaches into mod
+; directories via get_all_files_recursive_mod_inclusive (:419-433). A name that index has no entry for
+; is a SILENT NO-DRAW: content_library.gd:215-219 logs an error and returns "", after which
+; FxEndless.create_from_id hands back null and reconstruct_add appends nothing (fx_endless.gd:83-91
+; into fx_endless_controller.gd:72-74). spec/test_fungal_network.gd's
+; test_the_cloud_is_the_mods_own_scene_and_not_vanillas exists to keep that honest.
+;
+; NO FX-ID COLLISION WAS FIXED BY THIS, AND IT IS WORTH SAYING SO because the change was proposed as
+; if one had been. The worry was that sharing `fxe_nanites` with the Hive Drone would make a Myconid
+; standing in the drone's cloud lose one of the two, per the rule that a unit shows one instance of an
+; fx id per local tile. IT DOES NOT HOLD, ON EITHER LEG, AND BOTH WERE MEASURED (2026-09-16 probe):
+;   - FX CONTROLLERS ARE PER TOKEN. UnitToken declares one AttachedFxEndless (unit_token.gd:53), bound
+;     to a node instanced inside the token scene itself (:96, unit_token.tscn:101), and
+;     update_attached_fx only ever walks THAT unit's own loadout (:215, into
+;     LoadoutCore.get_all_gear at loadout_core.gd:511-518). The drone's tickets go to the drone's
+;     controller. Two units in the probe returned two distinct controller instances.
+;   - AND TWO IDENTICAL TICKETS ON ONE CONTROLLER DO NOT COLLAPSE ANYWAY. reconstruct_add's re-use
+;     loop ERASES the pending node it matched (fx_endless_controller.gd:65) before returning, so the
+;     second ticket matches the second node. The probe fed one controller the same (tile, id) twice
+;     and read 2 nodes on a fresh pass, 2 again through the re-use path, and 1 after a pass carrying
+;     only one ticket - so the count is real bookkeeping, not an artefact.
+; The new scene is justified by the colour and nothing else.
+fxe = ExtResource("3_cloud")
 dynamic_zone = SubResource("Resource_shape")
 ; DARK UNTIL THE PROTOCOL IS PRESSED - the same declaration all three PassiveAuras make, on the
 ; other flag. passive_dynamic_zone.gd:7-8 spells the semantics out: "If ANY passive dynamic zones on
