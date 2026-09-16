@@ -1,0 +1,23 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mt_symbiosis/buff_symbiosis_extra_use.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+; NEVER A CHIP. Like its two siblings this is trait plumbing with nothing for the player to read: the
+; effect they see is the reaction being offered a second time, and a permanent icon explaining that
+; would be one more thing on the bar than the card describes. It is therefore absent from
+; test_content_integrity.VISIBLE_BUFFS, which is size-checked against the mod's own buff index, so
+; flipping this line reddens that guard rather than silently shipping an icon-less chip.
+hide_from_player = true
+; THE CHANNEL. Buff.TO.ACTION_PER_ROUND (buff.gd:44) is summed into the cap by
+; UnitAction.is_under_per_round_limit (unit_action.gd:170-175) before it compares against
+; gear.get_uses_this_round. Vanilla's only other user is the Tortuga's
+; buff_hyper_reflex_mode_additional_overwatch.tres, whose two lines are these two.
+;
+; NO triggers_on AND NO trigger_timing, unlike both siblings, and that is the difference in kind
+; between them: they are REACTIONS to the unit_action event and subscribe to the bus, while this one
+; is a passive the engine QUERIES. UnitCondition.does_buff_apply checks `to` first and only then calls
+; is_buff_context_valid_for_passive and check_if_passive_applies (unit_condition.gd:845-851), so the
+; script's two functions never run on any other channel.
+to = &"action_per_round"

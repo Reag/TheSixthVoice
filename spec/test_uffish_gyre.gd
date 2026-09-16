@@ -12,11 +12,18 @@
 # THE MOVING UNIT'S TURN IS OPENED, NOT THE MYCONID'S, and that is the one thing about this file
 # that is easy to get wrong. The Gyre is a reaction to somebody ELSE's movement, so every trigger
 # test opens the MOVER's turn - a spec that opened the Myconid's would look at a broken trigger.
-# It matters in a second way for test_a_second_gyre_in_the_round_is_refused: an ally's turn start
-# runs every_new_turn_refresh for everyone (reaction POINTS) but new_turn_refresh only for the unit
-# whose turn it is (unit_action.gd:67-78), and the per-ROUND usage counter the Gyre's 1/round reads
-# is cleared by the latter. So two allies can move in one "round" and the limit still binds, while
-# the Myconid's own turn start releases it.
+# It matters in a second way for test_a_further_gyre_is_refused_once_symbiosis_is_spent: an ally's
+# turn start runs every_new_turn_refresh for everyone (reaction POINTS) but new_turn_refresh only for
+# the unit whose turn it is (unit_action.gd:67-78), and the per-ROUND usage counter the Gyre's
+# 1/round reads is cleared by the latter. So several allies can move in one "round" and the limit
+# still binds, while the Myconid's own turn start releases it.
+#
+# A ROUND HOLDS TWO GYRES, NOT ONE, SINCE SP2.5 TASK 1. Symbiosis's "may use a reaction an additional
+# time" now reaches this reaction: it is neither 1/scene nor 1/mission, so buff_symbiosis_extra_use
+# adds +1 to the per-round cap through Buff.TO.ACTION_PER_ROUND (unit_action.gd:170-175) while the
+# trait's extra is unspent. That was the author's bug - the second Gyre was silently never offered -
+# and it is why the limit case in this file asks about the THIRD move. Nothing else here changed:
+# every trigger, range and cost case still fires the round's FIRST Gyre.
 #
 # WHY THE RANGE CASES USE A ROW AND NOT A DIAGONAL. The Myconid is SIZE 2: anchored at (4,6) it
 # occupies (4..5, 6..7), and UnitRelation.distance_between measures between FOOTPRINTS, so its east
@@ -62,6 +69,10 @@ const WALL_X := 8              # between the Myconid and AT_5
 ## testing. Measured the hard way - the first full run lost four controls to exactly that.
 const AT_7 := Vector2i(12, 6)
 const AT_7_LOW := Vector2i(12, 7) # the same distance, one row down, for a second ally
+## And one row UP, for a third. The Myconid occupies y 6..7, so (12,5) is dx 7 / dy 1 = 7 away -
+## the same distance again. Needed since SP2.5 Task 1: a round now holds two Gyres, so the case that
+## pins the limit needs a third, unarmored mover to ask it of.
+const AT_7_HIGH := Vector2i(12, 5)
 
 ## The strike rolls against a fixed 8 and a level-0 pilot has Grit 0, so 9 hits, 7 misses and 20
 ## would crit if anything let it.
@@ -695,15 +706,25 @@ func test_the_gyre_spends_no_reaction_point():
 	assert_false(bool(symbiosis.get_state(SymbiosisBookkeeping.SPENT_KEY, false)),
 		'And Symbiosis did not stamp it as the round s extra reaction.')
 
-func test_a_second_gyre_in_the_round_is_refused():
+func test_a_further_gyre_is_refused_once_symbiosis_is_spent():
 	# "1/round", which ActionReaction does NOT give a non-consuming reaction - it returns 99
 	# (action_reaction.gd:69) - so action_uffish_gyre.get_per_round_hard_limit puts it back.
-	# Reddened by deleting that override.
+	# Reddened by deleting that override, exactly as it always was: with the cap at 99 every move
+	# below fires and the counter runs past 2.
 	#
-	# TWO DIFFERENT ALLIES, because the chip from the first would otherwise still be on the mover and
-	# "did the second fire" could not be asked of the armor at all.
+	# THIS IS test_a_second_gyre_in_the_round_is_refused, UPDATED AND NOT WEAKENED (SP2.5 Task 1).
+	# Symbiosis relieves a non-consuming reaction's per-round cap - that is the whole of that task,
+	# and the author's own bug report - so the SECOND Gyre of a round is the trait's extra and the
+	# THIRD is the one refused. The claim here is unchanged: the round's Gyres run out, and the gate
+	# that stops them is the per-round limit by name. Only the number moved. The Symbiosis side of it
+	# is spec/test_symbiosis.gd's; this file's job is the OVERRIDE, and that is what the reason
+	# assertion and the count pin.
+	#
+	# THREE DIFFERENT ALLIES, because the chip from an earlier mover would otherwise still be on it
+	# and "did this one fire" could not be asked of the armor at all.
 	var first := create_ally(AT_8)
 	var second := create_ally(AT_7_LOW) # at 7, so its SECOND move still starts inside threat
+	var third := create_ally(AT_7_HIGH)
 
 	queue_dice(D20_HITS)
 	await moves_east(first)
@@ -711,8 +732,17 @@ func test_a_second_gyre_in_the_round_is_refused():
 
 	queue_dice(D20_HITS)
 	await moves_east(second)
-	assert_eq(gyre_uses_this_round(), 1, 'The second ally s move did not fire it again.')
-	assert_false(UnitCondition.has_buff(second, ARMOR_CHIP), 'And the second ally got nothing.')
+	assert_eq(gyre_uses_this_round(), 2,
+		'CONTROL: the second is Symbiosis s extra use, so it fires.')
+	assert_true(UnitCondition.has_buff(second, ARMOR_CHIP), 'CONTROL: and arms the second ally.')
+
+	assert_eq(UnitAction.get_gear_unavailable_reason(
+		SpecificAction.create(myconid, pike_gear(), gyre())), UnitAction.REASON.PER_ROUND,
+		'And now the per-round limit is what refuses it, by name (unit_action.gd:148).')
+	queue_dice(D20_HITS)
+	await moves_east(third)
+	assert_eq(gyre_uses_this_round(), 2, 'The third ally s move did not fire it again.')
+	assert_false(UnitCondition.has_buff(third, ARMOR_CHIP), 'And the third ally got nothing.')
 
 	# POSITIVE CONTROL, and it also pins design ruling 5's accepted divergence: the counter is
 	# cleared by UnitAction.reset_per_round_usage, which runs at the MYCONID's own turn start

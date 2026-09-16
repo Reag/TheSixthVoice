@@ -22,6 +22,21 @@
 #                                      new_turn    -> cap back to max-1 while the stamp is set
 #                                      new_round   -> clear the stamp
 #     buff_symbiosis_exclusion  PRE    unit_action -> abort an excluded reaction taken as the second
+#     buff_symbiosis_extra_use  -      +1 to a reaction's per-round hard limit while the stamp is unset
+#
+# THE THIRD ONE IS SP2.5 TASK 1, AND IT IS A DIFFERENT KIND OF BUFF. The first two live entirely in
+# the reaction-POINT economy, which is one of the TWO gates a reaction can be refused by:
+# is_gear_affordable's `requires_reaction_available() and not has_reaction` (unit_action.gd:182). A
+# reaction with consumes_rxn = false never trips that gate - so the Uffish Gyre's and Halo's "1/round",
+# which is the OTHER gate (is_under_per_round_limit, unit_action.gd:170-175), was untouched by the
+# trait, and the author found in play that Symbiosis never offered a second Gyre. The third buff is on
+# Buff.TO.ACTION_PER_ROUND, a channel the engine QUERIES rather than one the reaction bus fires, so it
+# names no trigger and no timing at all.
+#
+# THE GYRE CASES DRIVE A REAL REACTION ON A REAL ALLY MOVE, because the point of the bug is that the
+# two gates are different and a synthetic reaction shaped by this file could be made to pass either
+# way. The spec-local reactions above stay exactly what they were - the POINT economy's cases - and
+# the Pike's are the counter's.
 #
 # WHY THE ROUND IS A REAL ROUND HERE, unlike Halo's and Uffish Gyre's 1/round. Those are the engine's
 # per-round hard limit on a reaction, which reset_per_round_usage clears at the Myconid's OWN turn
@@ -45,6 +60,7 @@ const MyconidFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/myconid_
 const TRAIT_ID := &'mt_symbiosis'
 const BOOKKEEPING_BUFF := &'buff_symbiosis'
 const EXCLUSION_BUFF := &'buff_symbiosis_exclusion'
+const EXTRA_USE_BUFF := &'buff_symbiosis_extra_use'
 
 ## A vanilla 1/scene reaction Kit: the Manticore's Castigate The Enemies Of The Godhead, whose Kit
 ## declares uses_per_scene = 1. A vanilla control with no scene limit at all beside it.
@@ -54,6 +70,30 @@ const UNLIMITED_REACTION_KIT := &'ms_overwatch'
 const MYCONID_TILE := Vector2i(4, 4)
 const DUMMY_TILE := Vector2i(10, 6)
 
+## THE PIKE, for the per-round half of the trait (SP2.5 Task 1). The Uffish Gyre is a NON-consuming
+## reaction with a 1/round hard limit of its own, so it is gated by
+## UnitAction.is_under_per_round_limit (unit_action.gd:170-175) and never by the reaction POINT -
+## which is why everything above this line is blind to it.
+const PIKE_KIT := &'mw_psychopomp_fold_pike'
+const GYRE_ID := &'action_uffish_gyre'
+const ARMOR_CHIP := &'buff_uffish_gyre_armor'
+
+## Allies for the Gyre, all well inside the strike's Threat 8 so a move never leaves it. The Myconid
+## is SIZE 2: anchored at (4,4) it occupies (4..5, 4..5), and UnitRelation.distance_between measures
+## between FOOTPRINTS, so x = 9 is 4 away from its east column and stays inside threat after a move
+## east. Three of them because a chip is asserted on the mover, and a mover that already carries one
+## cannot answer "did this Gyre fire".
+##
+## y = 2, 3 and 7 rather than a column: DUMMY_TILE is (10,6), which is where an ally at (9,6) would
+## step into.
+const ALLY_A := Vector2i(9, 2)
+const ALLY_B := Vector2i(9, 3)
+const ALLY_C := Vector2i(9, 7)
+
+## The strike rolls against a fixed evasion 8 and a level-0 pilot has Grit 0, so 9 hits.
+## test_uffish_gyre.D20_HITS, and the same reasoning.
+const D20_HITS := 9
+
 ## Ids for the runtime Kits this spec installs. Prefixed so they can never be confused with content.
 const RXN_PLAIN_A := &'symbiosis_spec_rxn_plain_a'
 const RXN_PLAIN_B := &'symbiosis_spec_rxn_plain_b'
@@ -62,6 +102,7 @@ const RXN_LIMITED_1 := &'symbiosis_spec_rxn_lim1'  # charges_max = 1     -> "1/m
 const RXN_LIMITED_3 := &'symbiosis_spec_rxn_lim3'  # charges_max = 3     -> neither
 const QUICK_SCENE := &'symbiosis_spec_quick_scene' # an ORDINARY action on a 1/scene Kit
 const RXN_NONCONSUMING := &'symbiosis_spec_rxn_nonconsuming' # consumes_rxn=false, 1/scene Kit
+const FREE_PLAIN := &'symbiosis_spec_free_plain'  # a naturally FREE ordinary action -> 1/round, not a reaction
 
 ## A spec-local reaction. DAMAGE POST, so one poke at the punching bag offers it; `armed` is what
 ## makes the ORDER deterministic - the bus evaluates every gate before any body runs, so two armed
@@ -91,6 +132,22 @@ class SpecQuick extends Action:
 		fired += 1
 		spend_actions(activation)
 
+## A spec-local ORDINARY action that is naturally FREE - and therefore 1/round by the engine's own
+## default, with no override anywhere: Action.get_per_round_hard_limit returns 1 whenever
+## get_action_cost is ACTION_COST_FREE (action.gd:156-158). This is the DISCRIMINATING case for
+## buff_symbiosis_extra_use's "is a reaction" clause: same cap, same gate, same everything - except
+## that it is not an ActionReaction. Widening that clause to "anything capped at 1/round" reddens
+## test_a_non_reaction_1_per_round_action_gets_no_extra_use and nothing else in this file.
+class SpecFreeAction extends Action:
+	var fired := 0
+
+	func get_action_type(_specific:SpecificAction) -> Lancer.ACTION:
+		return Lancer.ACTION.FREE
+
+	func activate(_context:Context, activation:EventCore) -> void:
+		fired += 1
+		spend_actions(activation)
+
 ## A Buff.TO.STATBLOCK buff granting +1 reaction, built the way the Goblin's Instinct Rig builds its
 ## own: return a Statblock in the context's `object`. Carried over verbatim from the spike, because
 ## ruling 13 is mod-wide and this is the only thing in the suite that holds it.
@@ -111,6 +168,7 @@ var rxn_lim1:SpecReaction
 var rxn_lim3:SpecReaction
 var quick:SpecQuick
 var rxn_nonconsuming:SpecReaction
+var free_action:SpecFreeAction
 
 var log_lines:PackedStringArray = []
 var battle_log:BattleLogBus = load('res://ui/component/battle_log/battle_log_bus.tres')
@@ -163,7 +221,9 @@ func install_spec_gear() -> void:
 	rxn_lim3 = _make_reaction()
 	quick = SpecQuick.new()
 	rxn_nonconsuming = _make_reaction(false)
+	free_action = SpecFreeAction.new()
 	var kits:Array[Kit] = [
+		_make_kit(FREE_PLAIN, free_action, 0, 0),
 		_make_kit(RXN_PLAIN_A, rxn_a, 0, 0),
 		_make_kit(RXN_PLAIN_B, rxn_b, 0, 0),
 		_make_kit(RXN_SCENE, rxn_scene, 1, 0),
@@ -203,6 +263,97 @@ func extra_spent() -> bool:
 	var core := bookkeeping_core()
 	if not BuffCore.is_valid(core): return false
 	return bool(core.get_state('extra_spent', false))
+
+# ---------------------------------------------------------------- the Gyre, for the per-round half
+
+func pike_gear() -> GearCore: return myconid.get_gear(PIKE_KIT)
+func gyre() -> Action: return pike_gear().get_action(GYRE_ID)
+
+## The Gyre's own per-round counter - what UnitAction.is_under_per_round_limit reads and what
+## action_uffish_gyre.spend_the_gyres_use feeds, deferred into the strike's commit. It means "the
+## reaction spent its use", not "the reaction triggered". test_uffish_gyre.gyre_uses_this_round.
+func gyre_uses_this_round() -> int:
+	var gear:GearCore = pike_gear()
+	return gear.get_uses_this_round_alt(gear.get_usage_group_for_action(gyre()))
+
+## Sixty sixes after the one d20 that matters, so no accuracy or damage die drains the FIFO into real
+## RNG. test_uffish_gyre.queue_dice, verbatim.
+func queue_dice(d20:int) -> void:
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	var buffer:Array[int] = []
+	for i:int in 60: buffer.append(6)
+	Dice.cheat_attack([d20], buffer)
+
+## A voluntary standard move of one tile EAST inside the mover's own open turn: the ordinary case the
+## Gyre's card describes. test_uffish_gyre.moves_east.
+##
+## OPENING THE MOVER'S TURN IS WHAT MAKES THE REPRO A REPRO. every_new_turn_refresh runs for every
+## unit at any turn start (reaction POINTS) but new_turn_refresh only for the unit whose turn it is
+## (unit_action.gd:67-78), and UnitAction.reset_per_round_usage - which clears the Gyre's 1/round -
+## sits in the latter. So two allies can move in one round with the Myconid's counter untouched,
+## which is exactly the situation the author hit.
+func moves_east(unit:Unit) -> void:
+	await MyconidFixture.open_turn(game, unit)
+	await SpecFactory.move(game, unit, unit.tile() + Vector2i(1, 0),
+		MovementType.create_for_standard_move(unit))
+
+## One ally's move with the dice queued for a hit - the whole of "offer the Gyre once".
+func gyre_at(ally:Unit) -> void:
+	queue_dice(D20_HITS)
+	await moves_east(ally)
+
+## Is the engine gate that refuses a second use open for this action right now? The gate itself
+## (unit_action.gd:170-175), asked directly, so a test can separate "the cap was raised" from "the
+## activation happened" - the two differ for anything the SCENE or CHARGE counters refuse first.
+func is_under_per_round_limit(kit_id:StringName) -> bool:
+	var gear:GearCore = myconid.get_gear(kit_id)
+	if not GearCore.is_valid(gear): return false
+	return UnitAction.is_under_per_round_limit(
+		SpecificAction.create(myconid, gear, gear.kit.actions[0]))
+
+## The engine's own per-round hard limit for a Kit's solo action, BEFORE any buff is summed into it -
+## the `round_cap` is_under_per_round_limit starts from (unit_action.gd:171).
+func hard_limit(kit_id:StringName) -> int:
+	var gear:GearCore = myconid.get_gear(kit_id)
+	if not GearCore.is_valid(gear): return -1
+	var action:Action = gear.kit.actions[0]
+	return action.get_per_round_hard_limit(SpecificAction.create(myconid, gear, action))
+
+## The per-round cap a Kit's solo action ACTUALLY has right now, buffs included - i.e.
+## UnitAction.is_under_per_round_limit's body (unit_action.gd:171-174) with its final comparison
+## removed, so the number is readable instead of only its verdict.
+##
+## THIS EXISTS BECAUSE THE VERDICT IS NOT ENOUGH, and that was measured rather than assumed: the
+## mutation pass found that get_values returning `number = 2` reddens NOTHING behavioural. The stamp
+## is set by the FIRST use that runs past the action's own cap, whatever the bonus was, and once it is
+## set the buff stops applying - so a bonus of 2, 5 or 50 all produce exactly one extra use. That is a
+## good property of the design (the stamp is a stronger guard than the number), but it leaves the
+## number itself unpinned by any activation, and 0 is the only wrong value an activation test catches.
+## Reading the cap through the real channel - get_buffs_to, so check_if_passive_applies still runs -
+## is what pins it.
+func effective_round_cap(kit_id:StringName) -> int:
+	var gear:GearCore = myconid.get_gear(kit_id)
+	if not GearCore.is_valid(gear): return -1
+	var specific := SpecificAction.create(myconid, gear, gear.kit.actions[0])
+	var context:Context = specific.to_context()
+	var cap:int = specific.action.get_per_round_hard_limit(specific)
+	for buff:BuffCore in UnitCondition.get_buffs_to(myconid, Buff.TO.ACTION_PER_ROUND, context):
+		cap += buff.get_values(context).number
+	return cap
+
+## Record ONE use of a Kit's solo action exactly as the engine records it: UnitAction.spend's last
+## line is gear.increment_action_usage_for_action (unit_action.gd:279), and nothing else moves the
+## round counter the gate reads.
+##
+## USED WHERE THE QUESTION IS THE GATE AND NOT THE ACTIVATION. A free ORDINARY action and a reaction
+## reach that counter by completely different routes - one needs the holder's turn open and an action
+## budget, the other needs a trigger and a point - so driving both through real activations would
+## make the two halves of a comparison differ in half a dozen ways besides the one being measured.
+## Incrementing by hand puts them in identical state and leaves exactly one difference: the class.
+func record_one_use(kit_id:StringName) -> void:
+	var gear:GearCore = myconid.get_gear(kit_id)
+	if not GearCore.is_valid(gear): return
+	gear.increment_action_usage_for_action(gear.kit.actions[0])
 
 ## A plain vanilla-statblock unit, for the spike's control cases.
 func plain_unit(tile:Vector2i = Vector2i(2, 2)) -> Unit:
@@ -361,10 +512,16 @@ func test_an_unlimited_reaction_kit_declares_no_scene_limit():
 
 # ================================ the bookkeeping ================================
 
-func test_both_bookkeeping_buffs_are_applied_and_hidden():
-	# Neither is ever a chip on the unit, which is why VISIBLE_BUFFS does not grow in SP1. If either
-	# were visible the player would carry two permanent icons explaining nothing.
-	for buff_id:StringName in [BOOKKEEPING_BUFF, EXCLUSION_BUFF]:
+func test_all_three_bookkeeping_buffs_are_applied_and_hidden():
+	# None is ever a chip on the unit, which is why VISIBLE_BUFFS does not grow in SP1 and does not
+	# grow for the third one either. If any were visible the player would carry permanent icons
+	# explaining nothing.
+	#
+	# THE COUNT IS ALSO THE WIRING TEST for SP2.5 Task 1: buff_symbiosis_extra_use reaches the unit
+	# only through mt_symbiosis's one PassiveBuffApplicator, so dropping it from that array reddens
+	# this test as well as every Gyre test below - which is what makes "the trait is all three or
+	# none" something the suite states rather than something the .tres asserts about itself.
+	for buff_id:StringName in [BOOKKEEPING_BUFF, EXCLUSION_BUFF, EXTRA_USE_BUFF]:
 		var core:BuffCore = UnitCondition.get_buff(myconid, buff_id)
 		assert_true(BuffCore.is_valid(core), '%s is on the Myconid.' % buff_id)
 		if not BuffCore.is_valid(core): continue
@@ -516,6 +673,203 @@ func test_a_non_consuming_reaction_is_neither_refused_nor_stamped():
 	assert_false(extra_spent(), 'Not stamped as the extra: a non-consuming reaction spends no point.')
 	assert_eq(reactions_left(), reactions_max() - 1,
 		'And the reaction point count is unchanged from before this reaction.')
+
+# ===================== the per-round half: the Uffish Gyre (SP2.5 Task 1) =====================
+
+func test_a_second_gyre_in_the_round_is_offered_after_symbiosis():
+	# THE AUTHOR'S REPRO, and the bug this sub-project exists for. An ally moved and the Gyre fired;
+	# on the next ally's turn - same round, the Myconid not having taken its turn - another ally moved
+	# and Symbiosis did not offer it again.
+	var first := MyconidFixture.create_ally(game, ALLY_A)
+	var second := MyconidFixture.create_ally(game, ALLY_B)
+
+	await gyre_at(first)
+	assert_eq(gyre_uses_this_round(), 1, 'fixture: the first ally move fired the Gyre.')
+
+	await gyre_at(second)
+	assert_eq(gyre_uses_this_round(), 2,
+		'Symbiosis offers the Gyre a second time in the same round.')
+	assert_true(UnitCondition.has_buff(second, ARMOR_CHIP),
+		'And the second ally really was armored, so the reaction resolved and did not merely count.')
+
+func test_the_extra_use_raises_the_cap_by_exactly_one():
+	# "an additional time" is ONE, and this is the only test that can see the number. Measured, not
+	# assumed: the mutation pass showed get_values returning `number = 2` reddens nothing at all
+	# behaviourally, because the stamp is set by the first use that runs past the action's own cap
+	# whatever the bonus was, and after that the buff stops applying. So every value of 1 or more
+	# produces exactly one extra use, and only 0 is caught by an activation test. See
+	# effective_round_cap for the whole of it.
+	#
+	# Read through UnitCondition.get_buffs_to rather than off the resource, so check_if_passive_applies
+	# still runs and the two excluded controls below mean something.
+	assert_eq(hard_limit(RXN_PLAIN_A), 1, 'fixture: the action s own cap is 1.')
+	assert_eq(effective_round_cap(RXN_PLAIN_A), 2, 'Symbiosis makes it 2, not 3 and not 1.')
+	assert_eq(effective_round_cap(RXN_SCENE), 1,
+		'CONTROL: an excluded reaction s cap is untouched, so the +1 is not a blanket one.')
+
+	await react_with(rxn_a)
+	await react_with(rxn_b)
+	assert_true(extra_spent(), 'fixture: the round s extra has gone.')
+	assert_eq(effective_round_cap(RXN_PLAIN_A), 1,
+		'And once it has, the cap is back to the action s own: the bonus is not permanent.')
+
+func test_a_third_gyre_in_the_round_is_refused():
+	# "an additional time", singular. The second use is Symbiosis's; the third has nothing left to
+	# relieve it, because taking the second set the stamp and the stamp is what
+	# buff_symbiosis_extra_use reads before applying.
+	#
+	# NOT reddened by get_values returning number = 2, and that is a property of the design rather
+	# than a hole in this test - the stamp closes the door on the first over-cap use however wide the
+	# buff opened it. test_the_extra_use_raises_the_cap_by_exactly_one is what pins the number.
+	#
+	# THE REASON IS ASSERTED AS WELL AS THE REFUSAL. PER_ROUND (unit_action.gd:148) is the gate this
+	# whole task is about; a different reason - a spent scene use, a destroyed Kit - would refuse the
+	# third Gyre too while meaning something else entirely.
+	var first := MyconidFixture.create_ally(game, ALLY_A)
+	var second := MyconidFixture.create_ally(game, ALLY_B)
+	var third := MyconidFixture.create_ally(game, ALLY_C)
+
+	await gyre_at(first)
+	await gyre_at(second)
+	assert_eq(gyre_uses_this_round(), 2, 'CONTROL: the extra really was available for the second.')
+
+	assert_eq(UnitAction.get_gear_unavailable_reason(
+		SpecificAction.create(myconid, pike_gear(), gyre())), UnitAction.REASON.PER_ROUND,
+		'And now the per-round limit is what refuses it, by name.')
+	await gyre_at(third)
+	assert_eq(gyre_uses_this_round(), 2, 'So the third ally s move did not fire it.')
+	assert_false(UnitCondition.has_buff(third, ARMOR_CHIP), 'And the third ally got nothing.')
+
+func test_the_second_gyre_spends_symbiosis_for_the_round():
+	# The stamp is what makes "1/round" true of the whole trait rather than of each channel
+	# separately. A non-consuming reaction moves no reaction point, so buff_symbiosis's original
+	# value-based test can never see this use - is_cap_relieved_use is what does, and dropping it
+	# reddens this test and the two order tests below.
+	var first := MyconidFixture.create_ally(game, ALLY_A)
+	var second := MyconidFixture.create_ally(game, ALLY_B)
+
+	await gyre_at(first)
+	assert_eq(gyre_uses_this_round(), 1, 'fixture: the first Gyre fired.')
+	assert_false(extra_spent(),
+		'CONTROL: the FIRST Gyre is not the extra - it is inside the reaction s own 1/round.')
+
+	await gyre_at(second)
+	assert_eq(gyre_uses_this_round(), 2, 'fixture: the second Gyre fired.')
+	assert_true(extra_spent(), 'And the second one spent Symbiosis for the round.')
+
+func test_an_extra_ordinary_reaction_is_refused_after_a_second_gyre():
+	# ONE EXTRA PER ROUND, TOTAL - the first of the two orders. The Gyre spends no reaction POINT, so
+	# without the take-back in buff_symbiosis.activate() the Myconid would still be holding both
+	# points here and could spend the second on an ordinary reaction as well: two extras out of one
+	# round's "1/round". Dropping the take-back reddens this test.
+	var first := MyconidFixture.create_ally(game, ALLY_A)
+	var second := MyconidFixture.create_ally(game, ALLY_B)
+
+	await gyre_at(first)
+	assert_eq(reactions_left(), reactions_max(),
+		'fixture: the first Gyre cost no reaction point, as its card says.')
+	await gyre_at(second)
+	assert_eq(gyre_uses_this_round(), 2, 'fixture: the second Gyre fired.')
+	assert_eq(reactions_left(), reactions_max() - 1,
+		'And the extra was billed to the point budget, since it was not billed to the reaction.')
+
+	# POSITIVE CONTROL FIRST: the ORDINARY reaction is untouched - the card restricts the extra only,
+	# and a take-back that ate the whole budget would be strictly worse than not having the trait.
+	await react_with(rxn_a)
+	assert_eq(rxn_a.fired, 1, 'CONTROL: the turn s ordinary reaction still goes through.')
+	await react_with(rxn_b)
+	assert_eq(rxn_b.fired, 0, 'But there is no second one: Symbiosis went on the Gyre.')
+
+func test_a_second_gyre_is_refused_after_an_extra_ordinary_reaction():
+	# THE OTHER ORDER. Here the stamp is set by buff_symbiosis's original value-based path - two
+	# points gone - and buff_symbiosis_extra_use.check_if_passive_applies reads it and declines to
+	# raise the cap. Deleting that read reddens this test.
+	var first := MyconidFixture.create_ally(game, ALLY_A)
+	var second := MyconidFixture.create_ally(game, ALLY_B)
+
+	await react_with(rxn_a)
+	await react_with(rxn_b)
+	assert_true(extra_spent(), 'fixture: the round s extra went on an ordinary second reaction.')
+
+	# POSITIVE CONTROL: the Gyre's OWN 1/round is untouched by any of this.
+	await gyre_at(first)
+	assert_eq(gyre_uses_this_round(), 1, 'CONTROL: the Gyre s own once-per-round still fires.')
+	await gyre_at(second)
+	assert_eq(gyre_uses_this_round(), 1, 'But it is not offered a second time: Symbiosis is spent.')
+	assert_false(UnitCondition.has_buff(second, ARMOR_CHIP), 'And the second ally got nothing.')
+
+func test_a_non_reaction_1_per_round_action_gets_no_extra_use():
+	# JUDGMENT CALL 1, PINNED. buff_symbiosis_extra_use's first clause is `action is ActionReaction`,
+	# and this is what makes it discriminate rather than decorate: a naturally-free ORDINARY action
+	# carries the SAME 1/round cap by Action.get_per_round_hard_limit's own default
+	# (action.gd:156-158), so "capped at 1/round" would have let it through and nothing else in this
+	# file would have noticed.
+	#
+	# Both kits are put in identical state by hand - see record_one_use - so the only difference
+	# between the two answers below is the action's class.
+	assert_eq(hard_limit(FREE_PLAIN), 1,
+		'fixture: a naturally free ordinary action is 1/round by the engine s own default.')
+	assert_eq(hard_limit(RXN_PLAIN_A), 1, 'fixture: and so is an ordinary consuming reaction.')
+
+	record_one_use(FREE_PLAIN)
+	record_one_use(RXN_PLAIN_A)
+	assert_true(is_under_per_round_limit(RXN_PLAIN_A),
+		'CONTROL: the reaction s cap was raised, so a second use is still under it.')
+	assert_false(is_under_per_round_limit(FREE_PLAIN),
+		'The free action s was not: it is not a reaction, and the card says reaction.')
+
+func test_a_1_per_scene_reaction_gets_no_extra_use():
+	# JUDGMENT CALL 2, AND THE TEST SHAPE IS THE FINDING. The card excludes 1/scene and 1/mission
+	# reactions, and buff_symbiosis_extra_use honours that by calling the exclusion half's
+	# is_excluded(kit) - shared, not copied.
+	#
+	# BUT THE CLAUSE IS BELT-AND-BRACES HERE, MEASURED RATHER THAN ASSUMED, so this test asserts on
+	# the GATE and not on an activation. uses_per_scene is read in exactly one place -
+	# `gear.get_uses_this_scene(action) >= kit.uses_per_scene` at unit_action.gd:147 - and Limited X
+	# in `not gear.has_charges_left()` at :153; both are separate counters (gear_core.gd:197-202) that
+	# no buff channel reaches, and both sit AHEAD of PER_ROUND (:148) in the same elif chain. So an
+	# excluded reaction is refused whatever the round cap says, and a test written against "did it
+	# fire" would have passed with the exclusion clause deleted. The cap is the only thing the clause
+	# can move, so the cap is what is asserted.
+	record_one_use(RXN_PLAIN_A)
+	record_one_use(RXN_SCENE)
+	record_one_use(RXN_LIMITED_1)
+	record_one_use(RXN_LIMITED_3)
+
+	assert_true(is_under_per_round_limit(RXN_PLAIN_A),
+		'CONTROL: an unrestricted reaction s cap is raised.')
+	assert_true(is_under_per_round_limit(RXN_LIMITED_3),
+		'CONTROL: and so is a Limited 3 one, which is neither 1/scene nor 1/mission.')
+	assert_false(is_under_per_round_limit(RXN_SCENE), 'A 1/scene reaction s is not.')
+	assert_false(is_under_per_round_limit(RXN_LIMITED_1), 'Nor is a Limited 1 one - "1/mission".')
+
+func test_the_extra_use_is_gone_on_the_next_round():
+	# The stamp is cleared on NEW_ROUND POST (event_round_new.gd:77), so the extra comes back - and
+	# not before. Both halves are here, because "gone" and "back" are the same line of code read from
+	# two sides: not clearing the stamp reddens the second half, clearing it early the first.
+	#
+	# THE TWO CLOCKS ARE DIFFERENT AND BOTH ARE NEEDED. Symbiosis's stamp is a REAL round; the Gyre's
+	# own 1/round counter is cleared by UnitAction.reset_per_round_usage at the MYCONID's own turn
+	# start (design ruling 5). So the round boundary alone leaves the Gyre's counter at 2 and nothing
+	# would fire; the Myconid's turn start is what resets it.
+	var first := MyconidFixture.create_ally(game, ALLY_A)
+	var second := MyconidFixture.create_ally(game, ALLY_B)
+	var third := MyconidFixture.create_ally(game, ALLY_C)
+
+	await gyre_at(first)
+	await gyre_at(second)
+	assert_eq(gyre_uses_this_round(), 2, 'fixture: both this round s Gyres have gone.')
+	await gyre_at(third)
+	assert_eq(gyre_uses_this_round(), 2, 'Still gone later in the SAME round.')
+
+	await game.execute_event(&'event_round_new', {})
+	assert_false(extra_spent(), 'The new round cleared the stamp.')
+	await SpecFactory.start_turn(game, myconid)
+	assert_eq(gyre_uses_this_round(), 0, 'fixture: and the Myconid s own turn start cleared the Gyre s.')
+
+	await gyre_at(first)
+	await gyre_at(second)
+	assert_eq(gyre_uses_this_round(), 2, 'And the extra is available again in the new round.')
 
 func test_the_refusal_writes_a_battle_log_line_naming_symbiosis():
 	# Without this the refusal reads as the activation simply not happening, which in play is

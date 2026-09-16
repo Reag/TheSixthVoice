@@ -244,9 +244,10 @@ const ICON_TARGETS := {
 	# (weapon_mount_item.gd:101 reads the KIT's name). See test_integrated_weapon_names.gd.
 	&'mw_diversion_rail': [&'action_diversion_rail'],
 	# SP1 Task 3 (Myconid). Pure passives: a Gaze-shaped PassiveStatIncrease and a
-	# PassiveBuffApplicator carrying two hidden bookkeeping buffs. No actions at all, so it wears the
-	# Kit's icon and lists none. Both buffs set hide_from_player and are correctly absent from
-	# VISIBLE_BUFFS - neither is ever a chip on the unit.
+	# PassiveBuffApplicator carrying THREE hidden bookkeeping buffs since SP2.5 Task 1 (the third
+	# relieves a non-consuming reaction's per-round cap). No actions at all, so it wears the Kit's
+	# icon and lists none. All three set hide_from_player and are correctly absent from
+	# VISIBLE_BUFFS - none is ever a chip on the unit.
 	&'mt_symbiosis': [],
 	# SP1 Task 5 (Myconid). Its one action (action_halo) is a hidden reaction: reactions never reach
 	# the gear bar (gear_bar.gd:145) and it overrides show_in_tooltip to false, so nothing the player

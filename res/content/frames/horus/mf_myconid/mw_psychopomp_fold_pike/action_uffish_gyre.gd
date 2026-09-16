@@ -73,12 +73,23 @@
 ## Because nothing is spent unless the strike COMMITS (below), a Stunned or Jammed Myconid's Gyre
 ## costs it nothing either.
 ##
-## SYMBIOSIS DOES NOT SEE THIS REACTION, WHICH IS THE POINT. buff_symbiosis's bookkeeping stamps the
-## round's extra when a reaction POINT goes, and buff_symbiosis_exclusion's gate opens with
-## action.consumes_reaction(). A non-consuming reaction spends no point and trips neither.
-## test_symbiosis.test_a_non_consuming_reaction_is_neither_refused_nor_stamped proves the seam
-## against a synthetic reaction; test_the_gyre_spends_no_reaction_point is its mirror against this
-## one.
+## SYMBIOSIS DOES NOT SEE THIS REACTION'S POINT COST, BECAUSE IT HAS NONE - AND THAT WAS A BUG UNTIL
+## SP2.5 TASK 1. buff_symbiosis's bookkeeping stamps the round's extra when a reaction POINT goes, and
+## buff_symbiosis_exclusion's gate opens with action.consumes_reaction(); a non-consuming reaction
+## spends no point and trips neither, which is still true and still correct.
+## test_symbiosis.test_a_non_consuming_reaction_is_neither_refused_nor_stamped proves that seam
+## against a synthetic reaction; test_the_gyre_spends_no_reaction_point is its mirror against this one.
+##
+## WHAT WAS WRONG was concluding from that that Symbiosis had nothing to say here. The trait's card
+## says "may use a reaction an additional time", and this IS a reaction - so the additional time has
+## to come from somewhere, and for a non-consuming one the only thing standing in the way is the
+## per-round limit below. The author hit it in play: an ally moved and the Gyre fired, a second ally
+## moved in the same round and NOTHING happened, with no battle-log line and no refusal, because the
+## limit is consulted inside ReactionBus.does_reaction_trigger and the reaction was never collected.
+## buff_symbiosis_extra_use.gd now adds +1 to that cap through Buff.TO.ACTION_PER_ROUND while the
+## round's extra is unspent, and taking the second Gyre is what spends it. Nothing in THIS file
+## changed for it, and nothing should: the relief arrives through the engine's own channel, so the
+## number below is still this reaction's own limit and still the thing a mutation reddens.
 extends ActionReaction
 
 ## The strike lives on this same Kit, so both halves are reached off context.gear.

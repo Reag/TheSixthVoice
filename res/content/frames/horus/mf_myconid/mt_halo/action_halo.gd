@@ -30,9 +30,17 @@
 ##
 ## THE 1/ROUND IS THE ENGINE'S. get_per_round_hard_limit is overridden because ActionReaction returns
 ## 99 for a reaction that consumes no point (action_reaction.gd:69); the limit is consulted inside
-## ReactionBus.does_reaction_trigger via can_activate_gear, so a second Halo in a round is never
-## OFFERED rather than offered and refused. It clears at the Myconid's OWN turn start
+## ReactionBus.does_reaction_trigger via can_activate_gear, so a Halo past the limit is never OFFERED
+## rather than offered and refused. It clears at the Myconid's OWN turn start
 ## (reset_per_round_usage, unit_action.gd:78) - per turn in truth, accepted for vanilla parity.
+##
+## SYMBIOSIS RAISES THAT LIMIT BY ONE, AND THAT IS THE CARD (SP2.5 Task 1). The trait says "1/round,
+## the Myconid may use a reaction an additional time", excluding only 1/scene and 1/mission ones;
+## Halo is a reaction and is neither, so buff_symbiosis_extra_use adds +1 to the cap here through
+## Buff.TO.ACTION_PER_ROUND (unit_action.gd:170-175) exactly as it does for the Uffish Gyre. So a
+## round really holds TWO Halos while the trait's extra is unspent, and the THIRD is the one never
+## offered. Nothing in this file changed for it - the +1 arrives through the engine's own channel -
+## but the number below is no longer the whole story, which is why it is written here.
 ##
 ## NOTHING IS SPENT UNTIL AN ALLY IS CHOSEN. spend_actions runs after the prompt returns, so
 ## cancelling declines at no cost - which is the reading of "an allied character gains" that lets a

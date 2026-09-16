@@ -31,6 +31,13 @@
 # accepted for vanilla parity, since every vanilla 1/round reaction has the property. Symbiosis alone
 # gets the honest round, because its bookkeeping is ours.
 #
+# AND SINCE SP2.5 TASK 1, SYMBIOSIS RELIEVES THAT LIMIT - so a ROUND holds two Halos, not one. Halo
+# is a reaction and is neither 1/scene nor 1/mission, which is the whole of what the trait's card
+# excludes, so buff_symbiosis_extra_use raises its per-round cap exactly as it does the Uffish Gyre's.
+# The two are the same mechanism and not a Pike special case. test_a_second_halo_is_offered_while_
+# symbiosis_is_unspent and test_a_third_offer_in_the_same_round_is_refused are the pair; the latter
+# is what test_a_second_offer_in_the_same_round_is_refused became.
+#
 #   godot --resolution 800x600 --position 20,20 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_halo.gd
 extends GutTest
 
@@ -46,6 +53,10 @@ const ACTION_ID := &'action_halo'
 ## below is from its near column.
 const MYCONID_TILE := Vector2i(2, 4)
 const NEAR_ALLY_TILE := Vector2i(8, 4)  # 5 from (3,4): inside Sensors 8
+## A SECOND ally inside Sensors, for the 1/round cases only. Since SP2.5 Task 1 the round has two
+## Halos in it, and "did the second one land" cannot be asked of a unit that already carries the
+## first one's Overshield. 5 from (3,5), so the same distance as the first.
+const SECOND_ALLY_TILE := Vector2i(8, 6)
 const FAR_ALLY_TILE := Vector2i(13, 4)  # 10 from (3,4): outside Sensors 8
 const ENEMY_TILE := Vector2i(8, 7)
 
@@ -211,15 +222,59 @@ func test_a_burn_tick_offers_halo():
 
 # ---------------------------------------------------------------- the 1/round
 
-func test_a_second_offer_in_the_same_round_is_refused():
-	# The engine's per-round hard limit is consulted inside does_reaction_trigger, via
-	# can_activate_gear, so the prompt never opens a second time - there is nothing to decline.
+func test_a_second_halo_is_offered_while_symbiosis_is_unspent():
+	# SP2.5 TASK 1, AND IT WIDENS THAT FIX BEYOND THE PIKE DELIBERATELY. Symbiosis says "1/round, the
+	# Myconid may use a reaction an additional time", excluding only 1/scene and 1/mission ones. Halo
+	# is a reaction and is neither, so the trait relieves ITS per-round cap on exactly the same terms
+	# as the Uffish Gyre's - buff_symbiosis_extra_use filters on `action is ActionReaction` and not on
+	# one action id, which is the card read straight.
+	#
+	# ASKED OF THE ENGINE AND THEN OF THE PROMPT, in that order, because they are different claims:
+	# would_offer() is ReactionBus.does_reaction_trigger, i.e. whether the cap lets the reaction be
+	# COLLECTED at all, and the prompt is whether the activation then ran. The first is where the cap
+	# lives; the second is what the player sees.
+	responder.chosen_unit = ally
+	assert_true(would_offer(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC),
+		'fixture: the first hit offers Halo.')
+	await take_damage(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(uses_this_round(), 1, 'fixture: the first Halo was taken.')
+
+	assert_true(would_offer(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC),
+		'The engine still offers it inside the same round: Symbiosis has an extra use.')
+	var second_ally := MyconidFixture.create_ally(game, SECOND_ALLY_TILE)
+	responder.chosen_unit = second_ally
+	var second := await take_damage(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(second.size(), 1, 'And the prompt really opens a second time.')
+	assert_eq(uses_this_round(), 2, 'The second Halo was taken.')
+	assert_eq(Overshield.current(second_ally), TEST_GRIT,
+		'And the ally chosen for it gained Overshield, so it resolved and did not merely count.')
+
+func test_a_third_offer_in_the_same_round_is_refused():
+	# THE 1/ROUND IS STILL A 1/ROUND, and this is the test that used to say so about the SECOND offer
+	# (test_a_second_offer_in_the_same_round_is_refused, until SP2.5 Task 1). It is updated rather
+	# than weakened: the claim is unchanged - the round's Halos run out and the prompt stops opening -
+	# and so is what reddens it. Deleting action_halo's get_per_round_hard_limit override still does,
+	# because ActionReaction hands a non-consuming reaction 99 (action_reaction.gd:69) and a third
+	# offer would then open too. What moved is only WHERE the line falls, because the second offer is
+	# now Symbiosis's extra.
+	#
+	# The engine's per-round hard limit is consulted inside does_reaction_trigger via
+	# can_activate_gear, so the prompt never opens a third time - there is nothing to decline.
+	var second_ally := MyconidFixture.create_ally(game, SECOND_ALLY_TILE)
 	responder.chosen_unit = ally
 	await take_damage(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC)
 	assert_eq(uses_this_round(), 1, 'fixture: the first Halo was taken.')
-	var second := await take_damage(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC)
-	assert_eq(second.size(), 0, 'The second hit in the same round offers nothing.')
-	assert_eq(Overshield.current(ally), TEST_GRIT, 'And the ally gained nothing more.')
+	responder.chosen_unit = second_ally
+	await take_damage(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(uses_this_round(), 2, 'CONTROL: the second is Symbiosis s extra, and it lands.')
+	assert_eq(Overshield.current(second_ally), TEST_GRIT, 'CONTROL: on the ally chosen for it.')
+
+	var third := await take_damage(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(third.size(), 0, 'The third hit in the same round offers nothing.')
+	assert_eq(uses_this_round(), 2, 'Nothing more was spent.')
+	assert_false(would_offer(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC),
+		'And the engine does not offer it: Symbiosis is spent, so the cap is back to one.')
+	assert_eq(Overshield.current(ally), TEST_GRIT, 'And the first ally gained nothing more.')
 
 func test_declining_leaves_the_one_per_round_unspent():
 	# spend_actions runs only after a unit is chosen (action.gd:144), so a cancel costs nothing - and
