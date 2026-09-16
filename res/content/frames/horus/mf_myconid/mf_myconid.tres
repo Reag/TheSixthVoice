@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="Frame" format=3]
+[gd_resource type="Resource" script_class="Frame" format=3 uid="uid://dmewm6sw72amf"]
 
 [ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="1_frame"]
+[ext_resource type="Texture2D" uid="uid://652sybhq2bad" path="res://assets/palettes/toneramps/tone_standard.png" id="1_y6bxp"]
 [ext_resource type="Script" uid="uid://bxpc46igtsmvw" path="res://engine/character/unit/statblock.gd" id="2_statblock"]
 [ext_resource type="Script" uid="uid://dch85ypcupfgo" path="res://engine/character/unit_core/color_scheme.gd" id="3_colorscheme"]
 [ext_resource type="Texture2D" uid="uid://6tm738lnctjy" path="res://assets/palettes/toneramps/tone_highhue.png" id="4_toneramp"]
@@ -8,9 +9,9 @@
 [ext_resource type="Resource" uid="uid://bsktp4ushq6g1" path="res://content/mounts/mount_flex.tres" id="6_mountflex"]
 [ext_resource type="Resource" uid="uid://dvhgasnfwqbym" path="res://content/mounts/mount_main.tres" id="7_mountmain"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
+[ext_resource type="Texture2D" uid="uid://nbr4jr4otvca" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/horus/mf_myconid/mf_myconid.png" id="9_1hrnj"]
 [ext_resource type="Resource" uid="uid://cnx62bb0ihjrr" path="res://content/frames/shared/mt_guardian/mt_guardian.tres" id="9_guardian"]
-[ext_resource type="Texture2D" uid="uid://ldxcx87fbf87" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/placeholder/mf_placeholder_160.png" id="10_sprite"]
-[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mt_symbiosis/mt_symbiosis.tres" id="11_symbiosis"]
+[ext_resource type="Resource" uid="uid://g81ib4g5em2f" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mt_symbiosis/mt_symbiosis.tres" id="11_symbiosis"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mt_halo/mt_halo.tres" id="12_halo"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/cp_quietus_machines.tres" id="13_core"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mw_psychopomp_fold_pike/mw_psychopomp_fold_pike.tres" id="14_pike"]
@@ -35,7 +36,6 @@ speed = 3
 heat = 5
 save_target = 10
 sensor_range = 8
-tech_attack = 0
 repairs = 4
 systems_points = 6
 reactions = 1
@@ -44,7 +44,7 @@ activations = 1
 [resource]
 script = ExtResource("1_frame")
 default_color_scheme = SubResource("Resource_colorscheme")
-sprites = Array[Texture2D]([ExtResource("10_sprite")])
+sprites = Array[Texture2D]([ExtResource("9_1hrnj")])
 ; The three sheet traits in the sheet's order, then the core system, then the integrated weapon -
 ; the Pike AFTER the core (design ruling 9), which is the order test_myconid_frame.SHEET_TRAITS pins.
 ;
@@ -52,6 +52,13 @@ sprites = Array[Texture2D]([ExtResource("10_sprite")])
 ; carries traits ['Symbiosis', 'Halo', 'Guardian '] and a separate core_system 'QUIETUS MACHINES' -
 ; which IS the order of the first four here - while the Pike is an entry in weapons.json and appears
 ; nowhere in that list. Where it sits relative to the core is ruling 9's call alone.
+;
+; RESTORED BY HAND after a Godot editor save dropped it (2026-09-16). An editor re-save of a .tres
+; rewrites the file from the in-memory Resource and keeps no comments, so every block like this one is
+; lost the moment the inspector writes this file - which is what happened while the real frame sprite
+; above was being wired. Nothing else in that save was reverted: the sprite is the author's work, and
+; the `tech_attack = 0` the same save dropped stays dropped, because 0 is the export's default
+; (statblock.gd:24) and Godot simply omits a default-valued property.
 traits = Array[ExtResource("8_kit")]([ExtResource("11_symbiosis"), ExtResource("12_halo"), ExtResource("9_guardian"), ExtResource("13_core"), ExtResource("14_pike")])
 mount_types = Array[ExtResource("5_mounttype")]([ExtResource("6_mountflex"), ExtResource("7_mountmain")])
 stat = SubResource("Resource_statblock")
