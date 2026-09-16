@@ -46,8 +46,12 @@ script = ExtResource("1_frame")
 default_color_scheme = SubResource("Resource_colorscheme")
 sprites = Array[Texture2D]([ExtResource("10_sprite")])
 ; The three sheet traits in the sheet's order, then the core system, then the integrated weapon -
-; the Pike AFTER the core (design ruling 9), which is the order the LCP lists them in and the order
-; test_myconid_frame.SHEET_TRAITS pins.
+; the Pike AFTER the core (design ruling 9), which is the order test_myconid_frame.SHEET_TRAITS pins.
+;
+; THE LCP DOES NOT SETTLE THE PIKE'S PLACE, so it is not cited for it. The frame entry in frames.json
+; carries traits ['Symbiosis', 'Halo', 'Guardian '] and a separate core_system 'QUIETUS MACHINES' -
+; which IS the order of the first four here - while the Pike is an entry in weapons.json and appears
+; nowhere in that list. Where it sits relative to the core is ruling 9's call alone.
 traits = Array[ExtResource("8_kit")]([ExtResource("11_symbiosis"), ExtResource("12_halo"), ExtResource("9_guardian"), ExtResource("13_core"), ExtResource("14_pike")])
 mount_types = Array[ExtResource("5_mounttype")]([ExtResource("6_mountflex"), ExtResource("7_mountmain")])
 stat = SubResource("Resource_statblock")

@@ -65,7 +65,8 @@ is_situationally_activated = true
 ; against this .tres without it; and test_the_gyre_wakes_the_strike_only_for_its_own_shot shows the
 ; freebie really is refused while it holds, which is what makes the bracket load-bearing rather than
 ; ceremonial. The Drake's Fortress Protocol is vanilla's own use of the same wake/hibernate pair for
-; a sibling action on one Kit (action_fortress_protocol.gd:16-18).
+; a sibling action on one Kit (action_fortress_protocol.gd:18-19 - the wake is :18 and the hibernate
+; :19; the brief's :16-18 named only half the pair).
 starts_hibernating = true
 ; ITS OWN USAGE GROUP, AND HERE THAT IS LOAD-BEARING rather than the defence in depth Draw Fire's
 ; header calls it. usage_group defaults to the KIT id (gear_core.gd:166-168), and this Kit carries

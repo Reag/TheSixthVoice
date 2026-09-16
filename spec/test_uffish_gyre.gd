@@ -77,13 +77,14 @@ var game:Gamemaster
 var myconid:Unit
 var watcher:PromptWatcher
 var recorder:AttackRecorder
+var logbook:LogRecorder
 
 # ---------------------------------------------------------------- the attack-roll probe
 
 ## Records every AttackRoll the game resolves, so a test can read hit/crit/target_defense off the
 ## REAL roll rather than off a preview. The ATTACK trigger at POST is the only timing that sees one:
 ## event_unit_attack.execute_preblock runs the PRE reactions before AttackRoll.create exists
-## (event_unit_attack.gd:30-31, :54), while the POST block is queued at :123 with the same core,
+## (event_unit_attack.gd:31-32, :53), while the POST block is queued at :123 with the same core,
 ## whose context.object is the finished roll (:56).
 ##
 ## A reaction that never fires - triggers_on_event records and returns false - so it costs no point,
@@ -103,6 +104,48 @@ class AttackRecorder extends ActionReaction:
 
 	func last() -> AttackRoll: return rolls.back() if not rolls.is_empty() else null
 
+## The same idiom at PRE instead of POST: reads a caller-supplied number at the moment an attack is
+## DECLARED, before AttackRoll.create exists (event_unit_attack.gd:31-32, :53). The one instrument in
+## this file that measures WHEN something happened rather than what it was, and the only way to ask
+## "had the reaction spent its use - and therefore emitted its popcorn - before the roll?" from
+## inside the run. Never fires, for the same reason AttackRecorder never does.
+class DeclarationProbe extends ActionReaction:
+	var readings:Array[int] = []
+	var read:Callable
+
+	func _init() -> void:
+		triggers_on = [ReactionBus.TRIGGER.ATTACK]
+		trigger_timing = ReactionBus.TIMING.PRE
+		consumes_rxn = false
+
+	func triggers_on_event(_unit:Unit, _gear:GearCore, _triggering_event:EventCore) -> bool:
+		if read.is_valid(): readings.append(int(read.call()))
+		return false
+
+## The battle log in the order the player reads it. BattleLogBus is one shared Resource loaded by
+## path (action.gd:29) and every line goes through log_text, which emits on_log_text with the
+## formatted string (battle_log_bus.gd:10-22) - so connecting to that signal records the run's lines
+## in sequence without touching any UI.
+class LogRecorder:
+	var lines:Array[String] = []
+	var bus:BattleLogBus = load('res://ui/component/battle_log/battle_log_bus.tres')
+
+	func start() -> void:
+		lines.clear()
+		if not bus.on_log_text.is_connected(record): bus.on_log_text.connect(record)
+
+	func stop() -> void:
+		if bus.on_log_text.is_connected(record): bus.on_log_text.disconnect(record)
+
+	func record(text:String) -> void: lines.append(text)
+
+	## Index of the first line mentioning `needle`, or -1. The lines carry bbcode around the names,
+	## so this matches on a substring rather than on a whole line.
+	func first_containing(needle:String) -> int:
+		for i:int in lines.size():
+			if lines[i].contains(needle): return i
+		return -1
+
 # ---------------------------------------------------------------- fixture
 
 func before_each() -> void:
@@ -112,6 +155,11 @@ func before_each() -> void:
 
 func after_each() -> void:
 	Dice.CHEAT_ROLL_QUEUE.clear()
+	# The log bus is a SHARED resource that outlives the test, so a recorder left connected would
+	# keep appending into a freed object for the rest of the run.
+	if logbook != null:
+		logbook.stop()
+		logbook = null
 
 func pike_gear() -> GearCore: return myconid.get_gear(PIKE_KIT)
 func strike() -> Action: return pike_gear().get_action(STRIKE_ID)
@@ -122,9 +170,10 @@ func strike_specific() -> SpecificAction: return SpecificAction.create(myconid, 
 ## (unit_action.gd:170-175) and what action_uffish_gyre.gd's spend_actions() feeds.
 ##
 ## IT MEANS "THE REACTION SPENT ITS USE", NOT "THE REACTION TRIGGERED", and the two differ on
-## purpose: the Gyre spends nothing unless the strike's own counter moved, so a declined confirm or a
-## Stunned refusal leaves this at 0. Where a test needs to know that the trigger itself fired, it
-## says so with a positive control that runs the same move from the same geometry.
+## purpose: the Gyre's spend is a deferred callable the engine runs only when the STRIKE commits
+## (action_attack.gd:262), so a declined confirm or a Stunned or Jammed refusal leaves this at 0.
+## Where a test needs to know that the trigger itself fired, it says so with a positive control that
+## runs the same move from the same geometry.
 func gyre_uses_this_round() -> int:
 	var gear:GearCore = pike_gear()
 	return gear.get_uses_this_round_alt(gear.get_usage_group_for_action(gyre()))
@@ -198,18 +247,23 @@ func preview(shooter:Unit, gear:GearCore, action:Action, against:Unit) -> Attack
 func strike_preview(against:Unit) -> AttackRoll.PreAttack:
 	return preview(myconid, pike_gear(), strike(), against)
 
-## The ATTACK-POST probe, on the MOVER rather than the Myconid so that installing it cannot
-## full_repair the Pike's own usage counters mid-test. ReactionBus.trigger_occurred walks every unit
-## on the map (reaction_bus.gd:50-51), so whose loadout it sits on does not change what it sees.
-func install_recorder(on_unit:Unit) -> void:
-	recorder = AttackRecorder.new()
+## Hangs a spec-local reaction on a unit's loadout. Always installed on the MOVER rather than the
+## Myconid, because full_repair() below would reset the Pike's own usage counters mid-test.
+## ReactionBus.trigger_occurred walks every unit on the map (reaction_bus.gd:50-51), so whose loadout
+## a never-firing probe sits on does not change what it sees.
+func install_reaction(on_unit:Unit, action:ActionReaction, kit_id:StringName) -> void:
 	var kit := Kit.new()
-	kit.compcon_id = &'uffish_gyre_spec_recorder_kit'
+	kit.compcon_id = kit_id
 	kit.is_trait = true
-	kit.actions.append(recorder)
+	kit.actions.append(action)
 	on_unit.core.loadout.equipped_kits.append(kit)
 	on_unit.core.full_repair()
 	UnitTile.update_tracking_and_statuses(game.map)
+
+## The ATTACK-POST probe.
+func install_recorder(on_unit:Unit) -> void:
+	recorder = AttackRecorder.new()
+	install_reaction(on_unit, recorder, &'uffish_gyre_spec_recorder_kit')
 
 ## The size-2 footprint is what every range constant in this file is measured against, and
 ## MyconidFixture.create_myconid's re-tracking line is what makes the map agree. Without it the
@@ -318,6 +372,16 @@ func test_an_ally_behind_a_wall_at_5_offers_and_is_armored():
 	# the way to the armor, not just to the trigger: the sentence covers the STRIKE too, so the
 	# .tres turns requires_line_of_sight_baseline off as well. A reaction that fired at a target the
 	# attack could not legally pick would be a trigger that passed and a card that did not work.
+	#
+	# BUT READ THE NAME NARROWLY: the `_and_is_armored` half is NOT evidence for that flag, and must
+	# not be quoted as coverage of it. Flipping requires_line_of_sight_baseline to true reddens
+	# nothing (mutation 3b), because the Gyre hands the strike a MANDATORY target and SpecFactory's
+	# responder builds the plan straight out of it (spec_factory.gd:457-458) without ever consulting
+	# UnitTargeting, which is where the baseline binds (unit_targeting.gd:36, :142) and which the LIVE
+	# picker does consult (tilepicker_compcon.gd:439). What this half really proves is that the
+	# TRIGGER, the roll and the on-hit all survive a blocked line - the first assertion is the
+	# discriminating one (mutation 3a: adding a can_see test to the gate reddens it alone). The flag
+	# itself is kept on the card's authority and wants an in-game check before the frame closes.
 	var ally := create_ally(AT_5)
 	build_wall()
 	assert_false(UnitRelation.can_see(myconid, ally), 'fixture: the wall really does block sight.')
@@ -674,9 +738,11 @@ func test_a_stunned_myconid_cannot_strike():
 	# geometry, so the trigger is proven by construction.
 	#
 	# THE GYRE'S 1/ROUND IS NOT SPENT HERE, and that is deliberate rather than an oversight:
-	# action_uffish_gyre.activate spends nothing unless the strike's own usage counter moved, so a
-	# Myconid that could not strike has not used its reaction. Pinned below, and by
-	# test_a_declined_friendly_fire_confirm_costs_nothing.
+	# action_uffish_gyre hands its spend to choose_and_use as a deferred callable, which the engine
+	# runs only when the strike commits - and a strike refused in check_specific_context never
+	# reaches execute(), let alone action_attack.gd:262. So a Myconid that could not strike has not
+	# used its reaction. Pinned below, and by test_a_declined_friendly_fire_confirm_costs_nothing and
+	# test_a_jammed_myconid_cannot_strike.
 	var ally := create_ally(AT_7)
 	SpecFactory.apply(myconid, Lancer.STATUS.STUNNED)
 	assert_true(UnitAction.can_activate_gear(SpecificAction.create(myconid, pike_gear(), gyre())),
@@ -703,6 +769,47 @@ func test_a_stunned_myconid_cannot_strike():
 	assert_true(UnitCondition.has_buff(ally, ARMOR_CHIP), 'CONTROL: unstunned, the strike lands.')
 	assert_eq(gyre_uses_this_round(), 1, 'CONTROL: and the Gyre spends its use when it does.')
 
+func test_a_jammed_myconid_cannot_strike():
+	# RULING 11's OTHER CROSS-SEAM CLAIM, and the brief was explicit that it is to be TESTED rather
+	# than asserted in a comment - which is what it was until the SP2 Task 4 review.
+	#
+	# The asymmetry is two is_jammable() implementations reached through one call site.
+	# UnitAction.get_gear_unavailable_reason's Jammed elif (unit_action.gd:142) asks
+	# UnitAction.is_action_jammable (:573-576), which asks the ACTION: ActionAttack.is_jammable
+	# returns true outright (action_attack.gd:24), while ActionReaction.is_jammable returns
+	# requires_reaction_available() (action_reaction.gd:66) - false for a consumes_rxn = false
+	# reaction. So the Gyre is not jammable and the strike is, and the Myconid is refused at the
+	# second seam rather than the first, exactly as it is when Stunned.
+	#
+	# Both halves asserted, as in the Stunned test above: "the ally was not armored" alone would pass
+	# just as well if the reaction had never triggered, which is a different mechanism.
+	var ally := create_ally(AT_7)
+	SpecFactory.apply(myconid, Lancer.STATUS.JAMMED)
+	assert_true(myconid.has_status(Lancer.STATUS.JAMMED), 'fixture: the Myconid really is Jammed.')
+	assert_true(UnitAction.can_activate_gear(SpecificAction.create(myconid, pike_gear(), gyre())),
+		'The REACTION is not refused: a non-consuming reaction is not jammable.')
+
+	# The reason the strike is refused, asked of the engine directly and as a FREEBIE - which is how
+	# the Gyre asks it - with the action woken exactly as the Gyre wakes it.
+	pike_gear().wake_action(STRIKE_ID)
+	assert_eq(UnitAction.get_gear_unavailable_reason(strike_specific(), true), UnitAction.REASON.JAMMED,
+		'And the STRIKE is refused, as a freebie, for being Jammed.')
+	pike_gear().hibernate_action(STRIKE_ID)
+
+	queue_dice(D20_HITS)
+	await moves_east(ally)
+	assert_eq(strike_uses_this_round(), 0, 'End to end: the strike never activated.')
+	assert_false(UnitCondition.has_buff(ally, ARMOR_CHIP), 'So the ally was not armored.')
+	assert_eq(gyre_uses_this_round(), 0, 'And the Gyre spent no use on a strike that never happened.')
+
+	# POSITIVE CONTROL: unjammed, the same ally's next move from the same geometry arms it - so what
+	# was refused was a strike that otherwise lands, with this die.
+	UnitCondition.clear_status(SpecFactory.dummy_event(), myconid, Lancer.STATUS.JAMMED)
+	queue_dice(D20_HITS)
+	await moves_east(ally)
+	assert_true(UnitCondition.has_buff(ally, ARMOR_CHIP), 'CONTROL: unjammed, the strike lands.')
+	assert_eq(gyre_uses_this_round(), 1, 'CONTROL: and the Gyre spends its use when it does.')
+
 func test_the_player_is_asked_to_confirm_the_friendly_attack():
 	# MEASURED, and it is what makes action_uffish_gyre.gd's spend conditional. The design and the
 	# plan both assumed the strike would run silently: choose_and_use auto-picks when a
@@ -726,9 +833,10 @@ func test_the_player_is_asked_to_confirm_the_friendly_attack():
 		'And it is the friendly-fire confirmation.')
 
 func test_a_declined_friendly_fire_confirm_costs_nothing():
-	# THE CANCEL PATH, and the reason action_uffish_gyre.activate checks the strike's usage counter
-	# before spending. Declining aborts the child activation (action_attack.gd:247), so nothing was
-	# struck - and charging the round's one use for a shot the player refused would be Draw Fire's
+	# THE CANCEL PATH, and the reason action_uffish_gyre defers its spend into the strike's commit
+	# instead of spending unconditionally. Declining returns at action_attack.gd:247, before the
+	# spend_actions at :262 that runs the deferred callable - so nothing was struck and nothing was
+	# charged. Charging the round's one use for a shot the player refused would be Draw Fire's
 	# mistake in reverse (action_draw_fire.gd:170-200: nothing is spent until the draw has landed).
 	var ally := create_ally(AT_7)
 	SpecFactory.current_responder.chosen_yesnos = false
@@ -748,6 +856,59 @@ func test_a_declined_friendly_fire_confirm_costs_nothing():
 	await moves_east(ally)
 	assert_true(UnitCondition.has_buff(ally, ARMOR_CHIP), 'CONTROL: confirmed, the strike lands.')
 	assert_eq(gyre_uses_this_round(), 1, 'CONTROL: and the use is spent.')
+
+func test_the_gyre_announces_itself_before_the_roll():
+	# THE ORDER THE PLAYER SEES, and the whole justification for the .tres's emit_text_popcorn_on_use:
+	# the Gyre fires on somebody ELSE's turn, so the label naming it has to arrive before the attack
+	# roll it explains. A popcorn that turns up afterwards is announcing a roll the player has already
+	# watched, which is the thing the flag exists to prevent.
+	#
+	# TWO INSTRUMENTS, because neither is sufficient alone.
+	#  - The counter, read from an ATTACK/PRE probe. Action.popcorn_usage is reached from exactly one
+	#    place - UnitAction.spend_actions_gain_heat, unit_action.gd:234 - and that same call moved the
+	#    per-round counter fifteen lines earlier (:225 -> UnitAction.spend's
+	#    increment_action_usage_for_action at :279) with nothing awaited in between. So a counter that
+	#    already reads 1 when the attack is DECLARED (event_unit_attack.gd:31-32, before
+	#    AttackRoll.create at :53) means the popcorn has already been emitted. It is a proxy, but a
+	#    tight one, and it is the only way to see a disabled-in-tests fx call at all.
+	#  - The battle log, which needs no proxy: log_usage at :233 writes
+	#    "event.gear_activate.reacted.log" for the reaction and ActionAttack's own writes
+	#    "...used.log" for the strike, and this asserts the first comes first.
+	#
+	# Reddened by awaiting choose_and_use and spending afterwards - this file's shape until the SP2
+	# Task 4 review - because the strike's own spend (action_attack.gd:262) happens before the roll
+	# while the await does not return until long after it.
+	var ally := create_ally(AT_8)
+	var probe := DeclarationProbe.new()
+	probe.read = gyre_uses_this_round
+	install_reaction(ally, probe, &'uffish_gyre_spec_declaration_probe_kit')
+
+	logbook = LogRecorder.new()
+	logbook.start()
+	queue_dice(D20_HITS)
+	await moves_east(ally)
+	logbook.stop()
+
+	assert_eq(gyre_uses_this_round(), 1, 'fixture: the Gyre fired.')
+	assert_true(UnitCondition.has_buff(ally, ARMOR_CHIP), 'fixture: and its shot landed.')
+	# THE PROBE FIRES MORE THAN ONCE FOR ONE SHOT - measured 2026-09-16: three PRE readings (and, with
+	# an ATTACK/POST recorder installed beside it, two POST ones) for a single Gyre strike, so the
+	# engine enters those reaction blocks repeatedly rather than once per roll. That count is an
+	# engine detail this test has no stake in and must not pin. What it DOES pin is every reading: a
+	# count would be brittle and "the first one" would hide a later zero.
+	assert_false(probe.readings.is_empty(),
+		'fixture: the declaration probe saw the attack: %s' % [probe.readings])
+	for reading:int in probe.readings:
+		assert_eq(reading, 1,
+			'The Gyre had already spent its use - and so already popcorned and logged - when the attack was declared: %s' % [probe.readings])
+
+	var reaction_line:int = logbook.first_containing('Uffish Gyre')
+	var strike_line:int = logbook.first_containing('Psychopomp Fold Pike')
+	assert_gte(reaction_line, 0, 'fixture: the reaction wrote a battle-log line: %s' % [logbook.lines])
+	assert_gte(strike_line, 0, 'fixture: and so did the strike: %s' % [logbook.lines])
+	if reaction_line < 0 or strike_line < 0: return
+	assert_lt(reaction_line, strike_line,
+		'And the player reads the Gyre triggering BEFORE the Pike swings, not after: %s' % [logbook.lines])
 
 # ---------------------------------------------------------------- localisation
 

@@ -49,20 +49,29 @@
 ## requires_reaction_available()), so the override below is what puts the card's "1/round" back.
 ## SP1's probe recorded that the engine gate reads the ROUND counter and not the turn one
 ## (UnitAction.is_under_per_round_limit, unit_action.gd:170-175, reads gear.get_uses_this_round), so
-## the spend_actions() at the end of activate() is what feeds it - without that call the limit is a
+## the spend_the_gyres_use() callable below is what feeds it - without that spend the limit is a
 ## limit on a counter nothing increments. Per design ruling 5 this "round" is really "since the Myconid's
 ## own last turn start", because UnitAction.reset_per_round_usage runs there; accepted for vanilla
 ## parity, as for Juggernaut Drive and Halo.
 ##
-## AND IT ALSO OPENS EVERY can_be_used_while_* GATE. action_reaction.gd:62-66 derive all four from
-## requires_reaction_available(), so a non-consuming reaction is usable while Stunned, Dazed,
-## Jammed, unloaded and uncharged. That is not a loophole to be closed here: ruling 11 says a Stunned
-## or Jammed Myconid cannot strike, and the refusal comes from the STRIKE's own re-validation inside
-## choose_and_use - event_gear_activate.check_specific_context (content/events/event_gear_activate.gd
-## :46-51) asks UnitAction.get_gear_unavailable_reason of the CHOSEN action and prints the reason in
-## red. test_a_stunned_myconid_cannot_strike drives that end to end and ALSO asks the engine for the
-## reason directly, as a freebie, rather than asserting the claim in a comment. Because nothing is
-## spent unless the strike lands (below), a Stunned Myconid's Gyre costs it nothing either.
+## AND IT ALSO OPENS THE can_be_used_while_* GATES, AND THE JAMMED ONE BESIDE THEM.
+## action_reaction.gd:62-65 are the four can_be_used_while_* (dazed, stunned, uncharged, unloaded)
+## and :66 is is_jammable(); all five derive from requires_reaction_available(), so a non-consuming
+## reaction is usable while Stunned, Dazed, Jammed, unloaded and uncharged. That is not a loophole to
+## be closed here: ruling 11 says a Stunned or Jammed Myconid cannot strike, and the refusal comes
+## from the STRIKE's own re-validation inside choose_and_use - event_gear_activate.
+## check_specific_context (content/events/event_gear_activate.gd:46-51) asks
+## UnitAction.get_gear_unavailable_reason of the CHOSEN action and prints the reason in red.
+##
+## BOTH HALVES ARE TESTED RATHER THAN ASSERTED HERE, which is the brief's own instruction for a
+## cross-seam claim. test_a_stunned_myconid_cannot_strike drives the Stunned one end to end;
+## test_a_jammed_myconid_cannot_strike does the same for Jammed, where the asymmetry is two
+## is_jammable() implementations - ActionAttack.is_jammable returns true (action_attack.gd:24) while
+## this reaction's returns requires_reaction_available(), i.e. false (action_reaction.gd:66).
+## UnitAction.is_action_jammable (unit_action.gd:573-576) asks each action for its own, and
+## unit_action.gd:142 is the elif that turns "Jammed unit + jammable action" into REASON.JAMMED.
+## Because nothing is spent unless the strike COMMITS (below), a Stunned or Jammed Myconid's Gyre
+## costs it nothing either.
 ##
 ## SYMBIOSIS DOES NOT SEE THIS REACTION, WHICH IS THE POINT. buff_symbiosis's bookkeeping stamps the
 ## round's extra when a reaction POINT goes, and buff_symbiosis_exclusion's gate opens with
@@ -131,6 +140,16 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	# (action_overwatch.gd:23).
 	return not CommonActionUtil.is_choose_and_use_with_gear_in_progress(gear)
 
+## THE SPEND CALLABLE handed to choose_and_use, which runs it - through `deferred_spend` - at the
+## moment the strike commits, and not at all if it never does. See activate()'s header.
+##
+## The three-argument signature is choose_and_use's own (common_action_util.gd:721-724); `using` is
+## the shot and `chosen` is the shot again, so neither is needed. What matters is the FIRST argument:
+## it is the GYRE's activation event, which is where Action.spend_actions reads its SpecificAction
+## from (action.gd:144-147) - so this spends the reaction, never the weapon underneath it.
+func spend_the_gyres_use(activation:EventCore, _using:SpecificAction, _chosen:SpecificAction) -> void:
+	spend_actions(activation)
+
 ## "Make a melee attack against evasion 8."
 ##
 ## THE AWAITED choose_and_use, NOT choose_and_use_after_triggering_event, and the difference is not
@@ -148,26 +167,60 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 ## (see the header) and would refuse the second half of its own activation once spend_actions has
 ## run. `using` is the shot.
 ##
-## NOTHING OF THE MYCONID'S ACTION ECONOMY IS SPENT. choose_and_use_no_spend
-## (common_action_util.gd:775-776) is the do-nothing spend callable; the Gyre fires off-turn, and a
-## reaction that quietly ate the Myconid's next Quick would be a second cost the card never names.
+## ONE MEASURED COST OF THAT CHOICE, RECORDED RATHER THAN CORRECTED: the strike is NOT flagged
+## AS_RXN. common_action_util.gd:699 appends Action.FLAG.AS_RXN only when
+## `using.action.requires_reaction_available()`, and our `using` is the SHOT - an ActionAttackWeapon,
+## for which that is false. Overwatch passes its REACTION as `using` (action_overwatch.gd:34), so its
+## shot does carry the flag. Four vanilla readers key on it: buff_sentinel.gd:11 and
+## buff_superior_sentinel_archer.gd:11 give the ATTACKER +1 accuracy on a reaction shot, and
+## buff_weave.gd:8 / buff_weave_hornet.gd:8 auto-miss one for the DEFENDER (both .tres carry
+## applies_when_holder_is = 1, i.e. target). None can hurt us and the last two would HELP if they
+## fired: the Pike deals no damage and its target is an ally, so an ally Weaving away this strike
+## would only deny itself the armor. Not corrected, because the correction is to pass the reaction as
+## `using` and buy back the re-validation above. (attack_preview.gd:121 and :141 set the same flag by
+## hand for the UI's reaction preview and are unaffected.)
 ##
-## NOTHING IS SPENT UNTIL THE STRIKE IS KNOWN TO HAVE LANDED - Draw Fire's principle
-## (action_draw_fire.gd:170-200), and here it is not theoretical. MEASURED 2026-09-16: the strike
-## opens TWO prompts, a compcon targeting plan and, because the target is an ALLY,
-## TargetActionUtil.confirm_friendly_fire's yes/no (action_attack.gd:247, target_action_util.gd
-## :430-435). Declining the second aborts the child activation, so there IS a cancel path on this
-## seam and an unconditional spend would charge the round's one use for a shot the player refused.
-## The same guard also covers the Stunned and Jammed refusals of ruling 11: a Myconid that could not
-## strike has not used its reaction.
+## NOTHING OF THE MYCONID'S ACTION ECONOMY IS SPENT BY THE STRIKE. The spend callable below spends
+## the GYRE and only the Gyre; the Gyre fires off-turn, and a reaction that quietly ate the Myconid's
+## next Quick would be a second cost the card never names. The Gyre's own spend costs nothing either:
+## ActionReaction.get_action_type returns Lancer.ACTION.RXN, which prices it FREE, and
+## consumes_rxn = false keeps UnitAction.spend away from spend_reaction (unit_action.gd:257). What it
+## DOES do is increment the per-round counter (:279), which is the entire point.
 ##
-## THE TEST IS THE STRIKE'S OWN USAGE COUNTER, NOT choose_and_use's RETURN VALUE. That returns
-## SpecificAction.is_valid(chosen) (common_action_util.gd:763), which is TRUE even when the child
-## aborted, so it cannot tell a landed strike from a refused one. The counter can, and it is the
-## engine's own test for the same question - event_gear_activate.gd:76 and :103 bracket an activation
-## with exactly this read to decide whether the gear was really used, with the comment "use ROUND and
-## not TURN counts here bc freebies don't always get counted". The strike has its own usage_group, so
-## nothing else on this Kit can move it.
+## THE SPEND IS DEFERRED INTO THE STRIKE'S OWN COMMIT - the engine's own mechanism for exactly this
+## question, and also what fixes the order the player sees. choose_and_use's 4th argument is wrapped
+## in a `deferred_spend` and hung on the CHILD's event_gear_activate (common_action_util.gd:721-724,
+## :746); event_gear_activate.gd:29 says what it is for in one line - "run a parent event's
+## spend_actions() only when the child actually does". UnitAction.spend_actions_gain_heat runs it
+## first thing (unit_action.gd:219), and ActionAttack calls spend_actions at action_attack.gd:262 -
+## after the targeting plan and the friendly-fire confirm, BEFORE run_attack_effects (:265) and the
+## declared/attack events (:268). Two things follow, and both are the requirement:
+##   - NOTHING IS SPENT UNLESS THE STRIKE COMMITS - Draw Fire's principle
+##     (action_draw_fire.gd:170-200), and here it is not theoretical. MEASURED 2026-09-16: the strike
+##     opens TWO prompts, a compcon targeting plan and, because the target is an ALLY,
+##     TargetActionUtil.confirm_friendly_fire's yes/no (action_attack.gd:247,
+##     target_action_util.gd:430-435). Declining the second returns at :247, before :262, so the
+##     callable never runs; nor does it on a Stunned or Jammed refusal, where the child aborts in
+##     check_specific_context before execute() is reached at all.
+##   - AND THE GYRE ANNOUNCES ITSELF BEFORE THE ROLL. spend_actions_gain_heat emits log_usage and
+##     popcorn_usage at :233-234 of the same call that moved the counter at :225, with nothing
+##     awaited in between - so the "Uffish Gyre triggered." battle-log line and the .tres's
+##     emit_text_popcorn_on_use label both land before the attack roll instead of after it. That is
+##     what the popcorn is FOR: this reaction fires on somebody else's turn, and a label arriving
+##     after the roll would be announcing an attack the player had already watched.
+## Pinned by test_the_gyre_announces_itself_before_the_roll (an ATTACK/PRE probe plus the ordered
+## battle log) and by test_a_declined_friendly_fire_confirm_costs_nothing,
+## test_a_stunned_myconid_cannot_strike and test_a_jammed_myconid_cannot_strike.
+##
+## REJECTED (this file's first shape, replaced at the SP2 Task 4 review, 2026-09-16): await
+## choose_and_use, then spend if the strike's own usage counter moved. That gets the CONDITIONALITY
+## right - it is the same read event_gear_activate.gd:76 and :103 use to decide whether gear was
+## really used, and it is strictly better than choose_and_use's return value, which is
+## SpecificAction.is_valid(chosen) (common_action_util.gd:763) and stays TRUE when the child aborted.
+## But it is unconditionally LATE: the await does not return until the whole attack has resolved, so
+## the popcorn and the battle-log line both arrived after the roll they were supposed to introduce,
+## and the .tres's justification for the flag described an ordering the code did not produce. The
+## deferred callable is conditional AND early, so nothing was traded away for it.
 ##
 ## THE WAKE/HIBERNATE BRACKET, AND WHY IT SURVIVES AN ABORT. The strike ships starts_hibernating, so
 ## it is refused everywhere - including here, because UnitAction.can_activate_gear checks
@@ -183,22 +236,14 @@ func activate(context:Context, activation:EventCore) -> void:
 	var strike:Action = strike_action(gear)
 	if strike == null or not Unit.is_valid(mover): return
 
-	var strike_group:StringName = gear.get_usage_group_for_action(strike)
-	var strike_uses_before:int = gear.get_uses_this_round_alt(strike_group)
-
 	var shot := SpecificAction.create(context.unit, gear, strike)
 	gear.wake_action(STRIKE_ID)
 	await CommonActionUtil.choose_and_use(
 		activation,
 		shot,
 		[shot],
-		CommonActionUtil.choose_and_use_no_spend,
+		spend_the_gyres_use,
 		mover,
 		[Action.FLAG.CAN_FOLLOWUP],
 	)
 	gear.hibernate_action(STRIKE_ID)
-
-	# The Gyre's OWN usage counter, which is what its per-round hard limit reads, and only if the
-	# strike really happened. See the header.
-	if gear.get_uses_this_round_alt(strike_group) == strike_uses_before: return
-	spend_actions(activation)
