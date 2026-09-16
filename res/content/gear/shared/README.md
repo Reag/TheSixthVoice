@@ -16,11 +16,16 @@ registered, and cannot be referenced by that name at all. (This is a different p
 that one is why the engine has so many autoloads. Both end at the same advice, for different
 reasons.)
 
-Planned, none built yet:
+Built, and the interface frozen when its sub-project shipped:
+
+| Family | Born with | Interface | Consumers |
+|---|---|---|---|
+| Overshield | 4 Myconid, SP1 | `current` `has` `grant` `increase` `grit` | Sluagh, Hazard, Naga, Primrose, Black Mountain |
+
+Planned:
 
 | Family | Born with | Consumers |
 |---|---|---|
-| Overshield | 4 Myconid | Sluagh, Hazard, Naga, Primrose, Black Mountain |
 | Teleport | 5 Maiden's Blush | Purple Thorn, Leoleth, Sluagh, Koremasa, Six Sky |
 | Efficient (core-power refund) | 5 Maiden's Blush | Lovers Knot, Black Mountain |
 | Difficult terrain | 6 Vauban | Leoleth, Shackleton |
