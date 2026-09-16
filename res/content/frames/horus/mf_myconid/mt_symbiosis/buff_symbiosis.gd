@@ -32,7 +32,15 @@
 ## @export (buff.gd:139) that ReactionBus.does_buff_trigger compares directly (reaction_bus.gd:135);
 ## a Buff subscribes at ONE timing for every trigger it names. The exclusion has to abort from
 ## UNIT_ACTION PRE, before event_gear_activate.gd:56 reads virtual_core.aborted. Two timings, two
-## resources. They share no state: this file owns the stamp and the gate never reads it.
+## resources.
+##
+## THIS FILE OWNS THE STAMP, AND THE EXCLUSION READS IT. Two buffs mean two BuffCores and two separate
+## `state` dictionaries, so the gate cannot see SPENT_KEY on its own core; it fetches this one's
+## instead, through UnitCondition.get_buff(unit, &'buff_symbiosis') (unit_condition.gd:782), and
+## preloads this script for SPENT_KEY so the key has a single definition. Nothing but this file ever
+## WRITES the stamp. The gate needs it because "the point about to be spent is the extra" is not
+## `current < max`: once the extra has gone, the new_turn branch below leaves the holder below its max
+## for the rest of the round with its ordinary allowance untouched.
 ##
 ## activate() DOES NOT CALL super(): the default (buff.gd:254-255) clears the buff off the unit, and
 ## this one has to survive the whole scene. For the same reason the applicator must NOT set

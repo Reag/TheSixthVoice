@@ -235,6 +235,7 @@ func test_the_trait_carries_the_gaze_shaped_stat_increase():
 	# quoted (gear_core.gd:357) has no Kit-level twin - kit.gd:157 is the one, and gear_core's
 	# forwards straight to it.
 	var kit:Kit = ContentLibrary.get_kit(TRAIT_ID)
+	assert_true(Kit.is_valid(kit), 'mt_symbiosis is in the kits index.')
 	if not Kit.is_valid(kit): return
 	var increases:Array[Passive] = kit.get_passives(PassiveStatIncrease)
 	assert_eq(increases.size(), 1, 'Exactly one PassiveStatIncrease.')
@@ -469,13 +470,35 @@ func test_an_ordinary_action_is_never_aborted():
 	await SpecFactory.use_solo(game, myconid, QUICK_SCENE)
 	assert_eq(quick.fired, 1, 'The ordinary 1/scene action went through.')
 
+func test_after_the_cap_the_ordinary_reaction_may_still_be_one_per_scene():
+	# THE OVER-REFUSAL THIS TEST EXISTS TO PREVENT. Once the round's extra has gone, every later turn
+	# start refills to 2 and buff_symbiosis caps straight back to max - 1: the Myconid stands at 1 of 2
+	# with NOTHING spent that turn. A gate reading `current < max` alone would call that turn's FIRST
+	# reaction the extra and abort it - and the card restricts the EXTRA use only. Reachable in play:
+	# react twice on one turn, then face any 1/scene reaction later in the same round.
+	await react_with(rxn_a)
+	await react_with(rxn_b)
+	assert_true(extra_spent(), 'fixture: the round extra has gone.')
+	await SpecFactory.start_turn(game, dummy)
+	assert_eq(reactions_left(), 1, 'fixture: the cap left one point, and none of it is spent yet.')
+	log_lines = []
+	await react_with(rxn_scene)
+	assert_eq(rxn_scene.fired, 1, 'The turn first reaction is the ordinary allowance, 1/scene or not.')
+	assert_eq(uses_this_round(RXN_SCENE), 1, 'And its usage counter moved, so it really activated.')
+	var refused := false
+	for line:String in log_lines:
+		if line.contains('Symbiosis'): refused = true
+	assert_false(refused, 'And nothing was refused in the battle log: %s' % [log_lines])
+
 func test_the_refusal_writes_a_battle_log_line_naming_symbiosis():
 	# Without this the refusal reads as the activation simply not happening, which in play is
 	# indistinguishable from a bug. Asserted on the rendered line rather than on the key, so it also
-	# pins that the CSV row exists and reached the compiled artifact.
+	# pins that the CSV row exists and reached the compiled artifact. The veto itself is asserted
+	# alongside, so the line can never be pinned by a run in which the reaction went through anyway.
 	await react_with(rxn_a)
 	log_lines = []
 	await react_with(rxn_scene)
+	assert_eq(rxn_scene.fired, 0, 'The 1/scene reaction did not happen.')
 	var named := false
 	for line:String in log_lines:
 		if line.contains('Symbiosis'): named = true

@@ -19,10 +19,22 @@
 ## uses_per_scene == 1 (kit.gd:39); "1/mission" is Limited 1, charges_max == 1 (kit.gd:35). A
 ## Limited 2+ reaction is NEITHER, and Symbiosis works on it.
 ##
-## WHEN IT REFUSES: only when the point about to be spent is the EXTRA one - that is,
-## current.reactions < get_reactions_max(), meaning the Myconid has already reacted this turn. The
-## reaction point is not spent until Action.spend_actions runs inside activate(), which is after this
-## preblock, so the count read here is the count BEFORE this activation.
+## WHEN IT REFUSES: only when the point about to be spent really is the EXTRA one, which takes TWO
+## conditions and not one.
+##
+##   current.reactions < get_reactions_max()   the Myconid is already below a full budget, and
+##   the round's extra is still UNSPENT        the point missing from that budget is this round's
+##                                             extra rather than a turn's ordinary allowance.
+##
+## The first condition alone is the bug this file shipped with. Once the extra HAS been spent,
+## buff_symbiosis caps every later turn start back to max - 1 (that is the whole point of it), so the
+## Myconid stands at 1 of 2 with nothing spent that turn - and `current < max` is true there too. The
+## turn's FIRST reaction, which the card never restricts, was being aborted outright with a battle-log
+## line falsely saying the Symbiosis reaction could not be spent on it. Reachable in play: react twice
+## on one turn, then face any 1/scene reaction later in the same round.
+##
+## The reaction point is not spent until Action.spend_actions runs inside activate(), which is after
+## this preblock, so the count read here is the count BEFORE this activation.
 ##
 ## CONSEQUENCE, ACCEPTED BY THE AUTHOR: a player who wants a 1/scene reaction on a turn must take it
 ## as that turn's FIRST reaction. The alternative - letting the extra be spent on it and refunding
@@ -33,9 +45,37 @@
 ## compared directly by ReactionBus.does_buff_trigger (reaction_bus.gd:135): a Buff subscribes at ONE
 ## timing for every trigger it names. The bookkeeping half needs POST. Two timings, two resources.
 ##
+## THE TWO HALVES DO SHARE ONE FACT, IN ONE DIRECTION. Two buffs mean two BuffCores and two separate
+## `state` dictionaries, so the stamp cannot simply be read off `_core` here. It is fetched instead
+## through UnitCondition.get_buff(unit, &'buff_symbiosis') (unit_condition.gd:782), which finds the
+## sibling's BuffCore on the same holder. buff_symbiosis.gd remains the stamp's only owner - it is the
+## only file that ever writes SPENT_KEY - and this file only ever READS it.
+##
 ## activate() DOES NOT CALL super(): the default (buff.gd:254-255) would clear the buff off the unit
 ## after the first refusal.
 extends Buff
+
+## The sibling half, preloaded for its SPENT_KEY alone, so the state key has exactly one definition
+## and cannot drift between the file that writes it and the file that reads it.
+const Bookkeeping := preload(
+	'res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mt_symbiosis/buff_symbiosis.gd'
+)
+
+## Its compcon_id, which the loader takes from the basename of buff_symbiosis.tres
+## (ContentLibrary.get_compcon_id_from_path).
+const BOOKKEEPING_BUFF_ID := &'buff_symbiosis'
+
+## Has this round's extra reaction already gone? Read off the sibling BuffCore on the same unit.
+##
+## If the bookkeeping buff is somehow ABSENT this reports false - the extra treated as unspent, which
+## keeps the gate refusing exactly as it did before this clause existed. It should never happen (one
+## PassiveBuffApplicator on mt_symbiosis carries both, so either both are on the unit or neither is,
+## and with neither on the unit this function is not reached at all), and the deliberate choice is to
+## stay strict rather than to fail open and silently let an excluded reaction through unnoticed.
+static func is_extra_spent(unit:Unit) -> bool:
+	var core:BuffCore = UnitCondition.get_buff(unit, BOOKKEEPING_BUFF_ID)
+	if not BuffCore.is_valid(core): return false
+	return bool(core.get_state(Bookkeeping.SPENT_KEY, false))
 
 ## The Kit properties the clause names. Read off the KIT rather than the action, because that is
 ## where the engine keeps both limits and where any content author would have declared them.
@@ -61,8 +101,12 @@ func triggers_on_event(_core:BuffCore, unit:Unit, triggering_event:EventCore) ->
 	if action == null or not action.consumes_reaction(): return false
 	if not GearCore.is_valid(context.gear): return false
 	if not is_excluded(context.gear.kit): return false
-	# And only when the point about to be spent is the EXTRA.
-	return unit.core.current.reactions < unit.core.get_reactions_max()
+	# And only when the point about to be spent is the EXTRA, which is both of these and not just the
+	# first: below a full budget AND the round's extra still unspent. After the cap has fired the
+	# Myconid sits below its max all round with its ORDINARY allowance intact, and that one the card
+	# never restricts.
+	if unit.core.current.reactions >= unit.core.get_reactions_max(): return false
+	return not is_extra_spent(unit)
 
 func activate(_core:BuffCore, activation:EventCore) -> void:
 	var unit:Unit = activation.context.unit
