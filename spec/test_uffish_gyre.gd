@@ -182,7 +182,9 @@ func strike_specific() -> SpecificAction: return SpecificAction.create(myconid, 
 ##
 ## IT MEANS "THE REACTION SPENT ITS USE", NOT "THE REACTION TRIGGERED", and the two differ on
 ## purpose: the Gyre's spend is a deferred callable the engine runs only when the STRIKE commits
-## (action_attack.gd:262), so a declined confirm or a Stunned or Jammed refusal leaves this at 0.
+## (action_attack.gd:262), so a Stunned or Jammed refusal leaves this where it was. (A DECLINED
+## CONFIRM used to be the third such path; SP2.5 Task 2 suppressed the confirm, so the refusals are
+## the callable's whole remaining job - see test_the_conditional_spend_now_only_guards_the_refusal_paths.)
 ## Where a test needs to know that the trigger itself fired, it says so with a positive control that
 ## runs the same move from the same geometry.
 func gyre_uses_this_round() -> int:
@@ -771,8 +773,8 @@ func test_a_stunned_myconid_cannot_strike():
 	# action_uffish_gyre hands its spend to choose_and_use as a deferred callable, which the engine
 	# runs only when the strike commits - and a strike refused in check_specific_context never
 	# reaches execute(), let alone action_attack.gd:262. So a Myconid that could not strike has not
-	# used its reaction. Pinned below, and by test_a_declined_friendly_fire_confirm_costs_nothing and
-	# test_a_jammed_myconid_cannot_strike.
+	# used its reaction. Pinned below, and by test_the_conditional_spend_now_only_guards_the_refusal_paths
+	# and test_a_jammed_myconid_cannot_strike.
 	var ally := create_ally(AT_7)
 	SpecFactory.apply(myconid, Lancer.STATUS.STUNNED)
 	assert_true(UnitAction.can_activate_gear(SpecificAction.create(myconid, pike_gear(), gyre())),
@@ -840,52 +842,97 @@ func test_a_jammed_myconid_cannot_strike():
 	assert_true(UnitCondition.has_buff(ally, ARMOR_CHIP), 'CONTROL: unjammed, the strike lands.')
 	assert_eq(gyre_uses_this_round(), 1, 'CONTROL: and the Gyre spends its use when it does.')
 
-func test_the_player_is_asked_to_confirm_the_friendly_attack():
-	# MEASURED, and it is what makes action_uffish_gyre.gd's spend conditional. The design and the
-	# plan both assumed the strike would run silently: choose_and_use auto-picks when a
-	# player-controlled unit has exactly one option (common_action_util.gd:657-659) and the target is
-	# mandatory. It does - there is no weapon menu - but the ATTACK itself asks twice: a compcon
-	# targeting plan, and TargetActionUtil.confirm_friendly_fire's yes/no, which fires precisely
-	# because the target is an ALLY (action_attack.gd:247, target_action_util.gd:430-435).
+func test_the_gyre_asks_the_player_nothing():
+	# THIS TEST USED TO SAY THE OPPOSITE, and the author's playtest is why (SP2.5 Task 2). It was
+	# test_the_player_is_asked_to_confirm_the_friendly_attack, which pinned a friendly-fire yes/no
+	# raised on every single trigger; the author asked for it gone, and it is. The reaction fires on
+	# somebody ELSE's turn, so the prompt interrupted a turn the player was only watching to ask
+	# about an attack whose whole effect is to hand that ally armor. The card names no decision.
 	#
-	# Pinned rather than suppressed. The confirm is correct in play - "you are about to attack your
-	# own teammate" is worth asking once - and it is the cancel path the spend guard exists for.
+	# BOTH PROMPTS ARE ASSERTED ABSENT, because the flag that removes one removes the other and a
+	# test that watched only the yes/no would not notice if the picker came back.
+	# action_uffish_gyre.gd passes Action.FLAG.SKIP_PLAYER_DECISIONS, which
+	# TargetActionUtil.confirm_friendly_fire reads at target_action_util.gd:433 (returning before
+	# choice_bus.quick_yesno at :435) and which :150 -> :162 also uses to turn player_decides off,
+	# routing the strike past choice_bus.choose_compcon_plan at :200 into the supplied-target branch
+	# at :230-242.
+	#
+	# THE CONTROL IS THE VERY SAME STRIKE AT THE VERY SAME ALLY, pressed directly with the target
+	# made mandatory - i.e. the Gyre's own call shape with the one flag removed. That is what makes
+	# the two zeroes above evidence about the FLAG rather than about the fixture: an absent prompt
+	# proves nothing unless something in the same test proves the watcher would have seen it.
 	var ally := create_ally(AT_8)
 	queue_dice(D20_HITS)
 	await moves_east(ally)
-	assert_eq(gyre_uses_this_round(), 1, 'fixture: the Gyre fired, so there was something to ask about.')
+	assert_eq(gyre_uses_this_round(), 1, 'fixture: the Gyre fired, so there WAS something to ask about.')
 	assert_true(UnitCondition.has_buff(ally, ARMOR_CHIP), 'fixture: and its shot landed.')
 
+	assert_eq(watcher.kinds(PromptWatcher.KIND.yesno).size(), 0,
+		'No yes/no was raised at all - no friendly-fire confirm: %s' % [watcher.prompts])
+	assert_eq(watcher.kinds(PromptWatcher.KIND.compcon_plan).size(), 0,
+		'And no targeting plan either: the mover is the only legal target. %s' % [watcher.prompts])
+
+	# POSITIVE CONTROL. The Myconid's own turn is opened for it, which resets the per-round counter -
+	# hence the two assertions above being taken first.
+	await MyconidFixture.open_turn(game, myconid)
+	pike_gear().wake_action(STRIKE_ID)
+	queue_dice(D20_HITS)
+	await SpecFactory.use(game, myconid, PIKE_KIT, STRIKE_ID, ally, [Action.FLAG.TARGETS_ARE_MANDATORY])
+	pike_gear().hibernate_action(STRIKE_ID)
+
 	var yesnos := watcher.kinds(PromptWatcher.KIND.yesno)
-	assert_eq(yesnos.size(), 1, 'Exactly one yes/no was raised: %s' % [watcher.prompts])
+	assert_eq(yesnos.size(), 1,
+		'CONTROL: the same strike at the same ally, without the flag, DOES ask: %s' % [watcher.prompts])
 	if yesnos.is_empty(): return
 	assert_eq(String(yesnos[0].description), 'battle.confirm.friendly_fire',
-		'And it is the friendly-fire confirmation.')
+		'CONTROL: and what it asks is the friendly-fire confirmation the Gyre no longer raises.')
+	assert_eq(watcher.kinds(PromptWatcher.KIND.compcon_plan).size(), 1,
+		'CONTROL: and it opens the targeting plan the Gyre no longer opens: %s' % [watcher.prompts])
 
-func test_a_declined_friendly_fire_confirm_costs_nothing():
-	# THE CANCEL PATH, and the reason action_uffish_gyre defers its spend into the strike's commit
-	# instead of spending unconditionally. Declining returns at action_attack.gd:247, before the
-	# spend_actions at :262 that runs the deferred callable - so nothing was struck and nothing was
-	# charged. Charging the round's one use for a shot the player refused would be Draw Fire's
-	# mistake in reverse (action_draw_fire.gd:170-200: nothing is spent until the draw has landed).
-	var ally := create_ally(AT_7)
+func test_the_conditional_spend_now_only_guards_the_refusal_paths():
+	# THIS TEST USED TO BE test_a_declined_friendly_fire_confirm_costs_nothing, and SP2.5 Task 2 took
+	# its subject away: with the confirm suppressed there is no decline path left to be free.
+	#
+	# THE CONDITIONAL SPEND ITSELF STAYS, and this is the test that says why. action_uffish_gyre.gd
+	# hands its spend to choose_and_use as a deferred callable the engine runs only when the strike
+	# commits (action_attack.gd:262). That used to guard three paths - a declined targeting plan, a
+	# declined friendly-fire confirm, and a Stunned or Jammed refusal. The flag removed the first
+	# two; the THIRD is still real, and is now the callable's entire job. Simplifying it back into
+	# an unconditional spend because "the confirm is gone" would charge a Stunned Myconid its
+	# 1/round for a strike that never happened.
+	#
+	# TWO HALVES, and the first is the sharper one for the flag: a responder set to decline
+	# EVERYTHING cannot stop the strike any more, because nothing asks it. Before this task that
+	# same line cost the Gyre its shot.
+	var first := create_ally(AT_7)
+	var second := create_ally(AT_7_LOW)
 	SpecFactory.current_responder.chosen_yesnos = false
 
 	queue_dice(D20_HITS)
-	await moves_east(ally)
-	assert_false(UnitCondition.has_buff(ally, ARMOR_CHIP), 'The refused strike granted nothing.')
-	assert_eq(strike_uses_this_round(), 0, 'And never activated.')
-	assert_eq(gyre_uses_this_round(), 0, 'So the Gyre spent none of its 1/round.')
+	await moves_east(first)
+	assert_true(UnitCondition.has_buff(first, ARMOR_CHIP),
+		'A responder that declines everything cannot refuse this strike: it landed.')
+	assert_eq(strike_uses_this_round(), 1, 'The strike really activated.')
+	assert_eq(gyre_uses_this_round(), 1, 'And the deferred spend ran, because the strike committed.')
+	assert_eq(watcher.kinds(PromptWatcher.KIND.yesno).size(), 0,
+		'Which is because the declining responder was never asked anything: %s' % [watcher.prompts])
+
+	# THE OTHER HALF: the refusal path, which is what the callable still exists for. A second mover
+	# is used rather than the same one because `first` is now at 8 and one more step would put it at
+	# 9, outside threat - the trigger would fail for range and this half would pass for the wrong
+	# reason.
+	SpecFactory.apply(myconid, Lancer.STATUS.STUNNED)
+	assert_true(UnitAction.can_activate_gear(SpecificAction.create(myconid, pike_gear(), gyre())),
+		'CONTROL: the REACTION is still available - Stunned does not touch a non-consuming reaction, and Symbiosis s extra use keeps the per-round cap open for a second Gyre - so it really is offered.')
+
+	queue_dice(D20_HITS)
+	await moves_east(second)
+	assert_false(UnitCondition.has_buff(second, ARMOR_CHIP), 'A Stunned Myconid strikes nobody.')
+	assert_eq(strike_uses_this_round(), 1, 'The strike never activated a second time.')
+	assert_eq(gyre_uses_this_round(), 1,
+		'And the Gyre spent nothing for it: an unconditional spend would read 2 here.')
 	assert_true(pike_gear().is_action_hibernating(STRIKE_ID),
 		'And the strike was put back to sleep even though the activation aborted.')
-
-	# POSITIVE CONTROL: say yes to the very next move and everything lands, so the refusal above was
-	# the decline and not a broken trigger.
-	SpecFactory.current_responder.chosen_yesnos = true
-	queue_dice(D20_HITS)
-	await moves_east(ally)
-	assert_true(UnitCondition.has_buff(ally, ARMOR_CHIP), 'CONTROL: confirmed, the strike lands.')
-	assert_eq(gyre_uses_this_round(), 1, 'CONTROL: and the use is spent.')
 
 func test_the_gyre_announces_itself_before_the_roll():
 	# THE ORDER THE PLAYER SEES, and the whole justification for the .tres's emit_text_popcorn_on_use:
