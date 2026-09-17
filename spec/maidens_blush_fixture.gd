@@ -38,8 +38,9 @@ const FADE_STRIKE_ID := &'mt_fade_strike'
 ## Dice.CHEAT_ROLL_QUEUE, which is why every cheat helper in the trait specs queues a PAIR.
 const MELEE_ID := &'mw_variable_sword'
 
-## The plain vanilla rifle every Fitzgerald spec uses. NOT melee - its weapon_type is unset, i.e. CQB
-## (0) - which is the whole reason it is here: it is the clean negative control for Rend's and Fade
+## The plain vanilla rifle every Fitzgerald spec uses. NOT melee - its weapon_type is unset, so it is
+## the archetype default, RIFLE (3, action_attack_weapon.gd:12) - which is the whole reason it is
+## here: it is the clean negative control for Rend's and Fade
 ## Strike's MELEE filters. It carries NO accuracy modifier, so an attack with it pops a d20 and
 ## nothing else.
 const RANGED_ID := &'mw_assault_rifle'
