@@ -507,7 +507,7 @@ func test_a_boxed_in_snake_eyes_fizzles_and_still_costs_the_point():
 	#
 	# FOUR values queued, TWO drawn on the correct path: the 2d6 and nothing else. pick_random_tile
 	# returns Tile.INVALID at its first line when the tile set is empty
-	# (action_step_of_mist_and_thunder.gd:162), before it draws the die for the destination, so the
+	# (action_step_of_mist_and_thunder.gd:180), before it draws the die for the destination, so the
 	# third and fourth are never reached and the leftovers die with after_each.
 	#
 	# THEY ARE QUEUED FOR THE MUTATION, NOT FOR THIS PATH, and that is what makes the assertion at the
