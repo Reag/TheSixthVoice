@@ -88,6 +88,28 @@ func activate(context:Context, activation:EventCore) -> void:
 	if not confirmed: return
 	if activation.abort_without_unit(unit): return
 
+	# A MECH THAT CANNOT BECOME INVISIBLE STILL PAYS FOR THE FADE AND STILL GETS NOTHING, AND THAT IS
+	# THE AUTHOR'S RULING (2026-09-17) RATHER THAN AN OVERSIGHT. The order below is spend, veto, apply,
+	# and UnitCondition.apply_status returns before it applies anything when the unit is immune to the
+	# status (unit_condition.gd:93-99) - so on an immune Blush the round is spent, the teleport is
+	# cancelled, and no Invisible lands. The engine is loud about it and self-contradictory: apply_status
+	# floats its own "immune to Invisible" popcorn and logs it, and the lines below then log that the
+	# mech faded. Accepting is strictly worse than declining, and the player is not warned.
+	#
+	# The rule the trait implements is that the fade is offered on a qualifying teleport and costs the
+	# round once accepted - with no condition on whether the mech can hold the status. So there is no
+	# immunity clause in triggers_on_event, no re-ordering here, and a future session that adds either
+	# is changing the trait, not fixing it.
+	#
+	# THIS IS REACHABLE, NOT THEORETICAL, which is why it is written down rather than left as an
+	# accident of the ordering. Two ordinary vanilla NPC features hand a player mech immunity to
+	# Invisible: the Scout's Rebound Scan (buff_rebound_scan.tres, a BuffStatusImmunity over
+	# [hidden, invisible], applied on hit to every enemy within 3 of its target, and whose AI scorer
+	# hunts Invisible units on purpose) and the Bombard's Flare Drone aura
+	# (buff_flare_drone_bombard.tres, hung by the PassiveAura on mt_flare_drone_bombard.tres at range 2
+	# in LOS, applies_to_enemies). The SSC Athena-class NHP's simulacrum is a third.
+	# spec/test_uncertainty_field.gd's test_an_immune_blush_still_pays_for_a_fade_that_grants_nothing
+	# pins the behaviour, so the guard cannot be added back in silence.
 	spend_actions(activation) # the per-round counter; consumes_rxn = false, so no reaction point
 
 	Teleport.veto(triggering)

@@ -187,6 +187,42 @@ func test_not_invisible_at_turn_start_means_no_chip():
 	await SpecFactory.start_turn(game, blush)
 	assert_false(has_chip(), 'A turn begun in plain sight arms nothing.')
 
+func test_a_treat_as_invisible_buff_is_not_being_invisible():
+	# RULING 7, SECOND HALF - the clause this file's header asserts and, until now, nothing drove.
+	# "Invisible" means the STATUS. A Buff.TO.TREAT_AS_INVISIBLE buff makes the engine answer yes to
+	# UnitCondition.is_invisible() (unit_condition.gd:440-441 builds the context,
+	# get_invisibility_summary sets is_invis for any such buff on either unit at :457-458) without the
+	# mech ever holding the status - the Banshee's tear and Step of Mist and Thunder's own chip on a
+	# fooled character are both that shape.
+	#
+	# THE MUTATION THIS ANSWERS: buff_fade_strike_arm.gd's last gate reads the status through
+	# unit.has_status; swap it for UnitCondition.is_invisible(unit) and the whole suite stays green
+	# today. The assert_false after the turn start below is what goes red under it, because the chip
+	# then arms off a buff that is not the status at all.
+	#
+	# A bare Buff rather than a content buff by id: no vanilla .tres carries TREAT_AS_INVISIBLE, and
+	# both in-house ones belong to other traits. test_infection.gd:71-73 (Thy Hubris) is the precedent
+	# for handing a unit a one-property Buff this way.
+	var treat_as_invisible := Buff.new()
+	treat_as_invisible.to = Buff.TO.TREAT_AS_INVISIBLE
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), blush, treat_as_invisible)
+	assert_true(UnitCondition.is_invisible(blush),
+		'fixture: the ENGINE would call the Blush invisible...')
+	assert_false(blush.has_status(Lancer.STATUS.INVISIBLE),
+		'fixture: ...and it does not hold the status, which is the whole distinction.')
+
+	await SpecFactory.start_turn(game, blush)
+	assert_false(has_chip(),
+		'Beginning a turn treated-as-invisible arms nothing: the condition is holding the STATUS, and a'
+		+ ' buff that only makes the engine answer "invisible" is not holding it.')
+
+	# CONTROL, in the same test: the real status on the same unit, with the same buff still up, DOES
+	# arm - so the negative above is the has_status() reading and not a trait that stopped working.
+	SpecFactory.apply(blush, Lancer.STATUS.INVISIBLE, Lancer.UNTIL.MANUAL)
+	await SpecFactory.end_turn(game, blush)
+	await SpecFactory.start_turn(game, blush)
+	assert_true(has_chip(), 'CONTROL: the STATUS arms it.')
+
 func test_another_units_turn_start_does_not_arm_the_chip():
 	# THE HOLDER GUARD (buff_fade_strike_arm.gd:38), and this frame's own design is what makes it
 	# reachable: Uncertainty Field's fade lasts "until the beginning of its next turn", so the Blush
@@ -259,8 +295,8 @@ func test_a_hit_is_offered_the_reroll_too():
 	assert_false(has_chip(), 'The chip is spent.')
 
 func test_a_crit_is_not_asked_and_the_chip_is_consumed_anyway():
-	# event_unit_attack.gd:276 - "don't ask to reroll crits". can_bank is false, so
-	# consume_regardless_of_use is true and the chip goes regardless (:304-305). Both halves are the
+	# event_unit_attack.gd:275 - "don't ask to reroll crits". can_bank is false, so
+	# consume_regardless_of_use is true and the chip goes regardless (:303-304). Both halves are the
 	# engine's; this test says we inherited them rather than fighting them.
 	await arm()
 	responder.chosen_yesnos = true
@@ -336,7 +372,7 @@ func test_a_ranged_attack_leaves_the_chip_for_the_melee_attack_after_it():
 func test_an_improvised_attack_leaves_the_chip_untouched():
 	# RULING 12. The Improvised Attack IS weapon_type MELEE, so the type filter alone would let it
 	# through; what refuses it is BuffModifyAttackRoll.allow_basic being false
-	# (buff_modify_attack_roll.gd:48, loadout_core.gd:414). Without this, a Ram or an Improvised Attack
+	# (buff_modify_attack_roll.gd:47, loadout_core.gd:414). Without this, a Ram or an Improvised Attack
 	# would burn the reroll before the real strike - which is the reason the author took the ruling.
 	#
 	# AND IT HAS TO LAND, for the same reason as the ranged case above: a use_solo the engine refused

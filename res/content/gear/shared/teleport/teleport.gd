@@ -126,6 +126,16 @@ static func movement_type(unit:Unit, own_involuntary:bool = false) -> MovementTy
 		# sets voluntary - which is exactly why nothing else would notice it going wrong.
 		type.voluntary = false
 		if not type.other_tags.has(OWN_TAG): type.other_tags.append(OWN_TAG)
+	else:
+		# THE SYMMETRIC HALF OF THE SAME MERGE (SP1 slice-1 close review, carried item 1). merge_in also
+		# propagates other_tags wholesale (`other_tags.append_array(other.other_tags)`,
+		# movement_type.gd:96), so a Buff.TO.MOVEMENT_TYPE resource whose OWN other_tags happened to
+		# carry OWN_TAG would leak it into a VOLUNTARY teleport too, and is_own() would then read a
+		# foreign, ordinary teleport as our own unpreventable Step. The tag means "ours", and only the
+		# branch above - the one that just applied it - is allowed to leave it standing, which is why
+		# this branch erases rather than merely ignores it. Latent today, same as the flag above:
+		# nothing writes this string but Teleport itself, so nothing else would notice it going wrong.
+		type.other_tags.erase(OWN_TAG)
 	return type
 
 

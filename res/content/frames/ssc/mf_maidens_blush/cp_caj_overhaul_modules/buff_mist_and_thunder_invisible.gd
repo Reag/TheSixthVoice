@@ -10,19 +10,31 @@
 ## 'treat target as invis'", in its own words - and it does not track whose buffs are whose. So:
 ##
 ##   - the HOLDER clause (context.unit is us) is what makes the chip belong to the fooled character
-##     rather than to everyone;
-##   - the OWNER clause (context.target_unit is the Blush) is what stops it firing the OTHER way
-##     round. Without it, the Blush attacking its own victim would find the victim invisible, because
-##     the summary would pick the chip up off the DEFENDER and never ask who put it there.
+##     rather than to everyone: only the character that failed the save misses because of it;
+##   - the OWNER clause (context.target_unit is the Blush) is what keeps the chip pointed at ONE
+##     mech. MEASURED 2026-09-17, and NOT what an earlier draft of this header claimed: removing it
+##     does not let the Blush find its own victim invisible, because the holder clause already
+##     refuses that - the Blush is not the chip's holder. What only the owner clause stops is a
+##     character fooled by one Maiden's Blush treating a DIFFERENT one as invisible, having never
+##     been adjacent to anything the second one did.
 ##
-## The owner clause is the one with no obvious symptom until it bites, and
-## test_the_blush_attacking_the_fooled_enemy_is_unaffected is its guard.
+## So the guards are test_a_chip_from_one_blush_does_not_hide_a_second_one for the owner clause, and
+## test_the_blush_attacking_the_fooled_enemy_is_unaffected for the chip's one-directionality as a
+## whole - that one reddens only when BOTH clauses go, because either alone refuses it.
 ##
 ## NOT is_onetime, WHICH IS WHAT MAKES IT LAST THE SCENE.
 ## AttackUtil.check_if_invisibility_forces_miss (attack_util.gd:59-76) consumes only one-time buffs,
 ## so a persistent one keeps applying to every attack its holder makes at the Blush. `until = MANUAL`
-## does the rest: nothing expires it, and `from_gear` being the core Kit means it dies with the mech
-## that placed it.
+## does the rest: nothing expires it.
+##
+## THE ONE EARLY EXIT IS THE BLUSH'S OWN DESTRUCTION, AND IT IS NOT `from_gear`, which is an id
+## rather than a lifetime: BuffCore.create stores a string and nothing sweeps on it
+## (buff_core.gd:26-31). What clears the chip is EventService.remove_unit_from_game, which walks the
+## dead unit's own gear and drops the buffs it owns off every other unit (event_service.gd:71 ->
+## UnitCondition.clear_outgoing_buffs_from_unit -> clear_buffs_owned_by, unit_condition.gd:1015-1021).
+## A cp_ Kit is inside that walk because loadout_core.get_all_gear includes `traits`, and the walk
+## skips a buff only when is_cleared_on_owner_death() is false - this one takes the default true
+## (buff.gd:181). test_the_chip_dies_with_the_blush_that_placed_it is the guard.
 ##
 ## Thy Hubris' buff_tear_invisibility.gd is the in-house precedent for a context-gated
 ## TREAT_AS_INVISIBLE buff; this one is simpler, because its question is about identity rather than

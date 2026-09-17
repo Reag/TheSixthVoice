@@ -40,6 +40,12 @@ const ALLY_TILE := Vector2i(2, 6)
 ## A source id no gear on the map owns, for the "Invisible from somewhere else survives" case.
 const OTHER_SOURCE := &'some_other_cloak'
 
+## VANILLA, and the reason the immunity case below is not a thought experiment: the NPC Scout's
+## Rebound Scan hangs this BuffStatusImmunity - immune_to_statuses [hidden, invisible] - on every
+## enemy within 3 of its target. Applied by id rather than rebuilt, so the test goes red if the
+## vanilla buff ever stops granting that immunity.
+const IMMUNITY_BUFF_ID := &'buff_rebound_scan'
+
 ## Comfortably above anything the Blush resists.
 const BITING_DAMAGE := 5
 ## The armor given to the Blush in the zeroed-hit case, and the damage that exactly meets it. The
@@ -264,6 +270,38 @@ func test_accepting_leaves_the_blush_on_its_origin_tile_invisible_and_aborts_the
 		+ ' every other-source case below depend on.')
 	assert_eq(uses_this_round(), 1, 'The 1/round is spent.')
 
+func test_an_immune_blush_still_pays_for_a_fade_that_grants_nothing():
+	# THE AUTHOR'S RULING, 2026-09-17, AND IT IS DELIBERATE - NOT A BUG THIS FILE FAILED TO CATCH. A
+	# Maiden's Blush that cannot hold Invisible is offered the fade anyway, and accepting spends the
+	# round and cancels the teleport for nothing: activate() spends, vetoes, and only then calls
+	# UnitCondition.apply_status, which returns before applying anything on an immune unit
+	# (unit_condition.gd:93-99). The trait conditions the offer on the teleport and on the round, and on
+	# nothing else; whether the mech can hold the status is not part of the rule.
+	#
+	# THE MUTATION THIS ANSWERS: add `if UnitCondition.is_immune_to_status(unit,
+	# Lancer.STATUS.INVISIBLE, gear.persistent_id): return false` as a last clause of
+	# triggers_on_event (action_uncertainty_field.gd:60-73). The field then never triggers, so the
+	# teleport lands and the round stays unspent - would_offer, the tile, `aborted` and the use count
+	# all flip. That is the "fix" this test exists to stop, and the ruling is written out at the
+	# spend/veto/apply sequence in action_uncertainty_field.gd.
+	#
+	# Two ordinary vanilla NPC features put a player mech here: the Scout's Rebound Scan (the buff used
+	# below) and the Bombard's Flare Drone aura, range 2 in LOS, applies_to_enemies.
+	UnitCondition.apply_buff_id(SpecFactory.dummy_event(), blush, IMMUNITY_BUFF_ID)
+	assert_true(UnitCondition.is_immune_to_status(blush, Lancer.STATUS.INVISIBLE, field_source()),
+		'fixture: the Blush really cannot become Invisible.')
+	assert_true(would_offer(voluntary_teleport_data()),
+		'It is offered all the same - the gate asks nothing about immunity.')
+
+	responder.chosen_yesnos = true
+	var core := await teleport_by_path(DESTINATION)
+	assert_eq(blush.tile(), BLUSH_TILE, 'Accepting still refuses the teleport...')
+	assert_true(core.aborted, '...the move core still reads aborted...')
+	assert_eq(uses_this_round(), 1, '...the 1/round is still spent...')
+	assert_false(blush.has_status(Lancer.STATUS.INVISIBLE),
+		'...and the Invisible the whole trade was for never lands. Strictly worse than declining, and'
+		+ ' card-faithful: the card conditions the fade on nothing.')
+
 func test_accepting_skips_the_pathfinders_deferred_spend():
 	# Pathfinder.generate_events attaches a deferred_spend callable to every move it builds (the
 	# variant-action spend, e.g. a Lunge), and event_unit_move calls it only AFTER the PRE and the
@@ -419,10 +457,26 @@ func test_the_invisible_clears_at_the_blushs_next_turn_start():
 	# UnitCondition.new_turn_for_statuses clears inside handle_starting_unit
 	# (unit_condition.gd:21). Driven through a REAL fade rather than fade_by_hand, so the duration the
 	# trait applies is what expires - not one a helper chose.
+	#
+	# IT TAKES A REAL TURN, and that is the half this test was missing. The duration is only observable
+	# against the turn END: an UNTIL.END_OF_THIS_TURN fade would also be gone by the assertion at the
+	# bottom, so without the middle assertion this test stays green for a trait that drops the fade a
+	# whole enemy turn early - which is the fade the frame's entire kit is built to survive.
+	# SpecFactory.start_turn is what makes the end real: event_turn_end refuses a unit that never
+	# started one (event_turn_end.gd:13), and only its execute() runs end_turn_for_statuses
+	# (:40 -> unit_condition.gd:33-34), which is what clears END_OF_THIS_TURN.
+	await SpecFactory.start_turn(game, blush)
+	assert_true(blush.state.is_taking_turn,
+		'fixture: the Blush really is taking a turn, so the end of it below is a real turn end.')
 	responder.chosen_yesnos = true
 	await teleport_by_path(DESTINATION)
 	assert_true(faded(), 'Fixture: faded.')
+
 	await SpecFactory.end_turn(game, blush)
+	assert_true(faded(),
+		'It SURVIVES the end of the turn it was taken on - "until the beginning of its NEXT turn", not'
+		+ ' until the end of this one. This is the assertion that makes the duration observable.')
+
 	await SpecFactory.start_turn(game, blush)
 	assert_false(blush.has_status(Lancer.STATUS.INVISIBLE), 'Gone at the start of the next turn.')
 
@@ -437,6 +491,22 @@ func test_a_real_fade_arms_fade_strike_at_the_blushs_next_turn_start():
 	# THE TIMING IS THE WHOLE POINT. event_turn_start fires NEW_TURN / PRE before handle_starting_unit
 	# clears START_OF_TURN statuses, so a fade that lasts "until the beginning of its next turn" is
 	# still up when the arming buff looks and gone by the time the turn runs.
+	#
+	# THE MUTATION THIS TEST ANSWERS, in action_uncertainty_field.gd's apply_status call: the duration
+	# Lancer.UNTIL.START_OF_TURN -> Lancer.UNTIL.END_OF_THIS_TURN. end_turn_for_statuses clears
+	# END_OF_THIS_TURN at the Blush's turn end (unit_condition.gd:33-34), so by the NEW_TURN / PRE
+	# below there is no Invisible left to arm on and the chip assertion goes red. It is the HAND-OFF
+	# between the two traits that this mutation attacks, which is what makes it the right one here and
+	# not the obvious PRE -> POST on buff_fade_strike_arm.tres - that one also reddens
+	# test_fade_strike.gd's own test_invisible_at_turn_start_leaves_the_chip_on_the_blush, so it does
+	# not isolate this chain at all.
+	#
+	# WHICH IS WHY THE TURN IS STARTED FIRST. event_turn_end refuses a unit that never started a turn
+	# (event_turn_end.gd:13) and end_turn_for_statuses only runs inside its execute() (:40), so without
+	# this line the turn end below is not a turn end and the mutation above has nothing to act on.
+	await SpecFactory.start_turn(game, blush)
+	assert_true(blush.state.is_taking_turn,
+		'fixture: a real turn, so the end of it really expires end-of-turn durations.')
 	responder.chosen_yesnos = true
 	await teleport_by_path(DESTINATION)
 	assert_true(faded(), 'Fixture: a REAL fade, taken from a real teleport offer.')

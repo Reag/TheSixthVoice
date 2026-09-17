@@ -39,8 +39,11 @@ const DISTANCE_DICE:String = '2d6'
 const SNAKE_EYES_RANGE:int = 2
 
 ## Blinkspace's gate, kept: a mech riding somebody else's stack-up cannot fold out of it
-## (action_blinkspace_jump.gd:6). The GRAPPLED non-rider case is a different one and the probe
-## measured it - an unpreventable Step does leave the grip, and the rulings record that.
+## (action_blinkspace_jump.gd:6). The engine reads this at unit_action.gd:418-425 and refuses the
+## gear with REASON.STACKED_UP (:128, :155); spec/test_step_of_mist_and_thunder.gd pins it through
+## that path. The GRAPPLED non-rider case is a different one and is settled the other way: an
+## unpreventable Step leaves the grip, and since the frame close (2026-09-17) the GRAPPLED status
+## goes with it - see section 6 of activate().
 func can_be_used_while_stackup_rider() -> bool: return false
 
 func activate(context:Context, activation:EventCore) -> void:
@@ -101,6 +104,7 @@ func activate(context:Context, activation:EventCore) -> void:
 		return
 
 	# 5. THE TELEPORT. Own-involuntary and by path - see the header.
+	var was_grappled:bool = unit.has_status(Lancer.STATUS.GRAPPLED)
 	var move:EventCore = await Teleport.move(activation, unit, tile)
 	# UNCERTAINTY FIELD TOOK IT (ruling 4). The point and the action stay spent, the stamp stays set,
 	# and NO adjacent character saves - the card's save is a consequence of arriving, and nobody
@@ -108,7 +112,28 @@ func activate(context:Context, activation:EventCore) -> void:
 	if move == null or move.aborted: return
 	if activation.abort_without_unit(unit): return
 
-	# 6. THE SAVES, measured from where we landed.
+	# 6. THE GRIP LETS GO. THE AUTHOR'S RULING AT THE FRAME CLOSE, 2026-09-17, and a change from what
+	# ruling 173 recorded rather than a restatement of it: a Blush that folds away is no longer
+	# grappled.
+	#
+	# The engine already breaks a REAL grapple on arrival. event_unit_move.gd:242 runs
+	# UnitTile.update_tracking_and_statuses after every step, that calls
+	# UnitCondition.check_attachments_are_adjacent (unit_tile.gd:30), and anything further than a tile
+	# away is detached (unit_condition.gd:607-626) - with Katamari.dettach_units clearing GRAPPLED on
+	# BOTH parties (katamari.gd:258-259). What survives that pass is a GRAPPLED status with no
+	# attachment behind it: the adjacency check returns at its first line when state.attachments is
+	# empty (unit_condition.gd:601), so nothing reconciles the status and the mech is left
+	# is_immobilized at a distance with nothing adjacent (unit_condition.gd:416). That orphan is what
+	# ruling 173 measured, and it is what this strips.
+	#
+	# Katamari.validate_attachments is the engine's OWN reconciler for precisely that: with no
+	# grappling attachment left it clears the status (katamari.gd:310-315). Calling it rather than
+	# clearing the status by hand leaves the grappler's side of the bookkeeping the engine's business.
+	# It also leaves a Blush that folded ONE space and is still adjacent to a real grappler grappled,
+	# because the attachment is genuinely intact - the engine's rule, not an exception carved out here.
+	if was_grappled: Katamari.validate_attachments(activation, unit)
+
+	# 7. THE SAVES, measured from where we landed.
 	#
 	# ALLIES INCLUDED, as written (ruling 13). An ally's chip is inert except against ally-targeting
 	# attacks such as the Myconid's Uffish Gyre, and the card says "characters", not "hostiles".

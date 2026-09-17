@@ -22,8 +22,20 @@
 ##
 ## "UP TO THAT MANY SPACES" INCLUDES ZERO, and zero forfeits the Skirmish (ruling 5): the reaction is
 ## spent from step 2 onwards whatever happens, but the follow-up shot needs the mech to have actually
-## moved. A field veto, a cancelled pick and a zero-space result all lose it; a one-space sideways
-## teleport beside an already-adjacent attacker keeps it.
+## moved. A field veto, a cancelled pick and a zero-space result all lose it.
+##
+## RULING 5'S QUALIFYING EXAMPLE - a one-space sideways teleport beside an already-adjacent attacker
+## keeping the shot - CANNOT ARISE while the pull rule stands, and the author's call (2026-09-17) is to
+## say so here rather than widen the cone to reach it. With the attacker already adjacent the distance
+## to it is 1, so `gained` is at most 0 for every tile it does not occupy while `moved` is at least 1,
+## and the filter at the foot of this file keeps nothing at any roll: the cone is EMPTY, not merely
+## narrow. spec/test_abjuration_of_metal.gd's
+## test_no_valid_tile_leaves_the_reaction_spent_and_the_mech_unmoved presses exactly that case, with
+## the attacker at (7, 6), and asserts the mech is still where it started.
+##
+## The gate below is still doing real work, which is why it asks whether the mech MOVED rather than
+## whether the attacker is NEWLY in threat: a straight-line approach that ends inside threat is the
+## ordinary way the Skirmish is earned, and a teleport that never happened must not earn it.
 extends ActionReactionAttacked
 
 const Teleport := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/teleport/teleport.gd')
@@ -85,12 +97,19 @@ func activate(context:Context, activation:EventCore) -> void:
 	# RULING 5, three cases in one line: Uncertainty Field took it, the move failed, or the mech ended
 	# where it started. "If THIS puts the attacker in threat" needs a this.
 	#
-	# THE ORIGIN COMPARISON IS DEFENSIVE AND CURRENTLY UNREACHABLE, which is recorded rather than
+	# THE ORIGIN COMPARISON IS DEFENSIVE AND NO SPEC CAN REACH IT FIRST, which is recorded rather than
 	# hidden: the cone's own filter requires `moved > 0`, so the origin is never in the offered set and
-	# no spec can produce a zero-space landing through the picker. Deleting it reddens nothing
-	# (measured 2026-09-17). It stays because the two facts are independent - a future widening of the
-	# cone, or a movement-restriction interaction that lands the mech back where it began, would make
-	# it load-bearing again, and ruling 5 is explicit that zero forfeits the shot.
+	# no pick can produce a zero-space landing. Deleting it reddens nothing (measured 2026-09-17). It
+	# stays because the two facts are independent - a future widening of the cone, or a
+	# movement-restriction interaction that lands the mech back where it began, would make it
+	# load-bearing again, and ruling 5 is explicit that zero forfeits the shot.
+	#
+	# IT IS NOT DEAD, THOUGH, AND THE WORD "UNREACHABLE" USED TO STAND HERE WRONGLY (corrected
+	# 2026-09-17). A VETOED teleport lands on it too: Uncertainty Field aborts the move core one line
+	# before undergo_move, so the mech is still standing on `origin` when this runs and both halves of
+	# the test answer true at once. That is why deleting EITHER half alone leaves
+	# spec/test_abjuration_of_metal.gd's test_a_vetoed_teleport_forfeits_the_skirmish green, and both
+	# together turn it red.
 	if move == null or move.aborted or unit.tile() == origin: return
 	if activation.abort_without_unit(unit): return
 

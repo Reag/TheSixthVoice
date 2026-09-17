@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.4.0'
+const EXPECTED_VERSION := '0.5.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -164,6 +164,45 @@ func test_the_efficient_term_resolves_end_to_end():
 	assert_eq(GlossaryItem.find_key_from_label('Efficient'), 'lancer.term.efficient',
 		'|Efficient| links to its own glossary entry.')
 	assert_eq(GlossaryItem.find_key_from_label('efficient'), 'lancer.term.efficient', 'Either case.')
+
+# ---------------------------------------------------------------- the Maiden's Blush's SP2 rows
+#
+# SP1 gave each of its three traits (Rend, Uncertainty Field, Fade Strike) a row-resolution guard in
+# its own spec file - test_rend.test_the_effect_row_resolves and its siblings. SP2 added fourteen more
+# rows (the core system, Step of Mist and Thunder, Abjuration of Metal, and the shared Efficient
+# refund log) and NONE of them had one: grepping X.tr(/Translate. across every SP2 spec file returns
+# zero hits (frame close review slice 5, finding I-2). Six of these fourteen reach the player through
+# a call that silently falls back to the raw key on a miss (battle_log_bus.gd:24-27's log_tr, and
+# Translate.action's default return_key_if_blank=true), so a dropped CSV row or a stale compiled
+# localizations.en.translation puts a raw key straight into the battle log and floating over the
+# board, with every other test in the suite green.
+#
+# Housed here rather than split across the SP2 spec files: this mod's SP2 core power spans two action
+# scripts and a standalone buff with no single natural home for a shared list, and this file already
+# owns the mod-wide localization guards (the glossary tests above).
+
+## The fourteen rows SP2 added with no resolution guard, transcribed from
+## localization/localizations.csv:176-189.
+const SP2_LOCALIZATION_ROWS:Array[String] = [
+	'gear.cp_caj_overhaul_modules.name',
+	'gear.shared.efficient.refund.log',
+	'gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.name',
+	'gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.effect',
+	'gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.confirm',
+	'gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.snake_eyes.log',
+	'gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.snake_eyes.pop',
+	'gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.fizzle.log',
+	'gear.buff_mist_and_thunder_invisible.name',
+	'gear.buff_mist_and_thunder_invisible.effect',
+	'gear.cp_caj_overhaul_modules.action_abjuration_of_metal.name',
+	'gear.cp_caj_overhaul_modules.action_abjuration_of_metal.trigger',
+	'gear.cp_caj_overhaul_modules.action_abjuration_of_metal.effect',
+	'gear.cp_caj_overhaul_modules.action_abjuration_of_metal.no_space.log',
+]
+
+func test_the_maidens_blush_sp2_rows_resolve():
+	for key:String in SP2_LOCALIZATION_ROWS:
+		assert_ne(tr(key), key, '%s resolves to real text.' % key)
 
 ## Every kit and player-facing buff this mod ships, and the actions on each kit that need their own
 ## icon. Filled in by each sub-project as it builds content; the icon pass is what makes it green.

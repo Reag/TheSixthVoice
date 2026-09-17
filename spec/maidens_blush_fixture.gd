@@ -38,15 +38,30 @@ const FADE_STRIKE_ID := &'mt_fade_strike'
 const CORE_ID := &'cp_caj_overhaul_modules'
 
 ## The licence's own Main melee weapon (li_mourning_cloak rank 3). weapon_type = 2 (MELEE), threat 2,
-## attack_accuracy "1" - so every attack with it pops a d20 AND an accuracy die off
-## Dice.CHEAT_ROLL_QUEUE, which is why every cheat helper in the trait specs queues a PAIR.
+## attack_accuracy "1".
+##
+## IT POPS EXACTLY TWO VALUES off Dice.CHEAT_ROLL_QUEUE per attack, and BOTH halves of that are
+## load-bearing: the d20, then ONE accuracy d6 (net +1, so roll_d6_accuracy rolls a single die,
+## dice.gd:86-88), and then NOTHING for damage, because damage_dice is the flat string "3" - count 0,
+## so roll_dice's loop body never runs (dice.gd:24). That is why the SWORD helpers queue a PAIR. The
+## other helpers do not, and must not: mw_assault_rifle and mw_improvised_attack both roll 1d6, and
+## the damage dice are rolled TWICE per attack (attack_util.gd:250-251), so they pop three - four for
+## the rifle when the shooter is ENGAGED. A future modkit giving the sword dice damage would silently
+## break every pair in this mod.
 const MELEE_ID := &'mw_variable_sword'
 
 ## The plain vanilla rifle every Fitzgerald spec uses. NOT melee - its weapon_type is unset, so it is
 ## the archetype default, RIFLE (3, action_attack_weapon.gd:12) - which is the whole reason it is
-## here: it is the clean negative control for Rend's and Fade
-## Strike's MELEE filters. It carries NO accuracy modifier, so an attack with it pops a d20 and
-## nothing else.
+## here: it is the clean negative control for Rend's and Fade Strike's MELEE filters.
+##
+## IT POPS THREE VALUES OFF Dice.CHEAT_ROLL_QUEUE PER ATTACK, AND FOUR WHEN ENGAGED - never one. It
+## sets no attack_accuracy, but damage_dice is "1d6" and AttackUtil.DamageRoll.roll_base_damage rolls
+## the damage dice TWICE on every attack, hit_rolls then crit_rolls (attack_util.gd:250-251), on a
+## miss as much as on a crit. The FOURTH lands between the d20 and those two when the shooter carries
+## ENGAGED or GRAPPLED: the rifle is not MELEE, so is_difficulty_when_engaged() is true
+## (action_attack_weapon.gd:254-255), the engaged -1 becomes an accuracy mod (attack_roll.gd:173-174),
+## and roll_d6_accuracy rolls one d6 for it and SUBTRACTS it (dice.gd:86-88, the signi at :65).
+## Queue a BUFFER of 6s after whatever you are pinning; do not count the draws.
 const RANGED_ID := &'mw_assault_rifle'
 
 ## The basic Improvised Attack: weapon_type = 2 (MELEE), weapon_size = 4 (NONE), and in every unit's
@@ -142,10 +157,11 @@ static func equip_basic_melee(unit:Unit) -> void:
 ## SP1's only caller is the frame spec's fixture self-check, which is deliberate: an unexercised
 ## fixture helper handed to SP2 is a helper SP2 debugs instead of using.
 ##
-## CLEARS THE QUEUE FIRST and queues exactly two values, no buffer. A leftover cheat from an earlier
-## attack would hand this one the wrong d20, and a leftover from THIS one would hand the next roll a 1
-## - which matters most in SP2, where Abjuration's own d6 and its follow-up Skirmish pop from the same
-## global FIFO during this very activation.
+## CLEARS THE QUEUE FIRST, then queues two 1s - the d20, and one spare for whichever draw comes next
+## (the engaged difficulty die if the attacker is engaged, otherwise the first damage roll). The rifle
+## pops three or four values per attack (see RANGED_ID above), so NOTHING is left behind for the next
+## roll and the trailing damage dice roll live, which is harmless: Reliable 2 fixes a miss's damage
+## whatever they come up as. What matters is only that the d20 is 1.
 ## Hang the Minotaur's Interdiction Field on a hostile WITHOUT equipping the system or waking its
 ## aura. buff_interdiction_field.tres is `to = &"movement_restriction"` and its
 ## check_if_passive_applies asks only for a teleporting movement type and an enemy holder

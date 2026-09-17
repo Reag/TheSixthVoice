@@ -151,14 +151,47 @@ func test_the_frame_has_a_sprite_that_actually_loaded():
 	if sprite == null: return
 	assert_eq(sprite.get_size(), Vector2(80, 80), 'A size-1 frame uses an 80x80 sprite.')
 	assert_false(sprite.resource_path.contains('placeholder'), 'The frame wears its own sprite, not the mod placeholder.')
+	# THE SIZE CHECK ABOVE CANNOT CATCH THE LIKELIEST MISTAKE FOR THIS FRAME (frame close I1,
+	# 2026-09-17): mf_maidens_blush.tres was built by copying mf_mourning_cloak.tres - the colour
+	# scheme sub-resource below is a byte-for-byte clone of it - so the natural regression is the
+	# ext_resource pointing at the BASE FRAME's own sprite, not at the mod placeholder.
+	# assets/frames/ssc/mf_mourning_cloak/ssc_mourning_cloak.png is ALSO 80x80 and its path contains
+	# no "placeholder", so both assertions above pass it. Only checking the frame's OWN filename does.
+	assert_true(sprite.resource_path.ends_with('/mf_maidens_blush.png'),
+		'The frame wears its OWN sprite - not the placeholder, and not the Mourning Cloak\'s.')
 
 func test_the_frame_has_a_colour_scheme():
 	# Cloned from the Mourning Cloak's own inline scheme (tone_highcontrast on palette_1, a pale grey,
 	# a teal and a deep red), so the stand-in sprite still reads as SSC on the board until SP3.
+	#
+	# PINNED TO THE LITERAL VALUES, not just non-null (frame close M1, 2026-09-17): the .tres is a
+	# byte-for-byte clone of the base frame's block, and a future edit to either could silently diverge
+	# with the suite still green. Verified against vanilla content/frames/ssc/mf_mourning_cloak.tres:
+	# 17-22 this session. Asserted against BOTH frames, so a mismatch says which side moved - if only
+	# ours fails, we drifted; if only the Mourning Cloak's fails, a modkit update restyled SSC.
 	var frame:Frame = _frame()
 	assert_not_null(frame, 'mf_maidens_blush loads.')
 	if frame == null: return
-	assert_not_null(frame.default_color_scheme, 'The frame carries a default colour scheme.')
+	var scheme:ColorScheme = frame.default_color_scheme
+	assert_not_null(scheme, 'The frame carries a default colour scheme.')
+	if scheme == null: return
+	assert_eq(scheme.palette_1.resource_path, 'res://assets/palettes/toneramps/tone_highcontrast.png',
+		'palette_1 is the high-contrast toneramp.')
+	assert_eq(scheme.base_0, Color(0.9, 0.9, 0.9, 1), 'base_0 is the pale grey.')
+	assert_eq(scheme.base_1, Color(0.3817854, 0.6081583, 0.6667125, 1), 'base_1 is the teal.')
+	assert_eq(scheme.base_2, Color(0.57974935, 0.20940834, 0.1717385, 1), 'base_2 is the deep red.')
+
+	var cloak_frame:Frame = ContentLibrary.get_mech_frame(MOURNING_CLOAK_ID)
+	assert_not_null(cloak_frame, 'mf_mourning_cloak loads.')
+	if cloak_frame == null: return
+	var cloak_scheme:ColorScheme = cloak_frame.default_color_scheme
+	assert_not_null(cloak_scheme, 'And the Mourning Cloak itself carries a colour scheme.')
+	if cloak_scheme == null: return
+	assert_eq(cloak_scheme.palette_1.resource_path, scheme.palette_1.resource_path,
+		'The Mourning Cloak still wears the same toneramp we cloned.')
+	assert_eq(cloak_scheme.base_0, scheme.base_0, 'Same base_0.')
+	assert_eq(cloak_scheme.base_1, scheme.base_1, 'Same base_1.')
+	assert_eq(cloak_scheme.base_2, scheme.base_2, 'Same base_2.')
 
 func test_the_name_and_flavour_resolve():
 	# tr() falling through to the raw key is the signature of a missing CSV row OR of a stale compiled
@@ -279,14 +312,25 @@ func test_the_instance_content_library_serves_is_the_one_mod_main_retains():
 	assert_true(same, 'The li_mourning_cloak instance ContentLibrary serves is the one mod_main holds.')
 
 func test_the_other_extenders_of_li_mourning_cloak_also_land():
-	# LICENCE GUARD 3 of 3. Whoever else touched li_mourning_cloak in this run must still have their
-	# frame in it - the queue collision (mod_main.gd's header) drops a queue-path extender silently,
-	# and apply_resource_extensions_directly erases OUR key from the shared dictionary at :110
-	# precisely so that theirs survives.
+	# LICENCE GUARD 3 of 3 - BUT READ THIS BEFORE TRUSTING WHAT IT DEFENDS (corrected at the frame
+	# close, 2026-09-17; the previous wording claimed this test defends mod_main.gd:111's
+	# `queued_resource_modifications.erase(vanilla_path)`, and it does not).
 	#
-	# OTHER_EXTENDERS is empty today (see its own comment: no installed mod names this licence at
-	# all), so the loop is silent and the assert_has below is what keeps this test from asserting
-	# nothing.
+	# WHAT IT ACTUALLY COVERS: with OTHER_EXTENDERS empty (see its own comment above: all 24 installed
+	# zips were swept and none names li_mourning_cloak), the loop below never runs, so the only
+	# assertion that fires is assert_has(granted, FRAME_ID) - which
+	# test_the_mourning_cloak_licence_grants_the_maidens_blush_at_rank_two already makes at :217. This
+	# test proves nothing that test does not already prove.
+	#
+	# WHAT IT DOES NOT COVER, AND WHY: deleting mod_main.gd:111's erase reddens no test in any run this
+	# suite can produce. The only sibling guard-3 row anywhere in the mod that ever actually fires is
+	# test_mk2_frame.gd's, for Reag-CrisisCoreCatalogEvolved (resident) - and CCC is a fellow
+	# DIRECT-APPLIER that erases its own key from its own queue entry, so that row proves two direct
+	# appliers can co-exist, never that the erase lets a QUEUE-PATH extender survive. The one mod ever
+	# built to exercise that shape, Reag-SpikeLiGmsCompetitor, is a throwaway from spike 2
+	# (2026-09-14) and is no longer on disk. Restoring real coverage means admitting a queue-path
+	# competitor to the residency set (testkit/compat_seams.gd), which is an author decision against
+	# that file's admission criteria and out of scope for this close.
 	var granted := _rank_2_frame_ids()
 	gut.p('  installed, in order: %s' % [Compat.installed_mod_ids()])
 	gut.p('  li_mourning_cloak rank 2 frames: %s' % [granted])

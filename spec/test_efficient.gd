@@ -22,6 +22,32 @@ const MaidensBlushFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/mai
 const BLUSH_TILE := Vector2i(4, 4)
 const RESPAWN_TILE := Vector2i(6, 6)
 
+# The frozen contract itself (roadmap §4, design §2.5), read off Script.get_script_method_list() the
+# same way test_teleport.gd's own freeze test reads Teleport's eleven - each entry is
+# {name, args, default_args, flags, id, return}; each arg and the return are property-info dicts
+# {name, class_name, type, hint, hint_string, usage}. `type` is a Variant.Type and, for a TYPE_OBJECT
+# argument or return, `class_name` carries the script's class as a StringName; for every other type it
+# is the empty StringName &''. None of Efficient's three arguments or returns is a typed array, so
+# unlike test_teleport.gd's table this one has no `hint`/`return_hint` entries to pin.
+#
+# BORN WITH NO EQUIVALENT OF THIS TABLE AT ALL (Important 4, SP1 slice-1 close review) - verbatim the
+# defect SP1's own review already found and fixed once on the Teleport side (there, OWN_TAG; here,
+# USED_KEY). Two later frames - Lovers Knot, Black Mountain - call these three.
+const FROZEN_SIGNATURES := {
+	mark_used = {
+		args = [['gear', TYPE_OBJECT, &'GearCore']],
+		defaults = 0, return_type = TYPE_NIL, return_class = &'',
+	},
+	is_marked = {
+		args = [['gear', TYPE_OBJECT, &'GearCore']],
+		defaults = 0, return_type = TYPE_BOOL, return_class = &'',
+	},
+	refund = {
+		args = [['unit', TYPE_OBJECT, &'Unit'], ['gear', TYPE_OBJECT, &'GearCore']],
+		defaults = 0, return_type = TYPE_BOOL, return_class = &'',
+	},
+}
+
 var game:Gamemaster
 var blush:Unit
 
@@ -46,6 +72,71 @@ func spend_and_stamp() -> GearCore:
 	blush.core.has_core_power = false
 	Efficient.mark_used(gear)
 	return gear
+
+# ---------------------------------------------------------------- the frozen interface
+
+func test_the_frozen_interface_pins_these_three_signatures():
+	# Pins the FULL signature of each of the three - argument count, each argument's name and order,
+	# each argument's type, the default-argument count, the return type, and the `static` flag - not
+	# only that a name survives, the same shape as test_teleport.gd's own
+	# test_the_frozen_interface_pins_these_eleven_signatures. Deliberately does NOT fail if a FOURTH
+	# function is added: "additions allowed, reshapes not."
+	#
+	# Through a Script-typed local, not Efficient.get_script_method_list() directly: GDScript reads a
+	# preloaded script constant as a CLASS in a call position and refuses the call at parse time.
+	var script:Script = Efficient
+	var by_name:Dictionary = {}
+	for entry:Dictionary in script.get_script_method_list(): by_name[entry.name] = entry
+
+	for required:String in FROZEN_SIGNATURES:
+		assert_true(by_name.has(required), 'Efficient.%s survives.' % required)
+		if not by_name.has(required): continue
+
+		var entry:Dictionary = by_name[required]
+		var expected:Dictionary = FROZEN_SIGNATURES[required]
+		var expected_args:Array = expected.args
+
+		assert_eq(entry.args.size(), expected_args.size(),
+			'%s takes exactly %d argument(s).' % [required, expected_args.size()])
+		for i:int in range(min(entry.args.size(), expected_args.size())):
+			var actual_arg:Dictionary = entry.args[i]
+			var expected_arg:Array = expected_args[i]
+			assert_eq(actual_arg.name, expected_arg[0],
+				'%s arg %d is named "%s".' % [required, i, expected_arg[0]])
+			assert_eq(actual_arg.type, expected_arg[1],
+				'%s arg %d ("%s") has the frozen Variant.Type.' % [required, i, expected_arg[0]])
+			assert_eq(actual_arg.class_name, expected_arg[2],
+				'%s arg %d ("%s") has the frozen class_name.' % [required, i, expected_arg[0]])
+
+		# PINS `static`, NOT ONLY THE NAME - same reasoning as test_teleport.gd:241-251. Every caller
+		# spells Efficient.<fn>(...) on the preloaded script CONSTANT, never on an instance, and
+		# GDScript refuses that at PARSE time if `static` is dropped, which would take this whole file
+		# down as unparsable rather than failing a single assertion.
+		assert_true((entry.flags & METHOD_FLAG_STATIC) != 0,
+			'%s is still static - a caller spells it on the class, not an instance.' % required)
+		assert_eq(entry.default_args.size(), expected.defaults,
+			'%s takes exactly %d default argument(s).' % [required, expected.defaults])
+
+		assert_eq(entry.return.type, expected.return_type,
+			'%s has the frozen return Variant.Type.' % required)
+		assert_eq(entry.return.class_name, expected.return_class,
+			'%s has the frozen return class_name.' % required)
+
+	# AND THE CONSTANTS' VALUES, not only the three functions' shapes. USED_KEY is a cross-file
+	# contract, not merely a cross-function one: it appears as a literal a second time in
+	# passive_efficient_used.tres's `key`, and GearCore.short_repair's preserve loop matches by that
+	# KEY STRING (gear_core.gd:146-150) - so a rename that touched efficient.gd and missed the .tres,
+	# or a consumer's own stale copy, fails SILENTLY (the refund simply declines) rather than throwing.
+	# This is Important 4 from the SP1 slice-1 close review, verbatim the OWN_TAG defect SP1's review
+	# already found and fixed once on the Teleport side: the one existing key-shaped assertion,
+	# test_the_core_kit_carries_the_stamp_passive_with_resets_on_spawn_off's `stamp.key ==
+	# Efficient.USED_KEY`, is a round trip through the same constant and stays green against ANY value.
+	assert_eq(Efficient.USED_KEY, 'efficient_used',
+		'Efficient.USED_KEY keeps its frozen VALUE, not merely its name - passive_efficient_used.tres'
+		+ ' carries this same string as its own `key`, written by separate hand, and the two must'
+		+ ' match for short_repair\'s preserve loop to find it.')
+	assert_eq(Efficient.UNUSED, 0, 'Efficient.UNUSED keeps its frozen VALUE.')
+	assert_eq(Efficient.USED, 1, 'Efficient.USED keeps its frozen VALUE.')
 
 # ---------------------------------------------------------------- the helper itself
 

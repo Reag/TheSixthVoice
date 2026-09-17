@@ -153,6 +153,12 @@ func test_the_frame_has_a_sprite_that_actually_loaded():
 	assert_eq(sprite.get_size(), Vector2(160, 160), 'A size-2 frame uses a 160x160 sprite.')
 	assert_false(sprite.resource_path.contains('placeholder'),
 		'The frame wears its commissioned art, not the stand-in (%s).' % sprite.resource_path)
+	# THE SIZE CHECK ABOVE ALONE CANNOT CATCH A REVERT TO THE GORGON'S OWN SPRITE (frame close I1,
+	# 2026-09-17, extended to this frame): the Gorgon's own art is also 160x160 and its path contains
+	# no "placeholder", so a copy-paste from mf_gorgon.tres - the same mistake shape the Blush's .tres
+	# was built from - would pass both assertions above. Only checking the frame's OWN filename does.
+	assert_true(sprite.resource_path.ends_with('/mf_myconid.png'),
+		'The frame wears its OWN sprite - not the placeholder, and not the Gorgon\'s.')
 
 func test_the_frame_has_a_colour_scheme():
 	# Cloned from the Gorgon's own inline scheme (tone_highhue, a grey, a plum and a rose), so the

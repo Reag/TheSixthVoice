@@ -31,12 +31,18 @@ const ARMOR_BUFF := &'buff_fungal_network_armor'
 # Same footprint as test_fungal_network.gd: the Myconid is SIZE 2, anchored at (4,4) and occupying
 # (4,4) (5,4) (4,5) (5,5). distance_between is Chebyshev over CLOSEST tiles.
 const MYCONID_TILE := Vector2i(4, 4)
-## The Maiden's Blush stands clear of the Myconid that before_each also places, so neither frame's
-## passives reach the other's test characters.
-const BLUSH_TILE := Vector2i(10, 4)
 const ADJACENT_TILE := Vector2i(6, 4)  # 1 from (5,4) - inside the ally aura either way
 const NEAR_TILE := Vector2i(7, 4)      # 2 from (5,4) - OUTSIDE the ally aura, and exactly the tile
                                        # House Guard's widening pulls into "adjacent"
+
+# The Maiden's Blush case builds its OWN game (see the test below), so these owe the Myconid's
+# footprint nothing. The Blush folds three tiles east and the two characters stand beyond the landing.
+const BLUSH_TILE := Vector2i(4, 4)
+const BLUSH_LANDING := Vector2i(7, 4)
+const SAVING_TILE := Vector2i(8, 4)  # 1 from the landing: Step asks it to save
+const SPARED_TILE := Vector2i(9, 4)  # 2 from the landing: Step does not, and House Guard does not
+                                     # change that - which is the ruling
+const STEP_CHIP := &'buff_mist_and_thunder_invisible'
 
 var game:Gamemaster
 var myconid:Unit
@@ -158,24 +164,53 @@ func test_a_genuinely_adjacent_ally_is_still_sheltered_with_the_widening_active(
 ## point Step would have to read adjacent_characters through a guarded call the way the talents mod's
 ## own Greater Guardian reads get_adjacency_range_alt.
 ##
-## THREE ASSERTIONS, and the first is the one that keeps the other two honest: with the talents mod
-## absent, or its extension silently dead, "nobody two tiles out saved" would be true for the boring
-## reason. skipped_without_talents() announces that case rather than passing quietly.
+## THREE ASSERTIONS BEHIND A PRECONDITION, and the first of the three is the one that keeps the other
+## two honest: with the talents mod absent, or its extension silently dead, "nobody two tiles out
+## saved" would be true for the boring reason. skipped_without_talents() announces that case rather
+## than passing quietly. The precondition is that the Step landed at all - without it a Step that
+## silently did nothing would leave both chip assertions trivially satisfied.
+##
+## IT FIRES THE CONTENT, which is what the Myconid ruling above does and what an earlier version of
+## this test did not: asserting on UnitRelation.get_characters_within directly restates a property of
+## the ENGINE, true whatever our action asks, and stayed green with the action moved to the other side
+## of the seam. Step is pressed for real, and the observable is the chip actually hung on a character.
 func test_house_guard_does_not_widen_step_of_mist_and_thunders_adjacent_saves() -> void:
 	if skipped_without_talents(): return
 
+	# ITS OWN GAME, AND ITS OWN RESPONDER. Pressing Step opens TWO yes/no prompts in one awaited call -
+	# its own confirm, then Uncertainty Field's offer to fade instead - and the stock responder answers
+	# both with one value, which makes the field eat every teleport (maidens_blush_fixture.gd's
+	# header). before_each already installed the stock responder for the Myconid cases above, and two
+	# live responders would both answer every request, so that one is silenced rather than removed:
+	# its guard clauses return before they count a choice (spec_factory.gd:446, :509).
+	if is_instance_valid(SpecFactory.current_responder):
+		SpecFactory.current_responder.choose_yesnos = false
+		SpecFactory.current_responder.choose_plans = false
+	var pair := MaidensBlushFixture.create_game_with_sequenced_prompts(self)
+	game = pair[0]
+	var responder = pair[1]
+
 	var blush := MaidensBlushFixture.create_maidens_blush(game, BLUSH_TILE)
-	var near_character := ally(Vector2i(BLUSH_TILE.x + 1, BLUSH_TILE.y))  # 1 away: saves
-	var far_character := ally(Vector2i(BLUSH_TILE.x + 2, BLUSH_TILE.y))   # 2 away: does not
+	# ALLIES, because House Guard's widening is only_to_allies - a hostile control would be outside
+	# the buff and the ruling would never be contested. Step asks "characters" either way (ruling 13).
+	var near_character := MaidensBlushFixture.create_ally(game, SAVING_TILE)
+	var far_character := MaidensBlushFixture.create_ally(game, SPARED_TILE)
+	await MaidensBlushFixture.open_turn(game, blush)
 	widen_adjacency_on(blush)
 
-	# 1. THE WIDENING IS LIVE IN THIS RUN. Without this the two below prove nothing.
+	# FOUR values queued, THREE drawn: the 2d6, then one Systems save low enough to fail. The fourth is
+	# there for the failing case - a widened radius would ask far_character too, and an empty queue
+	# would hand it a random d20 that might pass and leave this test green for the wrong reason.
+	await MaidensBlushFixture.step(game, blush, responder, [3, 4, 1, 1], BLUSH_LANDING)
+	assert_eq(blush.tile(), BLUSH_LANDING, 'Fixture: the Step landed where we picked.')
+
+	# 1. THE WIDENING IS LIVE IN THIS RUN, measured from where the Blush actually stands. Without this
+	# the two below prove nothing.
 	assert_true(UnitRelation.adjacent_characters(blush).has(far_character),
 		'House Guard pulls the character two tiles out into adjacent_characters.')
 
-	# 2 and 3. What Step actually asks - the engine's own radius, unwidened.
-	var saving:Array[Unit] = UnitRelation.get_characters_within(blush, 1, false)
-	assert_true(saving.has(near_character),
-		'The character ONE tile out is asked to save.')
-	assert_false(saving.has(far_character),
-		'The one TWO tiles out is not, however wide House Guard has made "adjacent".')
+	# 2 and 3. What Step actually asked - the engine's own radius, unwidened.
+	assert_true(UnitCondition.has_buff(near_character, STEP_CHIP),
+		'The character ONE tile from the landing was asked to save, and failed.')
+	assert_false(UnitCondition.has_buff(far_character, STEP_CHIP),
+		'The one TWO tiles out was never asked, however wide House Guard has made "adjacent".')

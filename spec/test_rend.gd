@@ -83,8 +83,13 @@ func cheat_a_melee_hit_no_crit() -> void:
 	Dice.cheat_attack([13, 1], [6, 6, 6, 6, 6, 6, 6, 6])
 
 ## A guaranteed CRIT with a weapon that carries no accuracy modifier - the assault rifle and the
-## Improvised Attack both. Only the d20 is queued; if some future modkit gave one of them an accuracy
-## die it would eat a 6 from the buffer, which is also a 6, so the crit holds either way.
+## Improvised Attack both. Only the d20 is PINNED; the trailing 6s are a buffer, and they have to be,
+## because neither weapon pops just one value. Both roll 1d6 damage and the damage dice are rolled
+## TWICE per attack (attack_util.gd:250-251), so each pops three. The rifle pops a FOURTH, between
+## the d20 and those two, because it is not MELEE and so takes the engaged -1 whenever the shooter
+## carries ENGAGED (action_attack_weapon.gd:254-255, attack_roll.gd:173-174) - one d6, SUBTRACTED.
+## 30 - 6 = 24 is still clear of the >= 20 crit threshold, so the crit holds either way; that, and
+## not "only the d20 is drawn", is why.
 func cheat_an_unmodified_crit() -> void:
 	Dice.CHEAT_ROLL_QUEUE.clear()
 	Dice.cheat_attack([30], [6, 6, 6, 6, 6, 6, 6, 6])

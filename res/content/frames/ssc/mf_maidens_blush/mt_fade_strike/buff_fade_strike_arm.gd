@@ -36,8 +36,13 @@ func triggers_on_event(_core:BuffCore, unit:Unit, triggering_event:EventCore) ->
 	# OUR turn, not everybody's. The bus polls every unit's buffs on every trigger with the same
 	# event, and NEW_TURN fires for every turn on the map.
 	if triggering_event.context.unit != unit: return false
-	# Already armed: a second BuffCore for the same chip would survive the first one's consumption and
-	# hand the turn a second reroll.
+	# Already holding an UNSPENT chip: leave that one alone. This is NOT a stacking guard - the engine
+	# precludes a second copy by itself, because multiple_copies_can_stack is false (buff.gd:131, unset
+	# on the .tres) and apply_buff_alt clears any same-id, same-source, same-`to`, same-`until` copy
+	# before appending the new one (unit_condition.gd:741-747). What this line decides is that a turn
+	# start which finds the chip still in hand keeps THAT BuffCore rather than swapping in a fresh one
+	# and flickering the visible token. A chip the turn has already SPENT is gone from unit.state.buffs,
+	# so this reads false and the trait re-arms exactly as it should.
 	if UnitCondition.has_buff(unit, chip.compcon_id): return false
 	return unit.has_status(Lancer.STATUS.INVISIBLE)
 

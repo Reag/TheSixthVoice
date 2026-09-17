@@ -10,11 +10,13 @@
 # Immobilized and every MOVEMENT_RESTRICTION ban stop it. Only Step carries the "cannot be prevented"
 # clause, and only Step pays for it.
 #
-# DICE DISCIPLINE. CHEAT_ROLL_QUEUE is one global FIFO and a single activation here can draw from it
-# three times over: the attack that triggers the reaction (mw_assault_rifle pops FOUR values when the
-# shooter is engaged - the d20, the ENGAGED difficulty die and two 1d6 damage rolls), then
-# Abjuration's own d6, then the follow-up Skirmish's own attack. Every helper below clears the queue
-# before it queues, and says how many values it is accounting for.
+# DICE DISCIPLINE. CHEAT_ROLL_QUEUE is one global FIFO and a single activation here draws from it in
+# three bursts: the attack that triggers the reaction, then Abjuration's own d6
+# (action_abjuration_of_metal.gd:79), then the follow-up Skirmish's own attack. ONE helper owns the
+# whole sequence - arm() clears the queue and loads it - and miss() fires the triggering shot WITHOUT
+# clearing again, which is the single thing it does differently from MaidensBlushFixture.miss_from and
+# the whole reason it exists. arm()'s own comment says what every value is for, and why its tail is
+# padded rather than counted.
 extends GutTest
 
 const MaidensBlushFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/maidens_blush_fixture.gd')
@@ -26,6 +28,14 @@ const MAP_SIZE := Vector2i(20, 20)
 const BLUSH_TILE := Vector2i(6, 6)
 ## Eight tiles east, comfortably inside the frame's sensors of 10 and well outside melee threat.
 const ATTACKER_TILE := Vector2i(14, 6)
+
+## Six spaces due east of the mech and two short of the attacker. One tile does three jobs: a roll of
+## 6 reaches it and the pull rule keeps it (it closes exactly the six it travels), it is INSIDE
+## mw_variable_sword's threat of 2, and it is OUTSIDE mw_assault_rifle's threat of 1
+## (action_attack_weapon.gd:16 - threat defaults to 1 and the rifle never overrides it, so a weapon
+## with a ten-tile aim_range still threatens one tile). That last pair is what lets the positive
+## Skirmish and its threat-not-range negative use the same geometry and differ only in the weapon.
+const LANDING := Vector2i(12, 6)
 
 var game:Gamemaster
 var blush:Unit
@@ -49,11 +59,62 @@ func after_each() -> void:
 
 # ---------------------------------------------------------------- helpers
 
-## Answer the offer, fix the d6, and let the field decline. The queue is
-## [abjuration confirm, uncertainty field] in the order the activation opens them.
+## Answer the offer, FIX EVERY DIE THE ACTIVATION WILL DRAW, and let the field decline. The yes/no
+## queue is [abjuration confirm, uncertainty field] in the order the activation opens them.
+##
+## THE d6 PARAMETER WAS DEAD until 2026-09-17, and the file header used to claim the opposite. Nothing
+## here ever wrote to Dice.CHEAT_ROLL_QUEUE, and MaidensBlushFixture.miss_from CLEARS it
+## (maidens_blush_fixture.gd:207) before queueing the attack's own pair - so Abjuration's roll was
+## whatever that pair happened to leave behind, or randi() when it left nothing (dice.gd:25, :33: the
+## queue is consulted only `elif not CHEAT_ROLL_QUEUE.is_empty()`). That is why every test below fires
+## miss() instead of the fixture helper.
+##
+## THE TAIL IS PADDED RATHER THAN COUNTED, and that is the careful choice, not the lazy one. Where the
+## d6 falls in the FIFO depends on two things a spec should not have to assume: an ENGAGED shooter adds
+## a difficulty die (roll_d6_accuracy pops one value per point of it, dice.gd:86-88), and the rifle's
+## two 1d6 damage rolls (attack_util.gd:250-251) are rolled by event_unit_attack_declared at :89, AFTER
+## the per-target attack events at :67 - and this whole activation runs inside those, because a POST
+## attack reaction is QUEUED onto the attack event's own block (event_unit_attack.gd:123) and drained
+## before that block returns (event_block.gd:128-132). One MISS_ROLL for the triggering d20 and then
+## `d6` for every die after it is right under either count, and stays right if that ordering ever
+## moves. It is the shape test_uffish_gyre.gd and test_symbiosis.gd already use, for the same reason.
+##
+## SO THE FOLLOW-UP SKIRMISH ROLLS `d6` TOO. At 6 that is a d20 of 6 plus mw_variable_sword's accuracy
+## die of 6 against the fixture dummy's evasion of 10, which hits; at the default 3 it does not reach
+## it. The two tests that fire something other than the plain miss clear this queue again on their very
+## next line, and both decline the offer, so no d6 is ever drawn in them.
 func arm(accept:bool = true, d6:int = 3, fade:bool = false) -> void:
 	responder.yesno_queue.append_array([accept, fade])
 	if accept: responder.chosen_plan_queue.clear()
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	Dice.CHEAT_ROLL_QUEUE.append(MaidensBlushFixture.MISS_ROLL)
+	for _die in 12: Dice.CHEAT_ROLL_QUEUE.append(d6)
+
+## The triggering miss, fired WITHOUT clearing the queue arm() has just loaded - the same rifle, the
+## same target and the same MISS_ROLL as MaidensBlushFixture.miss_from, minus its
+## clear-and-requeue (maidens_blush_fixture.gd:205-209), which is what used to swallow the d6.
+func miss(from:Unit = null) -> void:
+	var shooter:Unit = from if Unit.is_valid(from) else attacker
+	MaidensBlushFixture.equip_ranged(shooter)
+	await SpecFactory.use_solo(game, shooter, MaidensBlushFixture.RANGED_ID, [blush])
+
+## How many times Uncertainty Field has fired this round. The veto test's discriminator: "it did not
+## move" and "nobody was shot" are both true of a teleport that never found a tile, so without this
+## the negative twin would pass for the wrong reason.
+func field_uses_this_round() -> int:
+	var gear:GearCore = blush.get_gear(MaidensBlushFixture.UNCERTAINTY_FIELD_ID)
+	if not GearCore.is_valid(gear): return -1
+	return gear.get_uses_this_round_alt(&'uncertainty_field')
+
+## Land the mech on an EXACT tile instead of wherever the picker's first offer happens to sit.
+##
+## Abjuration's pick is a MOVE request, not a compcon plan: ask_for_movement_alt sends
+## choose_move_tile_for for a player-controlled mover (target_action_util.gd:83), so chosen_plan_queue
+## cannot steer it and chosen_move_tile can. Left unset, SpecFactory's responder answers with
+## pathfinder.reachable_tiles[0] (spec_factory.gd:417-428) - fine for a test about the spend, useless
+## for one about threat, where the destination IS the measurement.
+func land_on(tile:Vector2i) -> void:
+	responder.chosen_move_tile = tile
 
 ## What the cone would offer for a given roll - the action's own filter, reached through the same
 ## public helper it uses, so a test asserting on this is asserting on the real set.
@@ -79,7 +140,7 @@ func offers() -> int:
 
 func test_a_hostile_within_sensors_missing_with_a_weapon_offers_it():
 	arm(false) # decline, so the test is purely about the offer
-	await MaidensBlushFixture.miss_from(game, attacker, blush)
+	await miss()
 	assert_eq(offers(), 1, 'A miss inside Sensors opens the offer, exactly once.')
 
 func test_a_hit_does_not_offer_it():
@@ -95,13 +156,13 @@ func test_a_miss_from_beyond_sensors_does_not_offer_it():
 	assert_true(UnitRelation.distance_between(blush, attacker) > blush.get_sensor_range(),
 		'Fixture: outside Sensors.')
 	arm(false)
-	await MaidensBlushFixture.miss_from(game, attacker, blush)
+	await miss()
 	assert_eq(offers(), 0, 'Out of sensors, out of mind.')
 
 func test_an_allys_miss_does_not_offer_it():
 	var ally := MaidensBlushFixture.create_ally(game, Vector2i(10, 6))
 	arm(false)
-	await MaidensBlushFixture.miss_from(game, ally, blush)
+	await miss(ally)
 	assert_eq(offers(), 0, 'require_attacker_relation = ENEMIES.')
 
 func test_a_missed_ram_offers_it():
@@ -121,22 +182,22 @@ func test_a_missed_ram_offers_it():
 func test_declining_spends_nothing():
 	var reactions_before := blush_reactions()
 	arm(false)
-	await MaidensBlushFixture.miss_from(game, attacker, blush)
+	await miss()
 	assert_eq(blush_reactions(), reactions_before, 'The reaction point is still in hand.')
 	assert_eq(blush.tile(), BLUSH_TILE, 'And it did not move.')
 
 func test_accepting_spends_the_reaction_point():
 	var reactions_before := blush_reactions()
 	arm(true, 3)
-	await MaidensBlushFixture.miss_from(game, attacker, blush)
+	await miss()
 	assert_lt(blush_reactions(), reactions_before, 'Accepting bills a reaction point.')
 
 func test_a_second_abjuration_in_the_same_round_is_refused():
 	arm(true, 3)
-	await MaidensBlushFixture.miss_from(game, attacker, blush)
+	await miss()
 	assert_eq(offers(), 1, 'Fixture: the first miss was offered.')
 	arm(true, 3)
-	await MaidensBlushFixture.miss_from(game, attacker, blush)
+	await miss()
 	assert_eq(offers(), 1, '1/round: the second miss is never even offered.')
 
 # ---------------------------------------------------------------- the pull rule
@@ -190,14 +251,30 @@ func test_an_immobilized_blush_finds_no_tile():
 
 func test_no_valid_tile_leaves_the_reaction_spent_and_the_mech_unmoved():
 	# Boxed in by geometry: a roll of 0 spaces cannot happen, but an attacker the mech is already
-	# adjacent to leaves no tile that closes any distance at all.
+	# adjacent to leaves no tile that closes any distance at all. THE ROLL DOES NOT MATTER HERE, and
+	# that is the finding rather than the convenience: with the attacker adjacent the distance to it is
+	# 1, so no tile can close as much as it costs to reach, and the cone is empty at every roll from 1
+	# to 6. The action's own header cites this test for exactly that, which is why the mech's tile is
+	# asserted below and not only its reaction point.
 	UnitTile.move_to(attacker, Vector2i(7, 6))
 	var reactions_before := blush_reactions()
-	arm(true, 1)
-	Dice.CHEAT_ROLL_QUEUE.clear()
-	Dice.cheat_attack([MaidensBlushFixture.MISS_ROLL, MaidensBlushFixture.MISS_ROLL], [])
-	await SpecFactory.use_solo(game, attacker, MaidensBlushFixture.RANGED_ID, [blush])
+	arm(true, 1) # the attacker is ENGAGED from here, so the rifle draws a difficulty die too
+	await miss()
 	assert_lt(blush_reactions(), reactions_before, 'Spent anyway (ruling 10).')
+	assert_eq(blush.tile(), BLUSH_TILE, 'And nowhere to spend it on.')
+
+# ---------------------------------------------------------------- the teleport itself
+
+func test_the_blush_teleports_toward_the_attacker():
+	# THE CARD'S FIRST HALF, END TO END, and until 2026-09-17 nothing in this file asserted that the
+	# mech moves AT ALL - every test above stops at the spend or reads the cone through the helper. Six
+	# spaces on a roll of 6, straight at the shot that missed.
+	land_on(LANDING)
+	arm(true, 6)
+	await miss()
+	assert_eq(blush.tile(), LANDING, 'It teleported the whole six spaces it rolled.')
+	assert_eq(UnitRelation.distance_between(blush, attacker), 2,
+		'And "in the direction of the attacker" means eight tiles away became two.')
 
 # ---------------------------------------------------------------- the Skirmish
 
@@ -205,16 +282,75 @@ func test_a_teleport_that_ends_out_of_threat_offers_no_skirmish():
 	# The Blush carries no weapon here at all, so nothing can reach - the cleanest form of "out of
 	# threat", and the negative control for the case below.
 	arm(true, 2)
-	await MaidensBlushFixture.miss_from(game, attacker, blush)
+	await miss()
 	assert_eq(attacker.current_damage(), 0, 'No follow-up shot landed.')
 
-func test_the_follow_up_costs_the_mech_nothing_of_its_own():
-	# The Uffish Gyre and Draw Fire lesson: the shot is the WEAPON's own SpecificAction and
-	# choose_and_use_no_spend keeps the mech's economy untouched off-turn. Asserted on the action
-	# state, not merely on the attack having happened.
+func test_a_weapon_whose_threat_does_not_reach_the_attacker_fires_nothing():
+	# THREAT, NOT RANGE, which is the whole reason the action reads
+	# UnitRelation.get_weapons_that_can_overwatch (unit_relation.gd:220-226) rather than
+	# get_weapons_that_can_react_against with its normal-range flag. mw_assault_rifle is the case that
+	# tells them apart: aim_range 10 against a threat of 1, so at the two tiles LANDING leaves between
+	# them it is well in range and nowhere near threat.
+	#
+	# The rifle is Reliable 2, so if it ever did fire the attacker would take damage whether the shot
+	# hit or missed (maidens_blush_fixture.gd:73-76) - there is no roll this test can pass on.
+	MaidensBlushFixture.equip_ranged(blush)
+	land_on(LANDING)
+	arm(true, 6)
+	await miss()
+	assert_eq(blush.tile(), LANDING, 'Fixture: it teleported, so a weapon was looked for at all.')
+	assert_eq(attacker.current_damage(), 0, 'In range is not in threat: nothing fired.')
+
+func test_the_follow_up_lands_and_costs_the_mech_nothing_of_its_own():
+	# THE SECOND SENTENCE OF THE CARD, asserted on a shot that provably happened. This test used to
+	# claim only that the economy was untouched, which an unfixed d6 made vacuous: the mech never
+	# reached threat, no shot was ever fired, and "nothing was spent" was true of nothing.
+	#
+	# The Uffish Gyre and Draw Fire lesson is the other half: the shot is the WEAPON's own
+	# SpecificAction and choose_and_use_no_spend keeps the mech's action economy untouched off-turn.
+	# Both claims belong in one test so the economy one is made about a real Skirmish.
+	#
+	# mw_variable_sword threatens 2, and the follow-up rolls 6 on the d20 plus 6 on the sword's own
+	# accuracy die against the dummy's evasion of 10 - see arm() for why every die after the first is
+	# the roll passed in.
 	MaidensBlushFixture.equip_melee(blush)
+	land_on(LANDING)
 	var actions_before := blush.state.actions
 	arm(true, 6)
-	await MaidensBlushFixture.miss_from(game, attacker, blush)
+	await miss()
+	assert_eq(blush.tile(), LANDING, 'Fixture: the teleport put the attacker inside threat.')
+	assert_gt(attacker.current_damage(), 0, 'And the Skirmish went off.')
 	assert_eq(blush.state.actions, actions_before,
 		'Its quick and full actions are exactly where they were.')
+
+func test_a_vetoed_teleport_forfeits_the_skirmish():
+	# RULING 5's teeth: the follow-up needs a teleport that actually happened, and Uncertainty Field's
+	# veto means it did not. The negative twin of the test above - same weapon, same landing, same roll,
+	# one different answer - so the absence of the shot is the fade's doing and nothing else's.
+	#
+	# The field aborts the move core at ENTIRE_MOVEMENT / PRE (teleport.gd:150-162), which is what
+	# action_abjuration_of_metal.gd:113's `move.aborted` reads.
+	#
+	# AND THAT GUARD IS OVER-DETERMINED, WHICH IS WORTH KNOWING RATHER THAN DISCOVERING TWICE: a veto
+	# returns one line before undergo_move, so the mech is still standing on `origin` and the SAME line's
+	# `unit.tile() == origin` catches the identical case. Deleting either half alone leaves this test
+	# green; deleting both turns it red. The neighbouring note calling the origin comparison unreachable
+	# is about the CONE - no roll offers the tile the mech is already on - and says nothing about this
+	# path, where it is reached every time.
+	# AND THE FADE DOES NOT SURVIVE THIS PARTICULAR TRIGGER, which is content behaving correctly and
+	# not a gap. Abjuration triggers on a MISS, mw_assault_rifle is Reliable 2, and a Reliable miss
+	# still deals its damage - rolled by event_unit_attack_declared at :89, AFTER the per-target attack
+	# events at :67 that this whole reaction runs inside. So the order really is: fade granted, veto
+	# taken, then two points of Reliable damage land, and buff_uncertainty_field_break clears the
+	# Invisible it just granted, exactly as the card says it must. Fading away from a Reliable attacker
+	# buys the veto and nothing else. Recorded at the frame close as a ruling; measured, not reasoned.
+	MaidensBlushFixture.equip_melee(blush)
+	land_on(LANDING)
+	arm(true, 6, true) # this time the player TAKES the fade
+	await miss()
+	assert_eq(blush.tile(), BLUSH_TILE, 'The field replaced the teleport, so it never moved.')
+	assert_eq(field_uses_this_round(), 1, 'The field really did fire - and without this assertion the'
+		+ ' two either side of it would hold just as well for a teleport that never found a tile.')
+	assert_false(blush.has_status(Lancer.STATUS.INVISIBLE),
+		'And the fade is already gone, broken by the Reliable 2 that the triggering miss still dealt.')
+	assert_eq(attacker.current_damage(), 0, 'And a teleport that never happened earns no Skirmish.')

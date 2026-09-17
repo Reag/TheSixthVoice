@@ -4,7 +4,7 @@
 # Roadmap §4: a shared helper is born with its first consumer, in its own sub-folder, with its own
 # specs, and its interface is frozen the moment that sub-project ships. Five later frames consume
 # this one - Purple Thorn, Leoleth (ZIP), Sluagh (Hunt), Koremasa (Vanish), Six Sky - so a rename
-# here is five frames' worth of churn. test_the_frozen_interface_pins_these_six_signatures is the
+# here is five frames' worth of churn. test_the_frozen_interface_pins_these_eleven_signatures is the
 # guard, and it pins the whole signature - argument order, names, types, default count and return
 # type - not only that a name survives.
 #
@@ -39,6 +39,15 @@ const ELSEWHERE := Vector2i(7, 2)
 # `defaults` is pinned PER FUNCTION, unlike test_overshield.gd's blanket zero: movement_type() really
 # does take one default argument (own_involuntary), and it is part of the contract that it does - a
 # caller writing Teleport.movement_type(unit) is the common case and the five later frames all use it.
+#
+# `hint` PINS THE ELEMENT TYPE OF A TYPED ARRAY (Important 3, SP1 slice-1 close review), where `type`
+# and `class_name` alone cannot: Array[Vector2i] and a bare Array both report TYPE_ARRAY and an empty
+# class_name, because the element type lives in `hint`/`hint_string` instead. Three entries carry one -
+# candidate_tiles' return and the `tiles` argument of pathfinder and pick_tile - marked below with an
+# optional 4th array element (for an argument) or a `return_hint` key (for a return). Pinned against
+# PROPERTY_HINT_ARRAY_TYPE alone, never hint_string: the engine sets that enum for every typed array
+# regardless of element type, where hint_string's exact spelling for Array[Vector2i] is not something
+# this file can read back without a live run.
 const FROZEN_SIGNATURES := {
 	is_teleport = {
 		args = [['context', TYPE_OBJECT, &'Context']],
@@ -78,16 +87,17 @@ const FROZEN_SIGNATURES := {
 			['keep', TYPE_CALLABLE, &''],
 		],
 		defaults = 1, return_type = TYPE_ARRAY, return_class = &'',
+		return_hint = PROPERTY_HINT_ARRAY_TYPE,
 	},
 	pathfinder = {
-		args = [['unit', TYPE_OBJECT, &'Unit'], ['tiles', TYPE_ARRAY, &'']],
+		args = [['unit', TYPE_OBJECT, &'Unit'], ['tiles', TYPE_ARRAY, &'', PROPERTY_HINT_ARRAY_TYPE]],
 		defaults = 0, return_type = TYPE_OBJECT, return_class = &'Pathfinder',
 	},
 	pick_tile = {
 		args = [
 			['context', TYPE_OBJECT, &'Context'],
 			['activation', TYPE_OBJECT, &'EventCore'],
-			['tiles', TYPE_ARRAY, &''],
+			['tiles', TYPE_ARRAY, &'', PROPERTY_HINT_ARRAY_TYPE],
 		],
 		defaults = 0, return_type = TYPE_VECTOR2I, return_class = &'',
 	},
@@ -198,6 +208,24 @@ func apply_a_voluntary_movement_type_buff() -> void:
 	buff.until = Lancer.UNTIL.MANUAL
 	UnitCondition.apply_buff_alt(SpecFactory.dummy_event(), unit, BuffCore.create(buff))
 
+## Hang a movement-type buff on `unit` whose merged resource's other_tags ALREADY carries
+## Teleport.OWN_TAG - carried item 1 (SP1 slice-1 close review): merge_in propagates other_tags
+## wholesale (movement_type.gd:96), so a buff resource that happens to carry our tag in ITS OWN
+## other_tags would smuggle it into the merge the same way apply_a_voluntary_movement_type_buff()
+## above smuggles in `voluntary`. Nothing writes this string but Teleport itself (grep across
+## engine/, content/, ui/, addons/ and unpacked/ finds exactly two other_tags sites, both the
+## Breacher's Follower Count, and neither touches this key), so this is a hand-built adversarial
+## case, not a reachable one.
+func apply_a_movement_type_buff_carrying_our_tag() -> void:
+	var buffed := MovementType.new()
+	buffed.other_tags = [Teleport.OWN_TAG] as Array[StringName]
+	var buff := BuffMovementType.new()
+	buff.movement_type = buffed
+	buff.to = Buff.TO.MOVEMENT_TYPE
+	buff.hide_from_player = true
+	buff.until = Lancer.UNTIL.MANUAL
+	UnitCondition.apply_buff_alt(SpecFactory.dummy_event(), unit, BuffCore.create(buff))
+
 # ---------------------------------------------------------------- the interface itself
 
 func test_the_frozen_interface_pins_these_eleven_signatures():
@@ -237,6 +265,9 @@ func test_the_frozen_interface_pins_these_eleven_signatures():
 				'%s arg %d ("%s") has the frozen Variant.Type.' % [required, i, expected_arg[0]])
 			assert_eq(actual_arg.class_name, expected_arg[2],
 				'%s arg %d ("%s") has the frozen class_name.' % [required, i, expected_arg[0]])
+			if expected_arg.size() > 3:
+				assert_eq(actual_arg.hint, expected_arg[3],
+					'%s arg %d ("%s") is a TYPED array - hint pins the element type (Important 3).' % [required, i, expected_arg[0]])
 
 		# PINS `static`, NOT ONLY THE NAME (the Myconid frame close, finding 4, 2026-09-16). Every
 		# caller spells Teleport.<fn>(...) on the preloaded script CONSTANT, never on an instance, and
@@ -256,6 +287,9 @@ func test_the_frozen_interface_pins_these_eleven_signatures():
 			'%s has the frozen return Variant.Type.' % required)
 		assert_eq(entry.return.class_name, expected.return_class,
 			'%s has the frozen return class_name.' % required)
+		if expected.has('return_hint'):
+			assert_eq(entry.return.hint, expected.return_hint,
+				'%s returns a TYPED array - hint pins the element type (Important 3).' % required)
 
 	# AND THE TAG'S VALUE, not only the six functions. OWN_TAG is part of the produced interface (plan
 	# Task 1) and its STRING is a cross-frame contract: five consumer frames and SP2's Step all read
@@ -372,6 +406,24 @@ func test_own_involuntary_stays_involuntary_under_a_movement_type_buff_that_is_v
 		'...and voluntary is re-asserted FALSE after that merge, which is the whole of "this'
 		+ ' teleportation cannot be prevented".')
 	assert_true(Teleport.is_own(own), 'And it is still tagged as ours.')
+
+func test_a_buffed_tag_does_not_make_a_voluntary_teleport_read_as_ours():
+	# THE SYMMETRIC HALF OF THE TEST ABOVE - carried item 1 (SP1 slice-1 close review), re-carried and
+	# sharpened. movement_type() re-asserts `voluntary = false` after the engine's merge in the
+	# own-involuntary branch, but until now did not re-assert the ABSENCE of OWN_TAG in the default
+	# branch - and other_tags merges wholesale (movement_type.gd:96) exactly like every other buffed
+	# field. So a Buff.TO.MOVEMENT_TYPE resource whose own other_tags happened to carry OWN_TAG would
+	# leak the tag into a VOLUNTARY teleport too, and is_own() would read an ordinary, foreign teleport
+	# as our own unpreventable Step.
+	#
+	# LATENT, NOT LIVE (see the fixture helper's own header) - built by hand for exactly that reason.
+	apply_a_movement_type_buff_carrying_our_tag()
+
+	var default_type := Teleport.movement_type(unit)
+	assert_true(default_type.voluntary, 'CONTROL: the default shape is still voluntary.')
+	assert_false(Teleport.is_own(default_type),
+		'THE FINDING: is_own reads it as NOT ours, even though the buff\'s own other_tags smuggled the'
+		+ ' tag in - a voluntary teleport is never ours, whatever tag arrives on the merge.')
 
 func test_is_own_is_false_for_every_movement_type_we_did_not_tag():
 	# The whole point of the tag is telling OUR unpreventable Step from a HOSTILE shove, and both are
