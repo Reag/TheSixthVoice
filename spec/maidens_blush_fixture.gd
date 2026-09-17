@@ -84,11 +84,13 @@ static func create_game(test:GutTest, map_size:Vector2i = FitzgeraldFixture.DEFA
 ## A game whose responder can answer a SEQUENCE of yes/no prompts, and hand back the one it installed.
 ##
 ## WHY THE STOCK RESPONDER IS NOT ENOUGH FOR THIS FRAME. SpecFactory.ChoiceBusResponder answers every
-## yes/no with the same `chosen_yesnos` (spec_factory.gd:507-517), and pressing Step of Mist and
-## Thunder opens TWO in one awaited call: Step's own confirm, and then Uncertainty Field's offer to
-## fade instead. With one answer for both, `true` makes the field eat every teleport - measured, and it
-## made ten of this file's tests fail at once with the Blush sitting still - while `false` never gets
-## past the confirm. testkit/mod_choice_responder.gd exists for exactly this and adds `yesno_queue`.
+## yes/no with the same `chosen_yesnos` (spec_factory.gd:507-517), and Abjuration of Metal opens TWO in
+## one awaited call: its own confirm, then Uncertainty Field's offer to fade instead. With one answer
+## for both, `true` makes the field eat every teleport, and `false` never gets past the confirm.
+## STEP OF MIST AND THUNDER USED TO OPEN THE SAME TWO PROMPTS, and one shared `true` was measured to
+## make ten of this file's tests fail at once with the Blush sitting still - but SINCE REACH DESIGN
+## RULING C (2026-09-17) the field is permanently exempt from Step, so only Abjuration needs the queue
+## for this reason now. testkit/mod_choice_responder.gd exists for exactly this and adds `yesno_queue`.
 ##
 ## add_responder = false is what stops TWO responders answering the same request; the Thy Hubris
 ## DomainWatcher spec (test_my_domain_trigger.gd:96-100) is the precedent for the whole shape.

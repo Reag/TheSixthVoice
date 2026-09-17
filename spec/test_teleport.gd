@@ -540,8 +540,10 @@ func test_move_lands_by_tile_and_returns_a_completed_core():
 	assert_eq(unit.tile(), DESTINATION, 'And the mech is there.')
 
 func test_move_returns_an_aborted_core_when_a_pre_listener_vetoes():
-	# What Step of Mist and Thunder reads to know Uncertainty Field took the teleport, and therefore
-	# that no adjacent character saves (ruling 4).
+	# NOT THE UNCERTAINTY FIELD ANY MORE (reach design ruling C, 2026-09-17): the field can no longer
+	# take a Step. What this still pins is the GENERIC seam Step's own guard depends on - `move` hands
+	# back an aborted core whenever any PRE listener vetoes it, arm_listener's hand-built one included -
+	# and that is why nobody arrives, so nobody saves.
 	arm_listener()
 	var core:EventCore = await Teleport.move(sourced_activation(), unit, DESTINATION)
 	assert_not_null(core, 'Still handed back.')

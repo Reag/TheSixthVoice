@@ -15,10 +15,11 @@
 #
 # THE ORDER OF THE ACTION'S BODY IS THE RULING, and these tests are grouped to follow it: a declined
 # confirm costs nothing, a cancelled pick costs nothing, and everything past the spend costs the quick
-# action and the core point whatever happens next - a fade, a fizzle, a boxed-in snake eyes. "Spends
-# nothing" is therefore asserted THREE WAYS everywhere it appears (core point, quick action, Efficient
-# stamp), because a test that checks only the core point passes against an implementation that stamped
-# the gear anyway.
+# action and the core point whatever happens next - a fizzle, or a boxed-in snake eyes. A FADE IS NO
+# LONGER ONE OF THOSE OUTCOMES (reach design ruling C, 2026-09-17): the Uncertainty Field is never
+# offered on a Step. "Spends nothing" is therefore asserted THREE WAYS everywhere it appears (core
+# point, quick action, Efficient stamp), because a test that checks only the core point passes against
+# an implementation that stamped the gear anyway.
 extends GutTest
 
 const MaidensBlushFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/maidens_blush_fixture.gd')

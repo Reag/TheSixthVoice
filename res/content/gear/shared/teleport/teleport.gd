@@ -308,10 +308,13 @@ static func pick_tile(context:Context, activation:EventCore, tiles:Array[Vector2
 ## same reason: nothing reads it.
 ##
 ## IT PASSES THE CALLING ACTION'S SpecificAction AS THE EVENT'S `object`, derived from the activation
-## rather than taken as an argument, because the signature is frozen. That is what lets
-## action_uncertainty_field.replaced_name log the veto against "Step of Mist and Thunder" by name
-## instead of falling back to the glossary's generic word for a teleport - and it is why forcer()'s
-## docstring above no longer says our own teleports carry no source.
+## rather than taken as an argument, because the signature is frozen. LOGGING THE VETO BY NAME IS DEAD
+## HERE, since reach design ruling C (2026-09-17) means Uncertainty Field can no longer take a Step to
+## veto, so action_uncertainty_field.replaced_name never again reads this `object` for one. What it
+## still buys is forcer() safety, not naming: a Step falls through to triggers_on_event's forcer check
+## now, and this `object` is what lets Teleport.forcer(context) return the mech ITSELF - so
+## UnitRelation.are_enemies(unit, unit) is false and the exemption is safe rather than accidental. See
+## forcer()'s docstring above and action_uncertainty_field.triggers_on_event.
 static func move(activation:EventCore, unit:Unit, tile:Vector2i, own_involuntary:bool = true) -> EventCore:
 	if not Unit.is_valid(unit): return null
 	if not Tile.is_valid(tile, unit.map): return null

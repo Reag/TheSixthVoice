@@ -16,7 +16,7 @@
 # ReactionBus.does_reaction_trigger, the second through PromptWatcher.
 #
 # EVERY NEGATIVE CASE CARRIES A POSITIVE CONTROL in the same test. "No prompt appeared" is also what a
-# deleted trait reports, and this file has five negatives; see the Myconid frame close's finding 3.
+# deleted trait reports, and this file has eight negatives; see the Myconid frame close's finding 3.
 #
 #   godot --resolution 800x600 --position -2400,-2400 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_uncertainty_field.gd
 extends GutTest
@@ -307,8 +307,11 @@ func test_accepting_skips_the_pathfinders_deferred_spend():
 	# variant-action spend, e.g. a Lunge), and event_unit_move calls it only AFTER the PRE and the
 	# abort check (:76-78). So whatever a teleport was going to spend through its pathfinder is never
 	# spent when the field takes it. NOTE WHAT THIS DOES NOT COVER: an action's own spend_actions()
-	# runs before it queues the move, so a vetoed core power stays spent - which is exactly ruling 4,
-	# and SP2's Step spec is where that is asserted.
+	# runs before it queues the move, so a vetoed reaction still stays spent regardless -
+	# test_abjuration_of_metal.gd's test_a_vetoed_teleport_forfeits_the_skirmish is where that is
+	# asserted today. IT USED TO BE SP2's Step spec asserting the same for the frame's core power
+	# (ruling 4), but since Step can no longer be vetoed at all (reach design ruling C, 2026-09-17)
+	# that spec now asserts the opposite.
 	var spend := func(_core:EventCore) -> void: spend_calls += 1
 
 	responder.chosen_yesnos = false
