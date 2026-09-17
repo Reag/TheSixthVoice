@@ -321,11 +321,27 @@ func spend_the_gyres_use(activation:EventCore, _using:SpecificAction, _chosen:Sp
 ## "auto-choose targets without player input") describes what we no longer want for the first read
 ## and still want for the two after it.
 ##
+## A BLIND SPOT THIS MOVES BACK ONTO THE CRITICAL PATH - NOT A REGRESSION, BUT LIVE AGAIN, AND A
+## PLAYTEST ITEM. Since the earlier suppression, a player Myconid's Gyre took the supplied-target
+## branch above (target_action_util.gd:230-242) and never reached the live picker. It does now, at
+## :200: choice_bus.choose_compcon_plan -> tilepicker_compcon.gd:439 -> UnitTargeting.
+## get_tiles_targetable, which applies filters triggers_on_event above never asks - elevation
+## (unit_targeting.gd:151-160), inaccessible dynamic zones (:56), and the requires_line_of_sight_
+## baseline the .tres turns off (the trigger's own range check is a plain distance comparison, not a
+## tile query). If the mover's tile falls outside what the picker considers targetable, it opens with
+## nothing to click, and the only thing left to do is cancel. This is not new - the pre-suppression
+## head took the same path - but it is load-bearing again, and the suite structurally cannot see it:
+## SpecFactory's responder answers straight out of the mandatory target (spec_factory.gd:457-458) and
+## never asks UnitTargeting anything. action_psychopomp_strike.tres's own "NO SPEC CAN SEE THIS LINE"
+## paragraph (roughly :85-92) already records this exact gap for requires_line_of_sight_baseline;
+## read it for the fuller account. Flagged for the author as a playtest item, not fixed here.
+##
 ## AND THE ONE THING GIVEN UP WITH IT, recorded rather than quietly dropped: :233-234 of the
 ## supplied-target branch turned the Myconid to face its target, and that line no longer runs. The
 ## interactive picker has a set_facing of its own (ui/choice_controller/compcon/tilepicker_compcon.
-## gd:161), so in real play the facing is likely still set from there. The paragraph below is the
-## author's ruling on this, arrived at after reading the picker's own code rather than left open.
+## gd:161), and the paragraph below shows it still sets the facing in real play, as measured rather
+## than assumed. The ruling below is the author's own - taken on evidence read out of the picker's
+## own code and put to them, not read by them - rather than left open.
 ##
 ## RESOLVED: NO EXPLICIT set_facing IS ADDED HERE, AND HERE IS WHY. tilepicker_compcon.gd:159-161
 ## already sets the Myconid's facing on every hovered tile - `if adjusted_tile !=

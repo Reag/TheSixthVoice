@@ -952,7 +952,7 @@ func test_the_conditional_spend_guards_the_refusal():
 	# the counters the second half reads start from a known 1. It is run with the responder set to
 	# decline every yes/no, which changes NOTHING - and the two prompt assertions below are what say
 	# why, sharply enough to have caught the brief for this task getting it wrong. chosen_yesnos is
-	# read only by the responder's quick_yesno (spec_factory.gd:513); its choose_compcon_plan
+	# read only by the responder's choose_yesno (spec_factory.gd:513); its choose_compcon_plan
 	# (:445-455) never consults it and answers the screen normally unless chosen_plan_queue has been
 	# primed. So a blanket-declining responder does NOT cancel a targeting screen - cancelling one
 	# takes CompconPlan.create_aborted() through that queue, which is what Task 1's test does.
@@ -1142,6 +1142,15 @@ func test_cancelling_the_targeting_screen_spends_nothing_and_saves_the_gyre():
 	assert_eq(strike_uses_this_round(), 0, 'The strike never committed.')
 	assert_eq(gyre_uses_this_round(), 0,
 		'And the deferred spend never ran, so the round s use is UNSPENT - the whole point.')
+
+	# THE MOVE ITSELF STILL HAPPENED - not asserted until now, although the second half's geometry
+	# has always depended on it. The Gyre fires at ENTIRE_MOVEMENT/PRE, which is exactly the shape
+	# that COULD veto the mover: event_unit_move.gd:72's abort_without_unit honours core.aborted, and
+	# a PRE reaction sets that with set_aborted(). It cannot happen today, because aborted is a
+	# per-EventCore var (event_core.gd:10) and nothing propagates it from the strike's own core to
+	# the move's - but nothing in this suite would notice if that changed, so it is pinned here.
+	assert_eq(first.tile(), AT_8,
+		'Cancelling the Gyre saves the round s use without vetoing the move that triggered it.')
 
 	# THE POINT OF THE CHANGE: the saved use really is available to a later mover. A SECOND ally is
 	# used rather than the same one because `first` has already stepped from 7 to 8, and one more

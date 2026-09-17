@@ -136,13 +136,15 @@ func is_accuracy_against_prone() -> bool: return false
 ## content/events/event_gear_activate.gd:85 - AN EARLIER CUT OF THIS SURVEY MISSED THE SECOND ONE.
 ## The append below cannot reach it either, and for a structural reason rather than a lucky one:
 ## event_gear_activate.gd:83-86 is the elif guard that decides whether a VariantActionGroup is
-## auto-composed or handed to the player, and it is evaluated BEFORE context.action.activate(context,
-## core) is ever called (:80 for the plain branch, :91 for the composed one) - the very call that
-## eventually reaches this override, several frames further in. So by the time get_attack_plan runs
-## and appends the flag, event_gear_activate.gd:85 has already been read and the branch already
-## taken; there is no order in which the append could arrive in time. (This action carries no
-## VariantActionGroup regardless - see action_uffish_gyre.gd s own survey of that - so the branch is
-## moot in practice, but the ordering argument does not depend on that.)
+## auto-composed or handed to the player. On the COMPOSED branch it is evaluated before
+## context.action.activate(context, core) is ever called (:91) - the very call that eventually
+## reaches this override, several frames further in. On the PLAIN branch it is not evaluated at
+## all: :79's `if variant_actions.is_empty()` short-circuits straight to :80's activate() call, and
+## the elif at :83 is only reached when that check fails. Either way there is no order in which the
+## append could arrive in time: it is too late on the composed branch and never reached at all on
+## the plain one. (This action carries no VariantActionGroup regardless - see action_uffish_gyre.gd
+## s own survey of that - so the branch is moot in practice, but the ordering argument does not
+## depend on that.)
 ## common_action_util.gd:330 (confirm_use_alt) is reached from confirm_use,
 ## confirm_use_against_disambiguated_target and ActionReactionMovement, never from ActionAttack,
 ## which has no confirm_use call at all.
