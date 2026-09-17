@@ -16,6 +16,12 @@
 ## every teleport the field offers on, the player either just picked the space or an enemy is forcing
 ## it. There is no earlier universal hook - nothing in the engine runs before the destination pick.
 ##
+## SINCE 2026-09-17 THE FADE HAS A SECOND DOOR (reach design ruling B). Abjuration of Metal calls
+## fade() directly when its own cone came back empty or the player cancelled the pick - a teleport the
+## mech was entitled to and could not take. The card's "if the Maiden's Blush would teleport, it
+## INSTEAD may become Invisible" is what licenses it, both doors share this trait's one round, and the
+## rules live here rather than in the caller.
+##
 ## WHICH TELEPORTS (ruling 3, the author's call, SUPERSEDING the spike's proposed "own voluntary
 ## only"):
 ##   - the mech's own VOLUNTARY teleports - Abjuration, a Fold Knife crit, a Prospector tunnel, any
@@ -77,24 +83,69 @@ func activate(context:Context, activation:EventCore) -> void:
 	if not Unit.is_valid(unit): return
 	var triggering:EventCore = context.event
 	if not is_instance_valid(triggering): return
+	await fade(activation, unit, context.gear, triggering)
+
+## THE FADE ITSELF, AND THE ONLY IMPLEMENTATION OF IT (reach design ruling B, 2026-09-17). Confirm,
+## spend the round, veto the move when there is one, apply Invisible, log. Returns true when the mech
+## faded.
+##
+## `triggering` IS OPTIONAL BECAUSE THE SECOND CALLER HAS NO MOVE TO VETO. Abjuration of Metal offers
+## the fade as a CONSOLATION when its cone came back empty or the player cancelled the pick - there is
+## no event_unit_move in either case and nothing to abort. Everything else about the fade is the same,
+## which is the whole reason this is one function: the rules belong to the trait whose card they are
+## on, not to the trait that happens to be asking. The rejected alternative was to have Abjuration
+## raise a synthetic event for this reaction to intercept - it preserves the trigger shape and the
+## engine's accounting for free, but needs a new event type or a degenerate zero-step move, leaves the
+## veto path with nothing to abort, and lies to the engine about a move having happened.
+##
+## `consolation` NAMES THE EXIT for that caller (&'no_space' or &'cancelled') and is EMPTY for the
+## trait's own interception. It selects the prompt and the log row and nothing else: ruling 154
+## settled that the interception prompt does not name its destination, because the player had just
+## picked one, and the consolation fires precisely when there is no destination to name. Two strings,
+## one decision each.
+##
+## THE ROUND IS THE ENGINE'S, AND IT IS ASKED THE ENGINE'S WAY IN BOTH DIRECTIONS. This is the one
+## thing here that could ship looking correct and be wrong. On the trait's own path the engine already
+## refuses a second offer inside ReactionBus.does_reaction_trigger (via UnitAction.can_activate_gear),
+## so re-asking below changes nothing. A DIRECT call from another action gets no such gate, and a
+## plain spend_actions(activation) would bill ABJURATION's gear and usage group rather than this one -
+## so the round would be free every second time, and a player could fade twice. Hence both lines name
+## THIS trait's own SpecificAction: can_activate_gear reads the per-round hard limit
+## (unit_action.gd:171, get_gear_unavailable_reason's PER_ROUND arm), and spend_actions_gain_heat
+## increments uses_this_round under this action's own usage_group (&'uncertainty_field',
+## gear_core.gd:170-177). spec/test_uncertainty_field.gd's
+## test_a_consolation_fade_spends_the_round_the_interception_would_have_used and
+## test_a_spent_round_refuses_the_consolation_too press both directions, and are the mutations that
+## prove it.
+##
+## THE FLAGS COME OFF THE ACTIVATION, which keeps the trait's own path byte for byte what it was:
+## Action.spend_actions(activation) is exactly UnitAction.spend_actions_gain_heat(
+## SpecificAction.from_context(activation.context), activation, activation.context.flags), and on that
+## path the context's specific IS this one.
+func fade(activation:EventCore, unit:Unit, gear:GearCore, triggering:EventCore, consolation:StringName = &'') -> bool:
+	if not Unit.is_valid(unit): return false
+	if not GearCore.is_valid(gear): return false
+	var specific := SpecificAction.create(unit, gear, self)
+	if not UnitAction.can_activate_gear(specific): return false
 
 	# THE OFFER. There is no engine-level reaction prompt - ReactionBus queues the activation and asks
 	# nobody (reaction_bus.gd:52-58) - so this call IS the offer, exactly as it is for Flash Anchor
-	# (action_flash_lock.gd:56). It opens one quick_yesno_for and nothing else.
+	# (action_flash_lock.gd:56).
 	#
-	# DECLINING RETURNS BEFORE spend_actions, which is what leaves the round unspent and the teleport
+	# DECLINING RETURNS BEFORE THE SPEND, which is what leaves the round unspent and the teleport
 	# untouched, and is what lets a player hold the round's fade for a teleport they mind losing.
-	var confirmed:bool = await CommonActionUtil.confirm_use(context)
-	if not confirmed: return
-	if activation.abort_without_unit(unit): return
+	var confirmed:bool = await ask_to_fade(specific, gear, consolation, activation)
+	if not confirmed: return false
+	if activation.abort_without_unit(unit): return false
 
 	# A MECH THAT CANNOT BECOME INVISIBLE STILL PAYS FOR THE FADE AND STILL GETS NOTHING, AND THAT IS
 	# THE AUTHOR'S RULING (2026-09-17) RATHER THAN AN OVERSIGHT. The order below is spend, veto, apply,
 	# and UnitCondition.apply_status returns before it applies anything when the unit is immune to the
 	# status (unit_condition.gd:93-99) - so on an immune Blush the round is spent, the teleport is
-	# cancelled, and no Invisible lands. The engine is loud about it and self-contradictory: apply_status
-	# floats its own "immune to Invisible" popcorn and logs it, and the lines below then log that the
-	# mech faded. Accepting is strictly worse than declining, and the player is not warned.
+	# cancelled, and no Invisible lands. The engine is loud about it and self-contradictory:
+	# apply_status floats its own "immune to Invisible" popcorn and logs it, and the lines below then
+	# log that the mech faded. Accepting is strictly worse than declining, and the player is not
+	# warned.
 	#
 	# The rule the trait implements is that the fade is offered on a qualifying teleport and costs the
 	# round once accepted - with no condition on whether the mech can hold the status. So there is no
@@ -110,24 +161,63 @@ func activate(context:Context, activation:EventCore) -> void:
 	# in LOS, applies_to_enemies). The SSC Athena-class NHP's simulacrum is a third.
 	# spec/test_uncertainty_field.gd's test_an_immune_blush_still_pays_for_a_fade_that_grants_nothing
 	# pins the behaviour, so the guard cannot be added back in silence.
-	spend_actions(activation) # the per-round counter; consumes_rxn = false, so no reaction point
+	UnitAction.spend_actions_gain_heat(specific, activation, activation.context.flags)
 
-	Teleport.veto(triggering)
+	# NOTHING TO ABORT ON THE CONSOLATION PATH, and that is the whole of what `triggers == null` means
+	# here. Teleport.veto takes the TRIGGERING core, never the activation: vetoing the activation would
+	# abort our own reaction and leave the teleport untouched.
+	if triggering != null: Teleport.veto(triggering)
+
 	UnitCondition.apply_status(
 		activation, unit,
 		Lancer.STATUS.INVISIBLE, Lancer.UNTIL.START_OF_TURN,
-		context.gear.persistent_id
+		gear.persistent_id
 	)
 
 	# THE LITERAL KEY, not Translate.action(): battle_log.log_unit takes a translation KEY and calls
 	# tr() on it itself (battle_log_bus.gd:24-33), which is how buff_symbiosis_exclusion.gd:118 passes
 	# one. Handing it translated text only works because a missed lookup returns its input unchanged.
-	# The popcorn below is different: effect_bus.play_text takes TEXT, so Translate.action is right there.
-	battle_log.log_unit(
-		&'gear.mt_uncertainty_field.action_uncertainty_field.replaced.log', unit,
-		{source = replaced_name(triggering)}
-	)
-	effect_bus.play_text(Translate.action(context.gear.kit, self, 'replaced.pop'), unit.tile())
+	# The popcorn below is different: effect_bus.play_text takes TEXT, so Translate.action is right
+	# there - and it is the SAME popcorn on both paths, because a fade is a fade whichever door it came
+	# through.
+	if consolation.is_empty():
+		battle_log.log_unit(
+			&'gear.mt_uncertainty_field.action_uncertainty_field.replaced.log', unit,
+			{source = replaced_name(triggering)}
+		)
+	else:
+		battle_log.log_unit(
+			StringName('gear.mt_uncertainty_field.action_uncertainty_field.consolation.%s.log' % consolation),
+			unit
+		)
+	effect_bus.play_text(Translate.action(gear.kit, self, 'replaced.pop'), unit.tile())
+	return true
+
+## The offer, and there are two of them (reach design ruling B, 2026-09-17).
+##
+## THE INTERCEPTION KEEPS CommonActionUtil.confirm_use(activation.context) BYTE FOR BYTE, because on
+## that path the activation's context IS this trait's own - so the AI branch, the telegraph timing and
+## the context flags all still reach the engine exactly as they did before the extraction.
+##
+## THE CONSOLATION CANNOT USE IT, and that is ruling B's own condition rather than a convenience.
+## confirm_use titles its prompt with battle.confirm.use and the action name and carries no
+## description at all (common_action_util.gd:362-371), which on an empty cone reads as "use the
+## Uncertainty Field?" about a teleport the player just watched fail to exist. Ruling 154's premise -
+## that the player has just chosen a destination - is exactly what is false here, so this branch opens
+## its own prompt with its own row saying which dead end it was.
+##
+## A NON-PLAYER MECH IS ANSWERED THE WAY confirm_use ANSWERS IT, through ai_confirms_use, so an AI
+## Blush behaves identically on both paths (it takes the fade). Diverging here would make the
+## consolation the one offer an AI never accepts, for no reason on the card.
+func ask_to_fade(specific:SpecificAction, gear:GearCore, consolation:StringName, activation:EventCore) -> bool:
+	if consolation.is_empty(): return await CommonActionUtil.confirm_use(activation.context)
+	if not specific.unit.is_player_controlled(): return ai_confirms_use(specific.to_context())
+	return await choice_bus.quick_yesno_for({
+		tile = specific.unit.tile(),
+		title = name(specific),
+		description = Translate.action(gear.kit, self, 'consolation.%s.confirm' % consolation),
+		whois = specific.unit,
+	})
 
 ## What the fade replaced, for the log line: the name of the action that forced the teleport when one
 ## is readable, and the glossary's own word for a teleport when it is not.
