@@ -186,7 +186,7 @@ func strike_specific() -> SpecificAction: return SpecificAction.create(myconid, 
 ## CANCELLED TARGETING SCREEN, which returns at action_attack.gd:144, earlier still. (The declined
 ## friendly-fire CONFIRM used to be a third such path. SP2.5 Task 2 suppressed that confirm and it
 ## stays suppressed; the two-stage flag gave the screen back without giving the confirm back - see
-## test_the_conditional_spend_guards_the_refusal_and_the_cancel and
+## test_the_conditional_spend_guards_the_refusal and
 ## test_cancelling_the_targeting_screen_spends_nothing_and_saves_the_gyre.)
 ## Where a test needs to know that the trigger itself fired, it says so with a positive control that
 ## runs the same move from the same geometry.
@@ -850,7 +850,7 @@ func test_a_stunned_myconid_cannot_strike():
 	# action_uffish_gyre hands its spend to choose_and_use as a deferred callable, which the engine
 	# runs only when the strike commits - and a strike refused in check_specific_context never
 	# reaches execute(), let alone action_attack.gd:262. So a Myconid that could not strike has not
-	# used its reaction. Pinned below, and by test_the_conditional_spend_guards_the_refusal_and_the_cancel
+	# used its reaction. Pinned below, and by test_the_conditional_spend_guards_the_refusal
 	# and test_a_jammed_myconid_cannot_strike.
 	var ally := create_ally(AT_7)
 	SpecFactory.apply(myconid, Lancer.STATUS.STUNNED)
@@ -919,17 +919,23 @@ func test_a_jammed_myconid_cannot_strike():
 	assert_true(UnitCondition.has_buff(ally, ARMOR_CHIP), 'CONTROL: unjammed, the strike lands.')
 	assert_eq(gyre_uses_this_round(), 1, 'CONTROL: and the Gyre spends its use when it does.')
 
-func test_the_conditional_spend_guards_the_refusal_and_the_cancel():
-	# THIS TEST HAS BEEN RENAMED TWICE, AND EACH NAME WAS TRUE WHEN IT WAS WRITTEN. It began as
-	# test_a_declined_friendly_fire_confirm_costs_nothing; SP2.5 Task 2 suppressed both of the
-	# strike's prompts and it became test_the_conditional_spend_now_only_guards_the_refusal_paths;
-	# the two-stage flag has now given the targeting screen back, so the callable has TWO jobs again
-	# and the name says so.
+func test_the_conditional_spend_guards_the_refusal():
+	# THIS TEST HAS BEEN RENAMED A THIRD TIME, AND THE FIRST TWO NAMES WERE TRUE WHEN THEY WERE
+	# WRITTEN - THE THIRD WAS NOT. It began as test_a_declined_friendly_fire_confirm_costs_nothing;
+	# SP2.5 Task 2 suppressed both of the strike's prompts and it became
+	# test_the_conditional_spend_now_only_guards_the_refusal_paths; when the two-stage flag gave the
+	# targeting screen back this task renamed it again, to
+	# test_the_conditional_spend_guards_the_refusal_and_the_cancel, reasoning that the callable had
+	# TWO jobs again and the name should say so. IT DID NOT: this test never exercised a cancel, and
+	# was never meant to - that path is owned outright by
+	# test_cancelling_the_targeting_screen_spends_nothing_and_saves_the_gyre, deliberately not
+	# duplicated here (see the bullet below). The name is corrected to cover only what this test
+	# actually asserts.
 	#
 	# THE CONDITIONAL SPEND ITSELF STAYS, and this is the test that says why. action_uffish_gyre.gd
 	# hands its spend to choose_and_use as a deferred callable the engine runs only when the strike
-	# commits (action_attack.gd:262). What it uniquely guards is every path that returns BEFORE that
-	# line, and there are two live ones:
+	# commits (action_attack.gd:262). What it guards has two live paths that return BEFORE that line,
+	# and this test owns one of them:
 	#  - THE REFUSALS, which this test owns. A Stunned or Jammed strike never reaches action_attack
 	#    at all: event_gear_activate.check_specific_context (content/events/event_gear_activate.gd:
 	#    46-51) asks UnitAction.get_gear_unavailable_reason and returns false before execute() is
@@ -1141,7 +1147,7 @@ func test_cancelling_the_targeting_screen_spends_nothing_and_saves_the_gyre():
 	# used rather than the same one because `first` has already stepped from 7 to 8, and one more
 	# step would put it at 9 - outside threat. The trigger would then fail for RANGE and this half
 	# would pass for the wrong reason. Same arithmetic as
-	# test_the_conditional_spend_guards_the_refusal_and_the_cancel.
+	# test_the_conditional_spend_guards_the_refusal.
 	queue_dice(D20_HITS)
 	await moves_east(second)
 
@@ -1183,7 +1189,7 @@ func test_cancelling_the_targeting_screen_spends_nothing_and_saves_the_gyre():
 ## choose_and_use unconditionally injects Action.FLAG.AS_FREEBIE alongside TARGETS_ARE_MANDATORY
 ## (common_action_util.gd:693-696) and the Gyre s additional_action_flags carry CAN_FOLLOWUP beside
 ## it; SpecFactory.use_solo passes its `flags` argument straight through with no additions of its
-## own (spec_factory.gd:248-265, `flags = flags`), so the control below carries
+## own (spec_factory.gd:267-278, `flags = flags` at :277), so the control below carries
 ## TARGETS_ARE_MANDATORY alone. That does not touch the conclusion, because only two flags decide
 ## whether either prompt is raised - CONTROLLED_BY_OPPONENT and SKIP_PLAYER_DECISIONS
 ## (target_action_util.gd:432-433 for the yes/no, :150-162 for the screen) - and the control matches
@@ -1213,12 +1219,12 @@ func test_the_flag_is_absent_for_the_screen_and_present_for_the_confirm():
 	# the ally stepped from 8 to 9 on the move above - so it really can be fired. It carries no
 	# two-stage override, and it warns.
 	var rifle := arm(myconid, RIFLE)
+	assert_true(GearCore.is_valid(rifle), 'fixture: the control weapon is mounted.')
 	await MyconidFixture.open_turn(game, myconid)
 	queue_dice(D20_HITS)
 	await SpecFactory.use_solo(game, myconid, RIFLE, ally, [Action.FLAG.TARGETS_ARE_MANDATORY])
 
 	var yesnos := watcher.kinds(PromptWatcher.KIND.yesno)
-	assert_true(GearCore.is_valid(rifle), 'fixture: the control weapon is mounted.')
 	assert_eq(yesnos.size(), 1,
 		'CONTROL: an ordinary weapon at the same ally DOES warn, so the zero above is evidence: %s' % [watcher.prompts])
 	if yesnos.is_empty(): return

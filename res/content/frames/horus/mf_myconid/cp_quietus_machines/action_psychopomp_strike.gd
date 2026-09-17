@@ -131,8 +131,18 @@ func is_accuracy_against_prone() -> bool: return false
 ## THE MUTATION DOES NOT LEAK, checked rather than assumed. context.flags is the child event s own
 ## array, built fresh by choose_and_use (common_action_util.gd:693-710); the follow-up attack builds
 ## a fresh followup_flags of its own and does not inherit it (action_attack_weapon.gd:69-74); and of
-## every SKIP_PLAYER_DECISIONS reader in the tree, the only one besides the three above that reads a
-## live context.flags is ms_lightning_generator/action_lightning_generator.gd:20, on its own action.
+## every SKIP_PLAYER_DECISIONS reader in the tree, the two besides the three above that read a live
+## context.flags are ms_lightning_generator/action_lightning_generator.gd:20, on its own action, and
+## content/events/event_gear_activate.gd:85 - AN EARLIER CUT OF THIS SURVEY MISSED THE SECOND ONE.
+## The append below cannot reach it either, and for a structural reason rather than a lucky one:
+## event_gear_activate.gd:83-86 is the elif guard that decides whether a VariantActionGroup is
+## auto-composed or handed to the player, and it is evaluated BEFORE context.action.activate(context,
+## core) is ever called (:80 for the plain branch, :91 for the composed one) - the very call that
+## eventually reaches this override, several frames further in. So by the time get_attack_plan runs
+## and appends the flag, event_gear_activate.gd:85 has already been read and the branch already
+## taken; there is no order in which the append could arrive in time. (This action carries no
+## VariantActionGroup regardless - see action_uffish_gyre.gd s own survey of that - so the branch is
+## moot in practice, but the ordering argument does not depend on that.)
 ## common_action_util.gd:330 (confirm_use_alt) is reached from confirm_use,
 ## confirm_use_against_disambiguated_target and ActionReactionMovement, never from ActionAttack,
 ## which has no confirm_use call at all.
@@ -141,8 +151,27 @@ func is_accuracy_against_prone() -> bool: return false
 ## (common_action_util.gd:703), so on an NPC Myconid it is already present and the has() check is
 ## what keeps this a no-op there instead of a duplicate entry.
 ##
-## AN ABORTED PLAN RETURNS UNTOUCHED, because action_attack.gd:236 is about to abort the whole
-## activation on it and appending to a context nothing will read is noise.
+## A NULL PLAN COMES BACK UNTOUCHED, and does so because of the caller down the line, not because
+## nothing happens here. activate() calls this at action_attack.gd:235 and then aborts the whole
+## activation on it at :236 (CompconPlan.is_valid_with_targets fails a null plan exactly as it fails
+## an aborted one - compcon_plan.gd:34-36) - so returning early here rather than appending to a plan
+## nothing will read is skipping dead work, not skipping a check.
+##
+## THE "or plan.aborted" HALF IS DEAD THROUGH THIS SUPER, VERIFIED RATHER THAN ASSUMED, AND KEPT
+## ANYWAY. super() is action_attack.gd's own get_attack_plan (:130-153), and on the cancel path it
+## can only ever hand this override null, never a plan with .aborted true. Follow it:
+## target_action_util.gd:201 does build a real CompconPlan.create_aborted() when the picker returns
+## null or an aborted plan, but that object never leaves action_attack.gd's get_attack_plan -
+## action_attack.gd:144 immediately tests it with abort_without_targeting_plan, which is
+## abort_when(not CompconPlan.is_valid_with_targets(plan, context)) (event_core.gd:39-40), and
+## is_valid_with_targets short-circuits false the moment plan.aborted is true (compcon_plan.gd:34-36,
+## reached via :42-46). abort_when(true) fires and :144 takes the bare `return` - which, on a
+## function typed to return CompconPlan, hands back null, not the aborted plan object. The other
+## early return in the super, at :150, is a bare return too. So plan.aborted can only be true here if
+## some FUTURE super - a different override further up this chain, or a change to this one - starts
+## handing back an aborted plan directly instead of null. Kept for exactly that reason,
+## belt-and-braces the same way the self clause on can_target_unit above is: it costs one comparison
+## against a class of super that does not exist today.
 func get_attack_plan(activation:EventCore, specific:SpecificAction) -> CompconPlan:
 	var plan:CompconPlan = await super(activation, specific)
 	if plan == null or plan.aborted: return plan

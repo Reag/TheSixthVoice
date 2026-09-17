@@ -236,7 +236,7 @@ func spend_the_gyres_use(activation:EventCore, _using:SpecificAction, _chosen:Sp
 ##     what the popcorn is FOR: this reaction fires on somebody else's turn, and a label arriving
 ##     after the roll would be announcing an attack the player had already watched.
 ## Pinned by test_the_gyre_announces_itself_before_the_roll (an ATTACK/PRE probe plus the ordered
-## battle log) and by test_the_conditional_spend_guards_the_refusal_and_the_cancel,
+## battle log) and by test_the_conditional_spend_guards_the_refusal,
 ## test_cancelling_the_targeting_screen_spends_nothing_and_saves_the_gyre,
 ## test_a_stunned_myconid_cannot_strike and test_a_jammed_myconid_cannot_strike.
 ##
