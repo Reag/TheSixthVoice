@@ -104,3 +104,79 @@ func can_target_unit(potential_target:Unit, specific:SpecificAction) -> bool:
 ## state the engine still folds into the roll - as +1 accuracy for the ATTACKER
 ## (attack_roll.gd:176-178), which no melee or cover rule cancels. See the header.
 func is_accuracy_against_prone() -> bool: return false
+
+## THE TWO-STAGE FLAG, and the reason this override exists at all.
+##
+## Action.FLAG.SKIP_PLAYER_DECISIONS gates two different things that the Gyre wants different
+## answers to, and it gates them at two different MOMENTS of one activation:
+##
+##   action_attack.gd:235   get_attack_plan(...)    -> target_action_util.gd:150 -> :162, the screen
+##   action_attack.gd:247   confirm_friendly_fire   -> target_action_util.gd:433
+##   action_attack.gd:249   confirm_aoe_no_targets  -> target_action_util.gd:440
+##   action_attack.gd:262   spend_actions           -> committed
+##
+## The Gyre wants the SCREEN (it is the player s only chance to decline a reaction that costs the
+## round s use) and does not want the WARNING (it asks whether to attack an ally, on somebody else s
+## turn, about an attack whose entire effect is to give that ally armor - SP2.5 Task 2, and still
+## the ruling). So the flag is absent for the first read and present for the other two: the reaction
+## stops passing it, and this override appends it the moment the screen has returned.
+##
+## activation.context IS the Context activate() was handed, on BOTH branches of
+## event_gear_activate.gd - the plain branch passes core.context as the parameter (:80) and the
+## composed branch assigns core.context = composed_context before passing it (:88-91) - and
+## get_attack_plan reads it back as `var context := activation.context` (action_attack.gd:132). So
+## appending here is appending to the same array action_attack.gd:247 is about to read.
+## test_the_flag_is_absent_for_the_screen_and_present_for_the_confirm pins that.
+##
+## THE MUTATION DOES NOT LEAK, checked rather than assumed. context.flags is the child event s own
+## array, built fresh by choose_and_use (common_action_util.gd:693-710); the follow-up attack builds
+## a fresh followup_flags of its own and does not inherit it (action_attack_weapon.gd:69-74); and of
+## every SKIP_PLAYER_DECISIONS reader in the tree, the two besides the three above that read a live
+## context.flags are ms_lightning_generator/action_lightning_generator.gd:20, on its own action, and
+## content/events/event_gear_activate.gd:85 - AN EARLIER CUT OF THIS SURVEY MISSED THE SECOND ONE.
+## The append below cannot reach it either, and for a structural reason rather than a lucky one:
+## event_gear_activate.gd:83-86 is the elif guard that decides whether a VariantActionGroup is
+## auto-composed or handed to the player. On the COMPOSED branch it is evaluated before
+## context.action.activate(context, core) is ever called (:91) - the very call that eventually
+## reaches this override, several frames further in. On the PLAIN branch it is not evaluated at
+## all: :79's `if variant_actions.is_empty()` short-circuits straight to :80's activate() call, and
+## the elif at :83 is only reached when that check fails. Either way there is no order in which the
+## append could arrive in time: it is too late on the composed branch and never reached at all on
+## the plain one. (This action carries no VariantActionGroup regardless - see action_uffish_gyre.gd
+## s own survey of that - so the branch is moot in practice, but the ordering argument does not
+## depend on that.)
+## common_action_util.gd:330 (confirm_use_alt) is reached from confirm_use,
+## confirm_use_against_disambiguated_target and ActionReactionMovement, never from ActionAttack,
+## which has no confirm_use call at all.
+##
+## THE GUARD IS NOT DECORATION. choose_and_use appends this flag itself for a non-player actor
+## (common_action_util.gd:703), so on an NPC Myconid it is already present and the has() check is
+## what keeps this a no-op there instead of a duplicate entry.
+##
+## A NULL PLAN COMES BACK UNTOUCHED, and does so because of the caller down the line, not because
+## nothing happens here. activate() calls this at action_attack.gd:235 and then aborts the whole
+## activation on it at :236 (CompconPlan.is_valid_with_targets fails a null plan exactly as it fails
+## an aborted one - compcon_plan.gd:34-36) - so returning early here rather than appending to a plan
+## nothing will read is skipping dead work, not skipping a check.
+##
+## THE "or plan.aborted" HALF IS DEAD THROUGH THIS SUPER, VERIFIED RATHER THAN ASSUMED, AND KEPT
+## ANYWAY. super() is action_attack.gd's own get_attack_plan (:130-153), and on the cancel path it
+## can only ever hand this override null, never a plan with .aborted true. Follow it:
+## target_action_util.gd:201 does build a real CompconPlan.create_aborted() when the picker returns
+## null or an aborted plan, but that object never leaves action_attack.gd's get_attack_plan -
+## action_attack.gd:144 immediately tests it with abort_without_targeting_plan, which is
+## abort_when(not CompconPlan.is_valid_with_targets(plan, context)) (event_core.gd:39-40), and
+## is_valid_with_targets short-circuits false the moment plan.aborted is true (compcon_plan.gd:34-36,
+## reached via :42-46). abort_when(true) fires and :144 takes the bare `return` - which, on a
+## function typed to return CompconPlan, hands back null, not the aborted plan object. The other
+## early return in the super, at :150, is a bare return too. So plan.aborted can only be true here if
+## some FUTURE super - a different override further up this chain, or a change to this one - starts
+## handing back an aborted plan directly instead of null. Kept for exactly that reason,
+## belt-and-braces the same way the self clause on can_target_unit above is: it costs one comparison
+## against a class of super that does not exist today.
+func get_attack_plan(activation:EventCore, specific:SpecificAction) -> CompconPlan:
+	var plan:CompconPlan = await super(activation, specific)
+	if plan == null or plan.aborted: return plan
+	if not activation.context.flags.has(Action.FLAG.SKIP_PLAYER_DECISIONS):
+		activation.context.flags.append(Action.FLAG.SKIP_PLAYER_DECISIONS)
+	return plan

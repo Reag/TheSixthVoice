@@ -182,9 +182,12 @@ func strike_specific() -> SpecificAction: return SpecificAction.create(myconid, 
 ##
 ## IT MEANS "THE REACTION SPENT ITS USE", NOT "THE REACTION TRIGGERED", and the two differ on
 ## purpose: the Gyre's spend is a deferred callable the engine runs only when the STRIKE commits
-## (action_attack.gd:262), so a Stunned or Jammed refusal leaves this where it was. (A DECLINED
-## CONFIRM used to be the third such path; SP2.5 Task 2 suppressed the confirm, so the refusals are
-## the callable's whole remaining job - see test_the_conditional_spend_now_only_guards_the_refusal_paths.)
+## (action_attack.gd:262), so a Stunned or Jammed refusal leaves this where it was - and so does a
+## CANCELLED TARGETING SCREEN, which returns at action_attack.gd:144, earlier still. (The declined
+## friendly-fire CONFIRM used to be a third such path. SP2.5 Task 2 suppressed that confirm and it
+## stays suppressed; the two-stage flag gave the screen back without giving the confirm back - see
+## test_the_conditional_spend_guards_the_refusal and
+## test_cancelling_the_targeting_screen_spends_nothing_and_saves_the_gyre.)
 ## Where a test needs to know that the trigger itself fired, it says so with a positive control that
 ## runs the same move from the same geometry.
 func gyre_uses_this_round() -> int:
@@ -847,7 +850,7 @@ func test_a_stunned_myconid_cannot_strike():
 	# action_uffish_gyre hands its spend to choose_and_use as a deferred callable, which the engine
 	# runs only when the strike commits - and a strike refused in check_specific_context never
 	# reaches execute(), let alone action_attack.gd:262. So a Myconid that could not strike has not
-	# used its reaction. Pinned below, and by test_the_conditional_spend_now_only_guards_the_refusal_paths
+	# used its reaction. Pinned below, and by test_the_conditional_spend_guards_the_refusal
 	# and test_a_jammed_myconid_cannot_strike.
 	var ally := create_ally(AT_7)
 	SpecFactory.apply(myconid, Lancer.STATUS.STUNNED)
@@ -916,77 +919,43 @@ func test_a_jammed_myconid_cannot_strike():
 	assert_true(UnitCondition.has_buff(ally, ARMOR_CHIP), 'CONTROL: unjammed, the strike lands.')
 	assert_eq(gyre_uses_this_round(), 1, 'CONTROL: and the Gyre spends its use when it does.')
 
-func test_the_gyre_asks_the_player_nothing():
-	# THIS TEST USED TO SAY THE OPPOSITE, and the author's playtest is why (SP2.5 Task 2). It was
-	# test_the_player_is_asked_to_confirm_the_friendly_attack, which pinned a friendly-fire yes/no
-	# raised on every single trigger; the author asked for it gone, and it is. The reaction fires on
-	# somebody ELSE's turn, so the prompt interrupted a turn the player was only watching to ask
-	# about an attack whose whole effect is to hand that ally armor. The card names no decision.
-	#
-	# BOTH PROMPTS ARE ASSERTED ABSENT, because the flag that removes one removes the other and a
-	# test that watched only the yes/no would not notice if the picker came back.
-	# action_uffish_gyre.gd passes Action.FLAG.SKIP_PLAYER_DECISIONS, which
-	# TargetActionUtil.confirm_friendly_fire reads at target_action_util.gd:433 (returning before
-	# choice_bus.quick_yesno at :435) and which :150 -> :162 also uses to turn player_decides off,
-	# routing the strike past choice_bus.choose_compcon_plan at :200 into the supplied-target branch
-	# at :230-242.
-	#
-	# THE CONTROL IS THE SAME STRIKE AT THE SAME ALLY, pressed directly with the target made
-	# mandatory - NEAR-IDENTICAL to the Gyre's own call shape, not the same shape with one flag
-	# removed. choose_and_use unconditionally injects Action.FLAG.AS_FREEBIE alongside
-	# TARGETS_ARE_MANDATORY (common_action_util.gd:693-696), and the Gyre's additional_action_flags
-	# carry CAN_FOLLOWUP beside SKIP_PLAYER_DECISIONS; SpecFactory.use passes its `flags` argument
-	# straight through with no additions of its own (spec_factory.gd:248-265, `flags = flags`), so
-	# the control below carries TARGETS_ARE_MANDATORY alone. That does not touch the conclusion: the
-	# two things this test reads a confirm result off of are CONTROLLED_BY_OPPONENT and
-	# SKIP_PLAYER_DECISIONS (target_action_util.gd:432-433 for the yes/no, :150-162 for the picker),
-	# and the control matches the Gyre's real call on both. What makes the two zeroes above evidence
-	# about the FLAG rather than about the fixture is that match, not an identical call shape - an
-	# absent prompt proves nothing unless something in the same test proves the watcher would have
-	# seen it.
-	var ally := create_ally(AT_8)
-	queue_dice(D20_HITS)
-	await moves_east(ally)
-	assert_eq(gyre_uses_this_round(), 1, 'fixture: the Gyre fired, so there WAS something to ask about.')
-	assert_true(UnitCondition.has_buff(ally, ARMOR_CHIP), 'fixture: and its shot landed.')
-
-	assert_eq(watcher.kinds(PromptWatcher.KIND.yesno).size(), 0,
-		'No yes/no was raised at all - no friendly-fire confirm: %s' % [watcher.prompts])
-	assert_eq(watcher.kinds(PromptWatcher.KIND.compcon_plan).size(), 0,
-		'And no targeting plan either: the mover is the only legal target. %s' % [watcher.prompts])
-
-	# POSITIVE CONTROL. The Myconid's own turn is opened for it, which resets the per-round counter -
-	# hence the two assertions above being taken first.
-	await MyconidFixture.open_turn(game, myconid)
-	pike_gear().wake_action(STRIKE_ID)
-	queue_dice(D20_HITS)
-	await SpecFactory.use(game, myconid, PIKE_KIT, STRIKE_ID, ally, [Action.FLAG.TARGETS_ARE_MANDATORY])
-	pike_gear().hibernate_action(STRIKE_ID)
-
-	var yesnos := watcher.kinds(PromptWatcher.KIND.yesno)
-	assert_eq(yesnos.size(), 1,
-		'CONTROL: the same strike at the same ally, without the flag, DOES ask: %s' % [watcher.prompts])
-	if yesnos.is_empty(): return
-	assert_eq(String(yesnos[0].description), 'battle.confirm.friendly_fire',
-		'CONTROL: and what it asks is the friendly-fire confirmation the Gyre no longer raises.')
-	assert_eq(watcher.kinds(PromptWatcher.KIND.compcon_plan).size(), 1,
-		'CONTROL: and it opens the targeting plan the Gyre no longer opens: %s' % [watcher.prompts])
-
-func test_the_conditional_spend_now_only_guards_the_refusal_paths():
-	# THIS TEST USED TO BE test_a_declined_friendly_fire_confirm_costs_nothing, and SP2.5 Task 2 took
-	# its subject away: with the confirm suppressed there is no decline path left to be free.
+func test_the_conditional_spend_guards_the_refusal():
+	# THIS TEST HAS BEEN RENAMED A THIRD TIME, AND THE FIRST TWO NAMES WERE TRUE WHEN THEY WERE
+	# WRITTEN - THE THIRD WAS NOT. It began as test_a_declined_friendly_fire_confirm_costs_nothing;
+	# SP2.5 Task 2 suppressed both of the strike's prompts and it became
+	# test_the_conditional_spend_now_only_guards_the_refusal_paths; when the two-stage flag gave the
+	# targeting screen back this task renamed it again, to
+	# test_the_conditional_spend_guards_the_refusal_and_the_cancel, reasoning that the callable had
+	# TWO jobs again and the name should say so. IT DID NOT: this test never exercised a cancel, and
+	# was never meant to - that path is owned outright by
+	# test_cancelling_the_targeting_screen_spends_nothing_and_saves_the_gyre, deliberately not
+	# duplicated here (see the bullet below). The name is corrected to cover only what this test
+	# actually asserts.
 	#
 	# THE CONDITIONAL SPEND ITSELF STAYS, and this is the test that says why. action_uffish_gyre.gd
 	# hands its spend to choose_and_use as a deferred callable the engine runs only when the strike
-	# commits (action_attack.gd:262). That used to guard three paths - a declined targeting plan, a
-	# declined friendly-fire confirm, and a Stunned or Jammed refusal. The flag removed the first
-	# two; the THIRD is still real, and is now the callable's entire job. Simplifying it back into
-	# an unconditional spend because "the confirm is gone" would charge a Stunned Myconid its
-	# 1/round for a strike that never happened.
+	# commits (action_attack.gd:262). What it guards has two live paths that return BEFORE that line,
+	# and this test owns one of them:
+	#  - THE REFUSALS, which this test owns. A Stunned or Jammed strike never reaches action_attack
+	#    at all: event_gear_activate.check_specific_context (content/events/event_gear_activate.gd:
+	#    46-51) asks UnitAction.get_gear_unavailable_reason and returns false before execute() is
+	#    entered, so nothing gets near :262 and a Myconid that could not strike has not used its
+	#    reaction.
+	#  - THE CANCEL, which test_cancelling_the_targeting_screen_spends_nothing_and_saves_the_gyre
+	#    owns and this test deliberately does not duplicate. That one returns inside get_attack_plan
+	#    (action_attack.gd:144), which is still well before :262.
+	# Simplifying the callable into an unconditional spend would charge a Stunned Myconid its 1/round
+	# for a strike that never happened, and would cost a cancelling player the use they backed out to
+	# save.
 	#
-	# TWO HALVES, and the first is the sharper one for the flag: a responder set to decline
-	# EVERYTHING cannot stop the strike any more, because nothing asks it. Before this task that
-	# same line cost the Gyre its shot.
+	# THE FIRST HALF IS THE PREMISE, NOT A GUARD CASE: the round's first Gyre commits normally, so
+	# the counters the second half reads start from a known 1. It is run with the responder set to
+	# decline every yes/no, which changes NOTHING - and the two prompt assertions below are what say
+	# why, sharply enough to have caught the brief for this task getting it wrong. chosen_yesnos is
+	# read only by the responder's choose_yesno (spec_factory.gd:513); its choose_compcon_plan
+	# (:445-455) never consults it and answers the screen normally unless chosen_plan_queue has been
+	# primed. So a blanket-declining responder does NOT cancel a targeting screen - cancelling one
+	# takes CompconPlan.create_aborted() through that queue, which is what Task 1's test does.
 	var first := create_ally(AT_7)
 	var second := create_ally(AT_7_LOW)
 	SpecFactory.current_responder.chosen_yesnos = false
@@ -994,11 +963,13 @@ func test_the_conditional_spend_now_only_guards_the_refusal_paths():
 	queue_dice(D20_HITS)
 	await moves_east(first)
 	assert_true(UnitCondition.has_buff(first, ARMOR_CHIP),
-		'A responder that declines everything cannot refuse this strike: it landed.')
+		'A responder that declines every yes/no cannot refuse this strike: it landed.')
 	assert_eq(strike_uses_this_round(), 1, 'The strike really activated.')
 	assert_eq(gyre_uses_this_round(), 1, 'And the deferred spend ran, because the strike committed.')
 	assert_eq(watcher.kinds(PromptWatcher.KIND.yesno).size(), 0,
-		'Which is because the declining responder was never asked anything: %s' % [watcher.prompts])
+		'Which is because no yes/no was raised for it to decline - the warning is still suppressed: %s' % [watcher.prompts])
+	assert_eq(watcher.kinds(PromptWatcher.KIND.compcon_plan).size(), 1,
+		'The one prompt it DID get is the targeting screen, and chosen_yesnos is not what answers that: %s' % [watcher.prompts])
 
 	# THE OTHER HALF: the refusal path, which is what the callable still exists for. A second mover
 	# is used rather than the same one because `first` is now at 8 and one more step would put it at
@@ -1144,3 +1115,127 @@ func test_the_gyres_effect_row_keeps_the_lcps_apostrophe():
 	assert_false(effect.contains("doesn't"), 'And does not carry an ASCII one instead.')
 	assert_true(effect.begins_with('Make a melee attack against evasion 8,'),
 		'And the rest of the sentence is the card s.')
+
+## THE REQUIREMENT, and the reason this change exists. The Gyre is 1/round (2 with Symbiosis), and
+## an ally moving early in the turn order used to spend it with no way to say no. Cancelling the
+## targeting screen must cost NOTHING, so the use survives for whoever moves next.
+##
+## HOW A SPEC CANCELS A TARGETING SCREEN. chosen_plan_queue is the responder s one-shot override
+## (spec_factory.gd:454-455): it pops the queued plan and sends it as the response instead of
+## building one. An aborted plan is exactly what the player s cancel produces - choose_compcon_plan
+## returns it, and target_action_util.gd:201 turns `plan == null or plan.aborted` into
+## CompconPlan.create_aborted() either way. Because the queue is one-shot, the SECOND ally s Gyre
+## below is answered normally by the responder s mandatory-target branch (spec_factory.gd:457-458),
+## which is what makes the second half a real positive control rather than a second decline.
+func test_cancelling_the_targeting_screen_spends_nothing_and_saves_the_gyre():
+	assert_the_footprint_is_where_we_think_it_is()
+	var first := create_ally(AT_7)
+	var second := create_ally(AT_7_LOW)
+	SpecFactory.current_responder.chosen_plan_queue.append(CompconPlan.create_aborted())
+
+	queue_dice(D20_HITS)
+	await moves_east(first)
+
+	assert_eq(watcher.kinds(PromptWatcher.KIND.compcon_plan).size(), 1,
+		'The Gyre opened the targeting screen, so there WAS something to cancel: %s' % [watcher.prompts])
+	assert_false(UnitCondition.has_buff(first, ARMOR_CHIP), 'A cancelled Gyre strikes nobody.')
+	assert_eq(strike_uses_this_round(), 0, 'The strike never committed.')
+	assert_eq(gyre_uses_this_round(), 0,
+		'And the deferred spend never ran, so the round s use is UNSPENT - the whole point.')
+
+	# THE MOVE ITSELF STILL HAPPENED - not asserted until now, although the second half's geometry
+	# has always depended on it. The Gyre fires at ENTIRE_MOVEMENT/PRE, which is exactly the shape
+	# that COULD veto the mover: event_unit_move.gd:72's abort_without_unit honours core.aborted, and
+	# a PRE reaction sets that with set_aborted(). It cannot happen today, because aborted is a
+	# per-EventCore var (event_core.gd:10) and nothing propagates it from the strike's own core to
+	# the move's - but nothing in this suite would notice if that changed, so it is pinned here.
+	assert_eq(first.tile(), AT_8,
+		'Cancelling the Gyre saves the round s use without vetoing the move that triggered it.')
+
+	# THE POINT OF THE CHANGE: the saved use really is available to a later mover. A SECOND ally is
+	# used rather than the same one because `first` has already stepped from 7 to 8, and one more
+	# step would put it at 9 - outside threat. The trigger would then fail for RANGE and this half
+	# would pass for the wrong reason. Same arithmetic as
+	# test_the_conditional_spend_guards_the_refusal.
+	queue_dice(D20_HITS)
+	await moves_east(second)
+
+	assert_true(UnitCondition.has_buff(second, ARMOR_CHIP),
+		'The saved Gyre fired on the next ally to move in the same round.')
+	assert_eq(gyre_uses_this_round(), 1, 'And spent its use that time.')
+
+## THE TWO-STAGE FLAG, from the outside: the targeting screen is offered and the friendly-fire
+## warning is not. Both are gated on Action.FLAG.SKIP_PLAYER_DECISIONS, so a change that reinstated
+## the screen by simply dropping the flag would light up BOTH counts below - which is why this test
+## asserts on both rather than only on the one it is named for.
+##
+## THE CONTROL BELOW IS WHAT MAKES THE ZERO EVIDENCE. An absent prompt proves nothing unless
+## something in the same test proves the watcher would have seen it; the control presses the same
+## strike at the same ally with the target made mandatory and no two-stage flag in play, and gets
+## the warning the Gyre does not.
+##
+## THE CONTROL IS A DIFFERENT WEAPON, AND IT HAD TO BECOME ONE - the one measured surprise of this
+## task, recorded here because the obvious control is now impossible and a later reader will try to
+## put it back. The test this replaced used the STRIKE, pressed straight from the gear bar at the
+## same ally, and that control raised the warning because nothing then added the flag. It cannot any
+## more: the override that re-appends SKIP_PLAYER_DECISIONS lives on action_psychopomp_strike, not
+## on the Gyre, so EVERY activation of the strike gets the flag back the moment its targeting
+## returns - a direct press included. The Pike can no longer raise a friendly-fire warning by any
+## route at all. Measured, not reasoned: the brief s version of this test was written with the
+## direct press and went RED on exactly that assertion, 0 yes/nos against an expected 1, with the
+## watcher showing the press had opened its own targeting screen and then asked nothing.
+##
+## THAT IS NOT A DEFECT, because the strike is starts_hibernating and the Gyre is the only thing
+## that ever wakes it (see the activation-gate test at the top of this file), so the suppressed
+## direct press is not a shape the player can reach. It does cost this test its near-identical
+## control, and the vanilla rifle below is what replaces it: same Myconid, same ally, same fixture,
+## same TARGETS_ARE_MANDATORY, no override of its own. What it proves is the only thing a control
+## here has to prove - that a friendly-fire yes/no raised in this fixture WOULD reach the watcher -
+## and that is what makes the zero above evidence about the flag rather than about a blind watcher.
+##
+## THE CONTROL S FLAGS ARE NOT THE GYRE S FLAGS, AND THAT WAS ALREADY TRUE OF THE OLD ONE - carried
+## over from the test this replaced, because it is the first thing a reader will challenge.
+## choose_and_use unconditionally injects Action.FLAG.AS_FREEBIE alongside TARGETS_ARE_MANDATORY
+## (common_action_util.gd:693-696) and the Gyre s additional_action_flags carry CAN_FOLLOWUP beside
+## it; SpecFactory.use_solo passes its `flags` argument straight through with no additions of its
+## own (spec_factory.gd:267-278, `flags = flags` at :277), so the control below carries
+## TARGETS_ARE_MANDATORY alone. That does not touch the conclusion, because only two flags decide
+## whether either prompt is raised - CONTROLLED_BY_OPPONENT and SKIP_PLAYER_DECISIONS
+## (target_action_util.gd:432-433 for the yes/no, :150-162 for the screen) - and the control matches
+## the Gyre s real call on both: neither carries either one at the moment the screen is asked for.
+##
+## THE HISTORY, because this assertion has now been inverted twice and the reason matters both
+## times. It began as test_the_player_is_asked_to_confirm_the_friendly_attack, pinning a
+## friendly-fire yes/no raised on EVERY trigger; the author playtested SP2 s head and asked for it
+## gone, and SP2.5 Task 2 took both prompts away together because one flag gated both. This task
+## takes only the screen back, and for a reason the card does not name: the Gyre is 1/round, and
+## cancelling the screen is the player s only way to save the use for a later ally. The warning
+## stays gone, for exactly the reason SP2.5 gave.
+func test_the_flag_is_absent_for_the_screen_and_present_for_the_confirm():
+	var ally := create_ally(AT_8)
+	queue_dice(D20_HITS)
+	await moves_east(ally)
+
+	assert_eq(gyre_uses_this_round(), 1, 'fixture: the Gyre fired, so there WAS something to ask about.')
+	assert_true(UnitCondition.has_buff(ally, ARMOR_CHIP), 'fixture: and its shot landed.')
+	assert_eq(watcher.kinds(PromptWatcher.KIND.compcon_plan).size(), 1,
+		'The targeting screen was offered - the flag was ABSENT for the first read: %s' % [watcher.prompts])
+	assert_eq(watcher.kinds(PromptWatcher.KIND.yesno).size(), 0,
+		'And no friendly-fire warning - the flag was PRESENT by the second: %s' % [watcher.prompts])
+
+	# CONTROL: an ordinary GMS rifle, fired by the same Myconid at the same ally from the same tiles,
+	# with the target made mandatory exactly as the Gyre makes it. Range 10 against a distance of 9 -
+	# the ally stepped from 8 to 9 on the move above - so it really can be fired. It carries no
+	# two-stage override, and it warns.
+	var rifle := arm(myconid, RIFLE)
+	assert_true(GearCore.is_valid(rifle), 'fixture: the control weapon is mounted.')
+	await MyconidFixture.open_turn(game, myconid)
+	queue_dice(D20_HITS)
+	await SpecFactory.use_solo(game, myconid, RIFLE, ally, [Action.FLAG.TARGETS_ARE_MANDATORY])
+
+	var yesnos := watcher.kinds(PromptWatcher.KIND.yesno)
+	assert_eq(yesnos.size(), 1,
+		'CONTROL: an ordinary weapon at the same ally DOES warn, so the zero above is evidence: %s' % [watcher.prompts])
+	if yesnos.is_empty(): return
+	assert_eq(String(yesnos[0].description), 'battle.confirm.friendly_fire',
+		'CONTROL: and what it asks is the friendly-fire warning the Gyre still suppresses.')
