@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="ActionReactionAttacked" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/cp_caj_overhaul_modules/action_abjuration_of_metal.gd" id="1_abjuration"]
+
+[resource]
+script = ExtResource("1_abjuration")
+triggers_on = Array[StringName]([&"attack"])
+; POST, not PRE - and not ATTACK_DECLARED either. The AttackRoll the archetype's require_miss reads
+; lives in triggering_context.object and only exists at POST (action_reaction_attacked.gd:105-112,
+; which asserts as much).
+trigger_timing = 1
+; A REAL REACTION, so the engine bills a reaction point AND applies its own per-round hard limit of 1
+; (action_reaction.gd:69) - which is the card's "1/round" for free, per turn in truth, the way every
+; reaction in this mod is.
+consumes_rxn = true
+; DEFENDER: the mech being shot at.
+require_unit_to_be = 2
+; ENEMIES: "a HOSTILE character". An ally's miss does nothing.
+require_attacker_relation = 2
+require_miss = true
+; NO LINE OF SIGHT. "Within sensors" is what the card says, and sensors are not eyes (ruling 11). The
+; distance test itself is a subclass clause, because require_attacker_within below it is a fixed int
+; and sensor range is per-unit.
+require_attacker_to_be_in_los = false
+; ANY ATTACK (ruling 11): weapon, tech, and the basic Ram, Grapple and Improvised Attack. The last
+; three need allow_basic, and they pass the archetype's final type test because all three are
+; ActionAttackWeapon subclasses (action_ram.gd:2, action_grapple.gd:2,
+; action_improvised_attack.gd) rather than a class of their own.
+allow_weapon = true
+allow_tech = true
+allow_basic = true
+; We are the target, and a dead mech does not fold.
+require_target_to_survive = true
+; ITS OWN GROUP - three actions on this Kit, three groups (the Subutai SP2 lesson).
+usage_group = &"abjuration_of_metal"
+; It fires on somebody else's turn with no animation of its own, so the popcorn is the only thing
+; that says WHY the mech suddenly moved.
+emit_text_popcorn_on_use = true

@@ -183,3 +183,7 @@ gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.snake_eyes.pop,SNAK
 gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.fizzle.log,"{unit} is boxed in: the fold finds nowhere to land."
 gear.buff_mist_and_thunder_invisible.name,Step of Mist and Thunder
 gear.buff_mist_and_thunder_invisible.effect,"Treats the Maiden's Blush as |Invisible| for the rest of the scene."
+gear.cp_caj_overhaul_modules.action_abjuration_of_metal.name,Abjuration of Metal
+gear.cp_caj_overhaul_modules.action_abjuration_of_metal.trigger,A hostile character within sensors misses you with an attack.
+gear.cp_caj_overhaul_modules.action_abjuration_of_metal.effect,"Roll 1d6: You may |teleport| up to that many spaces in the direction of the attacker. If this puts the attacker in |Threat| of one of your weapons, you may immediately use that weapon to |Skirmish| against them."
+gear.cp_caj_overhaul_modules.action_abjuration_of_metal.no_space.log,"{unit} finds no space to fold into."

@@ -320,8 +320,8 @@ const ICON_TARGETS := {
 	# action_efficient_refund, the shared Efficient reaction, is deliberately ABSENT: it overrides
 	# show_in_tooltip to false, so the reverse check below computes "should not be listed" and listing
 	# it would fail. The player reads "Efficient" in the core power's own effect text, where the card
-	# puts it. Abjuration of Metal joins the list in Task 5.
-	&'cp_caj_overhaul_modules': [&'action_step_of_mist_and_thunder'],
+	# puts it.
+	&'cp_caj_overhaul_modules': [&'action_step_of_mist_and_thunder', &'action_abjuration_of_metal'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
