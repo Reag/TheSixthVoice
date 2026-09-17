@@ -163,7 +163,7 @@ func fade(activation:EventCore, unit:Unit, gear:GearCore, triggering:EventCore, 
 	# pins the behaviour, so the guard cannot be added back in silence.
 	UnitAction.spend_actions_gain_heat(specific, activation, activation.context.flags)
 
-	# NOTHING TO ABORT ON THE CONSOLATION PATH, and that is the whole of what `triggers == null` means
+	# NOTHING TO ABORT ON THE CONSOLATION PATH, and that is the whole of what `triggering == null` means
 	# here. Teleport.veto takes the TRIGGERING core, never the activation: vetoing the activation would
 	# abort our own reaction and leave the teleport untouched.
 	if triggering != null: Teleport.veto(triggering)
@@ -206,12 +206,21 @@ func fade(activation:EventCore, unit:Unit, gear:GearCore, triggering:EventCore, 
 ## that the player has just chosen a destination - is exactly what is false here, so this branch opens
 ## its own prompt with its own row saying which dead end it was.
 ##
-## A NON-PLAYER MECH IS ANSWERED THE WAY confirm_use ANSWERS IT, through ai_confirms_use, so an AI
-## Blush behaves identically on both paths (it takes the fade). Diverging here would make the
+## A NON-PLAYER MECH GOES THROUGH CommonActionUtil.confirm_use ITSELF, not a bare ai_confirms_use
+## call, because confirm_use's own AI branch does one more thing than return the verdict: when
+## specific.action.ai_telegraphs_action(specific) is TARGET it also awaits
+## choice_bus.telegraph_ability(...) (common_action_util.gd:296-310, the confirm_use body). This
+## trait's .tres sets no ai_telegraph_timing, so ai_telegraphs_action defaults to TARGET
+## (action_reaction.gd:116-119) - the interception telegraphs, and a hand-rolled ai_confirms_use call
+## here would silently not. Routing through confirm_use keeps that telegraph, as well as the verdict
+## (the base ai_confirms_use already returns true unconditionally), identical on both paths. The
+## context passed is specific.to_context(), this trait's own, rather than activation.context: on the
+## consolation path activation belongs to Abjuration, and a reaction activation carries no flags for
+## it to lose regardless (reaction_bus.gd queues one with no flags key). Diverging here would make the
 ## consolation the one offer an AI never accepts, for no reason on the card.
 func ask_to_fade(specific:SpecificAction, gear:GearCore, consolation:StringName, activation:EventCore) -> bool:
 	if consolation.is_empty(): return await CommonActionUtil.confirm_use(activation.context)
-	if not specific.unit.is_player_controlled(): return ai_confirms_use(specific.to_context())
+	if not specific.unit.is_player_controlled(): return await CommonActionUtil.confirm_use(specific.to_context())
 	return await choice_bus.quick_yesno_for({
 		tile = specific.unit.tile(),
 		title = name(specific),
