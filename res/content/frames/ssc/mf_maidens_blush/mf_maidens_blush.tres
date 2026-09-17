@@ -8,7 +8,7 @@
 [ext_resource type="Resource" uid="uid://c2lkml5c7daj5" path="res://content/mounts/mount_aux_aux.tres" id="6_mountauxaux"]
 [ext_resource type="Resource" uid="uid://ct04xdxr561wg" path="res://content/mounts/mount_main_aux.tres" id="7_mountmainaux"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
-[ext_resource type="Texture2D" uid="uid://dygcj7y0qg504" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/placeholder/mf_placeholder.png" id="9_sprite"]
+[ext_resource type="Texture2D" uid="uid://chs5ikg3m3mk7" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ssc/mf_maidens_blush/mf_maidens_blush.png" id="9_sprite"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/mt_rend/mt_rend.tres" id="10_rend"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/mt_uncertainty_field/mt_uncertainty_field.tres" id="11_field"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/mt_fade_strike/mt_fade_strike.tres" id="12_fade"]

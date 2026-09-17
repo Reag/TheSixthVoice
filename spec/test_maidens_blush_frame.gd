@@ -132,11 +132,13 @@ func test_the_frame_has_a_sprite_that_actually_loaded():
 	# and mf_placeholder_160.png (160x160, for the size-2 Myconid) - so pointing a size-1 frame at the
 	# 160x160 one renders it at double scale on the board.
 	#
-	# THE "NOT THE PLACEHOLDER" HALF IS SP3's, DELIBERATELY. SP1 and SP2 ship no art (ruling 16), so
-	# the assertion test_subutai_frame.gd carries -
-	# assert_false(sprite.resource_path.contains('placeholder')) - would be a THIRD deliberate red
-	# here, and this sub-project's Global Constraints allow exactly two. SP3 adds that line in the
-	# same commit that drops in the commissioned art.
+	# THE "NOT THE PLACEHOLDER" HALF IS LIVE, as of the stand-in the author supplied on 2026-09-17.
+	# It sits at the vanilla-style path res/assets/frames/ssc/mf_maidens_blush/mf_maidens_blush.png -
+	# 80x80, the frame's own, with commissioned art to follow at the same ext_resource id. The size
+	# assertion above cannot catch a revert to mf_placeholder.png, which is ALSO 80x80, so the
+	# resource_path check below is what actually pins the sprite. This is the half the Myconid close
+	# had to add after the fact (test_myconid_frame.gd:138-144) - it goes in with the stand-in here
+	# rather than waiting for the art.
 	var frame:Frame = _frame()
 	assert_not_null(frame, 'mf_maidens_blush loads.')
 	if frame == null: return
@@ -146,6 +148,7 @@ func test_the_frame_has_a_sprite_that_actually_loaded():
 	assert_not_null(sprite, 'The sprite texture loaded.')
 	if sprite == null: return
 	assert_eq(sprite.get_size(), Vector2(80, 80), 'A size-1 frame uses an 80x80 sprite.')
+	assert_false(sprite.resource_path.contains('placeholder'), 'The frame wears its own sprite, not the mod placeholder.')
 
 func test_the_frame_has_a_colour_scheme():
 	# Cloned from the Mourning Cloak's own inline scheme (tone_highcontrast on palette_1, a pale grey,
