@@ -324,9 +324,30 @@ func spend_the_gyres_use(activation:EventCore, _using:SpecificAction, _chosen:Sp
 ## AND THE ONE THING GIVEN UP WITH IT, recorded rather than quietly dropped: :233-234 of the
 ## supplied-target branch turned the Myconid to face its target, and that line no longer runs. The
 ## interactive picker has a set_facing of its own (ui/choice_controller/compcon/tilepicker_compcon.
-## gd:161), so in real play the facing is likely still set from there - LIKELY, not measured: that
-## is UI code no spec in this suite exercises, and it is stated here as the open question it is
-## rather than as a replacement guarantee. Cosmetic either way; flagged for the author.
+## gd:161), so in real play the facing is likely still set from there. The paragraph below is the
+## author's ruling on this, arrived at after reading the picker's own code rather than left open.
+##
+## RESOLVED: NO EXPLICIT set_facing IS ADDED HERE, AND HERE IS WHY. tilepicker_compcon.gd:159-161
+## already sets the Myconid's facing on every hovered tile - `if adjusted_tile !=
+## specific.unit.tile(): specific.unit.set_facing(UnitTile.angle_to_tile(specific.unit,
+## adjusted_tile))` - and handle_activate calls handle_hovered_tile(cursor.tile) once at :107 the
+## moment the picker opens, before the player has clicked anything. That first hover reads from
+## CURSOR.TILE - wherever the mouse already happens to be on screen - not from mandatory_target_unit,
+## which the picker stores at :64 but this call does not consult. So an explicit `set_facing` added
+## here, mirroring the old supplied-target branch's :233-234, was considered and REJECTED: it would
+## be set correctly for one frame and then overwritten by the picker's own first hover the instant it
+## renders, making the addition dead code that only looked load-bearing. A spec asserting on it would
+## pass anyway, but for the wrong reason - this suite answers the compcon plan directly through
+## SpecFactory's responder and never opens the real picker, so the assertion would be pinning the
+## explicit call, not the player-visible result, and would stay green even after the picker
+## overwrote it in actual play.
+##
+## WHAT THIS ACTUALLY MEANS: the Myconid's facing during the Gyre's back-out is not specially
+## authored at all - it follows the cursor exactly as it does for every other targeted action in the
+## game, because this reaction takes the same interactive picker every one of them does (see "THE
+## COMPCON TARGET PICKER IS THE BACK-OUT" above). There is nothing Gyre-specific left to get right or
+## wrong here, which is the sense in which the open question above is now closed rather than merely
+## answered.
 ##
 ## DO NOT ADD Action.FLAG.CONTROLLED_BY_OPPONENT, which is the other half of the Enkidu's pair
 ## (.bk/gavstarb-ha_alts_1st_party .../mt_primal_fury/action_primal_fury_enter_threat.gd:37 - a
