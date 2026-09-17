@@ -288,6 +288,11 @@ const ICON_TARGETS := {
 	# the Kit's generic one (action.gd:350-353) - the mt_juggernaut_drive / action_draw_fire shape,
 	# not the strike's.
 	&'mw_psychopomp_fold_pike': [&'action_psychopomp_strike', &'action_uffish_gyre'],
+	# SP1 Task 3 (Maiden's Blush). A pure passive: no action of its own, so it wears the Kit's icon
+	# and lists none. Its buff_rend sets hide_from_player and is correctly absent from VISIBLE_BUFFS -
+	# it is never a chip on the unit. The Kit's own icon is SP3's, so this row is one of the two that
+	# make test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then.
+	&'mt_rend': [],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
