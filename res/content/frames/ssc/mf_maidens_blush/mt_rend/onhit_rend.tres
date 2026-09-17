@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/mt_rend/onhit_rend.gd" id="1_onhit"]
+
+[resource]
+script = ExtResource("1_onhit")
+apply_on = 2
+statuses = Array[StringName]([&"impaired", &"slowed"])
+save_to_avoid = true
+save_type = 0

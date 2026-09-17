@@ -103,6 +103,13 @@ func test_the_frame_has_a_sprite_that_actually_loaded() -> void:
 	assert_eq(sprite.get_size(), Vector2(80, 80), 'A size-1 frame uses an 80x80 sprite.')
 	assert_false(sprite.resource_path.contains('placeholder'),
 		'The frame wears its commissioned art, not the stand-in (%s).' % sprite.resource_path)
+	# THE SIZE CHECK ABOVE ALONE CANNOT CATCH sprites[0] BEING REPOINTED AT THE EVEREST'S OWN ART
+	# (frame close I1, 2026-09-17, extended to this frame): sprites[1] is already gms_everest.png at
+	# 80x80 as a legitimate alternate skin, so a mistake that repoints the mod's OWN entry at it would
+	# pass both assertions above. mk2_bombard.png is the M/K2's own filename (mf_mk2.tres:8) - the
+	# frame's compcon_id is not its sprite's, unlike the Blush and the Myconid.
+	assert_true(sprite.resource_path.ends_with('/mk2_bombard.png'),
+		'The frame wears its OWN sprite - not the placeholder, and not the Everest\'s.')
 
 func test_the_traits_are_the_sheets_four_in_order() -> void:
 	var ids:Array[StringName] = []

@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.4.0'
+const EXPECTED_VERSION := '0.5.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -165,6 +165,45 @@ func test_the_efficient_term_resolves_end_to_end():
 		'|Efficient| links to its own glossary entry.')
 	assert_eq(GlossaryItem.find_key_from_label('efficient'), 'lancer.term.efficient', 'Either case.')
 
+# ---------------------------------------------------------------- the Maiden's Blush's SP2 rows
+#
+# SP1 gave each of its three traits (Rend, Uncertainty Field, Fade Strike) a row-resolution guard in
+# its own spec file - test_rend.test_the_effect_row_resolves and its siblings. SP2 added fourteen more
+# rows (the core system, Step of Mist and Thunder, Abjuration of Metal, and the shared Efficient
+# refund log) and NONE of them had one: grepping X.tr(/Translate. across every SP2 spec file returns
+# zero hits (frame close review slice 5, finding I-2). Six of these fourteen reach the player through
+# a call that silently falls back to the raw key on a miss (battle_log_bus.gd:24-27's log_tr, and
+# Translate.action's default return_key_if_blank=true), so a dropped CSV row or a stale compiled
+# localizations.en.translation puts a raw key straight into the battle log and floating over the
+# board, with every other test in the suite green.
+#
+# Housed here rather than split across the SP2 spec files: this mod's SP2 core power spans two action
+# scripts and a standalone buff with no single natural home for a shared list, and this file already
+# owns the mod-wide localization guards (the glossary tests above).
+
+## The fourteen rows SP2 added with no resolution guard, transcribed from
+## localization/localizations.csv:176-189.
+const SP2_LOCALIZATION_ROWS:Array[String] = [
+	'gear.cp_caj_overhaul_modules.name',
+	'gear.shared.efficient.refund.log',
+	'gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.name',
+	'gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.effect',
+	'gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.confirm',
+	'gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.snake_eyes.log',
+	'gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.snake_eyes.pop',
+	'gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.fizzle.log',
+	'gear.buff_mist_and_thunder_invisible.name',
+	'gear.buff_mist_and_thunder_invisible.effect',
+	'gear.cp_caj_overhaul_modules.action_abjuration_of_metal.name',
+	'gear.cp_caj_overhaul_modules.action_abjuration_of_metal.trigger',
+	'gear.cp_caj_overhaul_modules.action_abjuration_of_metal.effect',
+	'gear.cp_caj_overhaul_modules.action_abjuration_of_metal.no_space.log',
+]
+
+func test_the_maidens_blush_sp2_rows_resolve():
+	for key:String in SP2_LOCALIZATION_ROWS:
+		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+
 ## Every kit and player-facing buff this mod ships, and the actions on each kit that need their own
 ## icon. Filled in by each sub-project as it builds content; the icon pass is what makes it green.
 ##
@@ -288,6 +327,40 @@ const ICON_TARGETS := {
 	# the Kit's generic one (action.gd:350-353) - the mt_juggernaut_drive / action_draw_fire shape,
 	# not the strike's.
 	&'mw_psychopomp_fold_pike': [&'action_psychopomp_strike', &'action_uffish_gyre'],
+	# SP1 Task 3 (Maiden's Blush). A pure passive: no action of its own, so it wears the Kit's icon
+	# and lists none. Its buff_rend sets hide_from_player and is correctly absent from VISIBLE_BUFFS -
+	# it is never a chip on the unit. The Kit's own icon is SP3's, so this row is one of the two that
+	# make test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then.
+	&'mt_rend': [],
+	# SP1 Task 4 (Maiden's Blush). ITS ONE ACTION GETS NO ROW, and that is an engine consequence
+	# rather than a choice: Action.show_in_tooltip (action.gd:350-353) returns false when the action's
+	# own `effect` row equals the KIT's generic one, and ruling 17 makes them identical - the reaction
+	# row repeats the card text verbatim. The Kit also has no `trigger` row, which is the clause
+	# (action.gd:344) that would otherwise force a true. So the reaction never reaches the trait card,
+	# never reaches the gear bar (reactions never do, gear_bar.gd:145), and wears no icon of its own -
+	# the ms_heaer shape, not the mt_juggernaut_drive one. This CORRECTS design §1.5, which expected a
+	# row here; test_uncertainty_field.test_the_rows_resolve_and_the_reaction_stays_off_the_trait_card
+	# pins the engine's answer, and the two move together if the localisation ever changes.
+	#
+	# Its buff_uncertainty_field_break sets hide_from_player and is correctly absent from
+	# VISIBLE_BUFFS. The Kit's own icon is SP3's.
+	&'mt_uncertainty_field': [],
+	# SP1 Task 5 (Maiden's Blush). A pure passive with NO action at all, so it wears the Kit's icon
+	# and lists none. Its two buffs split: buff_fade_strike_arm is hidden bookkeeping and is correctly
+	# absent from VISIBLE_BUFFS, while buff_fade_strike is the visible chip and is listed there.
+	&'mt_fade_strike': [],
+	# SP2 Task 3 (Maiden's Blush). The CORE SYSTEM, and EMPTY FOR NOW rather than empty on principle -
+	# Step of Mist and Thunder (Task 4) and Abjuration of Metal (Task 5) both belong here and both
+	# arrive with their own tasks. Unlike mt_uncertainty_field above, THOSE TWO ARE NOT `[]`: each has
+	# an `.effect` row of its own and Abjuration a `.trigger` row too, while this Kit has no `.effect`
+	# at all (the LCP's core description is empty, ruling 17), so the action.gd:352 clause that hides a
+	# trait reaction whose effect equals its Kit's cannot fire for either of them.
+	#
+	# action_efficient_refund, the shared Efficient reaction, is deliberately ABSENT: it overrides
+	# show_in_tooltip to false, so the reverse check below computes "should not be listed" and listing
+	# it would fail. The player reads "Efficient" in the core power's own effect text, where the card
+	# puts it.
+	&'cp_caj_overhaul_modules': [&'action_step_of_mist_and_thunder', &'action_abjuration_of_metal'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -366,6 +439,18 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# is deliberately ABSENT - the pair is one mechanic, and two chips for one effect would read as
 	# two.
 	&'buff_uffish_gyre_armor',
+	# SP1 Task 5 (Maiden's Blush). The reroll chip, and it is deliberately player-visible: the trait
+	# fires with no animation of its own, so the chip is the only signal on the board that the Blush
+	# began its turn Invisible and still has its reroll in hand. Its hidden sibling
+	# buff_fade_strike_arm is NOT listed - the pair is one mechanic, and the arming half is never a
+	# chip on the unit.
+	&'buff_fade_strike',
+	# SP2 Task 4 (Maiden's Blush). The chip a character wears after failing Step of Mist and Thunder's
+	# Systems save, and visible for the same reason buff_diversion_rail is: it is the holder's ONLY
+	# warning that it is now missing the Blush on a d6 of 3 or less. The save is rolled on the Blush's
+	# turn and the consequence lands on every attack the holder makes afterwards, with nothing else on
+	# the board to explain it - and unlike most chips here it lasts the whole scene.
+	&'buff_mist_and_thunder_invisible',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

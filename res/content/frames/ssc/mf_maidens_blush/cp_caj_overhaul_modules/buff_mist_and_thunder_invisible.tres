@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/cp_caj_overhaul_modules/buff_mist_and_thunder_invisible.gd" id="1_chip"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_caj_overhaul_modules.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_chip")
+icon = ExtResource("2_icon")
+to = &"treat_as_invisible"
+; MANUAL, i.e. nothing expires it - "until the end of the scene" is the card's wording and nothing in
+; the buff cuts it short. A Blush that is destroyed DOES take every chip it placed with it, but not
+; through from_gear, which is an id rather than a lifetime (buff_core.gd:26-31):
+; EventService.remove_unit_from_game clears the dead unit's outgoing buffs off every other unit
+; (event_service.gd:71), and this buff takes the default is_cleared_on_owner_death() = true
+; (buff.gd:181). The .gd's header has the full path.
+until = 0
+; NOT one-time, which is the whole difference between "treats you as Invisible for the scene" and
+; "misses once". AttackUtil.check_if_invisibility_forces_miss consumes only one-time buffs
+; (attack_util.gd:59-76).
+is_onetime = false
+; VISIBLE, deliberately, and listed in VISIBLE_BUFFS. It is the fooled character's only signal that
+; it has been fooled: the save is rolled on the Blush's turn and the consequence lands on every
+; subsequent attack it makes, with nothing else on the board to explain the misses.
+hide_from_player = false

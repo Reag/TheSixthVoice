@@ -153,3 +153,37 @@ gear.mw_psychopomp_fold_pike.action_uffish_gyre.effect,"Make a melee attack agai
 ,
 gear.buff_uffish_gyre_armor.name,Uffish Gyre
 gear.buff_uffish_gyre_armor.effect,|+2 armor| until the start of your next turn.
+,
+frame.mf_maidens_blush.name,Maiden's Blush
+frame.mf_maidens_blush.flavor.short,Strange and Beautiful
+frame.mf_maidens_blush.flavor,"The Mourning Cloak was a triumph of design, a masterpiece of ideas folded and sculpted together into a perfect gestalt. But even perfection can be improved at Smith-Shimano. Every piece can be broken down and improved, each moving part can become its own triumph. And when these parts are put together, you can get something even stranger and more beautiful than before. Or you could get the Maidens Blush, a bastardized, overly designed, paracausal patchwork of ideas. This is of course not to say that it is not an effective frame, or even a bad one, merely that it stands against the typical design philosophies of SSC. It reached licensing to push the boundaries of what SSC can make possible. It does not build upon the Firmament-manipulation groundwork laid by its predecessor, it eschewed years of work to rely upon strange technology. All to prove that even the strangest ideas can be made manifest. It stands as a reminder that there is no such thing as more perfect, it is all just different facets of the same idea, and one day, that SSC will see the whole for what it truly may be."
+,
+gear.mt_rend.name,Rend
+gear.mt_rend.effect,"1/round, whenever the Maiden's Blush critically hits with a |melee| weapon, the target must make a |Hull save|. On a failure, they become |Impaired| and |Slowed| until the end of their next turn."
+,
+gear.mt_uncertainty_field.name,Uncertainty Field
+gear.mt_uncertainty_field.effect,"1/round if the Maiden's Blush would |teleport|, it instead may become |Invisible| until the beginning of its next turn. It immediately loses |Invisible| if it takes damage."
+gear.mt_uncertainty_field.action_uncertainty_field.name,Uncertainty Field
+gear.mt_uncertainty_field.action_uncertainty_field.effect,"1/round if the Maiden's Blush would |teleport|, it instead may become |Invisible| until the beginning of its next turn. It immediately loses |Invisible| if it takes damage."
+gear.mt_uncertainty_field.action_uncertainty_field.replaced.log,{unit} fades from view; {source} does not happen.
+gear.mt_uncertainty_field.action_uncertainty_field.replaced.pop,*FADE*
+gear.mt_uncertainty_field.broken.log,{unit} took damage and is no longer Invisible.
+,
+gear.mt_fade_strike.name,Fade Strike
+gear.mt_fade_strike.effect,"If the Maiden's Blush begins its turn |Invisible|, it may reroll its first |melee| attack roll it makes on that turn. It must keep the second result."
+gear.buff_fade_strike.name,Fade Strike
+gear.buff_fade_strike.effect,"The first |melee| attack roll this turn may be rerolled, keeping the second result."
+gear.cp_caj_overhaul_modules.name,C/A J OVERHAUL MODULES
+gear.shared.efficient.refund.log,"{gear} is |Efficient|: {unit} regains a core power."
+gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.name,Step of Mist and Thunder
+gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.effect,"Roll 2d6. You |teleport| to a free space within a Range equal to what you rolled, without requiring line of sight. Characters adjacent to the space you teleport to must make a |Systems save| or treat you as |Invisible| until the end of the scene. If you roll two 1s you teleport to a space of the GM's choice. This teleportation cannot be prevented. This ability is |Efficient| and will refund 1 Core Point at the end of any scene in which this ability was used."
+gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.confirm,Roll 2d6 to determine teleport range?
+gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.snake_eyes.log,"{unit} rolled two 1s: the fold lands where the firmament chooses."
+gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.snake_eyes.pop,SNAKE EYES
+gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.fizzle.log,"{unit} is boxed in: the fold finds nowhere to land."
+gear.buff_mist_and_thunder_invisible.name,Step of Mist and Thunder
+gear.buff_mist_and_thunder_invisible.effect,"Treats the Maiden's Blush as |Invisible| for the rest of the scene."
+gear.cp_caj_overhaul_modules.action_abjuration_of_metal.name,Abjuration of Metal
+gear.cp_caj_overhaul_modules.action_abjuration_of_metal.trigger,A hostile character within sensors misses you with an attack.
+gear.cp_caj_overhaul_modules.action_abjuration_of_metal.effect,"Roll 1d6: You may |teleport| up to that many spaces in the direction of the attacker. If this puts the attacker in |Threat| of one of your weapons, you may immediately use that weapon to |Skirmish| against them."
+gear.cp_caj_overhaul_modules.action_abjuration_of_metal.no_space.log,"{unit} finds no space to fold into."

@@ -16,6 +16,7 @@
 extends GutTest
 
 const MyconidFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/myconid_fixture.gd')
+const MaidensBlushFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/maidens_blush_fixture.gd')
 
 const TALENTS_MOD := 'gavstarb-talents_1st_party'
 ## House Guard rank 1. Hidden buff, adjacency_range = 2, only_to_allies - see the registry row.
@@ -33,6 +34,15 @@ const MYCONID_TILE := Vector2i(4, 4)
 const ADJACENT_TILE := Vector2i(6, 4)  # 1 from (5,4) - inside the ally aura either way
 const NEAR_TILE := Vector2i(7, 4)      # 2 from (5,4) - OUTSIDE the ally aura, and exactly the tile
                                        # House Guard's widening pulls into "adjacent"
+
+# The Maiden's Blush case builds its OWN game (see the test below), so these owe the Myconid's
+# footprint nothing. The Blush folds three tiles east and the two characters stand beyond the landing.
+const BLUSH_TILE := Vector2i(4, 4)
+const BLUSH_LANDING := Vector2i(7, 4)
+const SAVING_TILE := Vector2i(8, 4)  # 1 from the landing: Step asks it to save
+const SPARED_TILE := Vector2i(9, 4)  # 2 from the landing: Step does not, and House Guard does not
+                                     # change that - which is the ruling
+const STEP_CHIP := &'buff_mist_and_thunder_invisible'
 
 var game:Gamemaster
 var myconid:Unit
@@ -137,3 +147,70 @@ func test_a_genuinely_adjacent_ally_is_still_sheltered_with_the_widening_active(
 		'A truly adjacent ally still gets Impaired immunity.')
 	assert_true(UnitCondition.has_buff(near_ally, ARMOR_BUFF),
 		'A truly adjacent ally still gets +1 armor.')
+
+
+# ===================== THE RULING: STEP OF MIST AND THUNDER MEASURES ITS OWN RADIUS =====================
+
+## RULING, 2026-09-17, taken at the Maiden's Blush DESIGN - the frame's `Contested seams:` line, and
+## the first one on this project decided before the content existed rather than at a close.
+##
+## Step of Mist and Thunder's "characters adjacent to the space you teleport to must make a Systems
+## save" is measured with UnitRelation.get_characters_within(unit, 1, false) - the engine's own radius,
+## which goes through distance_between. House Guard overrides adjacent_characters() and NOTHING ELSE,
+## so its widening does not reach the save. The Fungal Network reasoning exactly (see above): ask
+## where the engine measures.
+##
+## THIS ASSERTS THE RULING, NOT COMPLIANCE, and inverts if the ruling is ever reversed - at which
+## point Step would have to read adjacent_characters through a guarded call the way the talents mod's
+## own Greater Guardian reads get_adjacency_range_alt.
+##
+## THREE ASSERTIONS BEHIND A PRECONDITION, and the first of the three is the one that keeps the other
+## two honest: with the talents mod absent, or its extension silently dead, "nobody two tiles out
+## saved" would be true for the boring reason. skipped_without_talents() announces that case rather
+## than passing quietly. The precondition is that the Step landed at all - without it a Step that
+## silently did nothing would leave both chip assertions trivially satisfied.
+##
+## IT FIRES THE CONTENT, which is what the Myconid ruling above does and what an earlier version of
+## this test did not: asserting on UnitRelation.get_characters_within directly restates a property of
+## the ENGINE, true whatever our action asks, and stayed green with the action moved to the other side
+## of the seam. Step is pressed for real, and the observable is the chip actually hung on a character.
+func test_house_guard_does_not_widen_step_of_mist_and_thunders_adjacent_saves() -> void:
+	if skipped_without_talents(): return
+
+	# ITS OWN GAME, AND ITS OWN RESPONDER. Pressing Step opens TWO yes/no prompts in one awaited call -
+	# its own confirm, then Uncertainty Field's offer to fade instead - and the stock responder answers
+	# both with one value, which makes the field eat every teleport (maidens_blush_fixture.gd's
+	# header). before_each already installed the stock responder for the Myconid cases above, and two
+	# live responders would both answer every request, so that one is silenced rather than removed:
+	# its guard clauses return before they count a choice (spec_factory.gd:446, :509).
+	if is_instance_valid(SpecFactory.current_responder):
+		SpecFactory.current_responder.choose_yesnos = false
+		SpecFactory.current_responder.choose_plans = false
+	var pair := MaidensBlushFixture.create_game_with_sequenced_prompts(self)
+	game = pair[0]
+	var responder = pair[1]
+
+	var blush := MaidensBlushFixture.create_maidens_blush(game, BLUSH_TILE)
+	# ALLIES, because House Guard's widening is only_to_allies - a hostile control would be outside
+	# the buff and the ruling would never be contested. Step asks "characters" either way (ruling 13).
+	var near_character := MaidensBlushFixture.create_ally(game, SAVING_TILE)
+	var far_character := MaidensBlushFixture.create_ally(game, SPARED_TILE)
+	await MaidensBlushFixture.open_turn(game, blush)
+	widen_adjacency_on(blush)
+
+	# FOUR values queued, THREE drawn: the 2d6, then one Systems save low enough to fail. The fourth is
+	# there for the failing case - a widened radius would ask far_character too, and an empty queue
+	# would hand it a random d20 that might pass and leave this test green for the wrong reason.
+	await MaidensBlushFixture.step(game, blush, responder, [3, 4, 1, 1], BLUSH_LANDING)
+	assert_eq(blush.tile(), BLUSH_LANDING, 'Fixture: the Step landed where we picked.')
+
+	# 1. THE WIDENING IS LIVE IN THIS RUN, measured from where the Blush actually stands. Without this
+	# the two below prove nothing.
+	assert_true(UnitRelation.adjacent_characters(blush).has(far_character),
+		'House Guard pulls the character two tiles out into adjacent_characters.')
+
+	# 2 and 3. What Step actually asked - the engine's own radius, unwidened.
+	assert_true(UnitCondition.has_buff(near_character, STEP_CHIP),
+		'The character ONE tile from the landing was asked to save, and failed.')
+	assert_false(UnitCondition.has_buff(far_character, STEP_CHIP),
+		'The one TWO tiles out was never asked, however wide House Guard has made "adjacent".')

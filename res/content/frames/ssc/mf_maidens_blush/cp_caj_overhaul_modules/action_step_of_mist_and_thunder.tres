@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ActionSystem" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/cp_caj_overhaul_modules/action_step_of_mist_and_thunder.gd" id="1_step"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_caj_overhaul_modules.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_step")
+icon_override = ExtResource("2_icon")
+; QUICK, per the LCP's "activation": "Quick".
+action_type = 1
+; The core point. action_charge_rail.tres is vanilla's action_type = 1 + consumes_cp precedent, and
+; the script's Efficient.mark_used sits immediately after spend_actions so the stamp and the spend
+; can never disagree.
+consumes_cp = true
+; MOVEMENT, Blinkspace Jump's flavour. Without it, ActionSystem.get_flavor answers SPECIAL for any
+; consumes_cp action (action_system.gd:311) and a teleport would be coloured like a core power rather
+; than like a move.
+flavor_override = 2
+; ITS OWN GROUP. Three actions on this Kit, three groups - a pressable and a reaction that share one
+; lock each other out (the Subutai SP2 lesson).
+usage_group = &"step_of_mist_and_thunder"
+; "without requiring line of sight" - the card, in so many words. The picker passes
+; require_line_of_sight = false to Teleport.candidate_tiles as well; this is the Action-level half,
+; which is what UnitTargeting consults on the surfaces the picker does not own.
+requires_line_of_sight_baseline = false
