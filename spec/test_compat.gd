@@ -177,12 +177,14 @@ func test_a_genuinely_adjacent_ally_is_still_sheltered_with_the_widening_active(
 func test_house_guard_does_not_widen_step_of_mist_and_thunders_adjacent_saves() -> void:
 	if skipped_without_talents(): return
 
-	# ITS OWN GAME, AND ITS OWN RESPONDER. Pressing Step opens TWO yes/no prompts in one awaited call -
-	# its own confirm, then Uncertainty Field's offer to fade instead - and the stock responder answers
-	# both with one value, which makes the field eat every teleport (maidens_blush_fixture.gd's
-	# header). before_each already installed the stock responder for the Myconid cases above, and two
-	# live responders would both answer every request, so that one is silenced rather than removed:
-	# its guard clauses return before they count a choice (spec_factory.gd:446, :509).
+	# ITS OWN GAME, AND ITS OWN RESPONDER. Pressing Step now opens exactly ONE yes/no prompt - its own
+	# confirm; the Uncertainty Field can no longer take a Step (reach design ruling C, 2026-09-17). A
+	# dedicated responder is still needed because MaidensBlushFixture.step() answers through
+	# `yesno_queue` and lands the tile through `chosen_plan_queue`, and only the queued responder
+	# (mod_choice_responder.gd) carries `yesno_queue` - the stock responder installed for the Myconid
+	# cases above does not. before_each already installed that stock responder, and two live responders
+	# would both answer every request, so that one is silenced rather than removed: its guard clauses
+	# return before they count a choice (spec_factory.gd:446, :509).
 	if is_instance_valid(SpecFactory.current_responder):
 		SpecFactory.current_responder.choose_yesnos = false
 		SpecFactory.current_responder.choose_plans = false

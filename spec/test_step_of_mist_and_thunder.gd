@@ -468,7 +468,7 @@ func test_a_boxed_in_snake_eyes_fizzles_and_still_costs_the_point():
 	assert_true(Efficient.is_marked(core_gear()),
 		'And the stamp is set, so Efficient still gives the point back at the end of the scene.')
 
-# ---------------------------------------------------------------- the field takes it
+# ---------------------------------------------------------------- the field cannot take it
 
 func test_the_field_never_offers_on_step_and_the_fold_always_lands():
 	# RULING C END TO END, and the inversion of this file's most valuable test rather than its

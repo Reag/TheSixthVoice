@@ -194,9 +194,13 @@ static func veto(triggering:EventCore) -> void:
 #
 # WHY THESE EXECUTE INLINE AND HAND THE CORE BACK, when vanilla's Blinkspace Jump queues its move and
 # returns (action_blinkspace_jump.gd:64): both of this frame's teleports need what comes AFTER the
-# move - Step's adjacent Systems saves, Abjuration's Skirmish - and both need to know whether
-# Uncertainty Field took the teleport. A queued move resolves after the activation has finished, so
-# neither is reachable from there.
+# move - Step's adjacent Systems saves, Abjuration's Skirmish - but for different reasons since reach
+# design ruling C (2026-09-17). Abjuration still needs to know whether Uncertainty Field took its
+# teleport - a vetoed one forfeits the Skirmish. Step needs the core handed back because the field can
+# no longer take IT: what it needs instead is whether the move RESOLVED AT ALL, since the
+# adjacent-characters saves are a consequence of arriving, and `move` can still report one that never
+# resolved for other reasons - a null core, or another listener's abort. A queued move resolves after
+# the activation has finished, so neither reason is reachable from there.
 #
 # THE ONE THING THAT COST A MEASUREMENT (SP2 probe, 2026-09-17, and it CORRECTED the design):
 # "moves by target tile without a pathfinder" is FALSE. EventUnitMove.undergo_move takes

@@ -561,9 +561,12 @@ func test_the_own_involuntary_move_lands_while_immobilized_and_the_voluntary_one
 	assert_eq(unit.tile(), START, 'Voluntary does not.')
 
 func test_move_hangs_the_calling_actions_specific_on_the_event():
-	# This is what lets action_uncertainty_field.replaced_name log the veto against the core power BY
-	# NAME instead of falling back to the glossary's generic word for a teleport. Nothing else in the
-	# suite would notice it going away.
+	# NOT FOR NAMING THE VETO ANY MORE (reach design ruling C, 2026-09-17): Uncertainty Field can no
+	# longer take a Step to log by name, since the field never offers on one. What this object still
+	# buys is forcer() safety: Teleport.forcer(context) reads it back to return the mech ITSELF for a
+	# Step, which is what makes UnitRelation.are_enemies(unit, unit) false and the exemption safe rather
+	# than accidental (forcer()'s own docstring, above). Abjuration's own vetoed teleport still logs
+	# against replaced_name by name, through move_along()'s own object.
 	var core:EventCore = await Teleport.move(sourced_activation(), unit, DESTINATION)
 	assert_true(SpecificAction.is_valid(core.context.object),
 		'The move carries a SpecificAction as its object.')
