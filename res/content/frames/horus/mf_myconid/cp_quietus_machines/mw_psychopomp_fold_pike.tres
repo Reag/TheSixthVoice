@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="2_action"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/action_psychopomp_strike.tres" id="3_strike"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/action_uffish_gyre.tres" id="4_gyre"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_psychopomp_fold_pike.svg" id="5_icon"]
+
+[resource]
+script = ExtResource("1_kit")
+; PFP// "PSYCHOPOMP" Fold Pike - the Myconid's integrated weapon (design ruling 9).
+;
+; ITS OWN mw_ KIT, NOT AN ACTION ON cp_quietus_machines. The character sheet titles an
+; integrated-weapon box from the KIT that holds the weapon - Translate.gear(core.kit.compcon_id,
+; 'name') at weapon_mount_item.gd:101 - so a strike living on the core Kit would label the box
+; "QUIETUS MACHINES". That is the integrated-weapon lesson of 8604d00 and of the Subutai's
+; mw_diversion_rail, and test_integrated_weapon_names.gd is the guard - it GAINED the Myconid row in
+; SP2 Task 5 and has it now (test_the_myconids_integrated_weapon_is_called_the_psychopomp_fold_pike,
+; :123-134; the sentence used to read "it gains the row in Task 5" and was stale by SP2.5).
+;
+; THE RALEIGH REWORK WAS MEASURED AND REVERSED, 2026-09-17 - THIS SHAPE IS NOW THE HOUSE RULE.
+; What stood here until that date recorded the opposite: a 2026-09-16 author directive scheduling all
+; three of our integrated weapons to move ONTO their core-power Kits in the Raleigh's shape
+; (content/frames/ipsn/mf_raleigh/cp_m35_mjolnir_cannon/cp_m35_mjolnir_cannon.tres, one is_trait Kit
+; holding action_thunder_god, action_thunder_god_chamber_rounds, action_m35_mjolnir and
+; action_m35_mjolnir_free_attack), and calling this Kit a SCHEDULED DEFERRAL that a future reader
+; should not "fix". Both statements are now WRONG. Do not act on a copy of them found elsewhere.
+;
+; THE MEASUREMENT THAT REVERSED IT. In all FOUR vanilla frames whose core system carries an
+; integrated weapon, core_system.name IS the weapon's name - LANCASTER "Latch Drone", RALEIGH "M35
+; Mjolnir cannon", BARBAROSSA "Apocalypse Rail", SHERMAN "Zone-Focus Mk IV SOLIDCORE" (measured from
+; assets/lcp_data/frames.json joined to weapons.json). Lancer's CORE System is the hardware and the
+; CORE Power is the third name, so vanilla has TWO names and one Kit to hold them, and the Raleigh
+; never faces a choice. Bel's cards name THREE things - QUIETUS MACHINES, Fungal Network, and this
+; pike. One Kit titles exactly one box (weapon_mount_item.gd:101 for the integrated mount,
+; trait_list_item.gd:28 for the CORE SYSTEM box, and NEITHER shows an action row at rest), so the
+; merge would have cost one of Bel's three names its place on the visible sheet. Keeping the system
+; name reverses 8604d00, which exists because of a playtest complaint; taking the weapon name breaks
+; the LCP-fidelity directive. Two Kits is the only shape that shows both. Design:
+; D:\DEV\lancer-tactics-claude\specs\2026-09-17-integrated-weapon-consistency-design.md.
+;
+; WHAT DID CHANGE ON 2026-09-17: this Kit and its five siblings moved out of a sibling folder and in
+; here, beside cp_quietus_machines.tres, matching cp_broadside/mw_bizarre_cannon.tres and
+; cp_siege_engine/mw_diversion_rail.tres. Folder only - a resource's index comes from its filename
+; prefix, not its folder, so no compcon_id, localisation key or usage_group moved.
+; spec/test_integrated_weapon_shape.gd is the guard, and its co-location assert was RED first.
+;
+; SP2.5 Task 3 renamed action_psychopomp_strike's OWN name to "Uffish Gyre" - the author,
+; playtesting: "integrated weapon is wrong. It should read 'Uffish Gyre'". That rename stands.
+;
+; THE STRIKE IS FIRST, AND THAT IS NOT COSMETIC. GearCore.get_solo_action() returns kit.actions[0]
+; with no arity check (gear_core.gd:337-339), and Translate.buff falls through to it when a buff has
+; no row of its own (translate.gd:72-75) - so the order here decides what the battle log calls the
+; Gyre's hidden armor reduction. See buff_uffish_gyre_armor_reduction.tres's closing note for the
+; measurement. It is also the order the character sheet prints the two rows in.
+; SWAPPING THESE TWO REDDENS spec/test_uffish_gyre.test_the_battle_log_names_the_pike_for_the_reduction,
+; which asserts get_solo_action() itself - measured by mutation T3-M2, 2026-09-16. The string
+; assertion beside it would NOT catch a swap any more: since the Task 3 rename above, both candidate
+; rows read "Uffish Gyre", so the text the player sees does not move when the order does.
+actions = Array[ExtResource("2_action")]([ExtResource("3_strike"), ExtResource("4_gyre")])
+; A frame trait, not equippable gear: it costs no SP (the card says SP 0) and cannot be unequipped.
+; mw_diversion_rail is the same.
+is_trait = true
+icon_override = ExtResource("5_icon")
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

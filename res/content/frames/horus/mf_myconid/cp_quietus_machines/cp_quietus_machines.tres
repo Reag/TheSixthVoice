@@ -47,8 +47,15 @@ passives = Array[ExtResource("3_passive")]([ExtResource("5_allies"), ExtResource
 is_trait = true
 icon_override = ExtResource("9_icon")
 ;
-; THE PIKE IS NOT ON THIS KIT. The LCP lists PFP// "PSYCHOPOMP" Fold Pike as this core system's
-; integrated weapon, but it gets its own mw_ Kit (ruling 9): weapon_mount_item.gd:101 titles the
-; character sheet's integrated-weapon box from the KIT that holds the weapon action, so putting the
-; strike here would label the box "QUIETUS MACHINES". That is the integrated-weapon lesson of 8604d00
-; and of the Subutai's mw_diversion_rail; test_integrated_weapon_names.gd is the guard.
+; THE PIKE IS BESIDE THIS KIT IN THIS FOLDER, BUT NOT ON IT. The LCP lists PFP// "PSYCHOPOMP" Fold
+; Pike as this core system's integrated weapon, and since 2026-09-17 mw_psychopomp_fold_pike.tres
+; sits in this same directory - but it is still its OWN mw_ Kit (ruling 9), because
+; weapon_mount_item.gd:101 titles the character sheet's integrated-weapon box from the KIT that holds
+; the weapon action, so putting the strike here would label the box "QUIETUS MACHINES". That is the
+; integrated-weapon lesson of 8604d00 and of the Subutai's mw_diversion_rail.
+;
+; THE 2026-09-16 DIRECTIVE TO MERGE THEM (the Raleigh's shape) WAS MEASURED AND REVERSED ON
+; 2026-09-17; the full trace is in mw_psychopomp_fold_pike.tres's own header, and the short version is
+; that vanilla gets away with one Kit only because its core_system.name IS its weapon's name in all
+; four cases, which Bel's three-name cards are not. Two guards: test_integrated_weapon_names.gd pins
+; the two box titles, test_integrated_weapon_shape.gd pins the structure that produces them.

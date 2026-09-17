@@ -1,8 +1,8 @@
 [gd_resource type="Resource" format=3]
 
-[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mw_psychopomp_fold_pike/action_psychopomp_strike.gd" id="1_strike"]
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/action_psychopomp_strike.gd" id="1_strike"]
 [ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="2_onhit"]
-[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mw_psychopomp_fold_pike/onhit_uffish_gyre.tres" id="3_gyreonhit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/onhit_uffish_gyre.tres" id="3_gyreonhit"]
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_psychopomp_fold_pike.svg" id="4_icon"]
 
 [resource]
