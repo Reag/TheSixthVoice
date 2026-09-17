@@ -91,13 +91,32 @@ static func forcer(context:Context) -> Unit:
 ##
 ## own_involuntary = true is the "this teleportation cannot be prevented" shape (design §0.8): the map
 ## editor's event_unit_teleport type (event_unit_teleport.gd:26-29) MINUS the NO_RXNS flag, plus the
-## OWN tag. ignore_rxns is deliberately NOT set: it is what vanilla uses to mean "do not react to
-## this", and Uncertainty Field must still be offered on our own Step.
+## OWN tag.
+##
+## ignore_rxns IS LEFT UNSET, AND NOT FOR THE REASON THIS COMMENT USED TO GIVE. It is NOT what keeps
+## Uncertainty Field offered: MovementType.ignores_reactions() is `ignore_rxns or teleport or not
+## voluntary` (movement_type.gd:101-102), which is already true of EVERY teleport, so setting the flag
+## would change nothing about that answer. What keeps the field offered is that the move event never
+## consults that answer at all - NO_RXNS is "not enforced; reactions need to decide for themselves"
+## (event_unit_move.gd:26), so each of the four judgements belongs to the listener, and
+## action_uncertainty_field reads the NO_RXNS FLAG on the context rather than anything on the type.
+## The flag stays unset anyway: it is vanilla's own signal for "do not react to this", and our own
+## Step has no reason to send it.
 static func movement_type(unit:Unit, own_involuntary:bool = false) -> MovementType:
 	var type := MovementType.create(unit, not own_involuntary)
 	type.teleport = true
 	if own_involuntary:
 		type.ignore_engagement = true
+		# RE-ASSERTED AFTER THE ENGINE'S OWN BUFF MERGE, and load-bearing rather than redundant.
+		# MovementType.create sets `type.voluntary = is_voluntary` (movement_type.gd:44) and THEN merges
+		# every Buff.TO.MOVEMENT_TYPE resource the unit holds (:51), where merge_in is
+		# `voluntary = voluntary or other.voluntary` (:81). So a single movement-type buff authored
+		# voluntary = true would hand this shape back VOLUNTARY, and the whole "this teleportation
+		# cannot be prevented" clause is that one flag: both Immobilized gates test it
+		# (pathfinder.gd:333, event_unit_move.gd:451), and Pathfinder.create is where every
+		# MOVEMENT_RESTRICTION ban lands. Latent today - no vanilla or resident movement-type resource
+		# sets voluntary - which is exactly why nothing else would notice it going wrong.
+		type.voluntary = false
 		if not type.other_tags.has(OWN_TAG): type.other_tags.append(OWN_TAG)
 	return type
 
@@ -108,6 +127,13 @@ static func movement_type(unit:Unit, own_involuntary:bool = false) -> MovementTy
 ## listener reads resource.voluntary for it. The tag exists for exactly one question: an involuntary
 ## teleport is either our own unpreventable Step or somebody else's shove, and the engine cannot tell
 ## them apart.
+##
+## THE PARAMETER NAME SHADOWS THE SIBLING STATIC FUNCTION, and the name is frozen by the signature
+## contract (design §1.4, pinned by test_teleport's freeze test) so it cannot simply be renamed. Inside
+## this body `movement_type` is this MovementType ARGUMENT, never the movement_type() above it, so a
+## future is_own that wants the canonical shape cannot call that function - build the shape inline, or
+## read the tag directly as below. SP2 adds five more functions to this file; this is the one name that
+## cannot be reached from in here.
 static func is_own(movement_type:MovementType) -> bool:
 	if not MovementType.is_valid(movement_type): return false
 	return movement_type.other_tags.has(OWN_TAG)

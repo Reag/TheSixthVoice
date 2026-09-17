@@ -133,6 +133,26 @@ func arm_listener() -> void:
 	listener = VetoListener.new()
 	UnitCondition.apply_buff_alt(SpecFactory.dummy_event(), unit, BuffCore.create(listener))
 
+## Hang a movement-type buff on `unit` whose merged resource is VOLUNTARY - the one shape that can
+## un-harden an own-involuntary teleport. BuffMovementType is vanilla's own archetype for this
+## (buff_ramjet_movement_type.tres is one of seventeen `to = &"movement_type"` resources in content/),
+## and its get_values hands the resource straight back (buff_movement_type.gd:10-11), which is what
+## MovementType.create merges at movement_type.gd:51.
+##
+## free_climb rides along as the MERGE'S OWN WITNESS. Nothing in Teleport reads or writes it, so
+## reading it back true proves the buff really reached create() - without it, a helper that had somehow
+## stopped merging buffs at all would make the voluntary assertion below green for the wrong reason.
+func apply_a_voluntary_movement_type_buff() -> void:
+	var buffed := MovementType.new()
+	buffed.voluntary = true
+	buffed.free_climb = true
+	var buff := BuffMovementType.new()
+	buff.movement_type = buffed
+	buff.to = Buff.TO.MOVEMENT_TYPE
+	buff.hide_from_player = true
+	buff.until = Lancer.UNTIL.MANUAL
+	UnitCondition.apply_buff_alt(SpecFactory.dummy_event(), unit, BuffCore.create(buff))
+
 # ---------------------------------------------------------------- the interface itself
 
 func test_the_frozen_interface_pins_these_six_signatures():
@@ -189,6 +209,14 @@ func test_the_frozen_interface_pins_these_six_signatures():
 			'%s has the frozen return Variant.Type.' % required)
 		assert_eq(entry.return.class_name, expected.return_class,
 			'%s has the frozen return class_name.' % required)
+
+	# AND THE TAG'S VALUE, not only the six functions. OWN_TAG is part of the produced interface (plan
+	# Task 1) and its STRING is a cross-frame contract: five consumer frames and SP2's Step all read
+	# Teleport.OWN_TAG, and a rename or a typo in it is invisible to every other assertion in this file,
+	# because is_own tags and reads back through the same constant and so stays green against any value
+	# at all. Pinned as a literal for exactly that reason.
+	assert_eq(Teleport.OWN_TAG, &'reag_own_teleport',
+		'Teleport.OWN_TAG keeps its frozen VALUE, not merely its name.')
 
 # ---------------------------------------------------------------- is_teleport
 
@@ -270,6 +298,33 @@ func test_movement_type_own_involuntary_is_involuntary_ignores_engagement_and_is
 	assert_false(type.ignore_rxns,
 		'But it does NOT ignore reactions: Uncertainty Field has to be offered on it.')
 	assert_true(Teleport.is_own(type), 'And is_own reads the tag back.')
+
+func test_own_involuntary_stays_involuntary_under_a_movement_type_buff_that_is_voluntary():
+	# THE ONE FLAG SP2'S "this teleportation cannot be prevented" RESTS ON, and the engine hands it
+	# back unless the helper re-asserts it. MovementType.create sets `type.voluntary = is_voluntary`
+	# (movement_type.gd:44) and THEN merges every Buff.TO.MOVEMENT_TYPE resource the unit holds (:51),
+	# where merge_in is `voluntary = voluntary or other.voluntary` (:81). So one buffed movement type
+	# authored voluntary = true turns Step back into a preventable teleport: both Immobilized gates test
+	# that flag (pathfinder.gd:333, event_unit_move.gd:451) and Pathfinder.create is where every
+	# MOVEMENT_RESTRICTION ban lands.
+	#
+	# LATENT, NOT LIVE - no vanilla resource and none of the three residents sets `voluntary` on a
+	# movement-type buff, so nothing else in the suite would ever notice this going wrong, which is the
+	# whole reason the case is built by hand here.
+	apply_a_voluntary_movement_type_buff()
+
+	var default_type := Teleport.movement_type(unit)
+	assert_true(default_type.free_climb,
+		'CONTROL: the buff really is merged into what create() returns...')
+	assert_true(default_type.voluntary,
+		'...and the DEFAULT shape is still voluntary, exactly as it is without the buff.')
+
+	var own := Teleport.movement_type(unit, true)
+	assert_true(own.free_climb, 'CONTROL: the same buff merged into the own-involuntary shape too...')
+	assert_false(own.voluntary,
+		'...and voluntary is re-asserted FALSE after that merge, which is the whole of "this'
+		+ ' teleportation cannot be prevented".')
+	assert_true(Teleport.is_own(own), 'And it is still tagged as ours.')
 
 func test_is_own_is_false_for_every_movement_type_we_did_not_tag():
 	# The whole point of the tag is telling OUR unpreventable Step from a HOSTILE shove, and both are

@@ -18,9 +18,11 @@
 # bank. Nothing in this mod re-implements any of that; the chip only has to be the right shape and to
 # refuse the wrong attacks.
 #
-# THE SWORD IS ACCURATE, so every attack with it pops a d20 AND an accuracy die off
-# Dice.CHEAT_ROLL_QUEUE - and a REROLL pops another pair. Every cheat helper below queues in pairs and
-# says which roll each pair is for.
+# HOW MANY VALUES AN ATTACK POPS OFF Dice.CHEAT_ROLL_QUEUE IS PER WEAPON, and it is NOT one pair each.
+# The sword is Accurate, so it pops a d20 and an accuracy die, and a REROLL pops another of each; the
+# rifle pops four and the Improvised Attack three, for the reasons set out over cheat() below. The
+# constants under it are named per weapon and every call site lists its values draw by draw, because a
+# queue that desyncs does not fail - it silently hands the next roll somebody else's number.
 #
 #   godot --resolution 800x600 --position -2400,-2400 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_fade_strike.gd
 extends GutTest
@@ -75,18 +77,42 @@ func arm() -> void:
 	SpecFactory.apply(blush, Lancer.STATUS.INVISIBLE, Lancer.UNTIL.START_OF_TURN)
 	await SpecFactory.start_turn(game, blush)
 
-## d20 + accuracy die, per roll, front to back. Cleared first because cheat_attack only APPENDS and
-## this file rolls up to three times in one test.
-func cheat(pairs:Array[int]) -> void:
+## The values Dice.CHEAT_ROLL_QUEUE hands out, in DRAW order, followed by a buffer of 6s. Cleared first
+## because cheat_attack only APPENDS and this file rolls up to three times in one test.
+##
+## HOW MANY VALUES A DRAW EATS IS PER WEAPON, not one pair per attack - measured off the runner's own
+## `CHEATING roll, popping` lines, 2026-09-17:
+##   - the Variable Sword eats TWO, a d20 and its Accurate die (attack_accuracy = "1"). Melee is not
+##     difficult when engaged, so nothing offsets that +1. Its damage is a flat "3" and rolls nothing.
+##     A REROLL eats another two.
+##   - mw_assault_rifle eats FOUR: a d20, then an ENGAGED difficulty die (these tests fire it from an
+##     adjacent tile, and accuracy_mods_total() of -1 still rolls 1d6 and negates it,
+##     attack_roll.gd:70 / dice.gd:87), then TWO for its 1d6 damage - the summary rolls an if-hit value
+##     and an if-crit value, and it rolls them whether or not the attack landed.
+##   - mw_improvised_attack eats THREE: a d20 (no accuracy modifier, and melee takes no engaged
+##     difficulty), then the same two damage values for its own 1d6.
+## Every caller below names its values draw by draw. The trailing 6s are a buffer and no test here
+## reaches them.
+func cheat(values:Array[int]) -> void:
 	Dice.CHEAT_ROLL_QUEUE.clear()
-	Dice.cheat_attack(pairs, [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6])
+	Dice.cheat_attack(values, [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6])
 
-## 13 + 1 = 14: a hit against evasion 10, and nowhere near the >= 20 crit threshold.
+## SWORD, two values: 13 + 1 = 14, a hit against evasion 10 and nowhere near the >= 20 crit threshold.
 const HIT:Array[int] = [13, 1]
-## 1 + 1 = 2: a miss against evasion 10.
+## SWORD, two values: 1 + 1 = 2, a miss against evasion 10.
 const MISS:Array[int] = [1, 1]
-## 30 + 6 = 36: a crit, which handle_reroll_take_second never asks about.
+## SWORD, two values: 30 + 6 = 36, a crit, which handle_reroll_take_second never asks about.
 const CRIT:Array[int] = [30, 6]
+
+## RIFLE, four values: d20 13, engaged difficulty die 1 (so 13 - 1 = 12, a hit against evasion 10 and
+## short of a crit), then the 1d6 damage summary's if-hit and if-crit rolls. A HIT rather than a miss
+## on purpose - a Reliable 2 miss also leaves damage on the board, so only a hit separates "the shot
+## resolved" from "Reliable paid out".
+const RIFLE_HIT:Array[int] = [13, 1, 6, 6]
+
+## IMPROVISED ATTACK, three values: d20 13 (nothing modifies it, so 13 hits evasion 10 and does not
+## crit), then its own 1d6 damage summary's two rolls.
+const IMPROVISED_HIT:Array[int] = [13, 6, 6]
 
 func swing() -> void:
 	await SpecFactory.use_solo(game, blush, MaidensBlushFixture.MELEE_ID, [target])
@@ -160,6 +186,28 @@ func test_not_invisible_at_turn_start_means_no_chip():
 	# EVERY turn start would pass test_invisible_at_turn_start_leaves_the_chip_on_the_blush.
 	await SpecFactory.start_turn(game, blush)
 	assert_false(has_chip(), 'A turn begun in plain sight arms nothing.')
+
+func test_another_units_turn_start_does_not_arm_the_chip():
+	# THE HOLDER GUARD (buff_fade_strike_arm.gd:38), and this frame's own design is what makes it
+	# reachable: Uncertainty Field's fade lasts "until the beginning of its next turn", so the Blush
+	# spends the ENEMY's whole turn Invisible. NEW_TURN fires for every turn on the map and the bus polls
+	# every unit's buffs with the same event, so without that line an enemy's turn start arms the chip -
+	# and until = END_OF_THIS_TURN then throws it away at the end of THAT turn, costing the player the
+	# reroll they paid a fade for. buff_hybridized_shot.gd:74-76 carries the same guard for the same
+	# reason.
+	#
+	# MANUAL rather than START_OF_TURN, because the status has to survive the other unit's turn to still
+	# be up for the control below - which is the whole point: the two halves differ only in WHOSE turn
+	# starts.
+	SpecFactory.apply(blush, Lancer.STATUS.INVISIBLE, Lancer.UNTIL.MANUAL)
+	await SpecFactory.start_turn(game, target)
+	assert_false(has_chip(),
+		'Somebody else beginning their turn arms nothing, however Invisible the Blush is.')
+	await SpecFactory.end_turn(game, target)
+
+	await SpecFactory.start_turn(game, blush)
+	assert_true(has_chip(),
+		'CONTROL: the Blush\'s OWN turn start, with the same status still up, does arm it.')
 
 func test_invisible_gained_mid_turn_arms_nothing_until_the_next_turn_start():
 	# "BEGINS its turn Invisible" - fading after the turn has started does not retroactively arm it.
@@ -261,29 +309,46 @@ func test_a_ranged_attack_leaves_the_chip_for_the_melee_attack_after_it():
 	# the chip and handle_reroll_take_second never sees it - it is neither used NOR consumed. That is
 	# the engine's own filtering (event_unit_attack.gd:356-357 through UnitCondition.get_buffs_to), and
 	# it is what stops a rifle shot eating the melee reroll.
+	#
+	# THE SHOT HAS TO LAND FOR THIS TO BE A NEGATIVE ABOUT THE CHIP. "No prompt, and the chip is still
+	# there" is also exactly what a use_solo the engine silently refused reports
+	# ([ Gear not available ]), so the damage assertion is what separates the two - test_rend.gd does
+	# the same for its own ranged and improvised cases.
 	await arm()
 	responder.chosen_yesnos = true
-	cheat(MISS + MISS + HIT)
+	# rifle d20, its engaged difficulty die, its two damage rolls | the sword's d20 and Accurate die,
+	# missing | the reroll's d20 and Accurate die, hitting. Eight values, eight draws.
+	cheat(RIFLE_HIT + MISS + HIT)
 	var mark := yesno_mark()
 	await shoot()
+	assert_gt(target.current_damage(), MaidensBlushFixture.RELIABLE_ON_MISS,
+		'Fixture: the rifle shot really HIT - more than the 2 its Reliable pays on a miss.')
 	assert_eq(yesnos_since(mark).size(), 0, 'The rifle shot was offered no reroll...')
 	assert_true(has_chip(), '...and left the chip alone.')
 
+	var after_shot:int = target.current_damage()
 	await swing()
 	assert_eq(yesnos_since(mark).size(), 1, 'The melee attack after it got the offer...')
 	assert_false(has_chip(), '...and spent it.')
+	assert_gt(target.current_damage(), after_shot,
+		'Fixture: and the rerolled swing landed, so the chip went to a real attack.')
 
 func test_an_improvised_attack_leaves_the_chip_untouched():
 	# RULING 12. The Improvised Attack IS weapon_type MELEE, so the type filter alone would let it
 	# through; what refuses it is BuffModifyAttackRoll.allow_basic being false
 	# (buff_modify_attack_roll.gd:48, loadout_core.gd:414). Without this, a Ram or an Improvised Attack
 	# would burn the reroll before the real strike - which is the reason the author took the ruling.
+	#
+	# AND IT HAS TO LAND, for the same reason as the ranged case above: a use_solo the engine refused
+	# reports "no prompt, chip untouched" too. Cheated to a HIT rather than a miss so the damage is
+	# unambiguous - the Improvised Attack has no Reliable to pay out.
 	MaidensBlushFixture.equip_basic_melee(blush)
 	await arm()
 	responder.chosen_yesnos = true
-	cheat(MISS + MISS)
+	cheat(IMPROVISED_HIT) # its d20, then its two 1d6 damage rolls. Three values, three draws.
 	var mark := yesno_mark()
 	await improvise()
 
+	assert_gt(target.current_damage(), 0, 'Fixture: the improvised attack really landed.')
 	assert_eq(yesnos_since(mark).size(), 0, 'Basic melee is offered no reroll...')
 	assert_true(has_chip(), '...and the chip is still there for a real weapon.')

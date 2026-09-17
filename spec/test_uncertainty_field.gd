@@ -29,6 +29,9 @@ const TRAIT_ID := &'mt_uncertainty_field'
 const ACTION_ID := &'action_uncertainty_field'
 const BREAK_BUFF_ID := &'buff_uncertainty_field_break'
 
+## Fade Strike's chip, for the one test that drives the frame's whole kit end to end.
+const FADE_STRIKE_CHIP_ID := &'buff_fade_strike'
+
 const BLUSH_TILE := Vector2i(2, 2)
 const DESTINATION := Vector2i(5, 2)
 const HOSTILE_TILE := Vector2i(8, 2)
@@ -149,7 +152,11 @@ func fade_by_hand() -> void:
 	SpecFactory.apply(blush, Lancer.STATUS.INVISIBLE, Lancer.UNTIL.START_OF_TURN, field_source())
 
 func take_damage(amount:int, type:Lancer.DAMAGE_TYPE) -> void:
-	await game.execute_event(&'event_unit_damage', {unit = blush, number = amount, category = type})
+	await damage_unit(blush, amount, type)
+
+## Damage ANYBODY, so the break buff's holder check can be driven from the other side of it.
+func damage_unit(victim:Unit, amount:int, type:Lancer.DAMAGE_TYPE) -> void:
+	await game.execute_event(&'event_unit_damage', {unit = victim, number = amount, category = type})
 
 # ---------------------------------------------------------------- the wiring
 
@@ -187,8 +194,16 @@ func test_the_trait_its_reaction_and_its_break_buff_are_shaped_right():
 	assert_eq(break_buff.until, Lancer.UNTIL.MANUAL, 'And it lasts the scene.')
 
 func test_the_rows_resolve_and_the_reaction_stays_off_the_trait_card():
+	# THE THREE INVENTED UI ROWS ARE IN THIS LIST TOO, and they are the ones that most need it. The
+	# battle-log call passes a LITERAL KEY (action_uncertainty_field.gd:105) which battle_log_bus.log_tr
+	# tr()s itself, and Translate.action defaults return_key_if_blank = true - so a dropped CSV row or a
+	# stale localizations.en.translation artifact puts the raw key straight into the battle log and
+	# floating over the board, with every other test in this file still green.
 	for key:String in ['gear.mt_uncertainty_field.name', 'gear.mt_uncertainty_field.effect',
-			'gear.mt_uncertainty_field.action_uncertainty_field.name']:
+			'gear.mt_uncertainty_field.action_uncertainty_field.name',
+			'gear.mt_uncertainty_field.action_uncertainty_field.replaced.log',
+			'gear.mt_uncertainty_field.action_uncertainty_field.replaced.pop',
+			'gear.mt_uncertainty_field.broken.log']:
 		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
 
 	# THE REACTION DOES NOT GET ITS OWN ROW ON THE TRAIT CARD, and that is an engine consequence of
@@ -345,6 +360,25 @@ func test_an_involuntary_teleport_with_no_readable_forcer_is_not_offered():
 	assert_true(would_offer(voluntary_teleport_data()), 'CONTROL: a teleport IS offered.')
 	assert_false(would_offer(anonymous), 'An involuntary teleport with no forcer is not.')
 
+func test_our_own_involuntary_teleport_is_offered_even_though_it_names_no_forcer():
+	# RULING 4, AND THE CLAUSE SP2'S STEP RESTS ON (action_uncertainty_field.gd:69). Step of Mist and
+	# Thunder issues the own-but-INVOLUNTARY movement type - the "this teleportation cannot be
+	# prevented" shape - which fails the resource.voluntary clause and names no forcer, so to every
+	# other clause in the gate it is indistinguishable from the anonymous involuntary teleport the test
+	# directly above REFUSES. Only Teleport.is_own tells them apart. Without that line the field would
+	# go silent on the frame's own core power and nothing else in SP1 would notice.
+	#
+	# That neighbouring negative is this test's control, which is why the two sit together: same
+	# involuntariness, same absent forcer, opposite answer, and the only difference is the OWN tag.
+	var own_type := Teleport.movement_type(blush, true)
+	var own_involuntary := {unit = blush, target_tiles = [DESTINATION], resource = own_type}
+	assert_false(own_type.voluntary,
+		'Fixture: it really is involuntary, so the voluntary clause cannot be what answers.')
+	assert_null(Teleport.forcer(Context.create(own_involuntary)),
+		'Fixture: and it names no forcer, so the hostile-forcer clause cannot be either.')
+	assert_true(would_offer(own_involuntary),
+		'Our own unpreventable teleport is still offered - the is_own clause is what does it.')
+
 func test_an_involuntary_teleport_forced_by_an_ally_is_not_offered():
 	# The other half of the forcer clause, and the one that makes UnitRelation.are_enemies do work:
 	# without it, an ALLY's repositioning effect would prompt the player to refuse it. Reading the
@@ -392,6 +426,28 @@ func test_the_invisible_clears_at_the_blushs_next_turn_start():
 	await SpecFactory.start_turn(game, blush)
 	assert_false(blush.has_status(Lancer.STATUS.INVISIBLE), 'Gone at the start of the next turn.')
 
+func test_a_real_fade_arms_fade_strike_at_the_blushs_next_turn_start():
+	# THE FRAME'S SIGNATURE CHAIN, END TO END, and the justification ruling 7 rests on: teleport, fade
+	# through the enemy turn, reroll the first melee strike. Both halves are pinned separately - this
+	# file owns the fade, test_fade_strike.gd owns the chip - but test_fade_strike.arm() HAND-APPLIES
+	# the status, so until this test nothing drove a real Uncertainty Field Invisible into a real
+	# arming. The two sources agree today (same status, same START_OF_TURN, and the arming buff is
+	# source-agnostic); this is the assertion that survives a future change to either trait.
+	#
+	# THE TIMING IS THE WHOLE POINT. event_turn_start fires NEW_TURN / PRE before handle_starting_unit
+	# clears START_OF_TURN statuses, so a fade that lasts "until the beginning of its next turn" is
+	# still up when the arming buff looks and gone by the time the turn runs.
+	responder.chosen_yesnos = true
+	await teleport_by_path(DESTINATION)
+	assert_true(faded(), 'Fixture: a REAL fade, taken from a real teleport offer.')
+
+	await SpecFactory.end_turn(game, blush)
+	await SpecFactory.start_turn(game, blush)
+	assert_true(UnitCondition.has_buff(blush, FADE_STRIKE_CHIP_ID),
+		'The field\'s own Invisible armed Fade Strike\'s chip.')
+	assert_false(blush.has_status(Lancer.STATUS.INVISIBLE),
+		'And the fade itself is gone once the turn is running - the chip is what survives it.')
+
 # ---------------------------------------------------------------- the damage break
 
 func test_kinetic_damage_above_zero_clears_the_invisible():
@@ -399,6 +455,28 @@ func test_kinetic_damage_above_zero_clears_the_invisible():
 	assert_true(faded(), 'Fixture: faded.')
 	await take_damage(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC)
 	assert_false(blush.has_status(Lancer.STATUS.INVISIBLE), 'Taking damage broke the fade.')
+
+func test_damage_to_somebody_else_leaves_the_fade_alone():
+	# THE HOLDER CHECK (buff_uncertainty_field_break.gd:59). The bus polls EVERY unit's buffs on every
+	# DAMAGE POST with the SAME event, so without that one line the Blush drops its fade the moment
+	# anybody on the map is shot - a player-visible defect, and one no other test in this file would see,
+	# because every other damage case aims at the Blush.
+	#
+	# Driven through a REAL fade rather than fade_by_hand: this is the case where what is being
+	# protected is the whole chain, not just the status.
+	responder.chosen_yesnos = true
+	await teleport_by_path(DESTINATION)
+	assert_true(faded(), 'Fixture: the Blush really faded.')
+
+	await damage_unit(hostile, BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_gt(hostile.current_damage(), 0, 'Fixture: the hostile really took the damage.')
+	assert_true(faded(),
+		'And the Blush kept its fade - somebody else being shot is not "it takes damage".')
+
+	# THE CONTROL, in the same test: the identical hit on the Blush DOES break it, so the assertion
+	# above is the holder check doing the work and not a break buff that never fires at all.
+	await take_damage(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_false(faded(), 'CONTROL: the same damage on the Blush itself breaks it.')
 
 func test_heat_does_not_clear_the_invisible():
 	# Heat is not damage in Lancer, and it reaches DAMAGE POST through the same event - so this is a

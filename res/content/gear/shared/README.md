@@ -18,13 +18,15 @@ registered, and cannot be referenced by that name at all. (This is a different p
 that one is why the engine has so many autoloads. Both end at the same advice, for different
 reasons.)
 
-Built, and the interface frozen when its sub-project shipped:
+Built, and the interface frozen when its sub-project shipped — listed in the order they became
+shared families, which is not the order of the frames: Armor's code was born at frame 2 and only
+became a family at the Myconid.
 
 | Family | Born with | Interface | Consumers |
 |---|---|---|---|
 | Overshield | 4 Myconid, SP1 | `current` `has` `grant` `increase` `grit` | Sluagh, Hazard, Naga, Primrose, Black Mountain |
-| Teleport (observe/intercept half) | 5 Maiden's Blush, SP1 | `is_teleport` `destination` `forcer` `movement_type` `is_own` `veto`, plus `OWN_TAG`. **The perform half — `candidate_tiles` `pathfinder` `pick_tile` `move` `move_along` — is SP2's and is added to the same file.** | Purple Thorn, Leoleth (ZIP), Sluagh (Hunt), Koremasa (Vanish), Six Sky |
 | Armor | 2 Fitzgerald, SP4 (promoted at 4 Myconid, SP2; the Fitzgerald's own `.tres` re-pointed at the frame close) | `buff_armor_statblock.gd` `armor_amount` + `buff_armor_reduction.gd` `reduction_amount` `damage_types` `until` — always applied as a PAIR, with matching `until` | Reinforcement Blast, Fungal Network, Uffish Gyre |
+| Teleport (observe/intercept half) | 5 Maiden's Blush, SP1 | `is_teleport` `destination` `forcer` `movement_type` `is_own` `veto`, plus `OWN_TAG`. **The perform half — `candidate_tiles` `pathfinder` `pick_tile` `move` `move_along` — is SP2's and is added to the same file.** | Purple Thorn, Leoleth (ZIP), Sluagh (Hunt), Koremasa (Vanish), Six Sky |
 
 Planned:
 
@@ -34,6 +36,7 @@ Planned:
 | Difficult terrain | 6 Vauban | Leoleth, Shackleton |
 | Lock-on consumed hook | 7 Naga | Black Mountain |
 | Attack redirection | 3 Subutai | Sluagh, Rakshasa, Lovers Knot — shape set by that frame's spike |
+| Once-per-round on-hit | 2 Fitzgerald, `mt_knock_em_down` | 5 Maiden's Blush, `mt_rend` — already two in-mod instances of the same two-method shape (`check_if_passive_applies` gating on `get_uses_this_round_alt(...) == 0`, and a `should_abort` that increments before `super`), differing only in `TRAIT_ID`/`USAGE_KEY` and the weapon type. **Trigger: extract into a shared parametrised base at the THIRD in-mod instance — or now, if the author says so.** Not done at two, deliberately: vanilla's Crack Shot III (`buff_watch_this.gd`) is the same one-script-per-trait duplication, both headers already say they are the same mechanism written the same way, and extracting means turning those two constants into `@export`s on a SHIPPED trait's `.tres`. |
 
 Nothing with a vanilla precedent belongs here: limited weapons that attack without charges follow
 the Injector Drill, and `mt_guardian` / `mt_fragile` / `mt_slow` / `mt_exposed_reactor` are vanilla
