@@ -23,13 +23,13 @@ Built, and the interface frozen when its sub-project shipped:
 | Family | Born with | Interface | Consumers |
 |---|---|---|---|
 | Overshield | 4 Myconid, SP1 | `current` `has` `grant` `increase` `grit` | Sluagh, Hazard, Naga, Primrose, Black Mountain |
+| Teleport (observe/intercept half) | 5 Maiden's Blush, SP1 | `is_teleport` `destination` `forcer` `movement_type` `is_own` `veto`, plus `OWN_TAG`. **The perform half — `candidate_tiles` `pathfinder` `pick_tile` `move` `move_along` — is SP2's and is added to the same file.** | Purple Thorn, Leoleth (ZIP), Sluagh (Hunt), Koremasa (Vanish), Six Sky |
 | Armor | 2 Fitzgerald, SP4 (promoted at 4 Myconid, SP2; the Fitzgerald's own `.tres` re-pointed at the frame close) | `buff_armor_statblock.gd` `armor_amount` + `buff_armor_reduction.gd` `reduction_amount` `damage_types` `until` — always applied as a PAIR, with matching `until` | Reinforcement Blast, Fungal Network, Uffish Gyre |
 
 Planned:
 
 | Family | Born with | Consumers |
 |---|---|---|
-| Teleport | 5 Maiden's Blush | Purple Thorn, Leoleth, Sluagh, Koremasa, Six Sky |
 | Efficient (core-power refund) | 5 Maiden's Blush | Lovers Knot, Black Mountain |
 | Difficult terrain | 6 Vauban | Leoleth, Shackleton |
 | Lock-on consumed hook | 7 Naga | Black Mountain |
