@@ -64,6 +64,51 @@ const FROZEN_SIGNATURES := {
 		args = [['triggering', TYPE_OBJECT, &'EventCore']],
 		defaults = 0, return_type = TYPE_NIL, return_class = &'',
 	},
+
+	# ---- THE PERFORM HALF (SP2, design §2.4), frozen with the six above ----
+	# Two of these carry a parameter that SHADOWS something: candidate_tiles' `range` shadows
+	# GDScript's built-in range(), and move_along's `pathfinder` shadows the sibling function of that
+	# name. Both names are the design's and are pinned here, so neither can be quietly renamed to
+	# make a future body tidier - the consumers are five later frames.
+	candidate_tiles = {
+		args = [
+			['unit', TYPE_OBJECT, &'Unit'],
+			['range', TYPE_INT, &''],
+			['require_line_of_sight', TYPE_BOOL, &''],
+			['keep', TYPE_CALLABLE, &''],
+		],
+		defaults = 1, return_type = TYPE_ARRAY, return_class = &'',
+	},
+	pathfinder = {
+		args = [['unit', TYPE_OBJECT, &'Unit'], ['tiles', TYPE_ARRAY, &'']],
+		defaults = 0, return_type = TYPE_OBJECT, return_class = &'Pathfinder',
+	},
+	pick_tile = {
+		args = [
+			['context', TYPE_OBJECT, &'Context'],
+			['activation', TYPE_OBJECT, &'EventCore'],
+			['tiles', TYPE_ARRAY, &''],
+		],
+		defaults = 0, return_type = TYPE_VECTOR2I, return_class = &'',
+	},
+	move = {
+		args = [
+			['activation', TYPE_OBJECT, &'EventCore'],
+			['unit', TYPE_OBJECT, &'Unit'],
+			['tile', TYPE_VECTOR2I, &''],
+			['own_involuntary', TYPE_BOOL, &''],
+		],
+		defaults = 1, return_type = TYPE_OBJECT, return_class = &'EventCore',
+	},
+	move_along = {
+		args = [
+			['activation', TYPE_OBJECT, &'EventCore'],
+			['unit', TYPE_OBJECT, &'Unit'],
+			['pathfinder', TYPE_OBJECT, &'Pathfinder'],
+			['plan', TYPE_OBJECT, &'CompconPlan'],
+		],
+		defaults = 0, return_type = TYPE_OBJECT, return_class = &'EventCore',
+	},
 }
 
 var game:Gamemaster
@@ -155,15 +200,17 @@ func apply_a_voluntary_movement_type_buff() -> void:
 
 # ---------------------------------------------------------------- the interface itself
 
-func test_the_frozen_interface_pins_these_six_signatures():
-	# Roadmap §4 freezes this list when SP1 ships. This pins the FULL signature of each of the six -
+func test_the_frozen_interface_pins_these_eleven_signatures():
+	# Roadmap §4 freezes the first six when SP1 ships and the last five when SP2 does. This pins the
+	# FULL signature of each of the eleven -
 	# argument count, each argument's name and order, each argument's type, the default-argument
 	# count, and the return type - not only that the name survives. A rename, a reordered parameter,
 	# a changed type or a silently-grown default is five later frames' worth of churn, and nothing
 	# else in the suite would notice any of them until those frames are written.
 	#
-	# Deliberately does NOT fail if a SEVENTH function is added: SP2 adds five (design §2.4), and the
-	# whole freeze contract is "additions allowed, reshapes not".
+	# Deliberately does NOT fail if a TWELFTH function is added: the whole freeze contract is
+	# "additions allowed, reshapes not", and a later frame may need one more (the roadmap's Black
+	# Mountain note is the planned case for the Overshield helper, and the same rule applies here).
 	#
 	# Through a Script-typed local, not Teleport.get_script_method_list() directly: GDScript reads a
 	# preloaded script constant as a CLASS in a call position and refuses the call at parse time.
@@ -357,3 +404,162 @@ func test_veto_stops_a_real_teleport():
 	assert_true(vetoed.aborted, 'The move core reads aborted (event_unit_move.gd:72 pulled the cord).')
 	assert_eq(unit.state.spaces_moved_this_turn, 1,
 		'And nothing further was recorded as moved - only the control move counts.')
+
+# ================================================================================================
+# THE PERFORM HALF (SP2). Everything above this line is SP1's and is unchanged.
+# ================================================================================================
+
+## An activation whose context carries unit + gear + action, so SpecificAction.from_context yields a
+## VALID one and move()/move_along() have something real to hang on the event as its `object`. A bare
+## SpecFactory.dummy_event() does not, which is the negative control in
+## test_move_hangs_nothing_on_the_event_when_the_activation_has_no_action.
+func sourced_activation() -> EventCore:
+	var gear:GearCore = unit.get_gear(&'mw_improvised_attack')
+	return SpecFactory.dummy_event({unit = unit, gear = gear, action = gear.get_solo_action()})
+
+## Raise one tile of terrain between the unit and a tile beyond it, so line of sight is broken without
+## making the far tile unstandable. test_hole_puncher.gd's recipe.
+func wall_at(tiles:Array[Vector2i]) -> void:
+	SpecFactory.add_setpieces_to_landscape(game.get_landscape_node(), &'setpiece_forbidden_interior', tiles)
+	game.map.calculate_los_blockers()
+
+func immobilize(of:Unit) -> void:
+	UnitCondition.apply_status(SpecFactory.dummy_event(), of,
+		Lancer.STATUS.IMMOBILIZED, Lancer.UNTIL.MANUAL)
+
+# ---------------------------------------------------------------- candidate_tiles
+
+func test_candidate_tiles_excludes_a_tile_another_unit_is_standing_on():
+	UnitTile.move_to(forcing_unit, DESTINATION)
+	assert_false(Teleport.candidate_tiles(unit, 5, false).has(DESTINATION),
+		'An occupied tile is not a free space.')
+
+func test_candidate_tiles_excludes_the_units_own_tile():
+	assert_false(Teleport.candidate_tiles(unit, 5, false).has(START),
+		'Teleporting to where you already are is not a move.')
+
+func test_candidate_tiles_excludes_tiles_beyond_the_range():
+	var near := Teleport.candidate_tiles(unit, 2, false)
+	assert_false(near.any(func(tile:Vector2i) -> bool: return Tile.distance(tile, START) > 2),
+		'Nothing beyond the range is offered.')
+	assert_true(near.any(func(tile:Vector2i) -> bool: return Tile.distance(tile, START) == 2),
+		'And the edge of the range IS - so the assertion above is not vacuous.')
+
+func test_candidate_tiles_includes_a_tile_behind_a_wall_only_without_line_of_sight():
+	# The clause Step of Mist and Thunder needs: "without requiring line of sight".
+	wall_at([Vector2i(4, 1), Vector2i(4, 2), Vector2i(4, 3)])
+	var behind := Vector2i(6, 2)
+	assert_true(Teleport.candidate_tiles(unit, 5, false).has(behind),
+		'Blind, the tile behind the wall is a candidate.')
+	assert_false(Teleport.candidate_tiles(unit, 5, true).has(behind),
+		'Sighted, it is not - so the wall really blocks.')
+
+func test_candidate_tiles_honours_a_bound_keep():
+	var only_north := func(tile:Vector2i) -> bool: return tile.y < START.y
+	var kept := Teleport.candidate_tiles(unit, 2, false, only_north)
+	assert_false(kept.is_empty(), 'Something survived the filter.')
+	assert_true(kept.all(func(tile:Vector2i) -> bool: return tile.y < START.y),
+		'And only what keep() allowed - this is the hook Abjuration hangs its pull rule on.')
+
+# ---------------------------------------------------------------- pathfinder
+
+func test_pathfinder_over_a_tile_set_reaches_exactly_the_standable_ones():
+	var tiles := Teleport.candidate_tiles(unit, 3, false)
+	var pf:Pathfinder = await Teleport.pathfinder(unit, tiles)
+	assert_true(pf.using_movement_type.teleport, 'It is a teleport pathfinder.')
+	assert_true(pf.valid_destinations.all(tiles.has),
+		'It reaches nothing we did not offer it.')
+	assert_false(pf.valid_destinations.is_empty(), 'And it reaches something.')
+
+func test_pathfinder_is_empty_for_an_immobilized_unit():
+	# THE PREVENTABLE ROUTE, on purpose. Pathfinder.create refuses a voluntary move by an immobilized
+	# unit (pathfinder.gd:333), and Teleport.pathfinder is deliberately voluntary - Abjuration's
+	# teleport is an ordinary one that Immobilized should stop.
+	immobilize(unit)
+	var pf:Pathfinder = await Teleport.pathfinder(unit, Teleport.candidate_tiles(unit, 3, false))
+	assert_true(pf.valid_destinations.is_empty(), 'Immobilized stops this route, as it should.')
+
+# ---------------------------------------------------------------- move
+
+func test_move_lands_by_tile_and_returns_a_completed_core():
+	var core:EventCore = await Teleport.move(sourced_activation(), unit, DESTINATION)
+	assert_not_null(core, 'It handed the move core back.')
+	assert_false(core.aborted, 'Which did not abort.')
+	assert_eq(unit.tile(), DESTINATION, 'And the mech is there.')
+
+func test_move_returns_an_aborted_core_when_a_pre_listener_vetoes():
+	# What Step of Mist and Thunder reads to know Uncertainty Field took the teleport, and therefore
+	# that no adjacent character saves (ruling 4).
+	arm_listener()
+	var core:EventCore = await Teleport.move(sourced_activation(), unit, DESTINATION)
+	assert_not_null(core, 'Still handed back.')
+	assert_true(core.aborted, 'Marked aborted.')
+	assert_eq(unit.tile(), START, 'And nothing moved.')
+
+func test_the_own_involuntary_move_lands_while_immobilized_and_the_voluntary_one_does_not():
+	# Ruling 8 in one test, and the pair is the point: the flag is what does the work.
+	immobilize(unit)
+	await Teleport.move(sourced_activation(), unit, DESTINATION)
+	assert_eq(unit.tile(), DESTINATION, 'Own-involuntary clears the gate.')
+
+	UnitTile.move_to(unit, START)
+	await Teleport.move(sourced_activation(), unit, DESTINATION, false)
+	assert_eq(unit.tile(), START, 'Voluntary does not.')
+
+func test_move_hangs_the_calling_actions_specific_on_the_event():
+	# This is what lets action_uncertainty_field.replaced_name log the veto against the core power BY
+	# NAME instead of falling back to the glossary's generic word for a teleport. Nothing else in the
+	# suite would notice it going away.
+	var core:EventCore = await Teleport.move(sourced_activation(), unit, DESTINATION)
+	assert_true(SpecificAction.is_valid(core.context.object),
+		'The move carries a SpecificAction as its object.')
+	assert_eq(core.context.object.unit, unit, 'And it is ours.')
+
+func test_move_hangs_nothing_on_the_event_when_the_activation_has_no_action():
+	# The negative control for the test above, and the shape a spec's bare dummy event produces.
+	var core:EventCore = await Teleport.move(SpecFactory.dummy_event(), unit, DESTINATION)
+	assert_false(SpecificAction.is_valid(core.context.object),
+		'Nothing readable, rather than a half-built specific.')
+	assert_eq(unit.tile(), DESTINATION, 'And it still moved.')
+
+# ---------------------------------------------------------------- move_along
+
+func test_move_along_lands_along_a_plan_and_returns_the_movers_core():
+	var pf:Pathfinder = await Teleport.pathfinder(unit, [DESTINATION] as Array[Vector2i])
+	var plan := CompconPlan.new()
+	plan.move_path = pf.path_to(DESTINATION)
+	assert_false(plan.move_path.is_empty(), 'Fixture: there is a path to walk.')
+
+	var core:EventCore = await Teleport.move_along(sourced_activation(), unit, pf, plan)
+	assert_not_null(core, 'It handed a core back.')
+	assert_eq(core.context.unit, unit, 'The MOVER us, not a katamari passenger.')
+	assert_eq(unit.tile(), DESTINATION, 'And the mech is there.')
+
+func test_move_beats_a_movement_restriction_ban_while_the_pathfinder_route_loses_to_it():
+	# THE PAIR THAT MUST OUTLIVE THE SP2 PROBE. test_spike_own_involuntary_teleport.gd measured this
+	# and is deleted in Task 4, and nothing else in this file discriminates the two routes: without a
+	# live ban on the map, a hand-built path and a target tile behave identically, so move() could
+	# quietly go back to target_tiles and every other test here would stay green.
+	#
+	# WHY IT WORKS. EventUnitMove.undergo_move takes context.array straight when it is given a path
+	# (event_unit_move.gd:137-138) and otherwise builds a pathfinder ITSELF (:139-145) - and
+	# Pathfinder.create is where every MOVEMENT_RESTRICTION buff on the map is read and intersected
+	# (:345-352), with no voluntariness check on that read. So the ONLY route that escapes a ban is
+	# one that never builds a pathfinder.
+	#
+	# The Minotaur's Interdiction Field is hung straight on the hostile rather than equipped and woken:
+	# buff_interdiction_field.tres is `to = movement_restriction` and its check_if_passive_applies
+	# asks only for a teleporting movement type and an enemy holder. IT HAS TWO BRANCHES and only the
+	# near one is a lockdown - held further than 3 away it allows every tile EXCEPT its own radius
+	# (:29-33), which would ban nothing we care about. At distance 2 it allows the blank array.
+	UnitTile.move_to(forcing_unit, Vector2i(4, 2))
+	UnitCondition.apply_buff_id(SpecFactory.dummy_event(), forcing_unit, &'buff_interdiction_field')
+	assert_true(UnitRelation.are_enemies(unit, forcing_unit), 'Fixture: the field is a hostile one.')
+
+	var pf:Pathfinder = await Teleport.pathfinder(unit, Teleport.candidate_tiles(unit, 4, false))
+	assert_true(pf.valid_destinations.is_empty(),
+		'The ban is live: the PREVENTABLE route finds nowhere to go.')
+
+	await Teleport.move(sourced_activation(), unit, DESTINATION)
+	assert_eq(unit.tile(), DESTINATION,
+		'And move() lands anyway - no pathfinder is ever built, so no ban is ever read.')

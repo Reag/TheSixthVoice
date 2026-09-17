@@ -26,7 +26,7 @@ became a family at the Myconid.
 |---|---|---|---|
 | Overshield | 4 Myconid, SP1 | `current` `has` `grant` `increase` `grit` | Sluagh, Hazard, Naga, Primrose, Black Mountain |
 | Armor | 2 Fitzgerald, SP4 (promoted at 4 Myconid, SP2; the Fitzgerald's own `.tres` re-pointed at the frame close) | `buff_armor_statblock.gd` `armor_amount` + `buff_armor_reduction.gd` `reduction_amount` `damage_types` `until` — always applied as a PAIR, with matching `until` | Reinforcement Blast, Fungal Network, Uffish Gyre |
-| Teleport (observe/intercept half) | 5 Maiden's Blush, SP1 | `is_teleport` `destination` `forcer` `movement_type` `is_own` `veto`, plus `OWN_TAG`. **The perform half — `candidate_tiles` `pathfinder` `pick_tile` `move` `move_along` — is SP2's and is added to the same file.** | Purple Thorn, Leoleth (ZIP), Sluagh (Hunt), Koremasa (Vanish), Six Sky |
+| Teleport | 5 Maiden's Blush, SP1 (observe/intercept) + SP2 (perform) | **Eleven, all frozen.** Observe/intercept: `is_teleport` `destination` `forcer` `movement_type` `is_own` `veto`, plus `OWN_TAG`. Perform: `candidate_tiles` `pathfinder` `pick_tile` `move` `move_along`. **The two move routes are not interchangeable** — `pathfinder` goes through `Pathfinder.create`, so Immobilized and every `MOVEMENT_RESTRICTION` ban apply (Abjuration wants that); `move` sends a hand-built single-step path and so builds no pathfinder at all, which is the only route that beats a ban (Step needs that). `move`/`move_along` run INLINE and hand the move core back, unlike Blinkspace which queues and returns. | Purple Thorn, Leoleth (ZIP), Sluagh (Hunt), Koremasa (Vanish), Six Sky |
 
 Planned:
 

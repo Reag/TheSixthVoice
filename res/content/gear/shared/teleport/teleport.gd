@@ -5,10 +5,11 @@
 # names and signatures. Five later frames consume them - Purple Thorn, Leoleth (ZIP), Sluagh (Hunt),
 # Koremasa (Vanish), Six Sky - so a rename is five frames' worth of churn.
 #
-# SP2 ADDS THE PERFORM HALF to this same file (design §2.4: candidate_tiles, pathfinder, pick_tile,
-# move, move_along), with every spec in test_teleport.gd still green. Additions, not reshapes:
-# nothing here holds state, nothing here is an instance method, and neither half needs to know about
-# the other.
+# THE PERFORM HALF IS NOW IN THIS SAME FILE and frozen with it (SP2, design §2.4: candidate_tiles,
+# pathfinder, pick_tile, move, move_along) - eleven functions in total, with every SP1 spec still
+# green and unchanged. Additions, not reshapes: nothing here holds state, nothing here is an instance
+# method, and neither half needs to know about the other. Its own block header, further down, carries
+# the measurement that corrected the design's account of how an unpreventable teleport is issued.
 #
 # No class_name (res/content/gear/shared/README.md): global class names are registered from
 # project.godot's class list, which is built at startup, so one declared in a script a mod loads at
@@ -72,9 +73,16 @@ static func destination(context:Context) -> Vector2i:
 ## demands all three (specific_action.gd:16-23) - so is_valid would answer null for the very case
 ## this exists to catch.
 ##
-## NULL IS THE NORMAL ANSWER FOR OUR OWN TELEPORT: Blinkspace Jump passes no specific to
+## NULL IS THE NORMAL ANSWER FOR A VANILLA TELEPORT OF OUR OWN: Blinkspace Jump passes no specific to
 ## generate_events (action_blinkspace_jump.gd:64) and event_unit_teleport sets no `object` at all. A
 ## caller must read null as "nobody readable", never as "me".
+##
+## BUT OUR OWN move() AND move_along() DO PASS ONE (SP2), so this returns the MECH ITSELF for a Step of
+## Mist and Thunder or an Abjuration of Metal - which is why they can be logged and telegraphed by
+## name. A caller distinguishing "somebody is shoving me" from "this is mine" must therefore NOT infer
+## it from a null here; it reads resource.voluntary and is_own first, which is the order
+## action_uncertainty_field.triggers_on_event uses. Both of its "ours" clauses return before the forcer
+## check is ever reached.
 static func forcer(context:Context) -> Unit:
 	if context == null: return null
 	var source = context.object
@@ -152,3 +160,194 @@ static func is_own(movement_type:MovementType) -> bool:
 static func veto(triggering:EventCore) -> void:
 	if not is_instance_valid(triggering): return
 	triggering.set_aborted()
+
+# ================================================================================================
+# THE PERFORM HALF (SP2, design §2.4). Five statics, frozen with the six above when SP2 ships.
+#
+# WHY THESE EXECUTE INLINE AND HAND THE CORE BACK, when vanilla's Blinkspace Jump queues its move and
+# returns (action_blinkspace_jump.gd:64): both of this frame's teleports need what comes AFTER the
+# move - Step's adjacent Systems saves, Abjuration's Skirmish - and both need to know whether
+# Uncertainty Field took the teleport. A queued move resolves after the activation has finished, so
+# neither is reachable from there.
+#
+# THE ONE THING THAT COST A MEASUREMENT (SP2 probe, 2026-09-17, and it CORRECTED the design):
+# "moves by target tile without a pathfinder" is FALSE. EventUnitMove.undergo_move takes
+# context.array straight when it is handed a path (event_unit_move.gd:137-138) and otherwise builds a
+# pathfinder ITSELF - Pathfinder.generate_for_given_tiles then path_to (:139-145). So a target-tile
+# move reads every MOVEMENT_RESTRICTION ban after all, and the ONLY route that escapes one is an
+# explicit path. Measured four ways:
+#
+#   route                             Immobilized   Interdiction Field ban
+#   voluntary   + target tile          loses         loses
+#   involuntary + target tile          BEATS         loses
+#   voluntary   + one-step path        loses         BEATS
+#   involuntary + one-step path        BEATS         BEATS
+#
+# Involuntariness buys the Immobilized gate and nothing else (Pathfinder.create's check at
+# pathfinder.gd:333 is voluntariness-gated; the ban read at :345-352 is gated on nothing). Bypassing
+# the pathfinder buys the ban and nothing else. "This teleportation cannot be prevented" needs both,
+# so move() sends a hand-built single step.
+# ================================================================================================
+
+
+## Every free space this unit could teleport to within `range`.
+##
+## `range` SHADOWS GDScript's built-in range() inside this function, and the name is frozen by the
+## design's signature contract (§2.4) so it cannot simply be renamed - the same situation is_own's
+## `movement_type` parameter is in. Nothing in this body needs range().
+##
+## THE FILTER IS THE ENGINE'S OWN FREE-SPACE TEST, not a re-implementation:
+## UnitTile.is_tile_standable (unit_tile.gd:127) with Katamari.create_solipsistic(unit), which is
+## exactly the pair get_nearest_valid_tiles uses (:139-155). The katamari and the movement type are
+## built ONCE - is_tile_standable defaults its movement_type argument to MovementType.create(unit),
+## which walks every Buff.TO.MOVEMENT_TYPE the unit holds, and that is not a per-tile cost worth
+## paying.
+##
+## The unit's OWN occupied tiles are dropped: a teleport to where you already are is not a move, and
+## is_tile_standable says yes to them (the solipsistic katamari ignores the mover itself).
+static func candidate_tiles(unit:Unit, range:int, require_line_of_sight:bool, keep:Callable = Callable()) -> Array[Vector2i]:
+	if not Unit.is_valid(unit): return []
+	var katamari := Katamari.create_solipsistic(unit)
+	var type := movement_type(unit)
+	var occupied := unit.occupied_tiles()
+	var tiles := UnitTile.get_tiles_within(unit, range, require_line_of_sight)
+	Util.filter(tiles, func(tile:Vector2i) -> bool:
+		if occupied.has(tile): return false
+		if not UnitTile.is_tile_standable(unit, tile, katamari, type): return false
+		if keep.is_valid() and not keep.call(tile): return false
+		return true
+	)
+	return tiles
+
+
+## A teleport pathfinder over an explicit tile set - Blinkspace's shape
+## (action_blinkspace_jump.gd:51-56), and THE PREVENTABLE ROUTE ON PURPOSE.
+##
+## generate_for_given_tiles calls Pathfinder.create (pathfinder.gd:294/:296), which is both the
+## Immobilized gate (:333) and where every MOVEMENT_RESTRICTION ban is read and intersected
+## (:345-352). Abjuration of Metal wants exactly that: its teleport is an ordinary one that an
+## Interdiction Field or Immobilized should stop. Step of Mist and Thunder must NOT come through
+## here - it uses move() below.
+static func pathfinder(unit:Unit, tiles:Array[Vector2i]) -> Pathfinder:
+	return await Pathfinder.generate_for_given_tiles(unit, tiles, movement_type(unit))
+
+
+## The reticle over an EXACT tile set. Tile.INVALID when the player cancels.
+##
+## MECHANISM (settled by the SP2 probe, which measured both candidates the design left open):
+## TargetRequirements.targetable_tiles_override is returned VERBATIM by
+## UnitTargeting.get_tiles_targetable, before any other filtering (unit_targeting.gd:68-74) - no
+## range pattern to fight, no line-of-sight pass to disable, and no ACTION_TILE buffs merged in. The
+## Thy Hubris reag_tile_set_picker port (roadmap SP0) is therefore NOT needed and stays deferred.
+##
+## THE TILE SET REACHES get_target_requirements THROUGH A PER-CALL COPY OF THE CALLING ACTION, which
+## is the part that needs care. get_target_requirements is a method on the Action RESOURCE, and one
+## Action resource is shared by every unit carrying the gear - so parking the tiles on the real
+## action would have two Blushes picking from each other's sets, and parking them in a static here
+## would break this file's "nothing holds state" invariant.
+## Action.create_duplicate_for_variant() (action.gd:94-98) is the engine's own identity-preserving
+## copy: it sets original_id = get_id(), and get_id() returns original_id when it is set (:90-92), so
+## the copy still resolves Translate.action(kit, action, 'name') to the REAL action's localisation
+## rows. The prompt says "Step of Mist and Thunder", not the name of a proxy.
+##
+## target_requirements_override is a plain @export on Action (:34) that get_target_requirements
+## returns when set (:207-208), so no subclass hook is needed to install it.
+static func pick_tile(context:Context, activation:EventCore, tiles:Array[Vector2i]) -> Vector2i:
+	if tiles.is_empty(): return Tile.INVALID
+	if not Unit.is_valid(context.unit): return Tile.INVALID
+
+	var reqs := TargetRequirements.create(1, RangePattern.create(Lancer.AOE_TYPE.NONE, 0))
+	reqs.can_target_empty_tiles = true # we are picking a SPACE, not a unit
+	reqs.can_target_units = false
+	reqs.requires_free_space = true
+	reqs.targetable_tiles_override = func(
+		_specific:SpecificAction,
+		_picks:Array = [],
+		_from_tile := Tile.INVALID,
+		_los:PackedInt64Array = []
+	) -> Array[Vector2i]: return tiles
+
+	var proxy:Action = context.action.create_duplicate_for_variant()
+	proxy.target_requirements_override = reqs
+	var specific := SpecificAction.create(context.unit, context.gear, proxy)
+
+	# No pathfinder: this is a pick, never a move-then-act. ask_for_targets_alt turns a null or
+	# aborted plan into CompconPlan.create_aborted() (target_action_util.gd:203).
+	var plan:CompconPlan = await TargetActionUtil.ask_for_targets_alt(activation, specific)
+	if plan == null or plan.aborted: return Tile.INVALID
+	if plan.target_tiles.is_empty(): return Tile.INVALID
+	return plan.target_tiles.front()
+
+
+## THE UNPREVENTABLE ROUTE: one event_unit_move carrying a hand-built SINGLE-STEP path, executed
+## inline, with the move core handed back so the caller can read `aborted`.
+##
+## A PATH, NOT A TARGET TILE - see this block's header for the four-way measurement. One step of any
+## length is legal because is_next_step_possible waives the "still adjacent to us" rule when
+## movement_type.teleport (event_unit_move.gd:385), and has_enough_move_to_reach_end returns true at
+## its `not movement_type.spend_move` early exit (:454) - spend_move defaults false
+## (movement_type.gd:5) and movement_type() above never sets it. The step's cost is nominal for the
+## same reason: nothing reads it.
+##
+## IT PASSES THE CALLING ACTION'S SpecificAction AS THE EVENT'S `object`, derived from the activation
+## rather than taken as an argument, because the signature is frozen. That is what lets
+## action_uncertainty_field.replaced_name log the veto against "Step of Mist and Thunder" by name
+## instead of falling back to the glossary's generic word for a teleport - and it is why forcer()'s
+## docstring above no longer says our own teleports carry no source.
+static func move(activation:EventCore, unit:Unit, tile:Vector2i, own_involuntary:bool = true) -> EventCore:
+	if not Unit.is_valid(unit): return null
+	if not Tile.is_valid(tile, unit.map): return null
+	var path:Array[Pathfinder.Step] = [Pathfinder.Step.create(tile, 1)]
+	return await _run(activation, {
+		unit = unit,
+		array = path,
+		resource = movement_type(unit, own_involuntary),
+		object = _source(activation),
+	})
+
+
+## The same, for a move the player planned through a pathfinder: Abjuration's route.
+##
+## generate_events returns an ARRAY (pathfinder.gd:908-916) that today holds exactly one core, and
+## the one this returns is the one whose context.unit is the mover - a caller reading `aborted` must
+## be reading the mech's own move, not a katamari passenger's. Its fourth argument is the
+## SpecificAction (:903), passed for the same reason move() passes `object`.
+static func move_along(activation:EventCore, unit:Unit, pathfinder:Pathfinder, plan:CompconPlan) -> EventCore:
+	if not Unit.is_valid(unit): return null
+	if pathfinder == null or plan == null or plan.move_path.is_empty(): return null
+	var cores := pathfinder.generate_events(unit, plan.move_path, [], _source(activation))
+	if cores.is_empty(): return null
+	if activation != null and activation.is_block_valid():
+		await activation.execute_events(cores)
+	else:
+		var level := X.current_level()
+		if level == null: return null
+		await level.execute_event_block(EventBlock.create_multiple(cores))
+	for core:EventCore in cores:
+		if core.context.unit == unit: return core
+	return cores.front()
+
+
+## The SpecificAction to hang on a move as its `object`, or null when the activation has none.
+##
+## SpecificAction.from_context on a context missing any of unit/gear/action yields something
+## has_valid_unit refuses, which is the right answer - "nobody readable" - and is what a spec's dummy
+## event produces. Kept as one function so move() and move_along() cannot drift apart on it.
+static func _source(activation:EventCore) -> SpecificAction:
+	if activation == null or activation.context == null: return null
+	return SpecificAction.from_context(activation.context)
+
+
+## Run one event on the caller's own block when there is one, and through the level when there is not
+## - the Overshield helper's idiom (overshield.gd:46-53), for the same two reasons: a caller inside a
+## live activation wants its move ordered inside that activation, and a caller holding a spec's dummy
+## event has no block to queue onto. Hands the core back either way, which is the whole point of this
+## half of the helper.
+static func _run(activation:EventCore, data:Dictionary) -> EventCore:
+	if activation != null and activation.is_block_valid():
+		return await activation.execute_event(&'event_unit_move', data)
+	var level := X.current_level()
+	if level == null: return null
+	var core := EventCore.create(&'event_unit_move', data)
+	await level.execute_event_block(EventBlock.create_multiple([core]))
+	return core
