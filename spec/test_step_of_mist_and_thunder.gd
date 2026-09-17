@@ -95,14 +95,17 @@ func reticle_tiles() -> Array[Vector2i]:
 	if responder.plan_prompts.is_empty(): return []
 	return UnitTargeting.get_tiles_targetable(responder.plan_prompts.back().using)
 
-## Wall the Blush in: every playable tile within `radius` of it, bar the one it stands on, becomes a
-## full-height forbidden interior, so Teleport.candidate_tiles finds nothing standable to offer.
-## Same setpiece the walls in test_hole_puncher.gd and test_juggernaut_drive.gd are built from;
-## forbidden_interiors_enabled is set by the fixture's create_game_with_sequenced_prompts.
-func box_the_blush_in(radius:int) -> void:
+## Wall the Blush in: every playable tile within `radius` of it, bar the one it stands on and any in
+## `except`, becomes a full-height forbidden interior, so Teleport.candidate_tiles finds nothing
+## standable to offer. Same setpiece the walls in test_hole_puncher.gd and test_juggernaut_drive.gd
+## are built from; forbidden_interiors_enabled is set by the fixture's create_game_with_sequenced_prompts.
+##
+## `except` exists for the one test that needs a CHARACTER standing next to a boxed-in Blush: a tile a
+## unit occupies is not standable either, so leaving it un-walled still empties the candidate set.
+func box_the_blush_in(radius:int, except:Array[Vector2i] = []) -> void:
 	var walls:Array[Vector2i] = []
 	for tile:Vector2i in Tile.get_all_within(BLUSH_TILE, radius, game.map):
-		if tile != BLUSH_TILE: walls.append(tile)
+		if tile != BLUSH_TILE and not except.has(tile): walls.append(tile)
 	SpecFactory.add_setpieces_to_landscape(game.get_landscape_node(), &'setpiece_forbidden_interior', walls)
 	game.map.calculate_los_blockers()
 
@@ -430,6 +433,56 @@ func test_the_chip_dies_with_the_blush_that_placed_it():
 		'Fixture: the character it fooled is not - an assertion on a corpse measures nothing.')
 	assert_null(chip_on(fooled), 'And the chip went with the mech that placed it.')
 
+# ---------------------------------------------------------------- folding nowhere
+
+func test_step_offers_the_space_the_blush_already_occupies():
+	# RULING D (reach design 4, 2026-09-17), asked of the RETICLE Step actually opened rather than of
+	# the helper: Teleport.candidate_tiles drops the caller's own tiles at teleport.gd:225 and is
+	# FROZEN with five consumer frames, so the action re-adds its own tile after calling it.
+	await MaidensBlushFixture.open_turn(game, blush)
+	await press([3, 4], LANDING)
+	assert_true(reticle_tiles().has(BLUSH_TILE),
+		'The space it is standing on is a legal destination.')
+
+func test_step_may_fold_into_the_space_it_already_occupies():
+	# THE POINT OF RULING D, and it is a TARGETING choice rather than a power increase: folding one
+	# space already forces the save, and the only difference is which characters end up adjacent to the
+	# destination. A surrounded Blush that folds one may drop a neighbour out of the radius; folding
+	# zero catches exactly its current neighbours.
+	#
+	# Measured before it was built (Task 1's probe): the engine treats a zero-distance single-step path
+	# as a real arrival, so section 7 runs. Three values queued, three drawn: the 2d6, then a Systems
+	# save low enough to fail.
+	await MaidensBlushFixture.open_turn(game, blush)
+	var neighbour := MaidensBlushFixture.create_hostile(game, Vector2i(5, 4)) # 1 from BLUSH_TILE
+	var distant := MaidensBlushFixture.create_hostile(game, Vector2i(6, 4))   # 2 from BLUSH_TILE
+	await press([3, 4, 1], BLUSH_TILE)
+
+	assert_eq(blush.tile(), BLUSH_TILE, 'It folded to where it already was.')
+	assert_false(blush.core.has_core_power, 'And paid for it in full.')
+	assert_not_null(chip_on(neighbour), 'The character beside it saved, and failed.')
+	assert_null(chip_on(distant), 'The one two tiles out never rolled - the radius is still one.')
+
+func test_a_grappled_blush_cannot_fold_in_place_to_shed_the_grip():
+	# THE OTHER HALF OF RULING D, and the one with a wrong answer available. Step strips a GRAPPLED
+	# status through Katamari.validate_attachments when it was grappled and moved (section 6) - the
+	# engine's own reconciler, which KEEPS the status while a grappling attachment still backs it. A
+	# REAL grapple is built here, not the orphan status test_a_grappled_blush_folds_free_of_the_grip
+	# uses: the grappler is still adjacent to a mech that folded nowhere, so the attachment is
+	# genuinely intact and the grip must survive. Otherwise a zero-distance fold would be a free
+	# escape from every grapple in the game.
+	await MaidensBlushFixture.open_turn(game, blush)
+	var grappler := MaidensBlushFixture.create_hostile(game, Vector2i(5, 4))
+	var grapple_gear:GearCore = grappler.get_gear(&'mw_grapple')
+	assert_true(GearCore.is_valid(grapple_gear), 'Fixture: mw_grapple is in every basic loadout.')
+	Katamari.attach_units(SpecFactory.dummy_event(), blush, grappler, grapple_gear.persistent_id)
+	assert_true(blush.has_status(Lancer.STATUS.GRAPPLED), 'Fixture: really grappled.')
+
+	await press([3, 4, 1], BLUSH_TILE)
+
+	assert_eq(blush.tile(), BLUSH_TILE, 'It folded nowhere.')
+	assert_true(blush.has_status(Lancer.STATUS.GRAPPLED), 'And the grip came with it, because it is intact.')
+
 # ---------------------------------------------------------------- snake eyes
 
 func test_snake_eyes_skips_the_picker_and_lands_within_two():
@@ -456,17 +509,22 @@ func test_a_boxed_in_snake_eyes_fizzles_and_still_costs_the_point():
 	# when the tile set is empty (action_step_of_mist_and_thunder.gd:162), before it draws the die for
 	# the destination - so unlike the other snake-eyes tests this one queues no third value.
 	await MaidensBlushFixture.open_turn(game, blush)
-	box_the_blush_in(2)
+	var neighbour := MaidensBlushFixture.create_hostile(game, Vector2i(5, 4))
+	box_the_blush_in(2, [Vector2i(5, 4)])
 	assert_true(Teleport.candidate_tiles(blush, 2, false).is_empty(),
 		'Fixture: walled in, there is nowhere within 2 to be put.')
 
-	await press([1, 1])
+	await press([1, 1, 1])
 
 	assert_eq(blush.tile(), BLUSH_TILE, 'It did not move.')
 	assert_false(blush.core.has_core_power, 'The core point is spent all the same (ruling 9).')
 	assert_ne(blush.state.actions, Lancer.ACTION_COST_FULL, 'And the quick action with it.')
 	assert_true(Efficient.is_marked(core_gear()),
 		'And the stamp is set, so Efficient still gives the point back at the end of the scene.')
+	assert_null(chip_on(neighbour),
+		"AND NOBODY SAVED: ruling D re-adds the mech's own tile to the PICKED branch only. A snake"
+		+ " eyes that found nowhere to go FIZZLES, and a fizzle is not an arrival - adding the own tile"
+		+ " to \"a space of the GM's choice\" would quietly turn every boxed-in snake eyes into a landing.")
 
 # ---------------------------------------------------------------- the field cannot take it
 

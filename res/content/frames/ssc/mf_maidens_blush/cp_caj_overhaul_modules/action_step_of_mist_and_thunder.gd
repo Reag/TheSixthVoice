@@ -89,6 +89,20 @@ func activate(context:Context, activation:EventCore) -> void:
 		tile = pick_random_tile(Teleport.candidate_tiles(unit, SNAKE_EYES_RANGE, false))
 	else:
 		var tiles := Teleport.candidate_tiles(unit, total, false)
+		# THE SPACE IT ALREADY OCCUPIES IS A LEGAL DESTINATION (reach design ruling D, 2026-09-17). It
+		# is a TARGETING choice, not a power increase: folding one space already forces the save, and
+		# the only difference is which characters are adjacent to the destination.
+		#
+		# RE-ADDED HERE RATHER THAN LOOSENED IN THE HELPER. Teleport.candidate_tiles drops the caller's
+		# occupied tiles at teleport.gd:225 and is FROZEN with five consumer frames behind it; "a
+		# teleport to where you already are is not a move" is the right default for all of them and
+		# this card is the exception. Abjuration of Metal is unaffected either way - its own filter
+		# requires moved > 0 and rejects the origin independently.
+		#
+		# THE PICKED BRANCH ONLY. Snake eyes is "a space of the GM's choice", and a boxed-in mech
+		# FIZZLES there (ruling 9); adding the own tile above would quietly turn every fizzle into a
+		# landing, with the adjacent saves and all.
+		tiles.append(unit.tile())
 		tile = await Teleport.pick_tile(context, activation, tiles)
 		# A CANCELLED PICK SPENDS NOTHING, which is Blinkspace's behaviour and the reason the spend is
 		# below this line rather than above the roll.

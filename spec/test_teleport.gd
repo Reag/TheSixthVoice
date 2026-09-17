@@ -377,7 +377,9 @@ func test_movement_type_own_involuntary_is_involuntary_ignores_engagement_and_is
 	assert_false(type.voluntary, 'It is involuntary - which is what beats the two Immobilized gates.')
 	assert_true(type.ignore_engagement, 'It ignores engagement, as vanilla\'s involuntary teleport does.')
 	assert_false(type.ignore_rxns,
-		'But it does NOT ignore reactions: Uncertainty Field has to be offered on it.')
+		"But it does NOT set NO_RXNS - unlike vanilla's own event_unit_teleport shape, so a reaction is"
+		+ " free to judge for itself, even though none does today: Step is permanently exempt from the"
+		+ " frame's own Uncertainty Field (reach design ruling C, 2026-09-17).")
 	assert_true(Teleport.is_own(type), 'And is_own reads the tag back.')
 
 func test_own_involuntary_stays_involuntary_under_a_movement_type_buff_that_is_voluntary():
