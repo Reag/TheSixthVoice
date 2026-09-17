@@ -310,6 +310,18 @@ const ICON_TARGETS := {
 	# and lists none. Its two buffs split: buff_fade_strike_arm is hidden bookkeeping and is correctly
 	# absent from VISIBLE_BUFFS, while buff_fade_strike is the visible chip and is listed there.
 	&'mt_fade_strike': [],
+	# SP2 Task 3 (Maiden's Blush). The CORE SYSTEM, and EMPTY FOR NOW rather than empty on principle -
+	# Step of Mist and Thunder (Task 4) and Abjuration of Metal (Task 5) both belong here and both
+	# arrive with their own tasks. Unlike mt_uncertainty_field above, THOSE TWO ARE NOT `[]`: each has
+	# an `.effect` row of its own and Abjuration a `.trigger` row too, while this Kit has no `.effect`
+	# at all (the LCP's core description is empty, ruling 17), so the action.gd:352 clause that hides a
+	# trait reaction whose effect equals its Kit's cannot fire for either of them.
+	#
+	# Its one action today, action_efficient_refund, is the shared Efficient reaction and is
+	# deliberately absent: it overrides show_in_tooltip to false, so the reverse check below computes
+	# "should not be listed" and listing it would fail. The player reads "Efficient" in the core
+	# power's own effect text, where the card puts it.
+	&'cp_caj_overhaul_modules': [],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

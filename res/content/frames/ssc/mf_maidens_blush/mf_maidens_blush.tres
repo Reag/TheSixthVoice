@@ -12,6 +12,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/mt_rend/mt_rend.tres" id="10_rend"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/mt_uncertainty_field/mt_uncertainty_field.tres" id="11_field"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/mt_fade_strike/mt_fade_strike.tres" id="12_fade"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/cp_caj_overhaul_modules/cp_caj_overhaul_modules.tres" id="13_core"]
 
 [sub_resource type="Resource" id="Resource_colorscheme"]
 script = ExtResource("3_colorscheme")
@@ -41,7 +42,10 @@ activations = 1
 script = ExtResource("1_frame")
 default_color_scheme = SubResource("Resource_colorscheme")
 sprites = Array[Texture2D]([ExtResource("9_sprite")])
-traits = Array[ExtResource("8_kit")]([ExtResource("10_rend"), ExtResource("11_field"), ExtResource("12_fade")])
+; THE CORE SYSTEM GOES LAST, after the three mt_ traits. The character sheet draws traits in ARRAY
+; order and the sheet prints Rend, Uncertainty Field, Fade Strike before the core, so this order is
+; player-visible; test_maidens_blush_frame.gd pins it exactly.
+traits = Array[ExtResource("8_kit")]([ExtResource("10_rend"), ExtResource("11_field"), ExtResource("12_fade"), ExtResource("13_core")])
 mount_types = Array[ExtResource("5_mounttype")]([ExtResource("6_mountauxaux"), ExtResource("7_mountmainaux")])
 stat = SubResource("Resource_statblock")
 role_primary = 1

@@ -33,6 +33,10 @@ const REND_ID := &'mt_rend'
 const UNCERTAINTY_FIELD_ID := &'mt_uncertainty_field'
 const FADE_STRIKE_ID := &'mt_fade_strike'
 
+## The core system (SP2). Not an mt_ trait but it sits in the frame's `traits` array beside them,
+## which is what a cp_ Kit does - the prefix is what files it in the CORE SYSTEM box.
+const CORE_ID := &'cp_caj_overhaul_modules'
+
 ## The licence's own Main melee weapon (li_mourning_cloak rank 3). weapon_type = 2 (MELEE), threat 2,
 ## attack_accuracy "1" - so every attack with it pops a d20 AND an accuracy die off
 ## Dice.CHEAT_ROLL_QUEUE, which is why every cheat helper in the trait specs queues a PAIR.

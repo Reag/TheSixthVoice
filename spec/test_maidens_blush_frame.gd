@@ -59,9 +59,11 @@ const SHEET_STATS := {
 ## ARRAY order, so this is player-visible - and it is the one thing guarding an array that four
 ## separate tasks appended to, one at a time, each rewriting the whole file.
 ##
-## SP2 APPENDS cp_caj_overhaul_modules AFTER these three (design §2.1) and will extend this list
-## rather than replace it. The Maiden's Blush has no integrated weapon, so nothing follows the core.
-const SHEET_TRAITS:Array[StringName] = [&'mt_rend', &'mt_uncertainty_field', &'mt_fade_strike']
+## SP2 APPENDED cp_caj_overhaul_modules AFTER the three mt_ traits (design §2.1). The Maiden's Blush
+## has no integrated weapon, so nothing follows the core.
+const SHEET_TRAITS:Array[StringName] = [
+	&'mt_rend', &'mt_uncertainty_field', &'mt_fade_strike', &'cp_caj_overhaul_modules',
+]
 
 const BLUSH_TILE := Vector2i(4, 4)
 const TARGET_TILE := Vector2i(7, 4)
@@ -341,7 +343,7 @@ func test_the_fixture_arms_and_misses_the_way_its_callers_assume():
 	assert_eq(blush.current_damage(), MaidensBlushFixture.RELIABLE_ON_MISS,
 		'miss_from missed: the Blush took exactly the rifle\'s Reliable 2 and no more.')
 
-func test_the_traits_are_the_three_sheet_traits_in_sheet_order():
+func test_the_traits_are_the_sheet_traits_and_the_core_in_sheet_order():
 	# Asserted as an exact ORDERED list rather than as a set: the sheet prints Rend, Uncertainty
 	# Field, Fade Strike in that order and the character sheet draws them in array order, so a
 	# reshuffle is a visible change with no other guard anywhere in the suite. It also catches the
@@ -352,7 +354,7 @@ func test_the_traits_are_the_three_sheet_traits_in_sheet_order():
 	if frame == null: return
 	var ids:Array[StringName] = []
 	for kit:Kit in frame.traits: ids.append(kit.compcon_id)
-	assert_eq(ids, SHEET_TRAITS, 'Rend, Uncertainty Field, Fade Strike - in sheet order.')
+	assert_eq(ids, SHEET_TRAITS, 'Rend, Uncertainty Field, Fade Strike, then the core - in sheet order.')
 
 func test_every_trait_kit_is_in_the_content_library():
 	# The frame holding a Kit and ContentLibrary indexing it are different facts: a Kit whose filename

@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="PassiveDieCounter" format=3]
+
+[ext_resource type="Script" uid="uid://5pqtbuyqw6eo" path="res://engine/character/gear_passive/passive_die_counter.gd" id="1_diecounter"]
+
+[resource]
+script = ExtResource("1_diecounter")
+; THE STAMP, AND THE ONLY REASON IT SURVIVES A SPAWN. A consumer puts this passive on its core Kit
+; beside its action_efficient_refund.tres; without it, the refund's unit_spawn trigger is DEAD CODE.
+;
+; MEASURED 2026-09-17, and it corrects design ruling 15. GearCore.short_repair ends with
+; (gear_core.gd:144-150):
+;
+;   # preserve some die counters; throw away all other gear state
+;   var preserve_state:Dictionary = {}
+;   for passive:PassiveDieCounter in kit.get_passives(PassiveDieCounter):
+;       if not passive.resets_on_spawn:
+;           preserve_state[passive.key] = state.get(passive.key, passive.starting_value)
+;   state.clear()
+;   state.assign(preserve_state)
+;
+; and EVERY spawn runs it - UnitPrinter.prep_for_initial_spawn(unit, false) takes the short_repair
+; branch (unit_printer.gd:8-10), which map_bus.add_new_unit calls (map_bus.gd:8) and
+; event_unit_spawn.gd:68 reaches with full_repair = false. So a plain gear-state key IS serialised
+; with the mech (gear_core.gd:84) and is then thrown away before any UNIT_SPAWN reaction can read it.
+; A PassiveDieCounter with resets_on_spawn = false is the engine's own channel for exactly this, and
+; the only one: the loop names that class by name.
+;
+; Diagnosed by measurement, not inference - the gear object's instance id was identical before the
+; spawn and at the trigger, so the state was cleared IN PLACE rather than the gear being rebuilt,
+; which is what narrowed it to the two state.clear() sites in the engine.
+key = "efficient_used"
+; 0 IS "NOT USED THIS SCENE" AND 1 IS "USED". A counter rather than a bool because that is what this
+; passive is - and because short_repair's preserve loop defaults a missing key to starting_value, so
+; 0 has to mean unused.
+starting_value = 0
+min_value = 0
+max_value = 1
+; THE WHOLE POINT. Everything else on this resource is in service of this one flag.
+resets_on_spawn = false
+; A full repair SHOULD clear it: UnitPrinter.full_repair restores has_core_power outright
+; (unit_printer.gd:76), so a repaired mech is already whole and a surviving stamp would hand it a
+; second point next scene. GearCore.full_repair's own unconditional state.clear() (:154) runs after
+; short_repair's preserve loop and wipes this key too, so the flag below is belt-and-braces rather
+; than the mechanism - but it says what we mean.
+resets_on_repair = true
+; INVISIBLE BOOKKEEPING. The player reads "Efficient" in the core power's own effect text, where the
+; card puts it; a die-counter widget on the tooltip would advertise machinery, and a battle-log line
+; every time the stamp moved would narrate it.
+log_changes = false
+show_in_tooltips = false

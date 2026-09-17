@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="2_action"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/cp_caj_overhaul_modules/action_efficient_refund.tres" id="3_efficient"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="4_passive"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/efficient/passive_efficient_used.tres" id="5_stamp"]
+
+[resource]
+script = ExtResource("1_kit")
+; C/A J OVERHAUL MODULES, the Maiden's Blush's core system.
+;
+; THE cp_ PREFIX IS WHAT ROUTES IT TO THE CORE SYSTEM BOX, not the folder and not the script class.
+; ContentLibrary files a resource by its FILENAME PREFIX against the globs in
+; engine/resource_groups/ (resgrp_kits includes **/cp_*.tres among others), and LancerTacticsMod
+; applies the same globs to mod paths. Rename this file and the frame silently loses its core system
+; with no error anywhere.
+;
+; THE ACTIONS ARRIVE ONE PER TASK, and this array is appended to rather than rewritten:
+;   SP2 Task 3 - action_efficient_refund (hidden; the Efficient family's shared reaction)
+;   SP2 Task 4 - action_step_of_mist_and_thunder
+;   SP2 Task 5 - action_abjuration_of_metal
+; test_maidens_blush_frame.gd's SHEET_TRAITS pin is what catches an entry added to the ext_resource
+; block and forgotten here, or added twice.
+;
+; EACH ACTION CARRIES ITS OWN usage_group. A pressable and a reaction that share one lock each other
+; out - the Subutai SP2 lesson - and this Kit ends up holding all three kinds.
+actions = Array[ExtResource("2_action")]([ExtResource("3_efficient")])
+; THE EFFICIENT STAMP, and it is LOAD-BEARING rather than decorative. GearCore.short_repair throws
+; away every gear-state key except those of PassiveDieCounter passives with resets_on_spawn = false
+; (gear_core.gd:144-150), and EVERY spawn runs short_repair - so without this passive the refund
+; reaction's unit_spawn trigger reads an empty state and never fires. Measured 2026-09-17; the full
+; trace is in passive_efficient_used.tres's own header. It is invisible: no log line, no tooltip row.
+;
+; It is also the ONLY passive here. The card gives this core system one reaction and one Quick action
+; and no always-on effect, so nothing else belongs in this array - in particular this Kit carries no
+; PassiveAura, and so never enters LoadoutCore.auras (loadout_core.gd:298-301).
+passives = Array[ExtResource("4_passive")]([ExtResource("5_stamp")])
+; A frame trait, not equippable gear: it costs no SP and cannot be unequipped. cp_quietus_machines,
+; cp_siege_engine and cp_broadside are all the same.
+is_trait = true
+;
+; NO INTEGRATED WEAPON. Unlike the Fitzgerald's cp_broadside, the Subutai's cp_siege_engine and the
+; Myconid's cp_quietus_machines, this frame's core has no weapon beside it - so
+; test_integrated_weapon_shape.gd and test_integrated_weapon_names.gd need nothing from this file;
+; they iterate the frames that HAVE one.
+;
+; NO .effect AND NO .flavor ROW, which is deliberate and not an omission: the LCP's core `description`
+; for this frame is EMPTY (ruling 17), and inventing one would be exactly the divergence the
+; 2026-09-14 LCP-fidelity directive forbids. Only gear.cp_caj_overhaul_modules.name exists. A reader
+; wanting to know what the core system DOES reads the two action rows, which is where Bel put the text.
+;
+; NO ICON UNTIL SP3 (ruling 16). ICON_TARGETS lists this Kit and its actions regardless, so the
+; integrity guard is red on exactly the rows SP3 has to fill.

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="ActionReaction" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/efficient/action_efficient_refund.gd" id="1_refund"]
+
+[resource]
+script = ExtResource("1_refund")
+; THE SHARED SCRIPT, NOT A COPY. This .tres is the Maiden's Blush's; the script it points at lives in
+; res/content/gear/shared/efficient/ and the Lovers Knot and Black Mountain will each add a .tres of
+; their own beside their own core Kit pointing at the same file. That is the helper's whole shape
+; (shared/README.md): one script, one .tres per consumer.
+;
+; BOTH TRIGGERS ARE LOAD-BEARING and neither is redundant - the script's header carries the full
+; reasoning. combat_end is the card ("at the end of any scene in which this ability was used") and
+; reaches a living, reacting mech; unit_spawn is the safety net for a mech that was destroyed earlier
+; in the scene, or is Stunned and cannot react. Efficient.refund sets the stamp back to UNUSED before
+; returning, so the pair cannot double-refund.
+;
+; THE SPAWN HALF ONLY WORKS BECAUSE THE KIT ALSO CARRIES passive_efficient_used.tres. Dropping either
+; one silently disables it - measured both ways 2026-09-17, each reddening exactly the spawn test.
+triggers_on = Array[StringName]([&"combat_end", &"unit_spawn"])
+; POST, not PRE. On combat end it has to be inside the window that ends before event_combat_end walks
+; the map collecting the surviving cores (event_combat_end.gd:28 then :33-42).
+trigger_timing = 1
+; Bookkeeping, not an action: a mech that spent its reaction point to get its own core point back
+; would be paying twice. This is also what makes ActionReaction's per-round hard limit 99 rather than
+; 1 (action_reaction.gd:69), which the script restates because the refund legally fires twice in one
+; round across two scenes.
+consumes_rxn = false
+; ITS OWN GROUP. Every action on a Kit needs one of its own - a pressable and a reaction sharing a
+; usage_group lock each other out (the Subutai SP2 lesson), and this Kit will hold three actions.
+usage_group = &"efficient_refund"
