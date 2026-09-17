@@ -202,20 +202,50 @@ func test_a_second_abjuration_in_the_same_round_is_refused():
 
 # ---------------------------------------------------------------- the pull rule
 
-func test_the_cone_only_holds_tiles_that_close_the_distance_by_exactly_the_spaces_moved():
-	# The rule itself, asserted over the whole set rather than tile by tile.
+func test_the_cone_only_holds_tiles_on_the_line_through_the_attacker():
+	# THE RULE ITSELF, asserted over the whole set rather than tile by tile, and since 2026-09-17 it
+	# is a DISJUNCTION: a kept tile is either between us and the attacker (approach) or has the
+	# attacker between us and it (overshoot). Either way the attacker is on the path.
+	#
+	# The geometry here admits no overshoot tile at all - the attacker is eight spaces off and the
+	# far side of it is ten, well past any d6 - so this set is still the approach cone exactly. That
+	# is deliberate: it keeps the shipped assertion honest while stating the wider rule, and the two
+	# tests below are where the overshoot clause is actually pinned.
 	var tiles := cone(3)
 	assert_false(tiles.is_empty(), 'The cone is not empty.')
 	var to_attacker:int = UnitRelation.distance_between(blush, attacker)
 	for tile:Vector2i in tiles:
 		var moved:int = Tile.distance(BLUSH_TILE, tile)
-		var gained:int = to_attacker - Tile.get_closest_pair_between(
+		var away:int = Tile.get_closest_pair_between(
 			[tile] as Array[Vector2i], attacker.occupied_tiles()).distance
-		assert_eq(gained, moved, 'Tile %s closes exactly the distance it travelled.' % tile)
+		assert_true(moved + away == to_attacker or to_attacker + away == moved,
+			'Tile %s lies on the line through the attacker.' % tile)
 
 func test_a_tile_straight_toward_the_attacker_is_offered():
 	# The positive control, without which every exclusion below could pass on an empty set.
 	assert_true(cone(3).has(Vector2i(9, 6)), 'Three spaces due east, straight at it.')
+
+func test_a_tile_on_the_far_side_of_the_attacker_is_offered():
+	# THE OVERSHOOT CLAUSE (reach design ruling A, 2026-09-17), which the shipped rule refused: the
+	# mech folds THROUGH the attacker and comes out behind it. With the attacker two spaces east,
+	# (10, 6) is four away and two past it - 2 + 2 == 4 - so the overshoot clause keeps it while the
+	# approach clause (4 + 2 == 2) does not.
+	UnitTile.move_to(attacker, Vector2i(8, 6))
+	assert_true(cone(4).has(Vector2i(10, 6)),
+		'Two spaces past an attacker two spaces away, on a roll of four.')
+	assert_true(cone(4).has(Vector2i(7, 6)),
+		'And the approach clause still holds in the same cone, so this is a widening and not a swap.')
+
+func test_an_adjacent_attacker_yields_the_far_side_at_a_roll_of_two():
+	# THE CASE THE FRAME CLOSE FOUND, and the reason ruling A was taken: with the attacker already
+	# adjacent the shipped cone was EMPTY at every roll, so a point-blank miss earned the mech
+	# nothing. A two-space fold now lands it on the far side - 1 + 1 == 2 - which keeps the attacker
+	# inside a melee weapon's threat and so keeps the Skirmish alive (ruling 5 needs no change).
+	UnitTile.move_to(attacker, Vector2i(7, 6))
+	assert_true(cone(2).has(Vector2i(8, 6)), 'Straight through it and out the other side.')
+	assert_false(cone(1).has(Vector2i(8, 6)),
+		'But not on a roll of one: the far side is two spaces away, which is what leaves the cone'
+		+ ' empty at a roll of one and keeps the no-tile test below meaningful.')
 
 func test_a_tile_that_ends_closer_but_drifts_is_excluded():
 	# THE TEST THAT DISCRIMINATES RULING 10 from the reading it was chosen over, and PICKING THE TILE
@@ -250,12 +280,12 @@ func test_an_immobilized_blush_finds_no_tile():
 		'Immobilized stops Abjuration, where it would not stop Step.')
 
 func test_no_valid_tile_leaves_the_reaction_spent_and_the_mech_unmoved():
-	# Boxed in by geometry: a roll of 0 spaces cannot happen, but an attacker the mech is already
-	# adjacent to leaves no tile that closes any distance at all. THE ROLL DOES NOT MATTER HERE, and
-	# that is the finding rather than the convenience: with the attacker adjacent the distance to it is
-	# 1, so no tile can close as much as it costs to reach, and the cone is empty at every roll from 1
-	# to 6. The action's own header cites this test for exactly that, which is why the mech's tile is
-	# asserted below and not only its reaction point.
+	# Boxed in by geometry: with the attacker ADJACENT and a roll of ONE, no tile closes as much as it
+	# costs to reach and none is far enough to reach the attacker's far side, so the cone is empty and
+	# the reaction is spent on nothing. THE ROLL IS NOW LOAD-BEARING and was not before 2026-09-17:
+	# the overshoot clause yields (8, 6) from a roll of two upwards, so "empty at every roll" - which
+	# this comment used to claim, and the action's header with it - is no longer true. A roll of one is
+	# the surviving case, and it is still a real one: an adjacent miss with a low roll earns nothing.
 	UnitTile.move_to(attacker, Vector2i(7, 6))
 	var reactions_before := blush_reactions()
 	arm(true, 1) # the attacker is ENGAGED from here, so the rifle draws a difficulty die too
