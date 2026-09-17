@@ -204,21 +204,31 @@ func spend_the_gyres_use(activation:EventCore, _using:SpecificAction, _chosen:Sp
 ## :746); event_gear_activate.gd:29 says what it is for in one line - "run a parent event's
 ## spend_actions() only when the child actually does". UnitAction.spend_actions_gain_heat runs it
 ## first thing (unit_action.gd:219), and ActionAttack calls spend_actions at action_attack.gd:262 -
-## after the targeting and the two confirms at :247 and :249 (both of which this reaction now skips,
-## see the flag block below), BEFORE run_attack_effects (:265) and the declared/attack events
-## (:268). Two things follow, and both are the requirement:
+## after the targeting at :235 and the two confirms at :247 and :249 (the confirms this reaction
+## skips; the targeting it now deliberately does not - see the flag block below), BEFORE
+## run_attack_effects (:265) and the declared/attack events (:268). Two things follow, and both are
+## the requirement:
 ##   - NOTHING IS SPENT UNLESS THE STRIKE COMMITS - Draw Fire's principle
-##     (action_draw_fire.gd:170-200), and here it is not theoretical. It USED to guard three paths.
+##     (action_draw_fire.gd:170-200), and here it is not theoretical. It has guarded three paths,
+##     then one, and now two, and the count is the history of this file rather than a moving target.
 ##     MEASURED 2026-09-16: the strike opened TWO prompts, a compcon targeting plan and, because the
 ##     target is an ALLY, TargetActionUtil.confirm_friendly_fire's yes/no (action_attack.gd:247,
 ##     target_action_util.gd:430-435); declining either returned before :262, so the callable never
-##     ran. SP2.5 Task 2 SUPPRESSED BOTH PROMPTS (see the flag block below), so those two paths no
-##     longer exist and THE REFUSALS ARE THE CONDITIONAL SPEND'S WHOLE REMAINING JOB. They are
-##     enough to keep it: a Stunned or Jammed strike aborts in event_gear_activate.
-##     check_specific_context (content/events/event_gear_activate.gd:46-51) before execute() is
-##     reached at all, so it never gets near action_attack.gd:262 and a Myconid that could not
-##     strike has not used its reaction. The spend must therefore NOT be simplified back into an
-##     unconditional one now that the confirm is gone.
+##     ran. SP2.5 Task 2 suppressed BOTH, leaving the refusals as the callable's only job. The
+##     TWO-STAGE FLAG (below) has since given the TARGETING SCREEN back - and that screen is not a
+##     side effect, it is the back-out this reaction had no other way to offer. So the callable now
+##     guards two live paths, and the second is the one the change depends on:
+##       - THE REFUSALS. A Stunned or Jammed strike aborts in event_gear_activate.
+##         check_specific_context (content/events/event_gear_activate.gd:46-51) before execute() is
+##         reached at all, so it never gets near action_attack.gd:262 and a Myconid that could not
+##         strike has not used its reaction.
+##       - THE CANCEL. A cancelled targeting screen returns at action_attack.gd:144
+##         (abort_without_targeting_plan), earlier still, so the round's use survives for whoever
+##         moves next. WITHOUT the conditional spend this change would not work at all: an
+##         unconditional spend would charge the Gyre for the shot the player just backed out of,
+##         which is the exact cost the back-out exists to avoid.
+##     The spend must therefore NOT be simplified back into an unconditional one - the reason is
+##     stronger now than it was when the confirm was the thing being argued about.
 ##   - AND THE GYRE ANNOUNCES ITSELF BEFORE THE ROLL. spend_actions_gain_heat emits log_usage and
 ##     popcorn_usage at :233-234 of the same call that moved the counter at :225, with nothing
 ##     awaited in between - so the "Uffish Gyre triggered." battle-log line and the .tres's
@@ -226,7 +236,8 @@ func spend_the_gyres_use(activation:EventCore, _using:SpecificAction, _chosen:Sp
 ##     what the popcorn is FOR: this reaction fires on somebody else's turn, and a label arriving
 ##     after the roll would be announcing an attack the player had already watched.
 ## Pinned by test_the_gyre_announces_itself_before_the_roll (an ATTACK/PRE probe plus the ordered
-## battle log) and by test_the_conditional_spend_now_only_guards_the_refusal_paths,
+## battle log) and by test_the_conditional_spend_guards_the_refusal_and_the_cancel,
+## test_cancelling_the_targeting_screen_spends_nothing_and_saves_the_gyre,
 ## test_a_stunned_myconid_cannot_strike and test_a_jammed_myconid_cannot_strike.
 ##
 ## REJECTED (this file's first shape, replaced at the SP2 Task 4 review, 2026-09-16): await
@@ -239,37 +250,83 @@ func spend_the_gyres_use(activation:EventCore, _using:SpecificAction, _chosen:Sp
 ## and the .tres's justification for the flag described an ordering the code did not produce. The
 ## deferred callable is conditional AND early, so nothing was traded away for it.
 ##
-## NO CONFIRM AND NO TARGET PICKER: Action.FLAG.SKIP_PLAYER_DECISIONS (SP2.5 Task 2).
-## The author playtested SP2's head and reported the Gyre asking "you are about to attack an ally,
-## are you sure?" on EVERY trigger - and a reaction fires on somebody else's turn, so the prompt
-## interrupts a turn the player is only watching, to ask about an attack whose entire effect is to
-## GIVE that ally armor. The card names no decision, so there is none to make.
+## NO CONFIRM, BUT YES TARGET PICKER: Action.FLAG.SKIP_PLAYER_DECISIONS, IN TWO STAGES.
 ##
-## THE SEAM IS A SINGLE EARLY RETURN. TargetActionUtil.confirm_friendly_fire tests the flag at
-## target_action_util.gd:433, one line below the CONTROLLED_BY_OPPONENT test at :432, and returns
-## true without ever reaching choice_bus.quick_yesno at :435. The flag rides in on the CHILD's
-## context: choose_and_use copies additional_action_flags into action_flags
-## (common_action_util.gd:697) and hangs them on the event_gear_activate it builds (:744), and
-## ActionAttack.get_attack_plan passes context.flags straight back out to the targeting
-## (action_attack.gd:141).
+## SP2.5 TASK 2'S RULING STANDS, AND IT IS WHY THE CONFIRM IS STILL GONE. The author playtested
+## SP2's head and reported the Gyre asking "you are about to attack an ally, are you sure?" on EVERY
+## trigger - and a reaction fires on somebody else's turn, so the prompt interrupts a turn the
+## player is only watching, to ask about an attack whose entire effect is to GIVE that ally armor.
+## That reasoning has not changed and the warning has not come back.
+##
+## WHAT CHANGED IS THE CONCLUSION DRAWN FROM IT: "the card names no decision, so there is none to
+## make" was true about the CARD and false about the ACTION ECONOMY. The Gyre is 1/round (2 with
+## Symbiosis), it fires automatically on the first ally to move in threat, and until this change the
+## player had no way to decline - so a Myconid watching its wounded line could spend the round's use
+## on whoever happened to step first. THAT is the decision, and the author identified it in play.
+## The targeting screen is the only place the engine offers to make it: vanilla Overwatch's back-out
+## is the same screen, so this is Overwatch's seam again rather than a new mechanism (design ruling
+## 11's shape throughout this file). Cancelling it costs nothing, because the spend is deferred into
+## the strike's own commit - see the deferred-spend block above, which is what makes the back-out
+## free rather than merely possible.
+##
+## THE FLAG IS NO LONGER PASSED FROM HERE. It gates both things, so one flag could not answer both
+## questions from one place - but it is READ AT TWO DIFFERENT MOMENTS of one activation, and that is
+## the seam this exploits. activate() below passes CAN_FOLLOWUP alone; the STRIKE's own
+## get_attack_plan override (action_psychopomp_strike.gd, which carries the full account) appends
+## SKIP_PLAYER_DECISIONS the instant the screen has returned, so the flag is ABSENT for
+## target_action_util.gd:150 and PRESENT for :433 and :440. Pinned from the outside by
+## test_the_flag_is_absent_for_the_screen_and_present_for_the_confirm.
+##
+## ONE MEASURED CONSEQUENCE OF PUTTING THE OVERRIDE ON THE STRIKE RATHER THAN HERE: the strike can
+## no longer raise a friendly-fire warning by ANY route, a direct press from the gear bar included,
+## because the override does not care who woke it. That is invisible in play - starts_hibernating
+## means the Gyre is the only thing that ever wakes it (see the bracket block below) - but it did
+## cost the spec its old control, which was exactly that direct press. The replacement control is a
+## vanilla rifle; the test's header records the whole measurement.
+##
+## THE SEAM FOR THE CONFIRM IS A SINGLE EARLY RETURN. TargetActionUtil.confirm_friendly_fire tests
+## the flag at target_action_util.gd:433, one line below the CONTROLLED_BY_OPPONENT test at :432,
+## and returns true without ever reaching choice_bus.quick_yesno at :435. The flag reaches it on the
+## CHILD's context, which is the same Context object the strike's override mutated: choose_and_use
+## builds a fresh action_flags array (common_action_util.gd:693-710, copying
+## additional_action_flags in at :697) and hangs it on the event_gear_activate it builds (:744),
+## event_gear_activate hands that context to activate() (:80, or :89-91 composed), and
+## ActionAttack.get_attack_plan reads it straight back out as `activation.context`
+## (action_attack.gd:132) before passing it to the targeting (:141).
 ##
 ## THE SAME READ HAS A TWIN, ON THE SAME CALL SITE, AND THE EARLIER CUT OF THIS HEADER MISSED IT.
 ## TargetActionUtil.confirm_aoe_no_targets tests the flag identically at target_action_util.gd:440,
 ## and action_attack.gd:247/:249 is an if/elif chain, so confirm_aoe_no_targets always runs right
-## after confirm_friendly_fire returns without aborting - which our flag guarantees it does. It is
-## BEHAVIOURALLY INERT here regardless: :441 returns true the moment all_attacked_units is
-## non-empty, and the Gyre always hands the strike a mandatory target_unit, so the twin would have
-## returned true unflagged too. Recorded because it IS on this path and a "checked rather than
+## after confirm_friendly_fire returns without aborting - which the re-appended flag guarantees it
+## does, exactly as the passed-from-here flag used to. It is BEHAVIOURALLY INERT here regardless:
+## :441 returns true the moment all_attacked_units is non-empty, and the Gyre always hands the
+## strike a mandatory target_unit, so the twin would have returned true unflagged too. That is also
+## why the two-stage arrangement did not have to think about it: whichever way the flag falls at
+## :440, the answer is the same. Recorded because it IS on this path and a "checked rather than
 ## assumed" claim has to say so, not because it changes anything.
 ##
-## THE SAME FLAG ALSO RETIRES THE COMPCON TARGET PICKER, AND THAT IS WANTED, NOT TOLERATED.
-## target_action_util.gd:150 reads it into skip_player_decision and :162 turns player_decides off,
-## which routes the strike to the "use these supplied tiles/units automatically" branch at :230-242
-## instead of choice_bus.choose_compcon_plan at :200. The Gyre has exactly ONE legal target - the
-## mover, handed to choose_and_use as a mandatory target_unit - so the picker was a click with no
-## alternative. One free consequence: :233-234 turns the Myconid to face the target, which the
-## picker path did not do here. Action.FLAG.SKIP_PLAYER_DECISIONS' own declaration says as much in
-## four words (action.gd:11: "auto-choose targets without player input").
+## THE COMPCON TARGET PICKER IS THE BACK-OUT, AND IT IS THE POINT OF THIS ARRANGEMENT. This
+## paragraph said the opposite until now, and the sentence it turned on - "the Gyre has exactly ONE
+## legal target... so the picker was a click with no alternative" - IS WITHDRAWN. The click does
+## have an alternative: cancel. It is the same click either way, and what the player gets for it is
+## the round's use back. Counting the legal targets was the wrong question; the question is what the
+## player is choosing BETWEEN, and it is not which ally to pike, it is whether to pike at all.
+##
+## THE MECHANISM, unchanged, read the other way round. target_action_util.gd:150 reads the flag into
+## skip_player_decision and :162 turns player_decides off, which routes the strike to the "use these
+## supplied tiles/units automatically" branch at :230-242 instead of choice_bus.choose_compcon_plan
+## at :200. With the flag absent at :150 the strike now takes :200, and :201 turns a null or aborted
+## plan into CompconPlan.create_aborted() - which action_attack.gd:144 aborts the activation on,
+## before the spend at :262. Action.FLAG.SKIP_PLAYER_DECISIONS' own declaration (action.gd:11:
+## "auto-choose targets without player input") describes what we no longer want for the first read
+## and still want for the two after it.
+##
+## AND THE ONE THING GIVEN UP WITH IT, recorded rather than quietly dropped: :233-234 of the
+## supplied-target branch turned the Myconid to face its target, and that line no longer runs. The
+## interactive picker has a set_facing of its own (ui/choice_controller/compcon/tilepicker_compcon.
+## gd:161), so in real play the facing is likely still set from there - LIKELY, not measured: that
+## is UI code no spec in this suite exercises, and it is stated here as the open question it is
+## rather than as a replacement guarantee. Cosmetic either way; flagged for the author.
 ##
 ## DO NOT ADD Action.FLAG.CONTROLLED_BY_OPPONENT, which is the other half of the Enkidu's pair
 ## (.bk/gavstarb-ha_alts_1st_party .../mt_primal_fury/action_primal_fury_enter_threat.gd:37 - a
@@ -281,19 +338,41 @@ func spend_the_gyres_use(activation:EventCore, _using:SpecificAction, _chosen:Sp
 ##     chosen.unit)`. Our acting unit and our target are ALLIES - that is the entire reason a
 ##     friendly-fire confirm was raised in the first place - so the engine would never add it, and
 ##     action.gd:12 calls it what it is: "Pred/prey concepts, pred logic".
-##   - AND IT IS NOT A SECOND SPELLING OF THE SUPPRESSION. Its three live readers are
+##   - AND IT IS NOT A SECOND SPELLING OF THE SUPPRESSION - which now matters MORE THAN IT DID, and
+##     this bullet is sharper for it rather than merely still true. Its three live readers are
 ##     target_action_util.gd:432, :439 and :152 -> :161. The first two would indeed skip the two
-##     confirms, but :161 INVERTS player_decides where :162 CLEARS it. On a player Myconid the two
-##     land in the same supplied-target branch, so the difference is invisible; on an NPC Myconid it
-##     reverses - the inversion would hand an AI-controlled Gyre's targeting to the human player.
-##     SKIP_PLAYER_DECISIONS cannot do that, because :162 only ever turns the flag off.
+##     confirms, but :161 INVERTS player_decides where :162 CLEARS it. The earlier cut of this
+##     bullet said the difference was invisible on a player Myconid because both landed in the same
+##     supplied-target branch; that WAS true while this reaction passed SKIP_PLAYER_DECISIONS from
+##     here, and it is now FALSE. A player Myconid no longer takes the supplied-target branch at
+##     all - it takes the picker at :200, which is the whole back-out. Adding
+##     CONTROLLED_BY_OPPONENT would invert player_decides to false and route it straight back into
+##     :230-242, silently deleting the back-out this change exists to provide, while the two-stage
+##     flag went to some trouble to keep it. On an NPC Myconid the inversion is worse still and in
+##     the other direction - it would hand an AI-controlled Gyre's targeting to the human player.
+##     SKIP_PLAYER_DECISIONS cannot do either, because :162 only ever turns the flag off.
 ##
-## THE THIRD READER THIS FLAG REACHES, checked rather than assumed. event_gear_activate.gd:82-89
-## treats it exactly like "not player controlled" and composes the DEFAULT variant of any
-## VariantActionGroup instead of opening the variant menu, via get_chosen_variant_for_group taking
-## index 0 (variant_action_group.gd:192) against an empty override dictionary (:88). The mod ships
-## no variant buffs, but eighteen vanilla .tres files declare variant_actions (Lunge, Sledgehammer,
-## Throughbolt Rounds, Grapple Cable...) and a pilot could carry one.
+## THE THIRD READER THIS FLAG REACHED, AND NO LONGER DOES FOR A PLAYER MYCONID - the one reader the
+## two-stage arrangement cannot reach at all, because it fires BEFORE activate() is entered.
+## event_gear_activate.gd:82-89 treats the flag exactly like "not player controlled" and composes
+## the DEFAULT variant of any VariantActionGroup instead of opening the variant menu, via
+## get_chosen_variant_for_group taking index 0 (variant_action_group.gd:192) against an empty
+## override dictionary (:88). That read happens at :84-85, before the branch that calls activate()
+## at :80/:91 - so the strike's get_attack_plan override, which runs INSIDE activate(), is far too
+## late to influence it and could never have been used to. With the flag no longer passed from here,
+## a player Myconid sees a variant MENU where it used to get the composed default; an NPC Myconid is
+## unaffected, since :84 already answers "not player controlled" on its own. The mod ships no variant
+## buffs, but eighteen vanilla .tres files declare variant_actions (Lunge, Sledgehammer, Throughbolt
+## Rounds, Grapple Cable...) and a pilot could carry one.
+##
+## THE SURVEY BELOW IS WHAT MAKES THAT OF NO PRACTICAL CONSEQUENCE, and it is kept for exactly that
+## reason rather than out of sentiment: its conclusion is that NOTHING IN THE TREE reaches
+## action_psychopomp_strike with a VariantActionGroup at all. If that holds, variant_actions is
+## empty for this action, event_gear_activate takes the `variant_actions.is_empty()` branch at :79-80
+## and neither :82-89 nor the menu at :94 is reached whatever the flag says - so the paragraph above
+## describes a door that is real, newly unlocked, and opens onto nothing. It is written out in full
+## anyway because the day a mod-on-mod puts a group on this strike is the day the difference becomes
+## visible, and the reader will want the reasoning rather than the verdict.
 ##
 ## "INDEX 0 IS THE CONSERVATIVE UNMODIFIED DEFAULT" IS NOT TRUE OF EVERY GROUP, AND AN EARLIER CUT
 ## OF THIS HEADER SAID IT WAS WITHOUT CHECKING. A blankable group inserts UNMODIFIED at index 0
@@ -321,10 +400,12 @@ func spend_the_gyres_use(activation:EventCore, _using:SpecificAction, _chosen:Sp
 ## have nothing to convert. The Pike is also not THROWN, so the engine's own non-blankable-looking
 ## group (action_attack_weapon.gd:353-375) never builds for it at all - and that one is blankable
 ## regardless, the THROWN tag gate is what keeps it off, not is_blankable. No non-blankable group in
-## the tree applies to an arbitrary melee weapon with no id filter, so a player Myconid still loses
-## the variant menu and gets the plain strike on THIS action specifically, exactly as claimed -
-## consistent with the rest of this block, an off-turn reaction the card gives no decisions asks for
-## none. NOT WORTH A TEST: exercising the bad case would mean building a synthetic non-blankable,
+## the tree applies to an arbitrary melee weapon with no id filter, so a player Myconid gets the
+## plain strike on THIS action specifically whatever the flag does - the same verdict as before,
+## reached by the same survey, and the reason the flag's departure costs nothing here. (The sentence
+## this replaced said the Myconid "still loses the variant menu"; that framing belonged to the
+## suppression and is withdrawn with it. Nothing is lost now, because nothing was ever offered.)
+## NOT WORTH A TEST: exercising the bad case would mean building a synthetic non-blankable,
 ## unfiltered VariantActionGroup from scratch, since nothing in the tree reaches it, and that
 ## fixture costs more than the consequence it would be guarding against. Flagged here for the
 ## author instead, same as before.
@@ -337,8 +418,11 @@ func spend_the_gyres_use(activation:EventCore, _using:SpecificAction, _chosen:Sp
 ## Recorded because the SP2.5 brief cited it as one of the "auto-choose targets" readers; it is a
 ## confirm, and an attack never asks it.
 ##
-## WHAT THIS DOES NOT CHANGE: the spend stays conditional. See the deferred-spend block above - the
-## Stunned and Jammed refusals are now its only job, and they are reason enough for it to survive.
+## WHAT THIS DOES NOT CHANGE: the spend stays conditional - and it is now LOAD-BEARING for this
+## block rather than merely surviving it. See the deferred-spend block above: the Stunned and Jammed
+## refusals were its only job while both prompts were suppressed; the cancel is the second job, and
+## without the conditional spend the back-out described here would cost the player the very use they
+## backed out to save.
 ##
 ## THE WAKE/HIBERNATE BRACKET, AND WHY IT SURVIVES AN ABORT. The strike ships starts_hibernating, so
 ## it is refused everywhere - including here, because UnitAction.can_activate_gear checks
@@ -362,8 +446,10 @@ func activate(context:Context, activation:EventCore) -> void:
 		[shot],
 		spend_the_gyres_use,
 		mover,
-		# SKIP_PLAYER_DECISIONS is the friendly-fire confirm and the target picker, both gone: see
-		# the header. CONTROLLED_BY_OPPONENT is deliberately NOT here, also per the header.
-		[Action.FLAG.CAN_FOLLOWUP, Action.FLAG.SKIP_PLAYER_DECISIONS],
+		# SKIP_PLAYER_DECISIONS IS NO LONGER PASSED HERE, and the strike adds it back itself: see
+		# the header, and action_psychopomp_strike.gd's get_attack_plan. Passing it here would take
+		# the targeting screen with it, and that screen IS this reaction's back-out.
+		# CONTROLLED_BY_OPPONENT is still deliberately NOT here, also per the header.
+		[Action.FLAG.CAN_FOLLOWUP],
 	)
 	gear.hibernate_action(STRIKE_ID)
