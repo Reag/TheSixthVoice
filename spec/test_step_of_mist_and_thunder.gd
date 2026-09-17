@@ -45,9 +45,12 @@ var watcher:PromptWatcher
 var responder
 
 func before_each() -> void:
-	# THE QUEUED RESPONDER, not the stock one: pressing Step opens TWO yes/no prompts in one awaited
-	# call - its own confirm, and then Uncertainty Field's offer to fade instead - and one answer for
-	# both makes the field eat every teleport. See the fixture's own header.
+	# THE QUEUED RESPONDER, not the stock one: `press` and test_cancelling_the_pick_spends_nothing queue
+	# their yes/no answers in sequence, and the stock responder only ever repeats one fixed answer. STEP
+	# NOW OPENS EXACTLY ONE PROMPT PER PRESS (reach design ruling C, 2026-09-17): the Uncertainty Field
+	# can no longer take a Step, so there is no second answer queued behind the confirm - but a test that
+	# presses more than once in a run, or declines or cancels by hand, still needs its answers read back
+	# in the order it queued them. See the fixture's own header.
 	var pair := MaidensBlushFixture.create_game_with_sequenced_prompts(self, MAP_SIZE)
 	game = pair[0]
 	responder = pair[1]
@@ -71,8 +74,8 @@ func assert_spent_nothing(context:String) -> void:
 	assert_eq(blush.state.actions, Lancer.ACTION_COST_FULL, '%s: the quick action is unspent.' % context)
 	assert_false(Efficient.is_marked(core_gear()), '%s: the Efficient stamp is not set.' % context)
 
-func press(rolls:Array[int], tile:Vector2i = Tile.INVALID, fade:bool = false) -> void:
-	await MaidensBlushFixture.step(game, blush, responder, rolls, tile, fade)
+func press(rolls:Array[int], tile:Vector2i = Tile.INVALID) -> void:
+	await MaidensBlushFixture.step(game, blush, responder, rolls, tile)
 
 ## The tile set STEP'S OWN RETICLE was opened over, read back off the prompt the action opened.
 ##
@@ -131,7 +134,7 @@ func test_declining_the_confirm_spends_nothing():
 func test_cancelling_the_pick_spends_nothing():
 	# Blinkspace's behaviour, and the reason the spend sits below the pick rather than above the roll.
 	await MaidensBlushFixture.open_turn(game, blush)
-	responder.yesno_queue.append_array([true, false])
+	responder.yesno_queue.append(true)
 	responder.abort_all = true
 	Dice.CHEAT_ROLL_QUEUE.clear()
 	Dice.CHEAT_ROLL_QUEUE.append_array([3, 4])
@@ -302,7 +305,7 @@ func test_an_ally_adjacent_to_the_destination_rolls_too():
 	await MaidensBlushFixture.open_turn(game, blush)
 	var ally := MaidensBlushFixture.create_ally(game, Vector2i(8, 4))
 	Dice.CHEAT_ROLL_QUEUE.clear()
-	responder.yesno_queue.append_array([true, false]) # confirm yes, fade no
+	responder.yesno_queue.append(true) # the confirm; nothing else is asked
 	responder.chosen_plan_queue.append(CompconPlan.create([LANDING], [], []))
 	Dice.CHEAT_ROLL_QUEUE.append_array([3, 4, 1])
 	await SpecFactory.use(game, blush, MaidensBlushFixture.CORE_ID, ACTION_ID)
@@ -313,7 +316,7 @@ func test_the_fooled_enemy_sees_the_blush_as_invisible_and_another_enemy_does_no
 	var fooled := MaidensBlushFixture.create_hostile(game, Vector2i(8, 4))
 	var other := MaidensBlushFixture.create_hostile(game, Vector2i(12, 12))
 	Dice.CHEAT_ROLL_QUEUE.clear()
-	responder.yesno_queue.append_array([true, false]) # confirm yes, fade no
+	responder.yesno_queue.append(true) # the confirm; nothing else is asked
 	responder.chosen_plan_queue.append(CompconPlan.create([LANDING], [], []))
 	Dice.CHEAT_ROLL_QUEUE.append_array([3, 4, 1])
 	await SpecFactory.use(game, blush, MaidensBlushFixture.CORE_ID, ACTION_ID)
@@ -335,7 +338,7 @@ func test_the_blush_attacking_the_fooled_enemy_is_unaffected():
 	await MaidensBlushFixture.open_turn(game, blush)
 	var fooled := MaidensBlushFixture.create_hostile(game, Vector2i(8, 4))
 	Dice.CHEAT_ROLL_QUEUE.clear()
-	responder.yesno_queue.append_array([true, false]) # confirm yes, fade no
+	responder.yesno_queue.append(true) # the confirm; nothing else is asked
 	responder.chosen_plan_queue.append(CompconPlan.create([LANDING], [], []))
 	Dice.CHEAT_ROLL_QUEUE.append_array([3, 4, 1])
 	await SpecFactory.use(game, blush, MaidensBlushFixture.CORE_ID, ACTION_ID)
@@ -356,7 +359,7 @@ func test_a_chip_from_one_blush_does_not_hide_a_second_one():
 	var fooled := MaidensBlushFixture.create_hostile(game, Vector2i(8, 4))
 	var other_blush := MaidensBlushFixture.create_maidens_blush(game, Vector2i(2, 9))
 	Dice.CHEAT_ROLL_QUEUE.clear()
-	responder.yesno_queue.append_array([true, false]) # confirm yes, fade no
+	responder.yesno_queue.append(true) # the confirm; nothing else is asked
 	responder.chosen_plan_queue.append(CompconPlan.create([LANDING], [], []))
 	Dice.CHEAT_ROLL_QUEUE.append_array([3, 4, 1])
 	await SpecFactory.use(game, blush, MaidensBlushFixture.CORE_ID, ACTION_ID)
@@ -370,7 +373,7 @@ func test_a_passed_save_hangs_no_chip():
 	await MaidensBlushFixture.open_turn(game, blush)
 	var lucky := MaidensBlushFixture.create_hostile(game, Vector2i(8, 4))
 	Dice.CHEAT_ROLL_QUEUE.clear()
-	responder.yesno_queue.append_array([true, false]) # confirm yes, fade no
+	responder.yesno_queue.append(true) # the confirm; nothing else is asked
 	responder.chosen_plan_queue.append(CompconPlan.create([LANDING], [], []))
 	Dice.CHEAT_ROLL_QUEUE.append_array([3, 4, 20]) # a save it cannot fail
 	await SpecFactory.use(game, blush, MaidensBlushFixture.CORE_ID, ACTION_ID)
@@ -384,7 +387,7 @@ func test_the_chip_survives_turns_and_the_fooled_units_own_attack():
 	await MaidensBlushFixture.open_turn(game, blush)
 	var fooled := MaidensBlushFixture.create_hostile(game, Vector2i(8, 4))
 	Dice.CHEAT_ROLL_QUEUE.clear()
-	responder.yesno_queue.append_array([true, false]) # confirm yes, fade no
+	responder.yesno_queue.append(true) # the confirm; nothing else is asked
 	responder.chosen_plan_queue.append(CompconPlan.create([LANDING], [], []))
 	Dice.CHEAT_ROLL_QUEUE.append_array([3, 4, 1])
 	await SpecFactory.use(game, blush, MaidensBlushFixture.CORE_ID, ACTION_ID)
@@ -466,16 +469,32 @@ func test_a_boxed_in_snake_eyes_fizzles_and_still_costs_the_point():
 
 # ---------------------------------------------------------------- the field takes it
 
-func test_the_field_offers_on_step_and_a_veto_leaves_the_point_spent_and_no_save_rolled():
-	# RULING 4 END TO END, and the most valuable test in this file: the real Uncertainty Field on the
-	# real frame, a real Step, a real veto, and then the ABSENCE of a save. The absence is asserted
-	# positively - the adjacent character wears no chip - rather than by nothing having crashed.
+func test_the_field_never_offers_on_step_and_the_fold_always_lands():
+	# RULING C END TO END, and the inversion of this file's most valuable test rather than its
+	# deletion. It used to press a real Step, take the fade, and assert the ABSENCE of a save; it now
+	# presses a real Step and asserts that the fade is never offered at all, that the fold lands, and
+	# that the adjacent character saves.
+	#
+	# THE NEGATIVE CARRIES ITS CONTROL, because "no prompt appeared" is also what a deleted trait
+	# reports: the Blush really is wearing the Uncertainty Field, and the engine really would let it
+	# fire - the round is unspent and the gear is available - and it still is not offered.
+	#
+	# Three values queued, three drawn: the 2d6, then one Systems save low enough to fail.
 	await MaidensBlushFixture.open_turn(game, blush)
 	var adjacent := MaidensBlushFixture.create_hostile(game, Vector2i(8, 4))
-	await press([3, 4], LANDING, true) # this time the player TAKES the fade
+	var field:GearCore = blush.get_gear(MaidensBlushFixture.UNCERTAINTY_FIELD_ID)
+	assert_true(GearCore.is_valid(field), 'Fixture: the mech is wearing the trait.')
+	assert_true(UnitAction.is_gear_available(
+		SpecificAction.create(blush, field, field.kit.get_action(&'action_uncertainty_field'))),
+		'Fixture: and the engine would let it fire - the round is unspent.')
 
-	assert_eq(blush.tile(), BLUSH_TILE, 'The field replaced the teleport, so it never moved.')
-	assert_true(blush.has_status(Lancer.STATUS.INVISIBLE), 'It faded instead.')
-	assert_false(blush.core.has_core_power, 'The core point stays spent (ruling 4).')
-	assert_true(Efficient.is_marked(core_gear()), 'And Efficient still refunds it at scene end.')
-	assert_null(chip_on(adjacent), 'Nobody saved: the save is a consequence of arriving.')
+	await press([3, 4, 1], LANDING)
+
+	assert_eq(blush.tile(), LANDING, 'The fold landed: nothing was offered that could stop it.')
+	assert_eq(field.get_uses_this_round_alt(&'uncertainty_field'), 0,
+		'The Uncertainty Field never fired.')
+	assert_false(blush.has_status(Lancer.STATUS.INVISIBLE), 'And nothing faded.')
+	assert_eq(responder.yesno_prompts.size(), 1,
+		"Exactly one prompt was opened - Step's own confirm, with no fade offer behind it.")
+	assert_not_null(chip_on(adjacent),
+		'And the adjacent character saved, because the mech arrived (ruling 13).')

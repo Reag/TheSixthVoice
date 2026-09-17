@@ -152,6 +152,14 @@ static func movement_type(unit:Unit, own_involuntary:bool = false) -> MovementTy
 ## future is_own that wants the canonical shape cannot call that function - build the shape inline, or
 ## read the tag directly as below. SP2 adds five more functions to this file; this is the one name that
 ## cannot be reached from in here.
+##
+## NOTHING IN THIS MOD READS THIS TODAY, AND THAT IS A DECISION RATHER THAN ROT (reach design ruling C,
+## 2026-09-17). action_uncertainty_field.triggers_on_event was the one caller, and dropping its
+## is_own clause is what made Step of Mist and Thunder permanently exempt from the frame's own trait.
+## The function stays because the QUESTION it answers is still the right one for the five later frames
+## this helper is frozen for - an involuntary teleport is either our own unpreventable one or somebody
+## else's shove, and the engine cannot tell them apart - and because the interface is frozen either
+## way. Do not delete it as dead code.
 static func is_own(movement_type:MovementType) -> bool:
 	if not MovementType.is_valid(movement_type): return false
 	return movement_type.other_tags.has(OWN_TAG)

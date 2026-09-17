@@ -398,24 +398,43 @@ func test_an_involuntary_teleport_with_no_readable_forcer_is_not_offered():
 	assert_true(would_offer(voluntary_teleport_data()), 'CONTROL: a teleport IS offered.')
 	assert_false(would_offer(anonymous), 'An involuntary teleport with no forcer is not.')
 
-func test_our_own_involuntary_teleport_is_offered_even_though_it_names_no_forcer():
-	# RULING 4, AND THE CLAUSE SP2'S STEP RESTS ON (action_uncertainty_field.gd:69). Step of Mist and
-	# Thunder issues the own-but-INVOLUNTARY movement type - the "this teleportation cannot be
-	# prevented" shape - which fails the resource.voluntary clause and names no forcer, so to every
-	# other clause in the gate it is indistinguishable from the anonymous involuntary teleport the test
-	# directly above REFUSES. Only Teleport.is_own tells them apart. Without that line the field would
-	# go silent on the frame's own core power and nothing else in SP1 would notice.
+func test_our_own_involuntary_teleport_is_not_offered():
+	# STEP OF MIST AND THUNDER IS PERMANENTLY EXEMPT (reach design ruling C, 2026-09-17), REVERSING
+	# ruling 157. The card's "This teleportation cannot be prevented" is read as absolute, including
+	# against the mech's own trait.
 	#
-	# That neighbouring negative is this test's control, which is why the two sit together: same
-	# involuntariness, same absent forcer, opposite answer, and the only difference is the OWN tag.
+	# THE RULE IS NOT "STEP IS SPECIAL". It is that no OWN-INVOLUNTARY teleport is vetoable by the
+	# mech's own trait, which is what the OWN tag means; Step is simply the only thing that takes that
+	# shape today. Later consumers of Teleport.move - Purple Thorn, Leoleth, Sluagh, Koremasa, Six Sky -
+	# inherit it without knowing the decision was taken.
+	#
+	# THE SHIPPED VERSION OF THIS TEST ASSERTED THE OPPOSITE and is inverted rather than deleted, which
+	# is the record the reversal is entitled to: the clause it pinned (Teleport.is_own in
+	# triggers_on_event) is gone, and mutation 5 puts it back to prove this test is what holds it out.
 	var own_type := Teleport.movement_type(blush, true)
 	var own_involuntary := {unit = blush, target_tiles = [DESTINATION], resource = own_type}
 	assert_false(own_type.voluntary,
 		'Fixture: it really is involuntary, so the voluntary clause cannot be what answers.')
-	assert_null(Teleport.forcer(Context.create(own_involuntary)),
-		'Fixture: and it names no forcer, so the hostile-forcer clause cannot be either.')
-	assert_true(would_offer(own_involuntary),
-		'Our own unpreventable teleport is still offered - the is_own clause is what does it.')
+	assert_true(would_offer(voluntary_teleport_data()), 'CONTROL: an ordinary teleport IS offered.')
+	assert_false(would_offer(own_involuntary),
+		'But our own unpreventable teleport is not - the is_own clause that used to admit it is gone.')
+
+func test_an_own_involuntary_teleport_that_names_US_as_the_forcer_is_not_offered_either():
+	# THE FALL-THROUGH RULING C RESTS ON, pinned rather than assumed. With the is_own clause gone a real
+	# Step reaches the forcer check, and Teleport.forcer returns the BLUSH ITSELF - Teleport.move passes
+	# the calling action's SpecificAction as the event's object (roadmap 4, corrected at the frame
+	# close). UnitRelation.are_enemies is Faction.is_enemy(f, f) (unit_relation.gd:361-362), which is
+	# false, so the gate refuses. The exemption is SAFE rather than accidental, and this is the test
+	# that says which.
+	var own_type := Teleport.movement_type(blush, true)
+	var self_forced := {
+		unit = blush, target_tiles = [DESTINATION], resource = own_type,
+		object = SpecificAction.create(blush, field_gear(), field_gear().kit.get_action(ACTION_ID)),
+	}
+	assert_eq(Teleport.forcer(Context.create(self_forced)), blush,
+		'Fixture: the forcer really does read back as the mech itself.')
+	assert_false(would_offer(self_forced),
+		'And a mech is not its own enemy, so the forcer clause refuses it too.')
 
 func test_an_involuntary_teleport_forced_by_an_ally_is_not_offered():
 	# The other half of the forcer clause, and the one that makes UnitRelation.are_enemies do work:

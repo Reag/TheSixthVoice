@@ -26,10 +26,9 @@
 ## only"):
 ##   - the mech's own VOLUNTARY teleports - Abjuration, a Fold Knife crit, a Prospector tunnel, any
 ##     teleport gear it carries;
-##   - Step of Mist and Thunder's own-but-INVOLUNTARY teleport (design §0.8), recognised by
-##     Teleport.is_own. SP2 builds Step; this clause is what lets the field still offer on it, and
-##     ruling 4 says it may (a player who fades has already spent the core point and the quick
-##     action, and no adjacent character saves);
+##   - NOT Step of Mist and Thunder, and not any other own-but-INVOLUNTARY teleport: reach design
+##     ruling C (2026-09-17) REVERSED ruling 157 and made the card's "cannot be prevented" absolute,
+##     the mech's own trait included;
 ##   - a HOSTILE FORCED teleport: involuntary, not NO_RXNS, with a forcer that is an enemy.
 ## Never a scripted placement - event_unit_teleport sets NO_RXNS unconditionally (:31) - and never an
 ## involuntary teleport with no readable forcer, which is Flash Anchor's own prompt-spam guard
@@ -70,9 +69,22 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	# A scripted placement asks not to be reacted to. Honouring that is the whole difference between
 	# "an enemy is moving me" and "the mission is moving me" (ruling 3).
 	if context.flags.has(EventUnitMove.FLAG.NO_RXNS): return false
-	# Ours, either way round.
+	# Ours, and voluntary. Abjuration of Metal and every ordinary teleport ride this.
+	#
+	# THE own-INVOLUNTARY CLAUSE THAT USED TO SIT HERE IS GONE (reach design ruling C, 2026-09-17,
+	# REVERSING ruling 157). Step of Mist and Thunder is the only thing that takes that shape - the
+	# OWN_TAG shape, which is precisely the unpreventable route - so dropping it exempts Step exactly
+	# and touches nothing else. The card's "This teleportation cannot be prevented" is now read as
+	# absolute, the mech's own trait included, and the rule generalises: no own-involuntary teleport is
+	# vetoable by the trait, which is what the tag means.
+	#
+	# STEP THEN FALLS THROUGH TO THE FORCER CHECK BELOW, AND THAT IS SAFE RATHER THAN ACCIDENTAL:
+	# Teleport.forcer returns the BLUSH ITSELF for a Step (Teleport.move passes the calling action's
+	# SpecificAction as the event's object), and UnitRelation.are_enemies is Faction.is_enemy(f, f)
+	# (unit_relation.gd:361-362), which is false.
+	# spec/test_uncertainty_field.gd's
+	# test_an_own_involuntary_teleport_that_names_US_as_the_forcer_is_not_offered_either pins it.
 	if context.resource.voluntary: return true
-	if Teleport.is_own(context.resource): return true
 	# Or somebody else's, with a readable and hostile forcer.
 	var forcer:Unit = Teleport.forcer(context)
 	if not Unit.is_valid(forcer): return false

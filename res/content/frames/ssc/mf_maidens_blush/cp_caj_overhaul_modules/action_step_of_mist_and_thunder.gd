@@ -20,13 +20,16 @@
 ##
 ## Involuntariness alone beats Immobilized and loses to an Interdiction Field; the path alone beats
 ## the Field and loses to Immobilized. Teleport.move(activation, unit, tile) does both, and is tagged
-## as the mech's OWN so Uncertainty Field can still offer the fade (ruling 4).
+## as the mech's OWN - which, since reach design ruling C (2026-09-17), is exactly what EXEMPTS it
+## from the frame's own Uncertainty Field. "Cannot be prevented" is absolute, and the trait does not
+## get an exception the card never wrote.
 ##
 ## THE ORDER OF activate() IS THE RULING. Reading down: a declined confirm costs nothing; a cancelled
 ## pick costs nothing; everything after spend_actions costs the quick action and the core point
-## whatever happens next - a fade, a fizzle, a boxed-in snake eyes. That is deliberate and the author
-## chose it (ruling 4): Step is NOT exempt from the frame's own trait, and Efficient softens the cost
-## to a single scene.
+## whatever happens next - a fizzle, or a boxed-in snake eyes. A FADE IS NO LONGER ONE OF THOSE
+## OUTCOMES (reach design ruling C, 2026-09-17): the Uncertainty Field is never offered on a Step, so
+## ruling 161's clause about a vetoed Step staying spent is moot. Efficient still refunds the point at
+## the end of the scene, because Step was used.
 extends ActionSystem
 
 const Teleport := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/teleport/teleport.gd')
@@ -106,9 +109,10 @@ func activate(context:Context, activation:EventCore) -> void:
 	# 5. THE TELEPORT. Own-involuntary and by path - see the header.
 	var was_grappled:bool = unit.has_status(Lancer.STATUS.GRAPPLED)
 	var move:EventCore = await Teleport.move(activation, unit, tile)
-	# UNCERTAINTY FIELD TOOK IT (ruling 4). The point and the action stay spent, the stamp stays set,
-	# and NO adjacent character saves - the card's save is a consequence of arriving, and nobody
-	# arrived.
+	# THE GUARD STAYS, AND IT IS NO LONGER THE UNCERTAINTY FIELD IT GUARDS AGAINST (reach design ruling
+	# C, 2026-09-17). The field cannot take a Step any more, but `move` still reports a move that never
+	# resolved - a null core, or one another listener aborted - and the card's save is a consequence of
+	# ARRIVING. Nobody arrived, so nobody saves.
 	if move == null or move.aborted: return
 	if activation.abort_without_unit(unit): return
 
