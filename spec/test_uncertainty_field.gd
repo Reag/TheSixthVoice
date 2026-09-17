@@ -280,7 +280,7 @@ func test_an_immune_blush_still_pays_for_a_fade_that_grants_nothing():
 	#
 	# THE MUTATION THIS ANSWERS: add `if UnitCondition.is_immune_to_status(unit,
 	# Lancer.STATUS.INVISIBLE, gear.persistent_id): return false` as a last clause of
-	# triggers_on_event (action_uncertainty_field.gd:60-73). The field then never triggers, so the
+	# triggers_on_event (action_uncertainty_field.gd:65-91). The field then never triggers, so the
 	# teleport lands and the round stays unspent - would_offer, the tile, `aborted` and the use count
 	# all flip. That is the "fix" this test exists to stop, and the ruling is written out at the
 	# spend/veto/apply sequence in action_uncertainty_field.gd.

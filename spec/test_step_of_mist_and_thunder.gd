@@ -206,7 +206,7 @@ func test_a_second_press_in_the_same_turn_is_refused():
 	assert_eq(blush.tile(), landed, 'The second press moved nothing.')
 
 func test_a_blush_riding_a_stack_up_cannot_press_it():
-	# Blinkspace's gate, kept (action_step_of_mist_and_thunder.gd:47). The engine reads it in
+	# Blinkspace's gate, kept (action_step_of_mist_and_thunder.gd:50). The engine reads it in
 	# UnitAction.is_action_prohibited_due_to_stackup (unit_action.gd:418-425): an action whose
 	# can_be_used_while_stackup_rider() is false is unavailable to a unit whose state.stackup_order is
 	# above 0 - a RIDER, never the base of the stack - unless the stack-up's own gear is what is being
@@ -437,7 +437,7 @@ func test_the_chip_dies_with_the_blush_that_placed_it():
 
 func test_step_offers_the_space_the_blush_already_occupies():
 	# RULING D (reach design 4, 2026-09-17), asked of the RETICLE Step actually opened rather than of
-	# the helper: Teleport.candidate_tiles drops the caller's own tiles at teleport.gd:225 and is
+	# the helper: Teleport.candidate_tiles drops the caller's own tiles at teleport.gd:249 and is
 	# FROZEN with five consumer frames, so the action re-adds its own tile after calling it.
 	await MaidensBlushFixture.open_turn(game, blush)
 	await press([3, 4], LANDING)

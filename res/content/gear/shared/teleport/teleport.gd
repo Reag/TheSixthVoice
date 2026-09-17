@@ -111,15 +111,17 @@ static func forcer(context:Context) -> Unit:
 ## editor's event_unit_teleport type (event_unit_teleport.gd:26-29) MINUS the NO_RXNS flag, plus the
 ## OWN tag.
 ##
-## ignore_rxns IS LEFT UNSET, AND NOT FOR THE REASON THIS COMMENT USED TO GIVE. It is NOT what keeps
-## Uncertainty Field offered: MovementType.ignores_reactions() is `ignore_rxns or teleport or not
-## voluntary` (movement_type.gd:101-102), which is already true of EVERY teleport, so setting the flag
-## would change nothing about that answer. What keeps the field offered is that the move event never
-## consults that answer at all - NO_RXNS is "not enforced; reactions need to decide for themselves"
-## (event_unit_move.gd:26), so each of the four judgements belongs to the listener, and
-## action_uncertainty_field reads the NO_RXNS FLAG on the context rather than anything on the type.
-## The flag stays unset anyway: it is vanilla's own signal for "do not react to this", and our own
-## Step has no reason to send it.
+## ignore_rxns IS LEFT UNSET, AND NOT FOR THE REASON THIS COMMENT USED TO GIVE. It does NOT decide
+## whether Uncertainty Field is offered: MovementType.ignores_reactions() is `ignore_rxns or teleport
+## or not voluntary` (movement_type.gd:101-102), which is already true of EVERY teleport, so setting
+## the flag would change nothing about that answer. The move event never consults that answer at all -
+## NO_RXNS is "not enforced; reactions need to decide for themselves" (event_unit_move.gd:26), so each
+## of the four judgements belongs to the listener - and for THIS shape (reach design ruling C,
+## 2026-09-17) the listener's judgement is "not mine to veto": action_uncertainty_field's
+## triggers_on_event no longer reads the NO_RXNS flag, or anything else on this type, for a Step of
+## Mist and Thunder - it falls through to the forcer check and declines there instead (see forcer()'s
+## docstring above). The flag stays unset anyway: it is vanilla's own signal for "do not react to
+## this", and our own Step has no reason to send it.
 static func movement_type(unit:Unit, own_involuntary:bool = false) -> MovementType:
 	var type := MovementType.create(unit, not own_involuntary)
 	type.teleport = true

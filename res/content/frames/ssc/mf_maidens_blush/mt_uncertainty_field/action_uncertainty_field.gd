@@ -122,8 +122,9 @@ func activate(context:Context, activation:EventCore) -> void:
 ## so re-asking below changes nothing. A DIRECT call from another action gets no such gate, and a
 ## plain spend_actions(activation) would bill ABJURATION's gear and usage group rather than this one -
 ## so the round would be free every second time, and a player could fade twice. Hence both lines name
-## THIS trait's own SpecificAction: can_activate_gear reads the per-round hard limit
-## (unit_action.gd:171, get_gear_unavailable_reason's PER_ROUND arm), and spend_actions_gain_heat
+## THIS trait's own SpecificAction: can_activate_gear reads the per-round hard limit through
+## get_gear_unavailable_reason's PER_ROUND arm (unit_action.gd:148), which calls
+## is_under_per_round_limit (unit_action.gd:170-171) to do the actual reading, and spend_actions_gain_heat
 ## increments uses_this_round under this action's own usage_group (&'uncertainty_field',
 ## gear_core.gd:170-177). spec/test_uncertainty_field.gd's
 ## test_a_consolation_fade_spends_the_round_the_interception_would_have_used and
@@ -249,7 +250,11 @@ func ask_to_fade(specific:SpecificAction, gear:GearCore, consolation:StringName,
 ## THE FALL-BACK IS THE COMMON CASE IN SP1. Blinkspace Jump passes no SpecificAction to
 ## Pathfinder.generate_events (action_blinkspace_jump.gd:64) and event_unit_teleport sets no `object`
 ## at all, so the mech's own teleports name nothing today. SP2's Step of Mist and Thunder passes its
-## own specific through Teleport.move, which is what makes "Step by name when it was Step" true.
+## own specific through Teleport.move too, but that no longer reaches THIS function (reach design
+## ruling C, 2026-09-17): replaced_name is only ever called from the interception branch of fade(),
+## and a Step can no longer enter it - triggers_on_event falls through to the forcer check and
+## declines before offering. What the object still buys for a Step is forcer() safety, not naming
+## (see forcer()'s own docstring in teleport.gd).
 func replaced_name(triggering:EventCore) -> String:
 	var source = triggering.context.object
 	if SpecificAction.is_valid(source): return source.action.name(source)

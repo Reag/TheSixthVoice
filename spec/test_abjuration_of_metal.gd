@@ -12,7 +12,7 @@
 #
 # DICE DISCIPLINE. CHEAT_ROLL_QUEUE is one global FIFO and a single activation here draws from it in
 # three bursts: the attack that triggers the reaction, then Abjuration's own d6
-# (action_abjuration_of_metal.gd:79), then the follow-up Skirmish's own attack. ONE helper owns the
+# (action_abjuration_of_metal.gd:86), then the follow-up Skirmish's own attack. ONE helper owns the
 # whole sequence - arm() clears the queue and loads it - and miss() fires the triggering shot WITHOUT
 # clearing again, which is the single thing it does differently from MaidensBlushFixture.miss_from and
 # the whole reason it exists. arm()'s own comment says what every value is for, and why its tail is
@@ -375,8 +375,8 @@ func test_a_vetoed_teleport_forfeits_the_skirmish():
 	# veto means it did not. The negative twin of the test above - same weapon, same landing, same roll,
 	# one different answer - so the absence of the shot is the fade's doing and nothing else's.
 	#
-	# The field aborts the move core at ENTIRE_MOVEMENT / PRE (teleport.gd:150-162), which is what
-	# action_abjuration_of_metal.gd:113's `move.aborted` reads.
+	# The field aborts the move core at ENTIRE_MOVEMENT / PRE (teleport.gd:180-192), which is what
+	# action_abjuration_of_metal.gd:123's `move.aborted` reads.
 	#
 	# AND THAT GUARD IS OVER-DETERMINED, WHICH IS WORTH KNOWING RATHER THAN DISCOVERING TWICE: a veto
 	# returns one line before undergo_move, so the mech is still standing on `origin` and the SAME line's

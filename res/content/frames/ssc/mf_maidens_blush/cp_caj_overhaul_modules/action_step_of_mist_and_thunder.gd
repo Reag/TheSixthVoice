@@ -94,7 +94,7 @@ func activate(context:Context, activation:EventCore) -> void:
 		# the only difference is which characters are adjacent to the destination.
 		#
 		# RE-ADDED HERE RATHER THAN LOOSENED IN THE HELPER. Teleport.candidate_tiles drops the caller's
-		# occupied tiles at teleport.gd:225 and is FROZEN with five consumer frames behind it; "a
+		# occupied tiles at teleport.gd:249 and is FROZEN with five consumer frames behind it; "a
 		# teleport to where you already are is not a move" is the right default for all of them and
 		# this card is the exception. Abjuration of Metal is unaffected either way - its own filter
 		# requires moved > 0 and rejects the origin independently.
@@ -114,8 +114,10 @@ func activate(context:Context, activation:EventCore) -> void:
 	Efficient.mark_used(gear)
 
 	# A boxed-in snake eyes has nowhere to go and fizzles here: spent, stamped, unmoved (ruling 9).
-	# It cannot happen on an ordinary roll, because an empty tile set makes pick_tile return INVALID
-	# and the branch above already returned.
+	# AN ORDINARY ROLL CANNOT LAND HERE (reach design ruling D, 2026-09-17): the picked branch's tile
+	# set always includes the mech's own tile (section 3, above), so it is never empty and pick_tile
+	# returns INVALID only on a genuine cancel - which returns above the spend, before this point is
+	# ever reached.
 	if tile == Tile.INVALID:
 		battle_log.log_unit(&'gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.fizzle.log', unit)
 		return
