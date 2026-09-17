@@ -27,12 +27,12 @@ became a family at the Myconid.
 | Overshield | 4 Myconid, SP1 | `current` `has` `grant` `increase` `grit` | Sluagh, Hazard, Naga, Primrose, Black Mountain |
 | Armor | 2 Fitzgerald, SP4 (promoted at 4 Myconid, SP2; the Fitzgerald's own `.tres` re-pointed at the frame close) | `buff_armor_statblock.gd` `armor_amount` + `buff_armor_reduction.gd` `reduction_amount` `damage_types` `until` — always applied as a PAIR, with matching `until` | Reinforcement Blast, Fungal Network, Uffish Gyre |
 | Teleport | 5 Maiden's Blush, SP1 (observe/intercept) + SP2 (perform) | **Eleven, all frozen.** Observe/intercept: `is_teleport` `destination` `forcer` `movement_type` `is_own` `veto`, plus `OWN_TAG`. Perform: `candidate_tiles` `pathfinder` `pick_tile` `move` `move_along`. **The two move routes are not interchangeable** — `pathfinder` goes through `Pathfinder.create`, so Immobilized and every `MOVEMENT_RESTRICTION` ban apply (Abjuration wants that); `move` sends a hand-built single-step path and so builds no pathfinder at all, which is the only route that beats a ban (Step needs that). `move`/`move_along` run INLINE and hand the move core back, unlike Blinkspace which queues and returns. | Purple Thorn, Leoleth (ZIP), Sluagh (Hunt), Koremasa (Vanish), Six Sky |
+| Efficient (core-power refund) | 5 Maiden's Blush, SP2 | `efficient.gd`: `mark_used` `is_marked` `refund` (returns whether it refunded, and is idempotent), plus `USED_KEY` / `UNUSED` / `USED`. A consumer carries TWO files on its core Kit: an `action_efficient_refund.tres` pointing at the shared reaction script (`combat_end` for a living mech, `unit_spawn` as the safety net) **and `passive_efficient_used.tres`**, the `PassiveDieCounter` with `resets_on_spawn = false`. **The passive is not optional**: `GearCore.short_repair` throws away every gear-state key except those of such passives (`gear_core.gd:144-150`) and every spawn runs it, so without it the spawn half is dead code. | Lovers Knot, Black Mountain |
 
 Planned:
 
 | Family | Born with | Consumers |
 |---|---|---|
-| Efficient (core-power refund) | 5 Maiden's Blush | Lovers Knot, Black Mountain |
 | Difficult terrain | 6 Vauban | Leoleth, Shackleton |
 | Lock-on consumed hook | 7 Naga | Black Mountain |
 | Attack redirection | 3 Subutai | Sluagh, Rakshasa, Lovers Knot — shape set by that frame's spike |

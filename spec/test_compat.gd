@@ -16,6 +16,7 @@
 extends GutTest
 
 const MyconidFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/myconid_fixture.gd')
+const MaidensBlushFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/maidens_blush_fixture.gd')
 
 const TALENTS_MOD := 'gavstarb-talents_1st_party'
 ## House Guard rank 1. Hidden buff, adjacency_range = 2, only_to_allies - see the registry row.
@@ -30,6 +31,9 @@ const ARMOR_BUFF := &'buff_fungal_network_armor'
 # Same footprint as test_fungal_network.gd: the Myconid is SIZE 2, anchored at (4,4) and occupying
 # (4,4) (5,4) (4,5) (5,5). distance_between is Chebyshev over CLOSEST tiles.
 const MYCONID_TILE := Vector2i(4, 4)
+## The Maiden's Blush stands clear of the Myconid that before_each also places, so neither frame's
+## passives reach the other's test characters.
+const BLUSH_TILE := Vector2i(10, 4)
 const ADJACENT_TILE := Vector2i(6, 4)  # 1 from (5,4) - inside the ally aura either way
 const NEAR_TILE := Vector2i(7, 4)      # 2 from (5,4) - OUTSIDE the ally aura, and exactly the tile
                                        # House Guard's widening pulls into "adjacent"
@@ -137,3 +141,41 @@ func test_a_genuinely_adjacent_ally_is_still_sheltered_with_the_widening_active(
 		'A truly adjacent ally still gets Impaired immunity.')
 	assert_true(UnitCondition.has_buff(near_ally, ARMOR_BUFF),
 		'A truly adjacent ally still gets +1 armor.')
+
+
+# ===================== THE RULING: STEP OF MIST AND THUNDER MEASURES ITS OWN RADIUS =====================
+
+## RULING, 2026-09-17, taken at the Maiden's Blush DESIGN - the frame's `Contested seams:` line, and
+## the first one on this project decided before the content existed rather than at a close.
+##
+## Step of Mist and Thunder's "characters adjacent to the space you teleport to must make a Systems
+## save" is measured with UnitRelation.get_characters_within(unit, 1, false) - the engine's own radius,
+## which goes through distance_between. House Guard overrides adjacent_characters() and NOTHING ELSE,
+## so its widening does not reach the save. The Fungal Network reasoning exactly (see above): ask
+## where the engine measures.
+##
+## THIS ASSERTS THE RULING, NOT COMPLIANCE, and inverts if the ruling is ever reversed - at which
+## point Step would have to read adjacent_characters through a guarded call the way the talents mod's
+## own Greater Guardian reads get_adjacency_range_alt.
+##
+## THREE ASSERTIONS, and the first is the one that keeps the other two honest: with the talents mod
+## absent, or its extension silently dead, "nobody two tiles out saved" would be true for the boring
+## reason. skipped_without_talents() announces that case rather than passing quietly.
+func test_house_guard_does_not_widen_step_of_mist_and_thunders_adjacent_saves() -> void:
+	if skipped_without_talents(): return
+
+	var blush := MaidensBlushFixture.create_maidens_blush(game, BLUSH_TILE)
+	var near_character := ally(Vector2i(BLUSH_TILE.x + 1, BLUSH_TILE.y))  # 1 away: saves
+	var far_character := ally(Vector2i(BLUSH_TILE.x + 2, BLUSH_TILE.y))   # 2 away: does not
+	widen_adjacency_on(blush)
+
+	# 1. THE WIDENING IS LIVE IN THIS RUN. Without this the two below prove nothing.
+	assert_true(UnitRelation.adjacent_characters(blush).has(far_character),
+		'House Guard pulls the character two tiles out into adjacent_characters.')
+
+	# 2 and 3. What Step actually asks - the engine's own radius, unwidened.
+	var saving:Array[Unit] = UnitRelation.get_characters_within(blush, 1, false)
+	assert_true(saving.has(near_character),
+		'The character ONE tile out is asked to save.')
+	assert_false(saving.has(far_character),
+		'The one TWO tiles out is not, however wide House Guard has made "adjacent".')
