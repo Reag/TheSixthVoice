@@ -317,11 +317,11 @@ const ICON_TARGETS := {
 	# at all (the LCP's core description is empty, ruling 17), so the action.gd:352 clause that hides a
 	# trait reaction whose effect equals its Kit's cannot fire for either of them.
 	#
-	# Its one action today, action_efficient_refund, is the shared Efficient reaction and is
-	# deliberately absent: it overrides show_in_tooltip to false, so the reverse check below computes
-	# "should not be listed" and listing it would fail. The player reads "Efficient" in the core
-	# power's own effect text, where the card puts it.
-	&'cp_caj_overhaul_modules': [],
+	# action_efficient_refund, the shared Efficient reaction, is deliberately ABSENT: it overrides
+	# show_in_tooltip to false, so the reverse check below computes "should not be listed" and listing
+	# it would fail. The player reads "Efficient" in the core power's own effect text, where the card
+	# puts it. Abjuration of Metal joins the list in Task 5.
+	&'cp_caj_overhaul_modules': [&'action_step_of_mist_and_thunder'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -406,6 +406,12 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# buff_fade_strike_arm is NOT listed - the pair is one mechanic, and the arming half is never a
 	# chip on the unit.
 	&'buff_fade_strike',
+	# SP2 Task 4 (Maiden's Blush). The chip a character wears after failing Step of Mist and Thunder's
+	# Systems save, and visible for the same reason buff_diversion_rail is: it is the holder's ONLY
+	# warning that it is now missing the Blush on a d6 of 3 or less. The save is rolled on the Blush's
+	# turn and the consequence lands on every attack the holder makes afterwards, with nothing else on
+	# the board to explain it - and unlike most chips here it lasts the whole scene.
+	&'buff_mist_and_thunder_invisible',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

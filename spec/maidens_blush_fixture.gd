@@ -66,6 +66,24 @@ const MISS_ROLL := 1
 static func create_game(test:GutTest, map_size:Vector2i = FitzgeraldFixture.DEFAULT_MAP_SIZE) -> Gamemaster:
 	return FitzgeraldFixture.create_game(test, map_size)
 
+## A game whose responder can answer a SEQUENCE of yes/no prompts, and hand back the one it installed.
+##
+## WHY THE STOCK RESPONDER IS NOT ENOUGH FOR THIS FRAME. SpecFactory.ChoiceBusResponder answers every
+## yes/no with the same `chosen_yesnos` (spec_factory.gd:507-517), and pressing Step of Mist and
+## Thunder opens TWO in one awaited call: Step's own confirm, and then Uncertainty Field's offer to
+## fade instead. With one answer for both, `true` makes the field eat every teleport - measured, and it
+## made ten of this file's tests fail at once with the Blush sitting still - while `false` never gets
+## past the confirm. testkit/mod_choice_responder.gd exists for exactly this and adds `yesno_queue`.
+##
+## add_responder = false is what stops TWO responders answering the same request; the Thy Hubris
+## DomainWatcher spec (test_my_domain_trigger.gd:96-100) is the precedent for the whole shape.
+static func create_game_with_sequenced_prompts(test:GutTest, map_size:Vector2i = FitzgeraldFixture.DEFAULT_MAP_SIZE) -> Array:
+	var game := SpecFactory.setup_gamemaster(test, false,
+		SpecFactory.create_combat(Landscape.create_default(map_size)), {}, false)
+	game.map.shape.forbidden_interiors_enabled = true
+	var responder = test.add_child_autoqfree(load('res://testkit/mod_choice_responder.gd').new())
+	return [game, responder]
+
 ## A Maiden's Blush with its traits' passive buffs applied. PLAYER faction, which SpecFactory's own
 ## default gives us and which is load-bearing: CommonActionUtil.confirm_use returns true without
 ## asking when the unit is not player-controlled (common_action_util.gd:303, :329), so a
@@ -128,6 +146,46 @@ static func equip_basic_melee(unit:Unit) -> void:
 ## attack would hand this one the wrong d20, and a leftover from THIS one would hand the next roll a 1
 ## - which matters most in SP2, where Abjuration's own d6 and its follow-up Skirmish pop from the same
 ## global FIFO during this very activation.
+## Hang the Minotaur's Interdiction Field on a hostile WITHOUT equipping the system or waking its
+## aura. buff_interdiction_field.tres is `to = &"movement_restriction"` and its
+## check_if_passive_applies asks only for a teleporting movement type and an enemy holder
+## (buff_interdiction_field.gd:15-21), so none of the aura machinery is load-bearing for the BAN.
+##
+## THE HOLDER MUST BE WITHIN 3 OF THE MECH, and that is not a detail. get_values has TWO branches
+## (:29-33): held further away it allows every tile EXCEPT its own 3-tile radius - a doughnut, which
+## bans nothing a mech outside it wants - and held within 3 it allows the blank array, which is a
+## total lockdown. Only the second is a usable positive control, and the first cost a red before it
+## was understood (SP2 probe, 2026-09-17).
+static func equip_interdiction(hostile:Unit) -> void:
+	UnitCondition.apply_buff_id(SpecFactory.dummy_event(), hostile, &'buff_interdiction_field')
+
+## Press Step of Mist and Thunder with the 2d6 fixed, answering the confirm and the tile pick.
+##
+## `tile` defaults to Tile.INVALID, meaning "take the first tile the picker offers" - which is what
+## SpecFactory's responder does on its own with can_target_empty_tiles and no unit targets
+## (spec_factory.gd:481-482), and is what the many tests that do not care where it lands rely on.
+##
+## CLEARS THE QUEUE FIRST and queues exactly the two values the roll needs. The queue is one global
+## FIFO shared by every roll in the run: a leftover would hand Step the wrong range, and a leftover
+## from Step would hand the next roll a 1. On a SNAKE EYES call the action draws a third value for the
+## random destination (ruling 9), so pass it in `rolls` as a third entry when that is what the test is
+## about.
+## `fade` is the answer to the SECOND yes/no - Uncertainty Field's offer to replace the teleport -
+## and defaults to NO, because almost every test here is about the Step landing. The queue is
+## [confirm, fade] in that order, which is the order the action opens them.
+##
+## Takes the responder rather than reading SpecFactory.current_responder: this needs the queued one
+## from create_game_with_sequenced_prompts, and silently doing nothing on the stock responder (which
+## has no yesno_queue) would be a whole spec file passing for the wrong reason.
+static func step(game:Gamemaster, blush:Unit, responder, rolls:Array[int],
+		tile:Vector2i = Tile.INVALID, fade:bool = false) -> void:
+	responder.yesno_queue.append_array([true, fade])
+	if tile != Tile.INVALID:
+		responder.chosen_plan_queue.append(CompconPlan.create([tile], [], []))
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	Dice.CHEAT_ROLL_QUEUE.append_array(rolls)
+	await SpecFactory.use(game, blush, CORE_ID, &'action_step_of_mist_and_thunder')
+
 static func miss_from(game:Gamemaster, attacker:Unit, target:Unit) -> void:
 	equip_ranged(attacker)
 	Dice.CHEAT_ROLL_QUEUE.clear()

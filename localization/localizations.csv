@@ -175,3 +175,11 @@ gear.buff_fade_strike.name,Fade Strike
 gear.buff_fade_strike.effect,"The first |melee| attack roll this turn may be rerolled, keeping the second result."
 gear.cp_caj_overhaul_modules.name,C/A J OVERHAUL MODULES
 gear.shared.efficient.refund.log,"{gear} is |Efficient|: {unit} regains a core power."
+gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.name,Step of Mist and Thunder
+gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.effect,"Roll 2d6. You |teleport| to a free space within a Range equal to what you rolled, without requiring line of sight. Characters adjacent to the space you teleport to must make a |Systems save| or treat you as |Invisible| until the end of the scene. If you roll two 1s you teleport to a space of the GM's choice. This teleportation cannot be prevented. This ability is |Efficient| and will refund 1 Core Point at the end of any scene in which this ability was used."
+gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.confirm,Roll 2d6 to determine teleport range?
+gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.snake_eyes.log,"{unit} rolled two 1s: the fold lands where the firmament chooses."
+gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.snake_eyes.pop,SNAKE EYES
+gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.fizzle.log,"{unit} is boxed in: the fold finds nowhere to land."
+gear.buff_mist_and_thunder_invisible.name,Step of Mist and Thunder
+gear.buff_mist_and_thunder_invisible.effect,"Treats the Maiden's Blush as |Invisible| for the rest of the scene."

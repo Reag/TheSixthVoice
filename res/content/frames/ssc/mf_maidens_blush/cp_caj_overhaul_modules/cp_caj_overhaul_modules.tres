@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/cp_caj_overhaul_modules/action_efficient_refund.tres" id="3_efficient"]
 [ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="4_passive"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/efficient/passive_efficient_used.tres" id="5_stamp"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/cp_caj_overhaul_modules/action_step_of_mist_and_thunder.tres" id="6_step"]
 
 [resource]
 script = ExtResource("1_kit")
@@ -25,7 +26,7 @@ script = ExtResource("1_kit")
 ;
 ; EACH ACTION CARRIES ITS OWN usage_group. A pressable and a reaction that share one lock each other
 ; out - the Subutai SP2 lesson - and this Kit ends up holding all three kinds.
-actions = Array[ExtResource("2_action")]([ExtResource("3_efficient")])
+actions = Array[ExtResource("2_action")]([ExtResource("3_efficient"), ExtResource("6_step")])
 ; THE EFFICIENT STAMP, and it is LOAD-BEARING rather than decorative. GearCore.short_repair throws
 ; away every gear-state key except those of PassiveDieCounter passives with resets_on_spawn = false
 ; (gear_core.gd:144-150), and EVERY spawn runs short_repair - so without this passive the refund
