@@ -44,6 +44,8 @@
 extends ActionReactionAttacked
 
 const Teleport := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/teleport/teleport.gd')
+const FIELD_ID := &'mt_uncertainty_field'
+const FIELD_ACTION_ID := &'action_uncertainty_field'
 
 func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> bool:
 	# The archetype does the heavy lifting: DEFENDER, ENEMIES, require_miss against the POST-timing
@@ -88,12 +90,15 @@ func activate(context:Context, activation:EventCore) -> void:
 	var tiles := Teleport.candidate_tiles(unit, roll, true, toward(unit, attacker))
 	if tiles.is_empty():
 		battle_log.log_unit(&'gear.cp_caj_overhaul_modules.action_abjuration_of_metal.no_space.log', unit)
+		await offer_the_fade(unit, activation, &'no_space')
 		return
 
 	# 5. THE PICK, through a real pathfinder - so Immobilized and every ban apply, as they should.
 	var pathfinder:Pathfinder = await Teleport.pathfinder(unit, tiles)
 	var plan:CompconPlan = await TargetActionUtil.ask_for_movement(context, pathfinder)
-	if plan == null or plan.aborted or plan.move_path.is_empty(): return
+	if plan == null or plan.aborted or plan.move_path.is_empty():
+		await offer_the_fade(unit, activation, &'cancelled')
+		return
 	if activation.abort_without_unit(unit): return
 
 	# 6. THE TELEPORT.
@@ -135,6 +140,37 @@ func activate(context:Context, activation:EventCore) -> void:
 		CommonActionUtil.choose_and_use_no_spend,
 		attacker, [Action.FLAG.CAN_FOLLOWUP]
 	)
+
+## THE CONSOLATION (reach design ruling B, 2026-09-17): Abjuration's two dead ends hand the player the
+## Uncertainty Field instead of nothing at all.
+##
+## THE CARD IS WHAT LICENSES IT - "if the Maiden's Blush would teleport, it INSTEAD may become
+## Invisible". A teleport the mech was entitled to and could not take, or declined, is the purest
+## reading of "instead". The snake-eyes fizzle is deliberately NOT one of these, and neither is a
+## zero-space landing: there the teleport IS happening and merely fails to find a space, which is not
+## a decline.
+##
+## IT DOES NOT FIRE ON A PICKED TILE, and that is not a gap. A picked tile produces a real
+## event_unit_move, and the field's own ENTIRE_MOVEMENT / PRE reaction offers the fade there - after
+## the destination is chosen, before the move resolves - which is what
+## test_a_vetoed_teleport_forfeits_the_skirmish pins. Offering again here would ask twice about one
+## teleport. Both routes spend the SAME round, because both go through the field's own fade().
+##
+## TAKING IT FORFEITS THE SKIRMISH, which is ruling 5 unchanged rather than a new rule: no teleport
+## happened, so "if THIS puts the attacker in threat" has no this. Abjuration's own reaction stays
+## spent either way (ruling 10), because the spend is three sections above this line.
+##
+## THE TRAIT OWNS THE RULES. Everything here is looking the trait up and calling it: the confirm, the
+## round, the Invisible and the log line are all the field's, so a Blush whose Uncertainty Field was
+## somehow removed simply gets no offer.
+func offer_the_fade(unit:Unit, activation:EventCore, consolation:StringName) -> void:
+	var gear:GearCore = unit.get_gear(FIELD_ID)
+	if not GearCore.is_valid(gear): return
+	# UNTYPED ON PURPOSE: fade() lives on the field's own script, not on Action, and a typed local
+	# would be asking the parser to find it on the base class.
+	var field = gear.kit.get_action(FIELD_ACTION_ID)
+	if field == null: return
+	await field.fade(activation, unit, gear, null, consolation)
 
 ## The pull-rule filter: keep a tile only when the ATTACKER IS ON THE PATH - either between us and
 ## the tile, or the tile between us and it. Two clauses, one line of geometry each:

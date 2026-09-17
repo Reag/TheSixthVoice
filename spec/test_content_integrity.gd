@@ -204,6 +204,22 @@ func test_the_maidens_blush_sp2_rows_resolve():
 	for key:String in SP2_LOCALIZATION_ROWS:
 		assert_ne(tr(key), key, '%s resolves to real text.' % key)
 
+## The four rows the 2026-09-17 reach sub-project added for Abjuration's CONSOLATION fade. Same guard
+## as SP2's list above and for the same reason: two are read through Translate.action (which defaults
+## return_key_if_blank = true) and two through a literal battle-log key, so a dropped CSV row or a
+## stale localizations.en.translation artifact puts the raw key in front of the player with every
+## behavioural test in this mod still green.
+const REACH_LOCALIZATION_ROWS:Array[String] = [
+	'gear.mt_uncertainty_field.action_uncertainty_field.consolation.no_space.confirm',
+	'gear.mt_uncertainty_field.action_uncertainty_field.consolation.cancelled.confirm',
+	'gear.mt_uncertainty_field.action_uncertainty_field.consolation.no_space.log',
+	'gear.mt_uncertainty_field.action_uncertainty_field.consolation.cancelled.log',
+]
+
+func test_the_maidens_blush_consolation_rows_resolve():
+	for key:String in REACH_LOCALIZATION_ROWS:
+		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+
 ## Every kit and player-facing buff this mod ships, and the actions on each kit that need their own
 ## icon. Filled in by each sub-project as it builds content; the icon pass is what makes it green.
 ##

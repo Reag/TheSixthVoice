@@ -136,6 +136,23 @@ func offers() -> int:
 		if str(prompt.title).contains('Abjuration'): count += 1
 	return count
 
+## UNCERTAINTY FIELD'S offers, however they were opened. Both doors put the trait's own name in the
+## title - the interception through battle.confirm.use formatted with it, the consolation directly -
+## so this counts the fade offers where offers() above counts Abjuration's.
+func field_offers() -> int:
+	var count := 0
+	for prompt:Dictionary in responder.yesno_prompts:
+		if str(prompt.title).contains('Uncertainty Field'): count += 1
+	return count
+
+## The description of the last yes/no prompt, which is how a CONSOLATION offer is told apart from the
+## field's ordinary interception: CommonActionUtil.confirm_use passes no description at all
+## (common_action_util.gd:362-371), and the consolation rows are the only prompt text this frame
+## writes for the field.
+func last_prompt_description() -> String:
+	if responder.yesno_prompts.is_empty(): return ''
+	return str(responder.yesno_prompts.back().desc)
+
 # ---------------------------------------------------------------- the trigger
 
 func test_a_hostile_within_sensors_missing_with_a_weapon_offers_it():
@@ -384,3 +401,85 @@ func test_a_vetoed_teleport_forfeits_the_skirmish():
 	assert_false(blush.has_status(Lancer.STATUS.INVISIBLE),
 		'And the fade is already gone, broken by the Reliable 2 that the triggering miss still dealt.')
 	assert_eq(attacker.current_damage(), 0, 'And a teleport that never happened earns no Skirmish.')
+
+# ---------------------------------------------------------------- the consolation fade
+
+func test_an_empty_cone_offers_the_fade_instead():
+	# RULING B'S FIRST EXIT. With the attacker adjacent and a roll of one the cone is empty, so the
+	# action logs no_space.log and - since 2026-09-17 - hands the player the round's Uncertainty Field
+	# rather than returning with nothing.
+	#
+	# A MISSED RAM RATHER THAN THE RIFLE, and that is the whole reason this test does its own setup:
+	# mw_assault_rifle is Reliable 2, so its miss still lands two damage AFTER the reaction resolves,
+	# and buff_uncertainty_field_break then clears the Invisible the fade just granted (the frame
+	# close's Reliable ruling). A Ram that misses deals nothing, so the status is still there to
+	# assert - which is the strongest form of "the fade really happened".
+	UnitTile.move_to(attacker, Vector2i(7, 6))
+	assert_true(cone(1).is_empty(), 'Fixture: an adjacent attacker leaves no tile at a roll of one.')
+	arm(true, 1, true) # accept Abjuration, roll 1, TAKE the fade
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	Dice.cheat_attack([MaidensBlushFixture.MISS_ROLL, MaidensBlushFixture.MISS_ROLL], [])
+	for _die in 12: Dice.CHEAT_ROLL_QUEUE.append(1)
+	await SpecFactory.use_solo(game, attacker, &'mw_ram', [blush])
+
+	assert_eq(field_uses_this_round(), 1, 'The round of Uncertainty Field was spent on the consolation.')
+	assert_true(blush.has_status(Lancer.STATUS.INVISIBLE), 'And the mech faded.')
+	assert_eq(blush.tile(), BLUSH_TILE, 'It never moved - there was nowhere to move to.')
+	assert_eq(last_prompt_description(),
+		X.tr('gear.mt_uncertainty_field.action_uncertainty_field.consolation.no_space.confirm'),
+		"And it was asked with the consolation's own words, not the interception's (ruling 154).")
+
+func test_a_cancelled_pick_offers_the_fade_instead():
+	# RULING B'S SECOND EXIT. Abjuration picks through TargetActionUtil.ask_for_movement, so the cancel
+	# is driven by answering the move request with a tile the pathfinder cannot reach: ask_for_movement_alt
+	# hands back a plan whose move_path is empty (target_action_util.gd:106), which is the third arm of
+	# the action's own `plan == null or plan.aborted or plan.move_path.is_empty()` guard. NOT
+	# responder.abort_all, which aborts every request including the consolation prompt this test is
+	# about.
+	#
+	# THE PATH REALLY IS EMPTY AND NOT A ONE-STEP LUNGE TOWARD THE CORNER:
+	# is_tile_within_max_distance_of_straight_movement opens with `not using_movement_type.teleport`
+	# (pathfinder.gd:711-717), so a teleport never takes the straight_path_to branch, and
+	# pathfinder.path_to of an unreachable tile is empty.
+	#
+	# THE INVISIBLE IS NOT ASSERTED HERE, and that is the Reliable ruling rather than an omission: the
+	# rifle's miss lands two damage after the reaction and the break buff clears the status. The use
+	# count and the prompt are what discriminate.
+	land_on(Vector2i(19, 19)) # on the map, far outside a roll of one
+	arm(true, 1, true)
+	await miss()
+
+	assert_eq(blush.tile(), BLUSH_TILE, 'Fixture: the pick was cancelled, so nothing moved.')
+	assert_eq(field_uses_this_round(), 1, 'And the fade was offered and taken instead.')
+	assert_eq(last_prompt_description(),
+		X.tr('gear.mt_uncertainty_field.action_uncertainty_field.consolation.cancelled.confirm'),
+		'With the cancelled row, which is the other string ruling B asks for.')
+
+func test_declining_the_consolation_leaves_the_round_and_the_reaction_as_they_were():
+	# THE NEGATIVE CONTROL FOR BOTH EXITS, and the promise that ruling B adds an OFFER and changes
+	# nothing else: declining spends no round, grants no Invisible, and leaves Abjuration itself spent,
+	# which is exactly what this file asserted before the consolation existed.
+	UnitTile.move_to(attacker, Vector2i(7, 6))
+	var reactions_before := blush_reactions()
+	arm(true, 1, false) # accept Abjuration, DECLINE the fade
+	await miss()
+
+	assert_lt(blush_reactions(), reactions_before, 'Abjuration itself is still spent (ruling 10).')
+	assert_eq(field_uses_this_round(), 0, 'The fade was declined, so the round is still in hand.')
+	assert_false(blush.has_status(Lancer.STATUS.INVISIBLE), 'And nothing faded.')
+	assert_eq(blush.tile(), BLUSH_TILE, 'And nothing moved.')
+
+func test_a_teleport_that_lands_is_not_offered_the_consolation_as_well():
+	# THE CONSOLATION IS ADDITIONAL, NOT A REPLACEMENT, and this is the test that keeps it from
+	# double-asking. A picked tile produces a real event_unit_move, and the field's own
+	# ENTIRE_MOVEMENT / PRE reaction offers the fade THERE - after the destination is chosen, before
+	# the move resolves - so a player who picks a spot and then decides to fade still gets exactly
+	# that. Exactly one offer per teleport, whichever door it came through.
+	MaidensBlushFixture.equip_melee(blush)
+	land_on(LANDING)
+	arm(true, 6, false) # accept Abjuration, roll 6, DECLINE the field at the move
+	await miss()
+
+	assert_eq(blush.tile(), LANDING, 'Fixture: it teleported, so the field had a move to offer on.')
+	assert_eq(field_offers(), 1, 'One teleport, one fade offer.')
+	assert_eq(field_uses_this_round(), 0, 'Declined at the move, and never asked a second time.')
