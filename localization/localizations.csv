@@ -172,4 +172,4 @@ gear.mt_uncertainty_field.broken.log,{unit} took damage and is no longer Invisib
 gear.mt_fade_strike.name,Fade Strike
 gear.mt_fade_strike.effect,"If the Maiden's Blush begins its turn |Invisible|, it may reroll its first |melee| attack roll it makes on that turn. It must keep the second result."
 gear.buff_fade_strike.name,Fade Strike
-gear.buff_fade_strike.effect,"It may reroll its first |melee| attack roll it makes on that turn. It must keep the second result."
+gear.buff_fade_strike.effect,"The first |melee| attack roll this turn may be rerolled, keeping the second result."
