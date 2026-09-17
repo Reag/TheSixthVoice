@@ -505,16 +505,25 @@ func test_a_boxed_in_snake_eyes_fizzles_and_still_costs_the_point():
 	# and a Blush with none has nowhere to be put: the action is already past its spend by then, so it
 	# pays in full, logs .fizzle.log and stands still.
 	#
-	# TWO values queued, two drawn: the 2d6. pick_random_tile returns Tile.INVALID at its first line
-	# when the tile set is empty (action_step_of_mist_and_thunder.gd:162), before it draws the die for
-	# the destination - so unlike the other snake-eyes tests this one queues no third value.
+	# FOUR values queued, TWO drawn on the correct path: the 2d6 and nothing else. pick_random_tile
+	# returns Tile.INVALID at its first line when the tile set is empty
+	# (action_step_of_mist_and_thunder.gd:162), before it draws the die for the destination, so the
+	# third and fourth are never reached and the leftovers die with after_each.
+	#
+	# THEY ARE QUEUED FOR THE MUTATION, NOT FOR THIS PATH, and that is what makes the assertion at the
+	# foot of this test a real guard rather than a coin flip. If ruling D's own tile ever leaked into
+	# the SNAKE-EYES branch as well as the picked one, pick_random_tile would draw the third value for
+	# its index, land the mech where it already stood, and section 7 would then ask the neighbour for
+	# a Systems save - which draws the fourth. Queue only three and that save rolls live off an empty
+	# cheat queue, so the mistake would be caught about half the time. The fourth 1 is low enough to
+	# fail the save outright, so the chip lands every time and the guard is deterministic.
 	await MaidensBlushFixture.open_turn(game, blush)
 	var neighbour := MaidensBlushFixture.create_hostile(game, Vector2i(5, 4))
 	box_the_blush_in(2, [Vector2i(5, 4)])
 	assert_true(Teleport.candidate_tiles(blush, 2, false).is_empty(),
 		'Fixture: walled in, there is nowhere within 2 to be put.')
 
-	await press([1, 1, 1])
+	await press([1, 1, 1, 1])
 
 	assert_eq(blush.tile(), BLUSH_TILE, 'It did not move.')
 	assert_false(blush.core.has_core_power, 'The core point is spent all the same (ruling 9).')
