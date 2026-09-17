@@ -55,6 +55,14 @@ const SHEET_STATS := {
 	systems_points = 6, reactions = 1, activations = 1,
 }
 
+## The sheet's trait order (specs/sixth-voice/05-maidens-blush.md). The frame card lists traits in
+## ARRAY order, so this is player-visible - and it is the one thing guarding an array that four
+## separate tasks appended to, one at a time, each rewriting the whole file.
+##
+## SP2 APPENDS cp_caj_overhaul_modules AFTER these three (design §2.1) and will extend this list
+## rather than replace it. The Maiden's Blush has no integrated weapon, so nothing follows the core.
+const SHEET_TRAITS:Array[StringName] = [&'mt_rend', &'mt_uncertainty_field', &'mt_fade_strike']
+
 const BLUSH_TILE := Vector2i(4, 4)
 const TARGET_TILE := Vector2i(7, 4)
 
@@ -329,3 +337,27 @@ func test_the_fixture_arms_and_misses_the_way_its_callers_assume():
 	await MaidensBlushFixture.miss_from(game, hostile, blush)
 	assert_eq(blush.current_damage(), MaidensBlushFixture.RELIABLE_ON_MISS,
 		'miss_from missed: the Blush took exactly the rifle\'s Reliable 2 and no more.')
+
+func test_the_traits_are_the_three_sheet_traits_in_sheet_order():
+	# Asserted as an exact ORDERED list rather than as a set: the sheet prints Rend, Uncertainty
+	# Field, Fade Strike in that order and the character sheet draws them in array order, so a
+	# reshuffle is a visible change with no other guard anywhere in the suite. It also catches the
+	# natural mistake in the append-per-task shape this sub-project used - an entry added to the
+	# ext_resource block and forgotten in the array, or added twice.
+	var frame:Frame = _frame()
+	assert_not_null(frame, 'mf_maidens_blush loads.')
+	if frame == null: return
+	var ids:Array[StringName] = []
+	for kit:Kit in frame.traits: ids.append(kit.compcon_id)
+	assert_eq(ids, SHEET_TRAITS, 'Rend, Uncertainty Field, Fade Strike - in sheet order.')
+
+func test_every_trait_kit_is_in_the_content_library():
+	# The frame holding a Kit and ContentLibrary indexing it are different facts: a Kit whose filename
+	# prefix or resource group is wrong is filed somewhere else and vanishes from get_kit with no
+	# error, while the frame's own ext_resource keeps working perfectly. Everything that looks a trait
+	# up by id - unit.get_gear, every trait spec's fixture, the icon guard - goes through the index.
+	for trait_id:StringName in SHEET_TRAITS:
+		var kit:Kit = ContentLibrary.get_kit(trait_id)
+		assert_true(Kit.is_valid(kit), '%s is in the kits index.' % trait_id)
+		if not Kit.is_valid(kit): continue
+		assert_true(kit.is_trait, '%s is a trait, so it costs no SP and cannot be unequipped.' % trait_id)
