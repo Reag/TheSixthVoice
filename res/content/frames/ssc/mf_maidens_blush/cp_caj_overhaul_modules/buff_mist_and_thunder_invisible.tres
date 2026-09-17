@@ -1,9 +1,11 @@
 [gd_resource type="Resource" script_class="Buff" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/cp_caj_overhaul_modules/buff_mist_and_thunder_invisible.gd" id="1_chip"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_caj_overhaul_modules.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_chip")
+icon = ExtResource("2_icon")
 to = &"treat_as_invisible"
 ; MANUAL, i.e. nothing expires it - "until the end of the scene" is the card's wording and the scene
 ; is the buff's natural lifetime here, because from_gear is the Blush's core Kit and a buff dies with

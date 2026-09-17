@@ -7,6 +7,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/efficient/passive_efficient_used.tres" id="5_stamp"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/cp_caj_overhaul_modules/action_step_of_mist_and_thunder.tres" id="6_step"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/cp_caj_overhaul_modules/action_abjuration_of_metal.tres" id="7_abjuration"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_caj_overhaul_modules.svg" id="8_icon"]
 
 [resource]
 script = ExtResource("1_kit")
@@ -41,6 +42,7 @@ passives = Array[ExtResource("4_passive")]([ExtResource("5_stamp")])
 ; A frame trait, not equippable gear: it costs no SP and cannot be unequipped. cp_quietus_machines,
 ; cp_siege_engine and cp_broadside are all the same.
 is_trait = true
+icon_override = ExtResource("8_icon")
 ;
 ; NO INTEGRATED WEAPON. Unlike the Fitzgerald's cp_broadside, the Subutai's cp_siege_engine and the
 ; Myconid's cp_quietus_machines, this frame's core has no weapon beside it - so
@@ -52,5 +54,6 @@ is_trait = true
 ; 2026-09-14 LCP-fidelity directive forbids. Only gear.cp_caj_overhaul_modules.name exists. A reader
 ; wanting to know what the core system DOES reads the two action rows, which is where Bel put the text.
 ;
-; NO ICON UNTIL SP3 (ruling 16). ICON_TARGETS lists this Kit and its actions regardless, so the
-; integrity guard is red on exactly the rows SP3 has to fill.
+; ICON WIRED AT SP3 (ruling 16): the bolt alone, no status_invisible quote - that mark survives
+; chip size only because its centre is empty, and this glyph is worn by a chip. See Task 2's
+; contact-sheet finding in specs/2026-09-17-maidens-blush-sp3-plan.md.

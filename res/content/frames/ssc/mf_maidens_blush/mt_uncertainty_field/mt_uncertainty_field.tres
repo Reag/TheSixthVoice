@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="5_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/mt_uncertainty_field/action_uncertainty_field.tres" id="6_field"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/mt_uncertainty_field/buff_uncertainty_field_break.tres" id="7_break"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_uncertainty_field.svg" id="8_icon"]
 
 [sub_resource type="Resource" id="Resource_applicator"]
 script = ExtResource("4_applicator")
@@ -18,3 +19,4 @@ script = ExtResource("5_kit")
 actions = Array[ExtResource("1_action")]([ExtResource("6_field")])
 passives = Array[ExtResource("2_passive")]([SubResource("Resource_applicator")])
 is_trait = true
+icon_override = ExtResource("8_icon")
