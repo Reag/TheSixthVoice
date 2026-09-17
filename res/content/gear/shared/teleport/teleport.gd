@@ -79,10 +79,20 @@ static func destination(context:Context) -> Vector2i:
 ##
 ## BUT OUR OWN move() AND move_along() DO PASS ONE (SP2), so this returns the MECH ITSELF for a Step of
 ## Mist and Thunder or an Abjuration of Metal - which is why they can be logged and telegraphed by
-## name. A caller distinguishing "somebody is shoving me" from "this is mine" must therefore NOT infer
-## it from a null here; it reads resource.voluntary and is_own first, which is the order
-## action_uncertainty_field.triggers_on_event uses. Both of its "ours" clauses return before the forcer
-## check is ever reached.
+## name.
+##
+## A CALLER DISTINGUISHING "somebody is shoving me" from "this is mine" can no longer read
+## resource.voluntary and is_own as a matched pair before ever reaching this function.
+## action_uncertainty_field.triggers_on_event now has exactly ONE "ours" clause -
+## context.resource.voluntary - and it is true only for a VOLUNTARY teleport. A Step of Mist and
+## Thunder is own but INVOLUNTARY (reach design ruling C, 2026-09-17, reversing ruling 157), so it
+## FALLS THROUGH to the forcer check below, and that fall-through is what keeps the exemption safe
+## rather than accidental: forcer(context) returns the mech ITSELF for a Step (move() passes its own
+## SpecificAction as the event's object, above), so UnitRelation.are_enemies(unit, forcer) reads
+## Faction.is_enemy(f, f) - false (unit_relation.gd:361-362) - and the trait correctly declines to
+## react to its own unpreventable teleport. A CONSUMER READING THE FORCER AND FINDING ITSELF THERE IS
+## now how "this is my own unpreventable teleport" gets recognised - not a case this function fails
+## to distinguish.
 static func forcer(context:Context) -> Unit:
 	if context == null: return null
 	var source = context.object
