@@ -46,9 +46,9 @@ const UNUSED := 0
 const USED := 1
 
 
-## Stamp the gear as used. Called by the consumer WHERE IT SPENDS, not where it succeeds: a Step of
-## Mist and Thunder that Uncertainty Field then vetoes still spent the point, so it still refunds
-## (ruling 4 and ruling 15).
+## Stamp the gear as used. Called by the consumer WHERE IT SPENDS, not where it succeeds: a boxed-in
+## Step of Mist and Thunder that spends the core point and the quick action and then fizzles without
+## moving still refunds (ruling 9 and ruling 15).
 static func mark_used(gear:GearCore) -> void:
 	if not GearCore.is_valid(gear): return
 	gear.set_state(USED_KEY, USED)

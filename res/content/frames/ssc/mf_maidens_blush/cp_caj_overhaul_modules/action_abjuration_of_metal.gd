@@ -10,10 +10,11 @@
 ## (pathfinder.gd:333) and so does every MOVEMENT_RESTRICTION ban (:345-352). Only Step carries the
 ## card clause that beats those, and only Step pays for it.
 ##
-## THE PULL RULE (ruling 10, the author's call). "In the direction of the attacker" is read as: the
-## destination lies within the roll, and the distance to the attacker shrinks by EXACTLY the spaces
-## moved. A cone toward the attacker, with no sideways drift, and no requirement that the attacker was
-## out of threat beforehand. Measured the way generate_pull_events measures
+## THE PULL RULE (ruling 10, the author's call). "In the direction of the attacker" is read as:
+## the destination lies within the roll, and the attacker lies on the path - either between the
+## mech and the destination, or the destination between the mech and it (reach design ruling A,
+## 2026-09-17, widening the shipped approach-only cone). No sideways drift, and no requirement
+## that the attacker was out of threat beforehand. Measured the way generate_pull_events measures
 ## (common_action_util.gd:159) - tile-to-footprint by closest pair, 2-D - so the two agree.
 ##
 ## LINE OF SIGHT IS REQUIRED here and not for Step, which looks inconsistent and is the card's own
@@ -24,14 +25,18 @@
 ## spent from step 2 onwards whatever happens, but the follow-up shot needs the mech to have actually
 ## moved. A field veto, a cancelled pick and a zero-space result all lose it.
 ##
-## RULING 5'S QUALIFYING EXAMPLE - a one-space sideways teleport beside an already-adjacent attacker
-## keeping the shot - CANNOT ARISE while the pull rule stands, and the author's call (2026-09-17) is to
-## say so here rather than widen the cone to reach it. With the attacker already adjacent the distance
-## to it is 1, so `gained` is at most 0 for every tile it does not occupy while `moved` is at least 1,
-## and the filter at the foot of this file keeps nothing at any roll: the cone is EMPTY, not merely
-## narrow. spec/test_abjuration_of_metal.gd's
-## test_no_valid_tile_leaves_the_reaction_spent_and_the_mech_unmoved presses exactly that case, with
-## the attacker at (7, 6), and asserts the mech is still where it started.
+## RULING 5'S QUALIFYING EXAMPLE - a ONE-SPACE SIDEWAYS teleport beside an already-adjacent attacker
+## keeping the shot - still cannot arise, and that part of the 2026-09-17 amendment stands: a
+## one-space step to either side satisfies neither clause of the filter at the foot of this file.
+##
+## WHAT CHANGED ON 2026-09-17 (reach design ruling A) IS THE TACTICAL SITUATION IT DESCRIBED. The
+## shipped cone was empty beside an adjacent attacker at EVERY roll, so a point-blank miss earned the
+## mech nothing at all; the overshoot clause now lets a TWO-space fold land it on the attacker's far
+## side, which keeps the attacker inside a melee weapon's threat and so keeps the Skirmish. The cone
+## is still empty at a roll of ONE, because the far side is two spaces away -
+## spec/test_abjuration_of_metal.gd's test_no_valid_tile_leaves_the_reaction_spent_and_the_mech_unmoved
+## presses exactly that, and test_an_adjacent_attacker_yields_the_far_side_at_a_roll_of_two is its
+## other half.
 ##
 ## The gate below is still doing real work, which is why it asks whether the mech MOVED rather than
 ## whether the attacker is NEWLY in threat: a straight-line approach that ends inside threat is the
@@ -39,6 +44,8 @@
 extends ActionReactionAttacked
 
 const Teleport := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/teleport/teleport.gd')
+const FIELD_ID := &'mt_uncertainty_field'
+const FIELD_ACTION_ID := &'action_uncertainty_field'
 
 func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> bool:
 	# The archetype does the heavy lifting: DEFENDER, ENEMIES, require_miss against the POST-timing
@@ -83,12 +90,15 @@ func activate(context:Context, activation:EventCore) -> void:
 	var tiles := Teleport.candidate_tiles(unit, roll, true, toward(unit, attacker))
 	if tiles.is_empty():
 		battle_log.log_unit(&'gear.cp_caj_overhaul_modules.action_abjuration_of_metal.no_space.log', unit)
+		await offer_the_fade(unit, activation, &'no_space')
 		return
 
 	# 5. THE PICK, through a real pathfinder - so Immobilized and every ban apply, as they should.
 	var pathfinder:Pathfinder = await Teleport.pathfinder(unit, tiles)
 	var plan:CompconPlan = await TargetActionUtil.ask_for_movement(context, pathfinder)
-	if plan == null or plan.aborted or plan.move_path.is_empty(): return
+	if plan == null or plan.aborted or plan.move_path.is_empty():
+		await offer_the_fade(unit, activation, &'cancelled')
+		return
 	if activation.abort_without_unit(unit): return
 
 	# 6. THE TELEPORT.
@@ -131,16 +141,56 @@ func activate(context:Context, activation:EventCore) -> void:
 		attacker, [Action.FLAG.CAN_FOLLOWUP]
 	)
 
-## The pull-rule filter: keep a tile only when moving there shrinks the distance to the attacker by
-## EXACTLY the spaces moved.
+## THE CONSOLATION (reach design ruling B, 2026-09-17): Abjuration's two dead ends hand the player the
+## Uncertainty Field instead of nothing at all.
 ##
-##   d(origin, attacker) - d(destination, attacker) == d(origin, destination)
+## THE CARD IS WHAT LICENSES IT - "if the Maiden's Blush would teleport, it INSTEAD may become
+## Invisible". A teleport the mech was entitled to and could not take, or declined, is the purest
+## reading of "instead". The snake-eyes fizzle is deliberately NOT one of these, and neither is a
+## zero-space landing: there the teleport IS happening and merely fails to find a space, which is not
+## a decline.
+##
+## IT DOES NOT FIRE ON A PICKED TILE, and that is not a gap. A picked tile produces a real
+## event_unit_move, and the field's own ENTIRE_MOVEMENT / PRE reaction offers the fade there - after
+## the destination is chosen, before the move resolves - which is what
+## test_a_vetoed_teleport_forfeits_the_skirmish pins. Offering again here would ask twice about one
+## teleport. Both routes spend the SAME round, because both go through the field's own fade().
+##
+## TAKING IT FORFEITS THE SKIRMISH, which is ruling 5 unchanged rather than a new rule: no teleport
+## happened, so "if THIS puts the attacker in threat" has no this. Abjuration's own reaction stays
+## spent either way (ruling 10), because the spend is three sections above this line.
+##
+## THE TRAIT OWNS THE RULES. Everything here is looking the trait up and calling it: the confirm, the
+## round, the Invisible and the log line are all the field's, so a Blush whose Uncertainty Field was
+## somehow removed simply gets no offer.
+func offer_the_fade(unit:Unit, activation:EventCore, consolation:StringName) -> void:
+	var gear:GearCore = unit.get_gear(FIELD_ID)
+	if not GearCore.is_valid(gear): return
+	# UNTYPED ON PURPOSE: fade() lives on the field's own script, not on Action, and a typed local
+	# would be asking the parser to find it on the base class.
+	var field = gear.kit.get_action(FIELD_ACTION_ID)
+	if field == null: return
+	await field.fade(activation, unit, gear, null, consolation)
+
+## The pull-rule filter: keep a tile only when the ATTACKER IS ON THE PATH - either between us and
+## the tile, or the tile between us and it. Two clauses, one line of geometry each:
+##
+##   approach:   d(origin, destination) + d(destination, attacker) == d(origin, attacker)
+##   overshoot:  d(origin, attacker)    + d(attacker, destination) == d(origin, destination)
+##
+## THE APPROACH CLAUSE IS THE SHIPPED RULE, RESTATED. `gained == moved`, with
+## `gained = d(origin, attacker) - d(destination, attacker)`, is the same statement; nothing it kept
+## is dropped, and the filter is a strict superset of what shipped. The overshoot clause is the
+## 2026-09-17 widening (reach design ruling A): the mech folds THROUGH the attacker and comes out
+## behind it, which is what an adjacent attacker needs before it yields any destination at all.
+##
+## SIDEWAYS DRIFT IS STILL REFUSED, which is the whole reason this is not "any closer free space
+## within the roll": a tile that ends one space nearer while travelling four satisfies neither
+## clause. That was the author's design-time rejection and it is preserved exactly.
 ##
 ## Distances are tile-to-footprint by closest pair, the way generate_pull_events measures
 ## (common_action_util.gd:159, Tile.get_closest_pair_between(...).distance), so a large attacker is
-## measured to its nearest tile rather than to its anchor. That equality is what makes this a cone
-## rather than "any closer tile": a sideways step that happens to end one space nearer fails it,
-## because it moved further than it gained.
+## measured to its nearest tile rather than to its anchor.
 func toward(unit:Unit, attacker:Unit) -> Callable:
 	var attacker_tiles:Array[Vector2i] = attacker.occupied_tiles()
 	var origin_tiles:Array[Vector2i] = unit.occupied_tiles()
@@ -148,5 +198,11 @@ func toward(unit:Unit, attacker:Unit) -> Callable:
 	return func(tile:Vector2i) -> bool:
 		var destination:Array[Vector2i] = [tile]
 		var moved:int = Tile.get_closest_pair_between(origin_tiles, destination).distance
-		var gained:int = from_attacker - Tile.get_closest_pair_between(destination, attacker_tiles).distance
-		return moved > 0 and gained == moved
+		if moved <= 0: return false
+		var to_attacker:int = Tile.get_closest_pair_between(destination, attacker_tiles).distance
+		# APPROACH: the destination lies between us and the attacker. This is the shipped rule
+		# restated - `gained == moved` is the same statement as `moved + to == from` - and it is
+		# unchanged in effect.
+		if moved + to_attacker == from_attacker: return true
+		# OVERSHOOT: the ATTACKER lies between us and the destination. New 2026-09-17.
+		return from_attacker + to_attacker == moved

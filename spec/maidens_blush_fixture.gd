@@ -84,11 +84,13 @@ static func create_game(test:GutTest, map_size:Vector2i = FitzgeraldFixture.DEFA
 ## A game whose responder can answer a SEQUENCE of yes/no prompts, and hand back the one it installed.
 ##
 ## WHY THE STOCK RESPONDER IS NOT ENOUGH FOR THIS FRAME. SpecFactory.ChoiceBusResponder answers every
-## yes/no with the same `chosen_yesnos` (spec_factory.gd:507-517), and pressing Step of Mist and
-## Thunder opens TWO in one awaited call: Step's own confirm, and then Uncertainty Field's offer to
-## fade instead. With one answer for both, `true` makes the field eat every teleport - measured, and it
-## made ten of this file's tests fail at once with the Blush sitting still - while `false` never gets
-## past the confirm. testkit/mod_choice_responder.gd exists for exactly this and adds `yesno_queue`.
+## yes/no with the same `chosen_yesnos` (spec_factory.gd:507-517), and Abjuration of Metal opens TWO in
+## one awaited call: its own confirm, then Uncertainty Field's offer to fade instead. With one answer
+## for both, `true` makes the field eat every teleport, and `false` never gets past the confirm.
+## STEP OF MIST AND THUNDER USED TO OPEN THE SAME TWO PROMPTS, and one shared `true` was measured to
+## make ten of this file's tests fail at once with the Blush sitting still - but SINCE REACH DESIGN
+## RULING C (2026-09-17) the field is permanently exempt from Step, so only Abjuration needs the queue
+## for this reason now. testkit/mod_choice_responder.gd exists for exactly this and adds `yesno_queue`.
 ##
 ## add_responder = false is what stops TWO responders answering the same request; the Thy Hubris
 ## DomainWatcher spec (test_my_domain_trigger.gd:96-100) is the precedent for the whole shape.
@@ -186,16 +188,19 @@ static func equip_interdiction(hostile:Unit) -> void:
 ## from Step would hand the next roll a 1. On a SNAKE EYES call the action draws a third value for the
 ## random destination (ruling 9), so pass it in `rolls` as a third entry when that is what the test is
 ## about.
-## `fade` is the answer to the SECOND yes/no - Uncertainty Field's offer to replace the teleport -
-## and defaults to NO, because almost every test here is about the Step landing. The queue is
-## [confirm, fade] in that order, which is the order the action opens them.
+## NO FADE ANSWER, SINCE reach design ruling C (2026-09-17). Step used to open TWO yes/no prompts in
+## one awaited call - its own confirm, then Uncertainty Field's offer to fade instead - and this
+## helper queued an answer for both. The field is now permanently exempt from Step, so only the
+## confirm is ever asked, and a second queued answer would sit in the responder's queue waiting to
+## answer the NEXT prompt: a test that presses Step twice would have its second confirm declined by a
+## leftover and pass for the wrong reason.
 ##
 ## Takes the responder rather than reading SpecFactory.current_responder: this needs the queued one
 ## from create_game_with_sequenced_prompts, and silently doing nothing on the stock responder (which
 ## has no yesno_queue) would be a whole spec file passing for the wrong reason.
 static func step(game:Gamemaster, blush:Unit, responder, rolls:Array[int],
-		tile:Vector2i = Tile.INVALID, fade:bool = false) -> void:
-	responder.yesno_queue.append_array([true, fade])
+		tile:Vector2i = Tile.INVALID) -> void:
+	responder.yesno_queue.append(true)
 	if tile != Tile.INVALID:
 		responder.chosen_plan_queue.append(CompconPlan.create([tile], [], []))
 	Dice.CHEAT_ROLL_QUEUE.clear()

@@ -167,6 +167,10 @@ gear.mt_uncertainty_field.action_uncertainty_field.name,Uncertainty Field
 gear.mt_uncertainty_field.action_uncertainty_field.effect,"1/round if the Maiden's Blush would |teleport|, it instead may become |Invisible| until the beginning of its next turn. It immediately loses |Invisible| if it takes damage."
 gear.mt_uncertainty_field.action_uncertainty_field.replaced.log,{unit} fades from view; {source} does not happen.
 gear.mt_uncertainty_field.action_uncertainty_field.replaced.pop,*FADE*
+gear.mt_uncertainty_field.action_uncertainty_field.consolation.no_space.confirm,"There is nowhere to fold into. Become Invisible instead, and spend the Uncertainty Field for this round?"
+gear.mt_uncertainty_field.action_uncertainty_field.consolation.cancelled.confirm,"The fold is called off. Become Invisible instead, and spend the Uncertainty Field for this round?"
+gear.mt_uncertainty_field.action_uncertainty_field.consolation.no_space.log,"{unit} finds nowhere to fold, and fades from view instead."
+gear.mt_uncertainty_field.action_uncertainty_field.consolation.cancelled.log,"{unit} calls off the fold, and fades from view instead."
 gear.mt_uncertainty_field.broken.log,{unit} took damage and is no longer Invisible.
 ,
 gear.mt_fade_strike.name,Fade Strike

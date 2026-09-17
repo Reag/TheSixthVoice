@@ -377,7 +377,9 @@ func test_movement_type_own_involuntary_is_involuntary_ignores_engagement_and_is
 	assert_false(type.voluntary, 'It is involuntary - which is what beats the two Immobilized gates.')
 	assert_true(type.ignore_engagement, 'It ignores engagement, as vanilla\'s involuntary teleport does.')
 	assert_false(type.ignore_rxns,
-		'But it does NOT ignore reactions: Uncertainty Field has to be offered on it.')
+		"But it does NOT set NO_RXNS - unlike vanilla's own event_unit_teleport shape, so a reaction is"
+		+ " free to judge for itself, even though none does today: Step is permanently exempt from the"
+		+ " frame's own Uncertainty Field (reach design ruling C, 2026-09-17).")
 	assert_true(Teleport.is_own(type), 'And is_own reads the tag back.')
 
 func test_own_involuntary_stays_involuntary_under_a_movement_type_buff_that_is_voluntary():
@@ -540,8 +542,10 @@ func test_move_lands_by_tile_and_returns_a_completed_core():
 	assert_eq(unit.tile(), DESTINATION, 'And the mech is there.')
 
 func test_move_returns_an_aborted_core_when_a_pre_listener_vetoes():
-	# What Step of Mist and Thunder reads to know Uncertainty Field took the teleport, and therefore
-	# that no adjacent character saves (ruling 4).
+	# NOT THE UNCERTAINTY FIELD ANY MORE (reach design ruling C, 2026-09-17): the field can no longer
+	# take a Step. What this still pins is the GENERIC seam Step's own guard depends on - `move` hands
+	# back an aborted core whenever any PRE listener vetoes it, arm_listener's hand-built one included -
+	# and that is why nobody arrives, so nobody saves.
 	arm_listener()
 	var core:EventCore = await Teleport.move(sourced_activation(), unit, DESTINATION)
 	assert_not_null(core, 'Still handed back.')
@@ -559,9 +563,12 @@ func test_the_own_involuntary_move_lands_while_immobilized_and_the_voluntary_one
 	assert_eq(unit.tile(), START, 'Voluntary does not.')
 
 func test_move_hangs_the_calling_actions_specific_on_the_event():
-	# This is what lets action_uncertainty_field.replaced_name log the veto against the core power BY
-	# NAME instead of falling back to the glossary's generic word for a teleport. Nothing else in the
-	# suite would notice it going away.
+	# NOT FOR NAMING THE VETO ANY MORE (reach design ruling C, 2026-09-17): Uncertainty Field can no
+	# longer take a Step to log by name, since the field never offers on one. What this object still
+	# buys is forcer() safety: Teleport.forcer(context) reads it back to return the mech ITSELF for a
+	# Step, which is what makes UnitRelation.are_enemies(unit, unit) false and the exemption safe rather
+	# than accidental (forcer()'s own docstring, above). Abjuration's own vetoed teleport still logs
+	# against replaced_name by name, through move_along()'s own object.
 	var core:EventCore = await Teleport.move(sourced_activation(), unit, DESTINATION)
 	assert_true(SpecificAction.is_valid(core.context.object),
 		'The move carries a SpecificAction as its object.')

@@ -20,13 +20,16 @@
 ##
 ## Involuntariness alone beats Immobilized and loses to an Interdiction Field; the path alone beats
 ## the Field and loses to Immobilized. Teleport.move(activation, unit, tile) does both, and is tagged
-## as the mech's OWN so Uncertainty Field can still offer the fade (ruling 4).
+## as the mech's OWN - which, since reach design ruling C (2026-09-17), is exactly what EXEMPTS it
+## from the frame's own Uncertainty Field. "Cannot be prevented" is absolute, and the trait does not
+## get an exception the card never wrote.
 ##
 ## THE ORDER OF activate() IS THE RULING. Reading down: a declined confirm costs nothing; a cancelled
 ## pick costs nothing; everything after spend_actions costs the quick action and the core point
-## whatever happens next - a fade, a fizzle, a boxed-in snake eyes. That is deliberate and the author
-## chose it (ruling 4): Step is NOT exempt from the frame's own trait, and Efficient softens the cost
-## to a single scene.
+## whatever happens next - a fizzle, or a boxed-in snake eyes. A FADE IS NO LONGER ONE OF THOSE
+## OUTCOMES (reach design ruling C, 2026-09-17): the Uncertainty Field is never offered on a Step, so
+## ruling 161's clause about a vetoed Step staying spent is moot. Efficient still refunds the point at
+## the end of the scene, because Step was used.
 extends ActionSystem
 
 const Teleport := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/teleport/teleport.gd')
@@ -86,6 +89,20 @@ func activate(context:Context, activation:EventCore) -> void:
 		tile = pick_random_tile(Teleport.candidate_tiles(unit, SNAKE_EYES_RANGE, false))
 	else:
 		var tiles := Teleport.candidate_tiles(unit, total, false)
+		# THE SPACE IT ALREADY OCCUPIES IS A LEGAL DESTINATION (reach design ruling D, 2026-09-17). It
+		# is a TARGETING choice, not a power increase: folding one space already forces the save, and
+		# the only difference is which characters are adjacent to the destination.
+		#
+		# RE-ADDED HERE RATHER THAN LOOSENED IN THE HELPER. Teleport.candidate_tiles drops the caller's
+		# occupied tiles at teleport.gd:249 and is FROZEN with five consumer frames behind it; "a
+		# teleport to where you already are is not a move" is the right default for all of them and
+		# this card is the exception. Abjuration of Metal is unaffected either way - its own filter
+		# requires moved > 0 and rejects the origin independently.
+		#
+		# THE PICKED BRANCH ONLY. Snake eyes is "a space of the GM's choice", and a boxed-in mech
+		# FIZZLES there (ruling 9); adding the own tile above would quietly turn every fizzle into a
+		# landing, with the adjacent saves and all.
+		tiles.append(unit.tile())
 		tile = await Teleport.pick_tile(context, activation, tiles)
 		# A CANCELLED PICK SPENDS NOTHING, which is Blinkspace's behaviour and the reason the spend is
 		# below this line rather than above the roll.
@@ -97,8 +114,10 @@ func activate(context:Context, activation:EventCore) -> void:
 	Efficient.mark_used(gear)
 
 	# A boxed-in snake eyes has nowhere to go and fizzles here: spent, stamped, unmoved (ruling 9).
-	# It cannot happen on an ordinary roll, because an empty tile set makes pick_tile return INVALID
-	# and the branch above already returned.
+	# AN ORDINARY ROLL CANNOT LAND HERE (reach design ruling D, 2026-09-17): the picked branch's tile
+	# set always includes the mech's own tile (section 3, above), so it is never empty and pick_tile
+	# returns INVALID only on a genuine cancel - which returns above the spend, before this point is
+	# ever reached.
 	if tile == Tile.INVALID:
 		battle_log.log_unit(&'gear.cp_caj_overhaul_modules.action_step_of_mist_and_thunder.fizzle.log', unit)
 		return
@@ -106,9 +125,10 @@ func activate(context:Context, activation:EventCore) -> void:
 	# 5. THE TELEPORT. Own-involuntary and by path - see the header.
 	var was_grappled:bool = unit.has_status(Lancer.STATUS.GRAPPLED)
 	var move:EventCore = await Teleport.move(activation, unit, tile)
-	# UNCERTAINTY FIELD TOOK IT (ruling 4). The point and the action stay spent, the stamp stays set,
-	# and NO adjacent character saves - the card's save is a consequence of arriving, and nobody
-	# arrived.
+	# THE GUARD STAYS, AND IT IS NO LONGER THE UNCERTAINTY FIELD IT GUARDS AGAINST (reach design ruling
+	# C, 2026-09-17). The field cannot take a Step any more, but `move` still reports a move that never
+	# resolved - a null core, or one another listener aborted - and the card's save is a consequence of
+	# ARRIVING. Nobody arrived, so nobody saves.
 	if move == null or move.aborted: return
 	if activation.abort_without_unit(unit): return
 

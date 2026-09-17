@@ -15,10 +15,11 @@
 #
 # THE ORDER OF THE ACTION'S BODY IS THE RULING, and these tests are grouped to follow it: a declined
 # confirm costs nothing, a cancelled pick costs nothing, and everything past the spend costs the quick
-# action and the core point whatever happens next - a fade, a fizzle, a boxed-in snake eyes. "Spends
-# nothing" is therefore asserted THREE WAYS everywhere it appears (core point, quick action, Efficient
-# stamp), because a test that checks only the core point passes against an implementation that stamped
-# the gear anyway.
+# action and the core point whatever happens next - a fizzle, or a boxed-in snake eyes. A FADE IS NO
+# LONGER ONE OF THOSE OUTCOMES (reach design ruling C, 2026-09-17): the Uncertainty Field is never
+# offered on a Step. "Spends nothing" is therefore asserted THREE WAYS everywhere it appears (core
+# point, quick action, Efficient stamp), because a test that checks only the core point passes against
+# an implementation that stamped the gear anyway.
 extends GutTest
 
 const MaidensBlushFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/maidens_blush_fixture.gd')
@@ -45,9 +46,12 @@ var watcher:PromptWatcher
 var responder
 
 func before_each() -> void:
-	# THE QUEUED RESPONDER, not the stock one: pressing Step opens TWO yes/no prompts in one awaited
-	# call - its own confirm, and then Uncertainty Field's offer to fade instead - and one answer for
-	# both makes the field eat every teleport. See the fixture's own header.
+	# THE QUEUED RESPONDER, not the stock one: `press` and test_cancelling_the_pick_spends_nothing queue
+	# their yes/no answers in sequence, and the stock responder only ever repeats one fixed answer. STEP
+	# NOW OPENS EXACTLY ONE PROMPT PER PRESS (reach design ruling C, 2026-09-17): the Uncertainty Field
+	# can no longer take a Step, so there is no second answer queued behind the confirm - but a test that
+	# presses more than once in a run, or declines or cancels by hand, still needs its answers read back
+	# in the order it queued them. See the fixture's own header.
 	var pair := MaidensBlushFixture.create_game_with_sequenced_prompts(self, MAP_SIZE)
 	game = pair[0]
 	responder = pair[1]
@@ -71,8 +75,8 @@ func assert_spent_nothing(context:String) -> void:
 	assert_eq(blush.state.actions, Lancer.ACTION_COST_FULL, '%s: the quick action is unspent.' % context)
 	assert_false(Efficient.is_marked(core_gear()), '%s: the Efficient stamp is not set.' % context)
 
-func press(rolls:Array[int], tile:Vector2i = Tile.INVALID, fade:bool = false) -> void:
-	await MaidensBlushFixture.step(game, blush, responder, rolls, tile, fade)
+func press(rolls:Array[int], tile:Vector2i = Tile.INVALID) -> void:
+	await MaidensBlushFixture.step(game, blush, responder, rolls, tile)
 
 ## The tile set STEP'S OWN RETICLE was opened over, read back off the prompt the action opened.
 ##
@@ -91,14 +95,17 @@ func reticle_tiles() -> Array[Vector2i]:
 	if responder.plan_prompts.is_empty(): return []
 	return UnitTargeting.get_tiles_targetable(responder.plan_prompts.back().using)
 
-## Wall the Blush in: every playable tile within `radius` of it, bar the one it stands on, becomes a
-## full-height forbidden interior, so Teleport.candidate_tiles finds nothing standable to offer.
-## Same setpiece the walls in test_hole_puncher.gd and test_juggernaut_drive.gd are built from;
-## forbidden_interiors_enabled is set by the fixture's create_game_with_sequenced_prompts.
-func box_the_blush_in(radius:int) -> void:
+## Wall the Blush in: every playable tile within `radius` of it, bar the one it stands on and any in
+## `except`, becomes a full-height forbidden interior, so Teleport.candidate_tiles finds nothing
+## standable to offer. Same setpiece the walls in test_hole_puncher.gd and test_juggernaut_drive.gd
+## are built from; forbidden_interiors_enabled is set by the fixture's create_game_with_sequenced_prompts.
+##
+## `except` exists for the one test that needs a CHARACTER standing next to a boxed-in Blush: a tile a
+## unit occupies is not standable either, so leaving it un-walled still empties the candidate set.
+func box_the_blush_in(radius:int, except:Array[Vector2i] = []) -> void:
 	var walls:Array[Vector2i] = []
 	for tile:Vector2i in Tile.get_all_within(BLUSH_TILE, radius, game.map):
-		if tile != BLUSH_TILE: walls.append(tile)
+		if tile != BLUSH_TILE and not except.has(tile): walls.append(tile)
 	SpecFactory.add_setpieces_to_landscape(game.get_landscape_node(), &'setpiece_forbidden_interior', walls)
 	game.map.calculate_los_blockers()
 
@@ -131,7 +138,7 @@ func test_declining_the_confirm_spends_nothing():
 func test_cancelling_the_pick_spends_nothing():
 	# Blinkspace's behaviour, and the reason the spend sits below the pick rather than above the roll.
 	await MaidensBlushFixture.open_turn(game, blush)
-	responder.yesno_queue.append_array([true, false])
+	responder.yesno_queue.append(true)
 	responder.abort_all = true
 	Dice.CHEAT_ROLL_QUEUE.clear()
 	Dice.CHEAT_ROLL_QUEUE.append_array([3, 4])
@@ -199,7 +206,7 @@ func test_a_second_press_in_the_same_turn_is_refused():
 	assert_eq(blush.tile(), landed, 'The second press moved nothing.')
 
 func test_a_blush_riding_a_stack_up_cannot_press_it():
-	# Blinkspace's gate, kept (action_step_of_mist_and_thunder.gd:47). The engine reads it in
+	# Blinkspace's gate, kept (action_step_of_mist_and_thunder.gd:50). The engine reads it in
 	# UnitAction.is_action_prohibited_due_to_stackup (unit_action.gd:418-425): an action whose
 	# can_be_used_while_stackup_rider() is false is unavailable to a unit whose state.stackup_order is
 	# above 0 - a RIDER, never the base of the stack - unless the stack-up's own gear is what is being
@@ -302,7 +309,7 @@ func test_an_ally_adjacent_to_the_destination_rolls_too():
 	await MaidensBlushFixture.open_turn(game, blush)
 	var ally := MaidensBlushFixture.create_ally(game, Vector2i(8, 4))
 	Dice.CHEAT_ROLL_QUEUE.clear()
-	responder.yesno_queue.append_array([true, false]) # confirm yes, fade no
+	responder.yesno_queue.append(true) # the confirm; nothing else is asked
 	responder.chosen_plan_queue.append(CompconPlan.create([LANDING], [], []))
 	Dice.CHEAT_ROLL_QUEUE.append_array([3, 4, 1])
 	await SpecFactory.use(game, blush, MaidensBlushFixture.CORE_ID, ACTION_ID)
@@ -313,7 +320,7 @@ func test_the_fooled_enemy_sees_the_blush_as_invisible_and_another_enemy_does_no
 	var fooled := MaidensBlushFixture.create_hostile(game, Vector2i(8, 4))
 	var other := MaidensBlushFixture.create_hostile(game, Vector2i(12, 12))
 	Dice.CHEAT_ROLL_QUEUE.clear()
-	responder.yesno_queue.append_array([true, false]) # confirm yes, fade no
+	responder.yesno_queue.append(true) # the confirm; nothing else is asked
 	responder.chosen_plan_queue.append(CompconPlan.create([LANDING], [], []))
 	Dice.CHEAT_ROLL_QUEUE.append_array([3, 4, 1])
 	await SpecFactory.use(game, blush, MaidensBlushFixture.CORE_ID, ACTION_ID)
@@ -335,7 +342,7 @@ func test_the_blush_attacking_the_fooled_enemy_is_unaffected():
 	await MaidensBlushFixture.open_turn(game, blush)
 	var fooled := MaidensBlushFixture.create_hostile(game, Vector2i(8, 4))
 	Dice.CHEAT_ROLL_QUEUE.clear()
-	responder.yesno_queue.append_array([true, false]) # confirm yes, fade no
+	responder.yesno_queue.append(true) # the confirm; nothing else is asked
 	responder.chosen_plan_queue.append(CompconPlan.create([LANDING], [], []))
 	Dice.CHEAT_ROLL_QUEUE.append_array([3, 4, 1])
 	await SpecFactory.use(game, blush, MaidensBlushFixture.CORE_ID, ACTION_ID)
@@ -356,7 +363,7 @@ func test_a_chip_from_one_blush_does_not_hide_a_second_one():
 	var fooled := MaidensBlushFixture.create_hostile(game, Vector2i(8, 4))
 	var other_blush := MaidensBlushFixture.create_maidens_blush(game, Vector2i(2, 9))
 	Dice.CHEAT_ROLL_QUEUE.clear()
-	responder.yesno_queue.append_array([true, false]) # confirm yes, fade no
+	responder.yesno_queue.append(true) # the confirm; nothing else is asked
 	responder.chosen_plan_queue.append(CompconPlan.create([LANDING], [], []))
 	Dice.CHEAT_ROLL_QUEUE.append_array([3, 4, 1])
 	await SpecFactory.use(game, blush, MaidensBlushFixture.CORE_ID, ACTION_ID)
@@ -370,7 +377,7 @@ func test_a_passed_save_hangs_no_chip():
 	await MaidensBlushFixture.open_turn(game, blush)
 	var lucky := MaidensBlushFixture.create_hostile(game, Vector2i(8, 4))
 	Dice.CHEAT_ROLL_QUEUE.clear()
-	responder.yesno_queue.append_array([true, false]) # confirm yes, fade no
+	responder.yesno_queue.append(true) # the confirm; nothing else is asked
 	responder.chosen_plan_queue.append(CompconPlan.create([LANDING], [], []))
 	Dice.CHEAT_ROLL_QUEUE.append_array([3, 4, 20]) # a save it cannot fail
 	await SpecFactory.use(game, blush, MaidensBlushFixture.CORE_ID, ACTION_ID)
@@ -384,7 +391,7 @@ func test_the_chip_survives_turns_and_the_fooled_units_own_attack():
 	await MaidensBlushFixture.open_turn(game, blush)
 	var fooled := MaidensBlushFixture.create_hostile(game, Vector2i(8, 4))
 	Dice.CHEAT_ROLL_QUEUE.clear()
-	responder.yesno_queue.append_array([true, false]) # confirm yes, fade no
+	responder.yesno_queue.append(true) # the confirm; nothing else is asked
 	responder.chosen_plan_queue.append(CompconPlan.create([LANDING], [], []))
 	Dice.CHEAT_ROLL_QUEUE.append_array([3, 4, 1])
 	await SpecFactory.use(game, blush, MaidensBlushFixture.CORE_ID, ACTION_ID)
@@ -426,6 +433,56 @@ func test_the_chip_dies_with_the_blush_that_placed_it():
 		'Fixture: the character it fooled is not - an assertion on a corpse measures nothing.')
 	assert_null(chip_on(fooled), 'And the chip went with the mech that placed it.')
 
+# ---------------------------------------------------------------- folding nowhere
+
+func test_step_offers_the_space_the_blush_already_occupies():
+	# RULING D (reach design 4, 2026-09-17), asked of the RETICLE Step actually opened rather than of
+	# the helper: Teleport.candidate_tiles drops the caller's own tiles at teleport.gd:249 and is
+	# FROZEN with five consumer frames, so the action re-adds its own tile after calling it.
+	await MaidensBlushFixture.open_turn(game, blush)
+	await press([3, 4], LANDING)
+	assert_true(reticle_tiles().has(BLUSH_TILE),
+		'The space it is standing on is a legal destination.')
+
+func test_step_may_fold_into_the_space_it_already_occupies():
+	# THE POINT OF RULING D, and it is a TARGETING choice rather than a power increase: folding one
+	# space already forces the save, and the only difference is which characters end up adjacent to the
+	# destination. A surrounded Blush that folds one may drop a neighbour out of the radius; folding
+	# zero catches exactly its current neighbours.
+	#
+	# Measured before it was built (Task 1's probe): the engine treats a zero-distance single-step path
+	# as a real arrival, so section 7 runs. Three values queued, three drawn: the 2d6, then a Systems
+	# save low enough to fail.
+	await MaidensBlushFixture.open_turn(game, blush)
+	var neighbour := MaidensBlushFixture.create_hostile(game, Vector2i(5, 4)) # 1 from BLUSH_TILE
+	var distant := MaidensBlushFixture.create_hostile(game, Vector2i(6, 4))   # 2 from BLUSH_TILE
+	await press([3, 4, 1], BLUSH_TILE)
+
+	assert_eq(blush.tile(), BLUSH_TILE, 'It folded to where it already was.')
+	assert_false(blush.core.has_core_power, 'And paid for it in full.')
+	assert_not_null(chip_on(neighbour), 'The character beside it saved, and failed.')
+	assert_null(chip_on(distant), 'The one two tiles out never rolled - the radius is still one.')
+
+func test_a_grappled_blush_cannot_fold_in_place_to_shed_the_grip():
+	# THE OTHER HALF OF RULING D, and the one with a wrong answer available. Step strips a GRAPPLED
+	# status through Katamari.validate_attachments when it was grappled and moved (section 6) - the
+	# engine's own reconciler, which KEEPS the status while a grappling attachment still backs it. A
+	# REAL grapple is built here, not the orphan status test_a_grappled_blush_folds_free_of_the_grip
+	# uses: the grappler is still adjacent to a mech that folded nowhere, so the attachment is
+	# genuinely intact and the grip must survive. Otherwise a zero-distance fold would be a free
+	# escape from every grapple in the game.
+	await MaidensBlushFixture.open_turn(game, blush)
+	var grappler := MaidensBlushFixture.create_hostile(game, Vector2i(5, 4))
+	var grapple_gear:GearCore = grappler.get_gear(&'mw_grapple')
+	assert_true(GearCore.is_valid(grapple_gear), 'Fixture: mw_grapple is in every basic loadout.')
+	Katamari.attach_units(SpecFactory.dummy_event(), blush, grappler, grapple_gear.persistent_id)
+	assert_true(blush.has_status(Lancer.STATUS.GRAPPLED), 'Fixture: really grappled.')
+
+	await press([3, 4, 1], BLUSH_TILE)
+
+	assert_eq(blush.tile(), BLUSH_TILE, 'It folded nowhere.')
+	assert_true(blush.has_status(Lancer.STATUS.GRAPPLED), 'And the grip came with it, because it is intact.')
+
 # ---------------------------------------------------------------- snake eyes
 
 func test_snake_eyes_skips_the_picker_and_lands_within_two():
@@ -448,34 +505,64 @@ func test_a_boxed_in_snake_eyes_fizzles_and_still_costs_the_point():
 	# and a Blush with none has nowhere to be put: the action is already past its spend by then, so it
 	# pays in full, logs .fizzle.log and stands still.
 	#
-	# TWO values queued, two drawn: the 2d6. pick_random_tile returns Tile.INVALID at its first line
-	# when the tile set is empty (action_step_of_mist_and_thunder.gd:162), before it draws the die for
-	# the destination - so unlike the other snake-eyes tests this one queues no third value.
+	# FOUR values queued, TWO drawn on the correct path: the 2d6 and nothing else. pick_random_tile
+	# returns Tile.INVALID at its first line when the tile set is empty
+	# (action_step_of_mist_and_thunder.gd:180), before it draws the die for the destination, so the
+	# third and fourth are never reached and the leftovers die with after_each.
+	#
+	# THEY ARE QUEUED FOR THE MUTATION, NOT FOR THIS PATH, and that is what makes the assertion at the
+	# foot of this test a real guard rather than a coin flip. If ruling D's own tile ever leaked into
+	# the SNAKE-EYES branch as well as the picked one, pick_random_tile would draw the third value for
+	# its index, land the mech where it already stood, and section 7 would then ask the neighbour for
+	# a Systems save - which draws the fourth. Queue only three and that save rolls live off an empty
+	# cheat queue, so the mistake would be caught about half the time. The fourth 1 is low enough to
+	# fail the save outright, so the chip lands every time and the guard is deterministic.
 	await MaidensBlushFixture.open_turn(game, blush)
-	box_the_blush_in(2)
+	var neighbour := MaidensBlushFixture.create_hostile(game, Vector2i(5, 4))
+	box_the_blush_in(2, [Vector2i(5, 4)])
 	assert_true(Teleport.candidate_tiles(blush, 2, false).is_empty(),
 		'Fixture: walled in, there is nowhere within 2 to be put.')
 
-	await press([1, 1])
+	await press([1, 1, 1, 1])
 
 	assert_eq(blush.tile(), BLUSH_TILE, 'It did not move.')
 	assert_false(blush.core.has_core_power, 'The core point is spent all the same (ruling 9).')
 	assert_ne(blush.state.actions, Lancer.ACTION_COST_FULL, 'And the quick action with it.')
 	assert_true(Efficient.is_marked(core_gear()),
 		'And the stamp is set, so Efficient still gives the point back at the end of the scene.')
+	assert_null(chip_on(neighbour),
+		"AND NOBODY SAVED: ruling D re-adds the mech's own tile to the PICKED branch only. A snake"
+		+ " eyes that found nowhere to go FIZZLES, and a fizzle is not an arrival - adding the own tile"
+		+ " to \"a space of the GM's choice\" would quietly turn every boxed-in snake eyes into a landing.")
 
-# ---------------------------------------------------------------- the field takes it
+# ---------------------------------------------------------------- the field cannot take it
 
-func test_the_field_offers_on_step_and_a_veto_leaves_the_point_spent_and_no_save_rolled():
-	# RULING 4 END TO END, and the most valuable test in this file: the real Uncertainty Field on the
-	# real frame, a real Step, a real veto, and then the ABSENCE of a save. The absence is asserted
-	# positively - the adjacent character wears no chip - rather than by nothing having crashed.
+func test_the_field_never_offers_on_step_and_the_fold_always_lands():
+	# RULING C END TO END, and the inversion of this file's most valuable test rather than its
+	# deletion. It used to press a real Step, take the fade, and assert the ABSENCE of a save; it now
+	# presses a real Step and asserts that the fade is never offered at all, that the fold lands, and
+	# that the adjacent character saves.
+	#
+	# THE NEGATIVE CARRIES ITS CONTROL, because "no prompt appeared" is also what a deleted trait
+	# reports: the Blush really is wearing the Uncertainty Field, and the engine really would let it
+	# fire - the round is unspent and the gear is available - and it still is not offered.
+	#
+	# Three values queued, three drawn: the 2d6, then one Systems save low enough to fail.
 	await MaidensBlushFixture.open_turn(game, blush)
 	var adjacent := MaidensBlushFixture.create_hostile(game, Vector2i(8, 4))
-	await press([3, 4], LANDING, true) # this time the player TAKES the fade
+	var field:GearCore = blush.get_gear(MaidensBlushFixture.UNCERTAINTY_FIELD_ID)
+	assert_true(GearCore.is_valid(field), 'Fixture: the mech is wearing the trait.')
+	assert_true(UnitAction.is_gear_available(
+		SpecificAction.create(blush, field, field.kit.get_action(&'action_uncertainty_field'))),
+		'Fixture: and the engine would let it fire - the round is unspent.')
 
-	assert_eq(blush.tile(), BLUSH_TILE, 'The field replaced the teleport, so it never moved.')
-	assert_true(blush.has_status(Lancer.STATUS.INVISIBLE), 'It faded instead.')
-	assert_false(blush.core.has_core_power, 'The core point stays spent (ruling 4).')
-	assert_true(Efficient.is_marked(core_gear()), 'And Efficient still refunds it at scene end.')
-	assert_null(chip_on(adjacent), 'Nobody saved: the save is a consequence of arriving.')
+	await press([3, 4, 1], LANDING)
+
+	assert_eq(blush.tile(), LANDING, 'The fold landed: nothing was offered that could stop it.')
+	assert_eq(field.get_uses_this_round_alt(&'uncertainty_field'), 0,
+		'The Uncertainty Field never fired.')
+	assert_false(blush.has_status(Lancer.STATUS.INVISIBLE), 'And nothing faded.')
+	assert_eq(responder.yesno_prompts.size(), 1,
+		"Exactly one prompt was opened - Step's own confirm, with no fade offer behind it.")
+	assert_not_null(chip_on(adjacent),
+		'And the adjacent character saved, because the mech arrived (ruling 13).')

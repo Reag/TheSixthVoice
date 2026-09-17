@@ -16,7 +16,7 @@
 # ReactionBus.does_reaction_trigger, the second through PromptWatcher.
 #
 # EVERY NEGATIVE CASE CARRIES A POSITIVE CONTROL in the same test. "No prompt appeared" is also what a
-# deleted trait reports, and this file has five negatives; see the Myconid frame close's finding 3.
+# deleted trait reports, and this file has eight negatives; see the Myconid frame close's finding 3.
 #
 #   godot --resolution 800x600 --position -2400,-2400 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_uncertainty_field.gd
 extends GutTest
@@ -280,7 +280,7 @@ func test_an_immune_blush_still_pays_for_a_fade_that_grants_nothing():
 	#
 	# THE MUTATION THIS ANSWERS: add `if UnitCondition.is_immune_to_status(unit,
 	# Lancer.STATUS.INVISIBLE, gear.persistent_id): return false` as a last clause of
-	# triggers_on_event (action_uncertainty_field.gd:60-73). The field then never triggers, so the
+	# triggers_on_event (action_uncertainty_field.gd:65-91). The field then never triggers, so the
 	# teleport lands and the round stays unspent - would_offer, the tile, `aborted` and the use count
 	# all flip. That is the "fix" this test exists to stop, and the ruling is written out at the
 	# spend/veto/apply sequence in action_uncertainty_field.gd.
@@ -307,8 +307,11 @@ func test_accepting_skips_the_pathfinders_deferred_spend():
 	# variant-action spend, e.g. a Lunge), and event_unit_move calls it only AFTER the PRE and the
 	# abort check (:76-78). So whatever a teleport was going to spend through its pathfinder is never
 	# spent when the field takes it. NOTE WHAT THIS DOES NOT COVER: an action's own spend_actions()
-	# runs before it queues the move, so a vetoed core power stays spent - which is exactly ruling 4,
-	# and SP2's Step spec is where that is asserted.
+	# runs before it queues the move, so a vetoed reaction still stays spent regardless -
+	# test_abjuration_of_metal.gd's test_a_vetoed_teleport_forfeits_the_skirmish is where that is
+	# asserted today. IT USED TO BE SP2's Step spec asserting the same for the frame's core power
+	# (ruling 4), but since Step can no longer be vetoed at all (reach design ruling C, 2026-09-17)
+	# that spec now asserts the opposite.
 	var spend := func(_core:EventCore) -> void: spend_calls += 1
 
 	responder.chosen_yesnos = false
@@ -398,24 +401,43 @@ func test_an_involuntary_teleport_with_no_readable_forcer_is_not_offered():
 	assert_true(would_offer(voluntary_teleport_data()), 'CONTROL: a teleport IS offered.')
 	assert_false(would_offer(anonymous), 'An involuntary teleport with no forcer is not.')
 
-func test_our_own_involuntary_teleport_is_offered_even_though_it_names_no_forcer():
-	# RULING 4, AND THE CLAUSE SP2'S STEP RESTS ON (action_uncertainty_field.gd:69). Step of Mist and
-	# Thunder issues the own-but-INVOLUNTARY movement type - the "this teleportation cannot be
-	# prevented" shape - which fails the resource.voluntary clause and names no forcer, so to every
-	# other clause in the gate it is indistinguishable from the anonymous involuntary teleport the test
-	# directly above REFUSES. Only Teleport.is_own tells them apart. Without that line the field would
-	# go silent on the frame's own core power and nothing else in SP1 would notice.
+func test_our_own_involuntary_teleport_is_not_offered():
+	# STEP OF MIST AND THUNDER IS PERMANENTLY EXEMPT (reach design ruling C, 2026-09-17), REVERSING
+	# ruling 157. The card's "This teleportation cannot be prevented" is read as absolute, including
+	# against the mech's own trait.
 	#
-	# That neighbouring negative is this test's control, which is why the two sit together: same
-	# involuntariness, same absent forcer, opposite answer, and the only difference is the OWN tag.
+	# THE RULE IS NOT "STEP IS SPECIAL". It is that no OWN-INVOLUNTARY teleport is vetoable by the
+	# mech's own trait, which is what the OWN tag means; Step is simply the only thing that takes that
+	# shape today. Later consumers of Teleport.move - Purple Thorn, Leoleth, Sluagh, Koremasa, Six Sky -
+	# inherit it without knowing the decision was taken.
+	#
+	# THE SHIPPED VERSION OF THIS TEST ASSERTED THE OPPOSITE and is inverted rather than deleted, which
+	# is the record the reversal is entitled to: the clause it pinned (Teleport.is_own in
+	# triggers_on_event) is gone, and mutation 5 puts it back to prove this test is what holds it out.
 	var own_type := Teleport.movement_type(blush, true)
 	var own_involuntary := {unit = blush, target_tiles = [DESTINATION], resource = own_type}
 	assert_false(own_type.voluntary,
 		'Fixture: it really is involuntary, so the voluntary clause cannot be what answers.')
-	assert_null(Teleport.forcer(Context.create(own_involuntary)),
-		'Fixture: and it names no forcer, so the hostile-forcer clause cannot be either.')
-	assert_true(would_offer(own_involuntary),
-		'Our own unpreventable teleport is still offered - the is_own clause is what does it.')
+	assert_true(would_offer(voluntary_teleport_data()), 'CONTROL: an ordinary teleport IS offered.')
+	assert_false(would_offer(own_involuntary),
+		'But our own unpreventable teleport is not - the is_own clause that used to admit it is gone.')
+
+func test_an_own_involuntary_teleport_that_names_US_as_the_forcer_is_not_offered_either():
+	# THE FALL-THROUGH RULING C RESTS ON, pinned rather than assumed. With the is_own clause gone a real
+	# Step reaches the forcer check, and Teleport.forcer returns the BLUSH ITSELF - Teleport.move passes
+	# the calling action's SpecificAction as the event's object (roadmap 4, corrected at the frame
+	# close). UnitRelation.are_enemies is Faction.is_enemy(f, f) (unit_relation.gd:361-362), which is
+	# false, so the gate refuses. The exemption is SAFE rather than accidental, and this is the test
+	# that says which.
+	var own_type := Teleport.movement_type(blush, true)
+	var self_forced := {
+		unit = blush, target_tiles = [DESTINATION], resource = own_type,
+		object = SpecificAction.create(blush, field_gear(), field_gear().kit.get_action(ACTION_ID)),
+	}
+	assert_eq(Teleport.forcer(Context.create(self_forced)), blush,
+		'Fixture: the forcer really does read back as the mech itself.')
+	assert_false(would_offer(self_forced),
+		'And a mech is not its own enemy, so the forcer clause refuses it too.')
 
 func test_an_involuntary_teleport_forced_by_an_ally_is_not_offered():
 	# The other half of the forcer clause, and the one that makes UnitRelation.are_enemies do work:
@@ -442,6 +464,66 @@ func test_a_second_offer_in_the_same_round_is_refused():
 	assert_eq(yesnos_since(mark).size(), 0, 'No prompt.')
 	assert_eq(blush.tile(), Vector2i(7, 2), 'And this one lands.')
 	assert_false(core.aborted, 'Un-vetoed.')
+
+# ------------------------------------------------- the consolation shares this round (ruling B)
+
+## Drive a real Abjuration of Metal whose cone comes back EMPTY, and take the consolation fade.
+##
+## The hostile is moved ADJACENT first, because that is what empties the cone at a roll of one: no
+## tile one space away closes as much as it costs to reach, and the attacker's far side is two away.
+## EVERY die in the run is fixed at 1 - the triggering d20, the engaged difficulty die, the rifle's
+## damage dice and Abjuration's own d6 - so the roll cannot come back as a 2 and offer a tile after
+## all. The stock responder answers every yes/no true, which is both prompts: Abjuration's confirm and
+## then the consolation.
+func abjuration_with_an_empty_cone() -> void:
+	responder.chosen_yesnos = true
+	UnitTile.move_to(hostile, Vector2i(3, 2))
+	MaidensBlushFixture.equip_ranged(hostile)
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	for _die in 13: Dice.CHEAT_ROLL_QUEUE.append(MaidensBlushFixture.MISS_ROLL)
+	await SpecFactory.use_solo(game, hostile, MaidensBlushFixture.RANGED_ID, [blush])
+
+func test_a_consolation_fade_spends_the_round_the_interception_would_have_used():
+	# THE RISK RULING B CARRIES, MEASURED (reach design §2). The field's 1/round is the ENGINE's, held
+	# in gear.uses_this_round under this action's usage_group and read by
+	# UnitAction.is_under_per_round_limit - and a direct call from another action is outside every path
+	# that normally maintains it. If the consolation spent Abjuration's accounting instead of this
+	# trait's, a player would fade through the consolation AND again on a real teleport in the same
+	# round, with nothing red anywhere.
+	await abjuration_with_an_empty_cone()
+	assert_eq(uses_this_round(), 1, 'Fixture: the consolation fired and spent a round.')
+
+	assert_false(would_offer(voluntary_teleport_data()),
+		'So an ordinary teleport in the same round is not offered the fade at all.')
+	var mark := yesno_mark()
+	var core := await teleport_by_path(DESTINATION)
+	assert_eq(yesnos_since(mark).size(), 0, 'No prompt.')
+	assert_eq(blush.tile(), DESTINATION, 'And this one lands.')
+	assert_false(core.aborted, 'Un-vetoed.')
+
+func test_a_spent_round_refuses_the_consolation_too():
+	# THE SAME GATE FROM THE OTHER SIDE. The engine refuses a second INTERCEPTION by never offering it
+	# (ReactionBus asks can_activate_gear before it queues anything), but nothing stands between
+	# Abjuration and a direct call - so fade() has to ask for itself. Without that question the mech
+	# fades twice in one round: once at a teleport and once as a consolation.
+	responder.chosen_yesnos = true
+	await teleport_by_path(DESTINATION)
+	assert_eq(uses_this_round(), 1, 'Fixture: the first fade spent the round at a real teleport.')
+	assert_eq(blush.tile(), BLUSH_TILE, 'Fixture: and vetoed it, so the mech is still on its origin.')
+
+	# BREAK THE INVISIBLE BEFORE THE ATTACK, so the miss below is an ordinary one. Left standing, the
+	# fade would force the miss itself and the setup would be arguing with the thing it is setting up -
+	# a red here has to mean "the consolation fired twice", never "the attack never happened".
+	await take_damage(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_false(faded(), 'Fixture: the fade is broken, so the mech is an ordinary target again.')
+	assert_eq(uses_this_round(), 1, 'Fixture: and breaking it did not give the round back.')
+
+	var mark := yesno_mark()
+	await abjuration_with_an_empty_cone()
+
+	assert_eq(uses_this_round(), 1, 'The consolation was refused: still one fade this round.')
+	assert_eq(yesnos_since(mark).size(), 1,
+		"And exactly one prompt was opened - Abjuration's own confirm, with no fade offer behind it.")
 
 func test_the_reaction_spends_no_reaction_point():
 	# consumes_rxn = false. The card does not charge one, and a mech that fades out of a hostile shove

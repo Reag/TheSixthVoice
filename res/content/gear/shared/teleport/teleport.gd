@@ -79,10 +79,20 @@ static func destination(context:Context) -> Vector2i:
 ##
 ## BUT OUR OWN move() AND move_along() DO PASS ONE (SP2), so this returns the MECH ITSELF for a Step of
 ## Mist and Thunder or an Abjuration of Metal - which is why they can be logged and telegraphed by
-## name. A caller distinguishing "somebody is shoving me" from "this is mine" must therefore NOT infer
-## it from a null here; it reads resource.voluntary and is_own first, which is the order
-## action_uncertainty_field.triggers_on_event uses. Both of its "ours" clauses return before the forcer
-## check is ever reached.
+## name.
+##
+## A CALLER DISTINGUISHING "somebody is shoving me" from "this is mine" can no longer read
+## resource.voluntary and is_own as a matched pair before ever reaching this function.
+## action_uncertainty_field.triggers_on_event now has exactly ONE "ours" clause -
+## context.resource.voluntary - and it is true only for a VOLUNTARY teleport. A Step of Mist and
+## Thunder is own but INVOLUNTARY (reach design ruling C, 2026-09-17, reversing ruling 157), so it
+## FALLS THROUGH to the forcer check below, and that fall-through is what keeps the exemption safe
+## rather than accidental: forcer(context) returns the mech ITSELF for a Step (move() passes its own
+## SpecificAction as the event's object, above), so UnitRelation.are_enemies(unit, forcer) reads
+## Faction.is_enemy(f, f) - false (unit_relation.gd:361-362) - and the trait correctly declines to
+## react to its own unpreventable teleport. A CONSUMER READING THE FORCER AND FINDING ITSELF THERE IS
+## now how "this is my own unpreventable teleport" gets recognised - not a case this function fails
+## to distinguish.
 static func forcer(context:Context) -> Unit:
 	if context == null: return null
 	var source = context.object
@@ -101,15 +111,17 @@ static func forcer(context:Context) -> Unit:
 ## editor's event_unit_teleport type (event_unit_teleport.gd:26-29) MINUS the NO_RXNS flag, plus the
 ## OWN tag.
 ##
-## ignore_rxns IS LEFT UNSET, AND NOT FOR THE REASON THIS COMMENT USED TO GIVE. It is NOT what keeps
-## Uncertainty Field offered: MovementType.ignores_reactions() is `ignore_rxns or teleport or not
-## voluntary` (movement_type.gd:101-102), which is already true of EVERY teleport, so setting the flag
-## would change nothing about that answer. What keeps the field offered is that the move event never
-## consults that answer at all - NO_RXNS is "not enforced; reactions need to decide for themselves"
-## (event_unit_move.gd:26), so each of the four judgements belongs to the listener, and
-## action_uncertainty_field reads the NO_RXNS FLAG on the context rather than anything on the type.
-## The flag stays unset anyway: it is vanilla's own signal for "do not react to this", and our own
-## Step has no reason to send it.
+## ignore_rxns IS LEFT UNSET, AND NOT FOR THE REASON THIS COMMENT USED TO GIVE. It does NOT decide
+## whether Uncertainty Field is offered: MovementType.ignores_reactions() is `ignore_rxns or teleport
+## or not voluntary` (movement_type.gd:101-102), which is already true of EVERY teleport, so setting
+## the flag would change nothing about that answer. The move event never consults that answer at all -
+## NO_RXNS is "not enforced; reactions need to decide for themselves" (event_unit_move.gd:26), so each
+## of the four judgements belongs to the listener - and for THIS shape (reach design ruling C,
+## 2026-09-17) the listener's judgement is "not mine to veto": action_uncertainty_field's
+## triggers_on_event no longer reads the NO_RXNS flag, or anything else on this type, for a Step of
+## Mist and Thunder - it falls through to the forcer check and declines there instead (see forcer()'s
+## docstring above). The flag stays unset anyway: it is vanilla's own signal for "do not react to
+## this", and our own Step has no reason to send it.
 static func movement_type(unit:Unit, own_involuntary:bool = false) -> MovementType:
 	var type := MovementType.create(unit, not own_involuntary)
 	type.teleport = true
@@ -152,6 +164,14 @@ static func movement_type(unit:Unit, own_involuntary:bool = false) -> MovementTy
 ## future is_own that wants the canonical shape cannot call that function - build the shape inline, or
 ## read the tag directly as below. SP2 adds five more functions to this file; this is the one name that
 ## cannot be reached from in here.
+##
+## NOTHING IN THIS MOD READS THIS TODAY, AND THAT IS A DECISION RATHER THAN ROT (reach design ruling C,
+## 2026-09-17). action_uncertainty_field.triggers_on_event was the one caller, and dropping its
+## is_own clause is what made Step of Mist and Thunder permanently exempt from the frame's own trait.
+## The function stays because the QUESTION it answers is still the right one for the five later frames
+## this helper is frozen for - an involuntary teleport is either our own unpreventable one or somebody
+## else's shove, and the engine cannot tell them apart - and because the interface is frozen either
+## way. Do not delete it as dead code.
 static func is_own(movement_type:MovementType) -> bool:
 	if not MovementType.is_valid(movement_type): return false
 	return movement_type.other_tags.has(OWN_TAG)
@@ -176,9 +196,13 @@ static func veto(triggering:EventCore) -> void:
 #
 # WHY THESE EXECUTE INLINE AND HAND THE CORE BACK, when vanilla's Blinkspace Jump queues its move and
 # returns (action_blinkspace_jump.gd:64): both of this frame's teleports need what comes AFTER the
-# move - Step's adjacent Systems saves, Abjuration's Skirmish - and both need to know whether
-# Uncertainty Field took the teleport. A queued move resolves after the activation has finished, so
-# neither is reachable from there.
+# move - Step's adjacent Systems saves, Abjuration's Skirmish - but for different reasons since reach
+# design ruling C (2026-09-17). Abjuration still needs to know whether Uncertainty Field took its
+# teleport - a vetoed one forfeits the Skirmish. Step needs the core handed back because the field can
+# no longer take IT: what it needs instead is whether the move RESOLVED AT ALL, since the
+# adjacent-characters saves are a consequence of arriving, and `move` can still report one that never
+# resolved for other reasons - a null core, or another listener's abort. A queued move resolves after
+# the activation has finished, so neither reason is reachable from there.
 #
 # THE ONE THING THAT COST A MEASUREMENT (SP2 probe, 2026-09-17, and it CORRECTED the design):
 # "moves by target tile without a pathfinder" is FALSE. EventUnitMove.undergo_move takes
@@ -300,10 +324,13 @@ static func pick_tile(context:Context, activation:EventCore, tiles:Array[Vector2
 ## same reason: nothing reads it.
 ##
 ## IT PASSES THE CALLING ACTION'S SpecificAction AS THE EVENT'S `object`, derived from the activation
-## rather than taken as an argument, because the signature is frozen. That is what lets
-## action_uncertainty_field.replaced_name log the veto against "Step of Mist and Thunder" by name
-## instead of falling back to the glossary's generic word for a teleport - and it is why forcer()'s
-## docstring above no longer says our own teleports carry no source.
+## rather than taken as an argument, because the signature is frozen. LOGGING THE VETO BY NAME IS DEAD
+## HERE, since reach design ruling C (2026-09-17) means Uncertainty Field can no longer take a Step to
+## veto, so action_uncertainty_field.replaced_name never again reads this `object` for one. What it
+## still buys is forcer() safety, not naming: a Step falls through to triggers_on_event's forcer check
+## now, and this `object` is what lets Teleport.forcer(context) return the mech ITSELF - so
+## UnitRelation.are_enemies(unit, unit) is false and the exemption is safe rather than accidental. See
+## forcer()'s docstring above and action_uncertainty_field.triggers_on_event.
 static func move(activation:EventCore, unit:Unit, tile:Vector2i, own_involuntary:bool = true) -> EventCore:
 	if not Unit.is_valid(unit): return null
 	if not Tile.is_valid(tile, unit.map): return null
