@@ -11,6 +11,7 @@
 [ext_resource type="Texture2D" uid="uid://dygcj7y0qg504" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/placeholder/mf_placeholder.png" id="9_sprite"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/mt_rend/mt_rend.tres" id="10_rend"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/mt_uncertainty_field/mt_uncertainty_field.tres" id="11_field"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/mt_fade_strike/mt_fade_strike.tres" id="12_fade"]
 
 [sub_resource type="Resource" id="Resource_colorscheme"]
 script = ExtResource("3_colorscheme")
@@ -40,7 +41,7 @@ activations = 1
 script = ExtResource("1_frame")
 default_color_scheme = SubResource("Resource_colorscheme")
 sprites = Array[Texture2D]([ExtResource("9_sprite")])
-traits = Array[ExtResource("8_kit")]([ExtResource("10_rend"), ExtResource("11_field")])
+traits = Array[ExtResource("8_kit")]([ExtResource("10_rend"), ExtResource("11_field"), ExtResource("12_fade")])
 mount_types = Array[ExtResource("5_mounttype")]([ExtResource("6_mountauxaux"), ExtResource("7_mountmainaux")])
 stat = SubResource("Resource_statblock")
 role_primary = 1

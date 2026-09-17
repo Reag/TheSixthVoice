@@ -168,3 +168,8 @@ gear.mt_uncertainty_field.action_uncertainty_field.effect,"1/round if the Maiden
 gear.mt_uncertainty_field.action_uncertainty_field.replaced.log,{unit} fades from view; {source} does not happen.
 gear.mt_uncertainty_field.action_uncertainty_field.replaced.pop,*FADE*
 gear.mt_uncertainty_field.broken.log,{unit} took damage and is no longer Invisible.
+,
+gear.mt_fade_strike.name,Fade Strike
+gear.mt_fade_strike.effect,"If the Maiden's Blush begins its turn |Invisible|, it may reroll its first |melee| attack roll it makes on that turn. It must keep the second result."
+gear.buff_fade_strike.name,Fade Strike
+gear.buff_fade_strike.effect,"It may reroll its first |melee| attack roll it makes on that turn. It must keep the second result."

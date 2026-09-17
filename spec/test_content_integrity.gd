@@ -306,6 +306,10 @@ const ICON_TARGETS := {
 	# Its buff_uncertainty_field_break sets hide_from_player and is correctly absent from
 	# VISIBLE_BUFFS. The Kit's own icon is SP3's.
 	&'mt_uncertainty_field': [],
+	# SP1 Task 5 (Maiden's Blush). A pure passive with NO action at all, so it wears the Kit's icon
+	# and lists none. Its two buffs split: buff_fade_strike_arm is hidden bookkeeping and is correctly
+	# absent from VISIBLE_BUFFS, while buff_fade_strike is the visible chip and is listed there.
+	&'mt_fade_strike': [],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -384,6 +388,12 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# is deliberately ABSENT - the pair is one mechanic, and two chips for one effect would read as
 	# two.
 	&'buff_uffish_gyre_armor',
+	# SP1 Task 5 (Maiden's Blush). The reroll chip, and it is deliberately player-visible: the trait
+	# fires with no animation of its own, so the chip is the only signal on the board that the Blush
+	# began its turn Invisible and still has its reroll in hand. Its hidden sibling
+	# buff_fade_strike_arm is NOT listed - the pair is one mechanic, and the arming half is never a
+	# chip on the unit.
+	&'buff_fade_strike',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

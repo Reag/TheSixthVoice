@@ -1,0 +1,11 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/mt_fade_strike/buff_fade_strike_arm.gd" id="1_arm"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/mt_fade_strike/buff_fade_strike.tres" id="2_chip"]
+
+[resource]
+script = ExtResource("1_arm")
+chip = ExtResource("2_chip")
+hide_from_player = true
+triggers_on = Array[StringName]([&"new_turn"])
+trigger_timing = 0
