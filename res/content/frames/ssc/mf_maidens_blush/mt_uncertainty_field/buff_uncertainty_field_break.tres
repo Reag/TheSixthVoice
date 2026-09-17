@@ -1,0 +1,9 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/mt_uncertainty_field/buff_uncertainty_field_break.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+hide_from_player = true
+triggers_on = Array[StringName]([&"damage"])
+trigger_timing = 1

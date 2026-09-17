@@ -160,3 +160,11 @@ frame.mf_maidens_blush.flavor,"The Mourning Cloak was a triumph of design, a mas
 ,
 gear.mt_rend.name,Rend
 gear.mt_rend.effect,"1/round, whenever the Maiden's Blush critically hits with a |melee| weapon, the target must make a |Hull save|. On a failure, they become |Impaired| and |Slowed| until the end of their next turn."
+,
+gear.mt_uncertainty_field.name,Uncertainty Field
+gear.mt_uncertainty_field.effect,"1/round if the Maiden's Blush would |teleport|, it instead may become |Invisible| until the beginning of its next turn. It immediately loses |Invisible| if it takes damage."
+gear.mt_uncertainty_field.action_uncertainty_field.name,Uncertainty Field
+gear.mt_uncertainty_field.action_uncertainty_field.effect,"1/round if the Maiden's Blush would |teleport|, it instead may become |Invisible| until the beginning of its next turn. It immediately loses |Invisible| if it takes damage."
+gear.mt_uncertainty_field.action_uncertainty_field.replaced.log,{unit} fades from view; {source} does not happen.
+gear.mt_uncertainty_field.action_uncertainty_field.replaced.pop,*FADE*
+gear.mt_uncertainty_field.broken.log,{unit} took damage and is no longer Invisible.

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_maidens_blush/mt_uncertainty_field/action_uncertainty_field.gd" id="1_field"]
+
+[resource]
+script = ExtResource("1_field")
+usage_group = &"uncertainty_field"
+triggers_on = Array[StringName]([&"entire_movement"])
+trigger_timing = 0
+consumes_rxn = false

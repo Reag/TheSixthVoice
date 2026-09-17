@@ -293,6 +293,19 @@ const ICON_TARGETS := {
 	# it is never a chip on the unit. The Kit's own icon is SP3's, so this row is one of the two that
 	# make test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then.
 	&'mt_rend': [],
+	# SP1 Task 4 (Maiden's Blush). ITS ONE ACTION GETS NO ROW, and that is an engine consequence
+	# rather than a choice: Action.show_in_tooltip (action.gd:350-353) returns false when the action's
+	# own `effect` row equals the KIT's generic one, and ruling 17 makes them identical - the reaction
+	# row repeats the card text verbatim. The Kit also has no `trigger` row, which is the clause
+	# (action.gd:344) that would otherwise force a true. So the reaction never reaches the trait card,
+	# never reaches the gear bar (reactions never do, gear_bar.gd:145), and wears no icon of its own -
+	# the ms_heaer shape, not the mt_juggernaut_drive one. This CORRECTS design §1.5, which expected a
+	# row here; test_uncertainty_field.test_the_rows_resolve_and_the_reaction_stays_off_the_trait_card
+	# pins the engine's answer, and the two move together if the localisation ever changes.
+	#
+	# Its buff_uncertainty_field_break sets hide_from_player and is correctly absent from
+	# VISIBLE_BUFFS. The Kit's own icon is SP3's.
+	&'mt_uncertainty_field': [],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
