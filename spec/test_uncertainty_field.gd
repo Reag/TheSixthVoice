@@ -443,6 +443,66 @@ func test_a_second_offer_in_the_same_round_is_refused():
 	assert_eq(blush.tile(), Vector2i(7, 2), 'And this one lands.')
 	assert_false(core.aborted, 'Un-vetoed.')
 
+# ------------------------------------------------- the consolation shares this round (ruling B)
+
+## Drive a real Abjuration of Metal whose cone comes back EMPTY, and take the consolation fade.
+##
+## The hostile is moved ADJACENT first, because that is what empties the cone at a roll of one: no
+## tile one space away closes as much as it costs to reach, and the attacker's far side is two away.
+## EVERY die in the run is fixed at 1 - the triggering d20, the engaged difficulty die, the rifle's
+## damage dice and Abjuration's own d6 - so the roll cannot come back as a 2 and offer a tile after
+## all. The stock responder answers every yes/no true, which is both prompts: Abjuration's confirm and
+## then the consolation.
+func abjuration_with_an_empty_cone() -> void:
+	responder.chosen_yesnos = true
+	UnitTile.move_to(hostile, Vector2i(3, 2))
+	MaidensBlushFixture.equip_ranged(hostile)
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	for _die in 13: Dice.CHEAT_ROLL_QUEUE.append(MaidensBlushFixture.MISS_ROLL)
+	await SpecFactory.use_solo(game, hostile, MaidensBlushFixture.RANGED_ID, [blush])
+
+func test_a_consolation_fade_spends_the_round_the_interception_would_have_used():
+	# THE RISK RULING B CARRIES, MEASURED (reach design §2). The field's 1/round is the ENGINE's, held
+	# in gear.uses_this_round under this action's usage_group and read by
+	# UnitAction.is_under_per_round_limit - and a direct call from another action is outside every path
+	# that normally maintains it. If the consolation spent Abjuration's accounting instead of this
+	# trait's, a player would fade through the consolation AND again on a real teleport in the same
+	# round, with nothing red anywhere.
+	await abjuration_with_an_empty_cone()
+	assert_eq(uses_this_round(), 1, 'Fixture: the consolation fired and spent a round.')
+
+	assert_false(would_offer(voluntary_teleport_data()),
+		'So an ordinary teleport in the same round is not offered the fade at all.')
+	var mark := yesno_mark()
+	var core := await teleport_by_path(DESTINATION)
+	assert_eq(yesnos_since(mark).size(), 0, 'No prompt.')
+	assert_eq(blush.tile(), DESTINATION, 'And this one lands.')
+	assert_false(core.aborted, 'Un-vetoed.')
+
+func test_a_spent_round_refuses_the_consolation_too():
+	# THE SAME GATE FROM THE OTHER SIDE. The engine refuses a second INTERCEPTION by never offering it
+	# (ReactionBus asks can_activate_gear before it queues anything), but nothing stands between
+	# Abjuration and a direct call - so fade() has to ask for itself. Without that question the mech
+	# fades twice in one round: once at a teleport and once as a consolation.
+	responder.chosen_yesnos = true
+	await teleport_by_path(DESTINATION)
+	assert_eq(uses_this_round(), 1, 'Fixture: the first fade spent the round at a real teleport.')
+	assert_eq(blush.tile(), BLUSH_TILE, 'Fixture: and vetoed it, so the mech is still on its origin.')
+
+	# BREAK THE INVISIBLE BEFORE THE ATTACK, so the miss below is an ordinary one. Left standing, the
+	# fade would force the miss itself and the setup would be arguing with the thing it is setting up -
+	# a red here has to mean "the consolation fired twice", never "the attack never happened".
+	await take_damage(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_false(faded(), 'Fixture: the fade is broken, so the mech is an ordinary target again.')
+	assert_eq(uses_this_round(), 1, 'Fixture: and breaking it did not give the round back.')
+
+	var mark := yesno_mark()
+	await abjuration_with_an_empty_cone()
+
+	assert_eq(uses_this_round(), 1, 'The consolation was refused: still one fade this round.')
+	assert_eq(yesnos_since(mark).size(), 1,
+		"And exactly one prompt was opened - Abjuration's own confirm, with no fade offer behind it.")
+
 func test_the_reaction_spends_no_reaction_point():
 	# consumes_rxn = false. The card does not charge one, and a mech that fades out of a hostile shove
 	# on the enemy's turn must not lose its Overwatch for it.
