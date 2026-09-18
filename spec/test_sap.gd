@@ -13,7 +13,8 @@
 # THE VAUBAN HAS NO REACTION POINT IN before_each, AND THAT IS LOAD-BEARING RATHER THAN TIDY.
 # Solfataric Breach is on this frame too (Task 3) and fires on exactly what Sap produces: a first
 # Slowed on a hostile inside Sensors and sight. Its Impaired then costs the target 1 accuracy on
-# every later save (unit_hasecheck.gd:195-196), which makes roll_check pop an EXTRA d6 off
+# every later save (unit_hasecheck.gd:197-198 - :195 is consume_buffs and :196 is blank; corrected
+# 2026-09-18), which makes roll_check pop an EXTRA d6 off
 # Dice.CHEAT_ROLL_QUEUE - so in a two-save test the second save would be handed the first save's
 # leftover d20 as its difficulty die and the arithmetic would be nonsense. Sap is consumes_rxn =
 # false, so it works perfectly with no point (is_gear_affordable only asks for one when
@@ -87,6 +88,24 @@ const KNOCK_COLUMN:Array[Vector2i] = [Vector2i(6, 3), Vector2i(6, 4), Vector2i(6
 ## Out of Sensors: (11,4) is 9 tiles from the Vauban at (2,4), and the frame's sensor_range is 8.
 const FAR_FIELD := Vector2i(11, 4)
 const FAR_START := Vector2i(12, 4)
+
+## THE EDGE CASE THAT PINS *WHERE* RULING 3 MEASURES, and the two tiles are chosen to straddle the
+## sensor boundary rather than to sit either side of it. From the Vauban at (2,4): EDGE_START is
+## exactly 8 away (INSIDE Sensors 8) and EDGE_FIELD is exactly 9 (OUTSIDE). So a gate that measured to
+## the MOVER would ask, and one that measures to the ENTERED TILE refuses. FAR_START/FAR_FIELD above
+## cannot say this: at 10 and 9 they are both out, so that test refuses under either reading.
+const EDGE_START := Vector2i(10, 4)
+const EDGE_FIELD := Vector2i(11, 4)
+
+## A second Vauban, for the two ruling-R3 sharing cases. North of the first and out of every walking
+## line in this file, but well inside its own Sensors 8 of the field at FIELD_A.
+const SECOND_VAUBAN_TILE := Vector2i(2, 3)
+
+## The BLINDED case: a patch the Vauban is standing NEXT TO, against the ordinary one at FIELD_A three
+## tiles out. A Blinded Vauban sees only what it is adjacent to, so the first is Sapped and the second
+## is not - which is the whole discriminator.
+const ADJACENT_FIELD := Vector2i(3, 4)
+const ADJACENT_START := Vector2i(3, 3)
 
 ## Out of sight: (8,4) is 6 tiles out - inside Sensors - with the wall between.
 const BLIND_FIELD := Vector2i(8, 4)
@@ -215,7 +234,9 @@ func install_save_recorder(on:Unit) -> SaveRecorder:
 	return recorder
 
 ## Put the step recorder above on the Vauban. The probe's install() idiom: full_repair() is what
-## rebuilds LoadoutCore.reactions_by_trigger (loadout_core.gd:291-296), and without it the reaction is
+## rebuilds LoadoutCore.reactions_by_trigger - the lines are loadout_core.gd:291-296, in the body of
+## regenerate_caches() (:284), which full_repair reaches indirectly rather than declaring itself
+## (corrected 2026-09-18; the behavioural claim is unchanged) - and without it the reaction is
 ## invisible to ReactionBus.trigger_occurred.
 ##
 ## apply_passive_buffs rather than a bare full_repair, so the Vauban keeps its own traits' passive
@@ -232,6 +253,15 @@ func install_step_recorder() -> StepRecorder:
 	VaubanFixture.track(game)
 	vauban.core.current.reactions = 0
 	return recorder
+
+## The method names action_sap.gd DECLARES ITSELF, as opposed to everything it inherits.
+## Script.get_script_method_list() lists only the methods declared in that script, which is
+## test_terrain.gd:198-202's idiom for the frozen interface and the only way to separate an override
+## from the base-class answer it happens to agree with.
+func declared_methods(action:Action) -> Array[String]:
+	var declared:Array[String] = []
+	for entry:Dictionary in action.get_script().get_script_method_list(): declared.append(entry.name)
+	return declared
 
 func place_wall() -> void:
 	SpecFactory.add_setpieces_to_landscape(game.get_landscape_node(), &'setpiece_forbidden_interior', WALL)
@@ -259,8 +289,17 @@ func test_the_trait_is_wired():
 		'NOT a real reaction: the card gives it no 1/round and no reaction point, so a Vauban that '
 		+ 'has already Breached still Saps.')
 	assert_eq(action.usage_group, &'action_sap', 'With its own usage group.')
+	# THIS ONE ASSERTION IS CHARACTERISATION, AND THE PAIR BELOW IS WHAT PINS THE OVERRIDE. The base
+	# class already answers 99 for this shape: Action.requires_reaction_available() returns
+	# consumes_reaction() (action.gd:170), ActionReaction.consumes_reaction() returns consumes_rxn
+	# (action_reaction.gd:58), and action_sap.tres sets it false - so action_reaction.gd:69 returns 99
+	# whether or not action_sap.gd declares anything. Measured 2026-09-18: renaming the override to
+	# get_per_round_hard_limit_unused leaves this line green.
 	var specific := SpecificAction.from_id(vauban, TRAIT_ID, ACTION_ID)
 	assert_eq(action.get_per_round_hard_limit(specific), 99, 'And no round cap at all.')
+	assert_has(declared_methods(action), 'get_per_round_hard_limit',
+		'And action_sap.gd states the 99 ITSELF, so a future consumes_rxn flip cannot take the '
+		+ 'cadence away in silence.')
 
 	# assert_not_null rather than the brief's Buff.is_valid: there IS no Buff.is_valid - Buff declares
 	# only check_if_prohibited and check_required_triggering_context as statics, and the validity
@@ -293,7 +332,15 @@ func test_the_rows_resolve_and_the_reaction_stays_off_the_trait_card():
 	if not Kit.is_valid(kit): return
 	var action = kit.get_action(ACTION_ID)
 	if action == null: return
+	# AND THE SAME SPLIT AS THE 99: the line below is CHARACTERISATION, the one under it is the pin.
+	# Action.show_in_tooltip already returns false when the action's own effect equals the Kit's
+	# generic one (action.gd:350-352) - which the assertion two lines above asserts IS the case here -
+	# so this cannot see action_sap.gd's override at all. Measured 2026-09-18: renaming the override to
+	# show_in_tooltip_unused leaves it green.
 	assert_false(action.show_in_tooltip(kit), 'So no separate reaction row is drawn.')
+	assert_has(declared_methods(action), 'show_in_tooltip',
+		'And action_sap.gd states the refusal ITSELF, so a localisation edit that made the two rows '
+		+ 'differ could not quietly put the reaction back on the card.')
 
 # ---------------------------------------------------------------- entering
 
@@ -574,10 +621,18 @@ func test_an_ally_and_the_vauban_itself_are_never_asked():
 	# THE VAUBAN GOES FIRST, AND THE ORDER IS LOAD-BEARING RATHER THAN ARBITRARY. Measured 2026-09-18
 	# with the brief's original order - ally into the field, then the Vauban after it: a unit cannot
 	# END a move on a tile another unit occupies, so the Vauban's shove stopped short at (4,3) and it
-	# never entered the field at all. Its assertion then passed for the wrong reason and said nothing
-	# about the gate's `target == unit` clause, which is the whole point of the second half. Sending
-	# the Vauban in, out again, and only then the ally keeps both halves real; the two fixture
-	# assertions are what stop the order quietly rotting back.
+	# never entered the field at all. Its assertion then passed for the wrong reason - the Vauban was
+	# never in the field, so the gate was never asked about it. Sending the Vauban in, out again, and
+	# only then the ally keeps both halves real; the two fixture assertions are what stop the order
+	# quietly rotting back.
+	#
+	# BUT THE VAUBAN HALF IS CHARACTERISATION, NOT A PIN, AND AN EARLIER VERSION OF THIS COMMENT SAID
+	# OTHERWISE. UnitRelation.are_enemies is a faction compare (unit_relation.gd:361-362) and a faction
+	# is never its own enemy, so `are_enemies(vauban, vauban)` is false and the gate refuses the self
+	# case on that clause alone. Neutralising action_sap.gd's explicit `target == unit` guard leaves
+	# this test green (measured 2026-09-18), and no test can separate the two. The guard is kept as
+	# documentation of the card's "hostile" reading; what this half asserts is the BEHAVIOUR (the
+	# Vauban does not Sap itself), not which line produces it.
 	VaubanFixture.lay_difficult(game, [FIELD_A])
 	var ally := VaubanFixture.create_ally(game, START)
 	var ally_recorder := install_save_recorder(ally)
@@ -623,6 +678,75 @@ func test_a_hostile_entering_the_field_out_of_line_of_sight_is_not_asked():
 
 	assert_eq(recorder.saves.size(), 0, 'No sight of the entered tile, no save.')
 
+func test_a_hostile_inside_sensors_stepping_to_a_tile_outside_them_is_not_asked():
+	# RULING 3'S MEASUREMENT POINT, AND THE ONLY TEST IN THIS FILE THAT CAN SEE IT. "Both halves
+	# measured TO THE ENTERED TILE" was asserted by nothing: changing the gate's watches_tile(unit,
+	# entered) to watches_tile(unit, target.tile()) - measuring to the MOVER, which at step-PRE is the
+	# tile it is LEAVING - left all nineteen tests green (measured 2026-09-18).
+	#
+	# WHY THE EXISTING SENSORS TEST CANNOT DO IT: FAR_START is 10 away and FAR_FIELD is 9, so both are
+	# beyond Sensors 8 and it refuses under either reading. The same hole is in the sight test, where
+	# BLIND_START and BLIND_FIELD are both east of the wall. This geometry straddles the boundary
+	# instead - the mover exactly at 8, the tile it enters exactly at 9 - so the two readings give
+	# opposite answers, and the three fixture assertions below are what say so rather than assuming it.
+	VaubanFixture.lay_difficult(game, [EDGE_FIELD])
+	var mover := VaubanFixture.create_hostile(game, EDGE_START)
+	var recorder := install_save_recorder(mover)
+	queue_rolls([1])
+	assert_lt(Tile.distance(VAUBAN_TILE, EDGE_START), vauban.get_sensor_range() + 1,
+		'fixture: the MOVER is inside Sensors 8 - so only the tile it is entering can refuse this.')
+	assert_gt(Tile.distance(VAUBAN_TILE, EDGE_FIELD), vauban.get_sensor_range(),
+		'fixture: and the ENTERED TILE is outside them. Ruling 3 measures to the tile.')
+	assert_true(UnitTile.is_tile_in_los(game.map, vauban.occupied_tiles(),
+		UnitTile.effective_height(vauban, true), EDGE_FIELD, vauban.core.persistent_id),
+		'fixture: sight to that tile is clear, so Sensors is the only clause under test.')
+
+	await shove(mover, EDGE_FIELD)
+
+	assert_eq(recorder.saves.size(), 0,
+		'Stepping OUT of Sensors is not Sapped, however close the mover started.')
+
+func test_a_blinded_vauban_only_saps_what_it_is_standing_next_to():
+	# THE SAME CARD PHRASE AS SOLFATARIC BREACH'S, ANSWERED THE SAME WAY. Both cards say "within
+	# sensors and line of sight". Breach asks UnitRelation.can_see, which short-circuits for a Blinded
+	# unit to is_close_enough_to_engage - adjacency (unit_relation.gd:210-211, :165-166). Sap asks
+	# UnitTile.is_tile_in_los, which takes TILES rather than a unit (unit_tile.gd:481) and therefore
+	# cannot consult a status at all: without the gate's own BLINDED guard a Blinded Vauban kept
+	# Sapping every entry out to Sensors 8, while the frame's other trait stopped at arm's length.
+	#
+	# THE ENGINE'S OWN PER-TILE RULE IS THE READING TAKEN: get_tiles_in_los hands a Blinded unit the
+	# adjacent tiles and nothing else (unit_tile.gd:530-531), and get_tiles_within clamps its range to
+	# 1 (:579).
+	#
+	# THE CONTROL HALF IS WHY THIS TEST MEANS ANYTHING. Asserting only "the far entry is not asked"
+	# would pass just as well if BLINDED had broken the gate outright, or the terrain, or the shove.
+	# The adjacent patch proves the Vauban is still Sapping - just not that far.
+	VaubanFixture.lay_difficult(game, [FIELD_A, ADJACENT_FIELD])
+	var far_mover := VaubanFixture.create_hostile(game, START)
+	var far_recorder := install_save_recorder(far_mover)
+	var near_mover := VaubanFixture.create_hostile(game, ADJACENT_START)
+	var near_recorder := install_save_recorder(near_mover)
+	# The REAL event, never SpecFactory.apply - see the landing test: that helper's dummy_event() has
+	# no valid block, so the status would never reach the bus.
+	await game.execute_event(&'event_unit_apply_status',
+		{unit = vauban, category = Lancer.STATUS.BLINDED, flags = [Lancer.UNTIL.MANUAL]})
+	queue_rolls([1, 1])
+	assert_true(vauban.has_status(Lancer.STATUS.BLINDED), 'fixture: the Vauban really is Blinded.')
+	assert_lt(Tile.distance(VAUBAN_TILE, FIELD_A), vauban.get_sensor_range(),
+		'fixture: and the far patch is WELL inside Sensors 8 - only blindness can refuse it.')
+	assert_eq(Tile.distance(VAUBAN_TILE, ADJACENT_FIELD), 1,
+		'fixture: while the near patch is the tile it is standing next to.')
+
+	await shove(far_mover, FIELD_A)
+	await shove(near_mover, ADJACENT_FIELD)
+
+	assert_eq(far_recorder.saves.size(), 0,
+		'Blinded, the Vauban does not Sap three tiles out, however good its sensors are.')
+	assert_false(slowed_by_sap(far_mover), 'So nothing Slowed it.')
+	assert_eq(near_recorder.saves.size(), 1,
+		'CONTROL: it still Saps what it is standing next to, so blindness broke nothing else.')
+	assert_true(slowed_by_sap(near_mover), 'And that failed save Slowed it as usual.')
+
 # ---------------------------------------------------------------- economy, and the two traits together
 
 func test_sap_needs_no_reaction_point_and_has_no_round_cap():
@@ -643,6 +767,41 @@ func test_sap_needs_no_reaction_point_and_has_no_round_cap():
 	assert_true(slowed_by_sap(first), 'The first is Sapped.')
 	assert_true(slowed_by_sap(second), 'So is the second.')
 	assert_true(slowed_by_sap(third), 'And the third - no point, no cap.')
+
+func test_the_reprieve_is_shared_across_two_vaubans():
+	# RULING R3, PINNED SO A LATER SESSION CANNOT CHANGE IT IN SILENCE. The gate asks
+	# UnitCondition.has_buff(target, REPRIEVE_BUFF) with NO source argument, and has_buff matches on
+	# compcon_id alone when source_id is empty (unit_condition.gd:812-814, :819-820). So the card's
+	# "unaffected by Sap" is a property of the HOSTILE, not of the gear that asked: passing one
+	# Vauban's save buys immunity from every Vauban's Sap. The author accepts this; the change this
+	# test exists to catch is somebody adding a gear source to that has_buff call.
+	#
+	# THE FIRST ENTRY IS STILL ASKED ONCE PER VAUBAN, and that is not what is under test here.
+	# ReactionBus.trigger_occurred evaluates every gate on the map and collects the blocks BEFORE any
+	# of them activates (reaction_bus.gd:50-59), so a reprieve granted by one cannot refuse a gate
+	# already asked. The count after the first entry is therefore recorded rather than asserted - what
+	# the test claims is that the SECOND entry adds nothing, which holds whichever way that resolves.
+	var second := VaubanFixture.create_vauban(game, SECOND_VAUBAN_TILE)
+	# Both Vaubans, for the file header's reason: Solfataric Breach must stay out of the dice.
+	second.core.current.reactions = 0
+	VaubanFixture.lay_difficult(game, [FIELD_A])
+	var mover := VaubanFixture.create_hostile(game, START)
+	var recorder := install_save_recorder(mover)
+	# One 20 and one 1: whichever Vauban is asked first passes and grants the one reprieve, and if the
+	# other is asked at all it fails. Exactly one reprieve exists either way, which is what makes a
+	# gear-keyed reprieve discriminate on the re-entry below.
+	queue_rolls([20, 1])
+
+	await shove(mover, FIELD_A)
+	var after_first := recorder.saves.size()
+	assert_gt(after_first, 0, 'fixture: the first entry really was asked.')
+	assert_true(reprieved(mover), 'fixture: and the passed save granted exactly one reprieve.')
+
+	await shove(mover, START)
+	await shove(mover, FIELD_A)
+
+	assert_eq(recorder.saves.size(), after_first,
+		'ONE reprieve, shared: neither Vauban asks again, not even the one whose save it was not.')
 
 func test_a_sap_failure_feeds_solfataric_breach():
 	# THE TWO TRAITS TOGETHER, which is design §1.4's step order and the frame's whole engine: the

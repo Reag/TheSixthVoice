@@ -1,7 +1,7 @@
 # A PassiveTerrainZone that projects NOTHING until a named key in its owning gear's state says so.
 #
 # WHY IT HAS TO EXIST. MapState.add_dynamic_terrain_and_zones_from_unit collects every
-# PassiveTerrainZone on every gear of every unit UNCONDITIONALLY (map_state.gd:427-432). There is no
+# PassiveTerrainZone on every gear of every unit UNCONDITIONALLY (map_state.gd:427-433). There is no
 # per-zone switch: GearCore has is_aura_active for PassiveAura and is_dynamic_zone_active for
 # PassiveDynamicZone, and nothing at all for a terrain zone. So a zone sitting on a Kit is ON from the
 # moment the Kit is equipped, and overriding the voxel list is the ONLY way to keep it dark until an

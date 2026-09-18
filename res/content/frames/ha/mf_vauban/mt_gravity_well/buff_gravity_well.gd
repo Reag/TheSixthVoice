@@ -31,6 +31,24 @@
 ## (passive_aura.gd:55-59) and EventService.remove_unit_from_game clears outgoing buffs besides
 ## (event_service.gd:71), so this should be unreachable - but a gate that runs on every incoming
 ## attack roll on the map must answer rather than throw.
+##
+## *** TWO ADJACENT VAUBANS SHARE ONE CHIP, AND THE SHARED CHIP ANSWERS FOR BOTH OF THEM. ACCEPTED
+## BEHAVIOUR (ruling R3), NOT AN OVERSIGHT. *** PassiveAura.apply_aura_buffs_to_unit skips a buff the
+## unit already holds FROM ANY SOURCE - `if UnitCondition.has_buff(to_unit, buff.compcon_id): continue`
+## (passive_aura.gd:80, and its own comment says "from any source") - and
+## applies_to_other_copies_of_this_frame defaults true (:12), so nothing stops one Vauban's aura
+## hanging its chip on another. Whichever Vauban's aura pass ran first owns BOTH chips, and every copy
+## asks about ITS owner (the `core.get_owner_unit` read below), so:
+##
+##   - a Vauban standing in its OWN field gets NO shelter if the other Vauban's aura ran first and
+##     that other Vauban is on clean ground, and
+##   - a Vauban on clean ground IS sheltered while the owning Vauban stands in a field.
+##
+## One chip, one answer, for the pair. That is the same reading ruling R3 gives Sap's shared reprieve:
+## keyed on the ABILITY, not on the gear. Which of the two owns the pair is an iteration-order detail
+## of PassiveAura.update_unit (:28) and is deliberately not depended on.
+## test_two_adjacent_vaubans_share_one_chip_and_therefore_one_answer pins the sharing without pinning
+## the order, so a later session cannot quietly make the chip per-Vauban.
 extends BuffBonus
 
 const Terrain := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/terrain/terrain.gd')

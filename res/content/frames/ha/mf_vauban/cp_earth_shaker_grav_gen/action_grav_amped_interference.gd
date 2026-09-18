@@ -1,7 +1,13 @@
 ## GRAV-AMPED INTERFERENCE, the active half of EARTH SHAKER GRAV-GEN: "For the rest of the scene, you
 ## gain the following benefits: The Vauban generates a Burst 1 field of difficult terrain. Saves you
-## force are made with +1 Difficultly. When a hostile character fails a save you forced, they take 3
+## force are made with +1 Difficulty. When a hostile character fails a save you forced, they take 3
 ## AP Kinetic damage. Each character can be affected by this ability only once per round."
+##
+## THAT SECOND SENTENCE IS THE ONE PLACE THE CARD DIVERGES FROM THE LCP, DELIBERATELY. Bel's sheet
+## spells it "+1 Difficultly"; the author escalated the typo under the LCP-verbatim directive at the
+## 2026-09-18 frame close and it ships corrected (ruling R1, and localizations.csv carries
+## "+1 Difficulty"). Quoted here as SHIPPED, so nobody diffs the row against the sheet and "fixes" it
+## back.
 ##
 ## FOUR LINES, BECAUSE NONE OF THE THREE CLAUSES IS THIS SCRIPT'S JOB. The field is
 ## passive_grav_amped_field.tres, the save difficulty is passive_grav_amped_aura.tres carrying
@@ -13,7 +19,7 @@
 ## is_aura_active, both per-gear booleans on GearCore. This frame sets a GEAR STATE KEY and
 ## is_aura_active, and the difference is the whole reason PassiveGatedTerrainZone exists:
 ## MapState.add_dynamic_terrain_and_zones_from_unit collects every PassiveTerrainZone on every gear
-## UNCONDITIONALLY (map_state.gd:427-432). There is no is_terrain_zone_active. A terrain zone sitting
+## UNCONDITIONALLY (map_state.gd:427-433). There is no is_terrain_zone_active. A terrain zone sitting
 ## on an equipped Kit is ON, and overriding its voxel list from gear state is the only way to keep it
 ## dark until a button is pressed.
 ##
@@ -21,9 +27,10 @@
 ## work of both halves: it flips the aura flag and then calls UnitTile.update_tracking_and_statuses
 ## (gear_core.gd:297-300), which is the pass that applies aura buffs to everyone already in range AND
 ## rebuilds MapState.dynamic_terrain from every terrain zone on the map (map_state.gd:371-378), then
-## recalculates the merged surface (:405-411). Set the state key FIRST and that one pass raises the
-## field too. Set it second and the field stays dark until some unrelated tracking pass happens to
-## run - in play, the next time anybody moves; in a spec, never.
+## recalculates the merged surface (the calculate_surface_merged_terrain_and_height_at call at :413,
+## inside the :409-414 loop). Set the state key FIRST and that one pass raises the field too. Set it
+## second and the field stays dark until some unrelated tracking pass happens to run - in play, the
+## next time anybody moves; in a spec, never.
 ##
 ## MUTATION T1-M1, MEASURED 2026-09-18: swapping the two lines takes
 ## test_grav_amped_interference.gd from 12/12 to 6/12. The five it reddens beyond
@@ -41,9 +48,13 @@
 ##
 ## WHY THERE IS NO DEACTIVATE. The card says FOR THE REST OF THE SCENE, so there is no off switch to
 ## build (the Drake has one because Fortress is a stance the pilot can drop). The field and the aura
-## end exactly two ways: the Vauban dying - unit-projected terrain needs its unit (map_state.gd:425)
-## and aura buffs carry the aura gear as from_gear and are cleared with it (passive_aura.gd:52-58) -
-## and the scene ending, because GearCore.short_repair throws gear state away (gear_core.gd:143-150).
+## end exactly two ways: the Vauban dying - unit-projected terrain is rebuilt only from units still on
+## the map (map_state.gd:374-377 into add_dynamic_terrain_and_zones_from_unit), and aura buffs carry
+## the aura gear as from_gear (PassiveAura.apply_aura_buffs_to_unit passes aura_gear to
+## UnitCondition.apply_buffs, passive_aura.gd:82) so they go with it when
+## EventService.remove_unit_from_game clears every outgoing buff from the dying unit
+## (event_service.gd:71) - and the scene ending, because GearCore.short_repair throws gear state away
+## (gear_core.gd:143-150).
 ## Design §2.2 settles this; do not add a deactivate later without going back to the card.
 ##
 ## hibernate_action IS BELT-AND-BRACES AND STAYS ANYWAY. UnitAction.get_gear_unavailable_reason is an

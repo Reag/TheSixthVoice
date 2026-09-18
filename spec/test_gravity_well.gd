@@ -20,6 +20,17 @@
 # Inaccurate all land in the same total. test_diversion_rail.gd's preview()/chip_mod_count() pair is
 # the idiom, verbatim.
 #
+# EVERY MEASUREMENT HERE IS A PREVIEW, AND NOTHING IN THIS FILE DRIVES THE CHIP THROUGH A REAL
+# event_unit_attack. That is a known, deliberate gap at the Vauban close rather than an oversight, and
+# it is a MOD-WIDE idiom rather than this trait's: test_diversion_rail.gd and test_hybridized_shot.gd
+# measure the same way. It matters slightly more here than there, because Gravity Well is this mod's
+# first ATTACK_ROLL_INCOMING chip whose gate reads a THIRD unit - neither attacker nor target - and
+# preview() hands it a context built by Context.clone(specific.to_context(), ...) which carries no
+# `map`, where the real one (attack_roll.gd:135) does. Today the two agree only because
+# BuffCore.get_owner_unit falls back to X.map() when handed null (buff_core.gd:102-103). Closing it
+# needs an end-to-end case calibrated against live dice, which belongs to a mod-wide pass over all
+# three files rather than to a text-only fix wave.
+#
 #   godot --resolution 800x600 --position -2400,-2400 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_gravity_well.gd
 extends GutTest
 
@@ -218,9 +229,61 @@ func test_a_tech_attack_is_untouched():
 	assert_eq(well_lines(preview(tech, vauban)), 0, 'A tech attack carries no Gravity Well line.')
 	assert_eq(rifle_lines_against(vauban), 1, 'CONTROL: a weapon attack on the same target does.')
 
+# ---------------------------------------------------------------- two Vaubans
+
+func test_two_adjacent_vaubans_share_one_chip_and_therefore_one_answer():
+	# RULING R3, PINNED SO A LATER SESSION CANNOT CHANGE IT IN SILENCE. Two Vaubans standing next to
+	# each other hold ONE chip between them in the sense that matters: PassiveAura.apply_aura_buffs_to_
+	# unit skips a buff the unit already holds FROM ANY SOURCE (passive_aura.gd:80, and its own comment
+	# says so), and applies_to_other_copies_of_this_frame defaults true (:12) - so whichever Vauban's
+	# aura pass ran first owns BOTH copies, and both copies ask about THAT Vauban's ground.
+	#
+	# THE CONSEQUENCE THE AUTHOR ACCEPTED: a Vauban standing in its own field can get no shelter, if
+	# the other Vauban's aura ran first and that one is on clean ground - and the reverse, a Vauban on
+	# clean ground sheltered by its neighbour's field. One chip, one answer, for the pair. Keyed on the
+	# ability, not on the gear, which is the same answer ruling R3 gives Sap's shared reprieve.
+	#
+	# WHICH OF THE TWO OWNS THE PAIR IS NOT ASSERTED, BECAUSE IT IS AN ITERATION-ORDER DETAIL of
+	# PassiveAura.update_unit's walk over map.get_all_units() (:28) and pinning it would make this test
+	# a hostage to unit creation order. What IS asserted is the sharing itself, twice over: flooding
+	# either Vauban's tile gives BOTH the same answer, and exactly one of the two floods is the one
+	# that answers. A per-Vauban chip would fail the first pair of assertions whichever way it ran.
+	var second := VaubanFixture.create_vauban(game, ADJACENT)
+	VaubanFixture.track(game)
+	assert_eq(UnitCondition.get_buffs(vauban, CHIP_ID).size(), 1,
+		'fixture: the first Vauban holds exactly one chip, not one per aura on the map.')
+	assert_eq(UnitCondition.get_buffs(second, CHIP_ID).size(), 1,
+		'fixture: and so does the second.')
+
+	# Flood ONLY the second Vauban's tile.
+	VaubanFixture.lay_difficult(game, [ADJACENT])
+	VaubanFixture.track(game)
+	var first_under_second := rifle_lines_against(vauban)
+	var second_under_second := rifle_lines_against(second)
+	assert_eq(first_under_second, second_under_second,
+		'One chip, one answer: with the second Vauban in the field, both read the same.')
+
+	# And now ONLY the first's. lay_difficult replaces the whole map rather than adding to it.
+	VaubanFixture.lay_difficult(game, [VAUBAN_TILE])
+	VaubanFixture.track(game)
+	var first_under_first := rifle_lines_against(vauban)
+	var second_under_first := rifle_lines_against(second)
+	assert_eq(first_under_first, second_under_first,
+		'And with the FIRST Vauban in the field, both read the same again.')
+
+	assert_ne(first_under_second, first_under_first,
+		'Exactly one of the two floods is the one the shared chip answers to - so a Vauban really can '
+		+ 'stand in its own field and get nothing, which ruling R3 accepts.')
+
 # ---------------------------------------------------------------- lifetime
 
 func test_the_chip_clears_when_the_ally_leaves_range():
+	# CHARACTERISATION OF THE ENGINE, NOT A PIN OF THIS TRAIT, and the SP1 coverage table had it the
+	# other way round. PassiveAura.update_unit strips an out-of-range aura buff (passive_aura.gd:55-59)
+	# and no line of this mod can change that; no mutation of any Vauban file reddens this except
+	# removing the aura outright, which reddens six other tests first. It is kept because it is cheap
+	# and because it would catch a modkit regression in that stripping - which is a real thing to
+	# guard, just not this trait's.
 	var ally := VaubanFixture.create_ally(game, ADJACENT)
 	VaubanFixture.track(game)
 	assert_true(has_chip(ally), 'fixture: adjacent, so it holds the chip.')
@@ -230,6 +293,9 @@ func test_the_chip_clears_when_the_ally_leaves_range():
 	assert_false(has_chip(ally), 'PassiveAura.update_unit strips it on leaving range (passive_aura.gd:55-59).')
 
 func test_the_chip_clears_when_the_vauban_dies():
+	# CHARACTERISATION OF THE ENGINE TOO - see the test above. EventService.remove_unit_from_game
+	# clearing a dead unit's outgoing buffs (event_service.gd:71) is vanilla behaviour this mod does
+	# not touch.
 	var ally := VaubanFixture.create_ally(game, ADJACENT)
 	VaubanFixture.track(game)
 	assert_true(has_chip(ally), 'fixture: the ally holds the chip.')

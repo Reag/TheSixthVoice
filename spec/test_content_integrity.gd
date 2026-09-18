@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.5.0'
+const EXPECTED_VERSION := '0.6.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -218,6 +218,28 @@ const REACH_LOCALIZATION_ROWS:Array[String] = [
 
 func test_the_maidens_blush_consolation_rows_resolve():
 	for key:String in REACH_LOCALIZATION_ROWS:
+		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+
+## The two Vauban rows no behavioural spec can falsify, housed here for the same reason as the two
+## lists above (frame close review slice 5, M-2 and I-1).
+##
+## The frame's other rows are guarded where they are used - test_vauban_frame.gd:180-188,
+## test_solfataric_breach.gd:238-242, test_sap.gd:277-279, test_gravity_well.gd:127-128,
+## test_grav_amped_interference.gd:93-99, test_mastication_of_the_maar.gd:136-140. These two cannot be:
+##
+## - `gear.mt_maar_terrain.name` belongs to a MARKER's trait Kit, and no surface a spec in this mod can
+##   reach renders its card at all.
+## - `gear.buff_grav_amped_saves.name` is the same string as the protocol's own name row - one card,
+##   one name - so the chip's name_text() renders identically whether it reads its own row or falls
+##   through to the protocol's (translate.gd:73-76). An assertion on the rendered text could never
+##   fail; an assertion that the row RESOLVES can.
+const VAUBAN_LOCALIZATION_ROWS:Array[String] = [
+	'gear.mt_maar_terrain.name',
+	'gear.buff_grav_amped_saves.name',
+]
+
+func test_the_vaubans_unguarded_rows_resolve():
+	for key:String in VAUBAN_LOCALIZATION_ROWS:
 		assert_ne(tr(key), key, '%s resolves to real text.' % key)
 
 ## Every kit and player-facing buff this mod ships, and the actions on each kit that need their own

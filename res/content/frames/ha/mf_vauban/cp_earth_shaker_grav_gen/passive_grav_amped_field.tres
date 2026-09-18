@@ -6,13 +6,25 @@
 [ext_resource type="PackedScene" path="res://unpacked/Reag-TheSixthVoice/res/content/fx_endless/gear/fxe_reag_shattered_ground.tscn" id="4_fxe"]
 
 ; BURST 1, not Blast 1, and the distinction is only visible in the code. Lancer.AOE_TYPE is
-; {NONE, BLAST, LINE, CONE, BURST} (lancer.gd:96-100), so pattern = 4 is BURST. For a size-1 origin
-; the two produce the identical 3x3 - AoeCalculator.burst iterates range(-radius, center_size+radius)
-; (aoe_calculator.gd:33-35) - but BURST is what the card says and it is the branch that needs no
-; target tile: RangePattern.get_aoe_tiles takes BURST off occupied_tiles[0] BEFORE the
-; `target_tiles.is_empty(): return` early exit (range_pattern.gd:45-49), and a unit-projected zone is
-; handed exactly one occupied tile and an INVALID target (get_aoe_voxels, :101-108). A BLAST here
-; would work by the size-1 coincidence alone.
+; {NONE, BLAST, LINE, CONE, BURST} (lancer.gd:96-100), so pattern = 4 is BURST.
+;
+; A BLAST HERE WOULD ALSO RESOLVE - corrected at the close, 2026-09-18, because the earlier reasoning
+; here named a mechanism that does not exist. PassiveTerrainZone.get_voxels_to_apply_terrain calls
+; UnitTile.get_voxels_from_pattern with no target tile (passive_terrain_zone.gd:13-14), so the
+; parameter takes its Tile.INVALID default (unit_tile.gd:381) - and the very next line SUBSTITUTES the
+; unit's own tile for it (:384) before anything reaches pattern.get_voxels (:397). The target is never
+; INVALID, so `target_tiles.is_empty(): return` (range_pattern.gd:49) is not what BURST is dodging,
+; and a BLAST would centre on the anchor perfectly well at any size.
+;
+; THE REAL DIFFERENCE IS THE FOOTPRINT, and it is why BURST is right anyway. AoeCalculator.blast
+; iterates range(-radius, radius+1) around the given centre (aoe_calculator.gd:13-14); burst iterates
+; range(-radius, center_size+radius) (:33-35) - i.e. the whole footprint plus the radius. The two
+; agree only for a size-1 origin. BURST is the card's word, and it is the pattern that keeps covering
+; the frame's own tiles if the Vauban ever grows to size 2, where a BLAST would quietly shrink to
+; anchor +/- 1 and drop half of them.
+;
+; (mt_maar_terrain.tres two directories away declares a BLAST and is not disagreeing with this: a
+; MARKER has no footprint to project from, so the distinction has nothing to bite on there.)
 [sub_resource type="Resource" id="Resource_burst1"]
 script = ExtResource("3_rangepattern")
 pattern = 4

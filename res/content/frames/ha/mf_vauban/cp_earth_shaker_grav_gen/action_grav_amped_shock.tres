@@ -14,8 +14,15 @@ trigger_timing = 1
 ; A trait, not a reaction the pilot spends - see the script's header. Solfataric Breach needs that
 ; point.
 consumes_rxn = false
-; Read by ActionReactionOnComingWithin.has_unit_already_been_affected (:87), which is the only part
-; of that archetype this reaction actually uses.
+; THE ARCHETYPE'S ONCE-PER-ROUND BOOKKEEPING - ONLY THE THIRD LINE IS LIVE HERE. The first is read in
+; exactly one place, inside ActionReactionOnComingWithin.triggers_on_event
+; (action_reaction_on_coming_within.gd:69), and the second in exactly one place, inside its
+; get_per_round_hard_limit (:37) - and the script overrides BOTH of those functions. So these two are
+; INERT while the overrides stand. They keep the values they would need if either override were ever
+; removed; do not read them as live decisions.
 can_only_affect_a_unit_once_per_round = true
 can_trigger_any_number_of_times_per_round = true
+; LIVE: read by has_unit_already_been_affected (:87), which this reaction calls directly from both
+; triggers_on_event and activate. FALSE means two Vaubans share one 3 AP allowance per hostile per
+; round. See the script's header.
 once_per_round_is_specific_to_gear = false

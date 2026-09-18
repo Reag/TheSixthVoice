@@ -33,6 +33,6 @@ is_obstruction = false
 ; calls set_deployable_owner at all.
 ; Deleting this line is MUTATION T4-M1 and reddens BOTH test_the_crater_survives_the_vaubans_death
 ; and test_the_card_carries_the_persists_tag: ActionSystemDeploy.get_glossary_tags appends
-; lancer.term.persists exactly when this is false (action_system_deploy.gd:53-60), so the export is
+; lancer.term.persists exactly when this is false (action_system_deploy.gd:52-59), so the export is
 ; player-facing as well as load-bearing.
 is_deactivated_on_owner_death = false

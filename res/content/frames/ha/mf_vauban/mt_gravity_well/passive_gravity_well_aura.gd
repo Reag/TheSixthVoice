@@ -13,6 +13,16 @@
 ## (a drone copy, a deployable simulacrum) still shelters itself, which is what the first sentence
 ## promises.
 ##
+## *** THAT EARLY RETURN IS DELIBERATELY UNCOVERED, AND IT IS UNREACHABLE RATHER THAN MERELY
+## UNTESTED. *** `return moving_unit.is_mech()` below gives the same answer for every Vauban that
+## exists - is_mech() is `is_character() and not is_drone and not is_pilot` (unit.gd:118 ->
+## frame.gd:101) and mf_vauban sets neither flag - so neutralising the line leaves the whole suite
+## green. No spec can separate it either: create_vauban does NOT frame-isolate (vauban_fixture.gd:7-10
+## records why), so flipping is_drone on it would write into the shared ContentLibrary frame and leak
+## into every later test in the run. It is INTENT, not behaviour under test. If it ever has to be
+## guarded, the only shape that works is a frame-isolated Vauban with is_drone flipped, which means
+## the fixture changing first.
+##
 ## EVERYTHING ELSE IS THE BASE CLASS'S DEFAULTS, set on the .tres beside this file: range 1, self and
 ## allies but not enemies, characters only, active from the first tracking pass. The card has no
 ## switch, so unlike the Myconid's Fungal Network auras this one does not set starts_active = false.

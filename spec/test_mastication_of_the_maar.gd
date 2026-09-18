@@ -32,8 +32,17 @@
 #   - the ALLY case can only pass with ours, and reddens when are_enemies is dropped;
 #   - the hostile OBJECT case can only pass with ours, and reddens when is_character() is dropped -
 #     the two clauses are independent, so they need a mutation each;
-#   - the PREVIOUS-MAAR case cannot be reddened at all, because every predicate in the engine lets
-#     markers through. It is a pin on the card, not evidence for the filter, and says so at its site.
+#   - the PREVIOUS-MAAR case cannot be reddened by any SINGLE-clause mutation, because every
+#     predicate in the engine lets markers through twice over. It is a pin on the card, not evidence
+#     for the filter, and says so at its site.
+#
+# AND TWO MORE TESTS IN THIS FILE CANNOT BE REDDENED BY MUTATING SHIPPED CONTENT AT ALL - said here
+# as well as at their sites, because a reader counting green ticks deserves to know which ones are
+# load-bearing. test_two_maars_stack and test_overlapping_maars_are_simply_difficult_ground both rest
+# on the ABSENCE of queue_remove_previous_deployables from the script's overriding activate, and the
+# export that would restore it (remove_previous_deployments) is inert - flipping it to true reddens
+# neither. They are kept as ruling-8 pins against a future rewrite of activate, not as evidence about
+# the .tres.
 #
 #   godot --resolution 800x600 --position -2400,-2400 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_mastication_of_the_maar.gd
 extends GutTest
@@ -129,7 +138,7 @@ func test_the_action_is_a_quick_tile_pick_within_sensors() -> void:
 	assert_true(action.requires_line_of_sight(specific()), 'and it needs line of sight')
 	# consumes_core_power() is declared `-> int` while returning a bool export (action_system.gd:31,
 	# action.gd:167), so GUT's assert_false throws "Cannot convert 0 to boolean" on it. Asked through
-	# the call the engine's own refusal chain makes (unit_action.gd:146), not through the export.
+	# the call the engine's own refusal chain makes (unit_action.gd:145), not through the export.
 	assert_eq(int(action.consumes_core_power()), 0, 'it does NOT spend the core point: the protocol does')
 
 func test_the_cards_text_resolves() -> void:
@@ -143,7 +152,7 @@ func test_the_card_carries_the_persists_tag() -> void:
 	# A PLAYER-FACING AFFORDANCE THAT COMES FREE WITH THE ARCHETYPE, and the second pin on the one
 	# line the card depends on: ActionSystemDeploy.get_glossary_tags appends lancer.term.persists
 	# exactly when the deployable frame sets is_deactivated_on_owner_death = false
-	# (action_system_deploy.gd:53-60). A hand-rolled ActionSystem would simply not have it, and
+	# (action_system_deploy.gd:52-59). A hand-rolled ActionSystem would simply not have it, and
 	# deleting that line from dep_maar.tres takes the tag off the card as well as killing the crater.
 	# GlossaryItem.name holds the localisation key it was created from (glossary_item.gd:50).
 	var action := maar_action()
@@ -151,6 +160,18 @@ func test_the_card_carries_the_persists_tag() -> void:
 	if action == null: return
 	var tag_keys:Array = action.get_glossary_tags(specific()).map(func(item:GlossaryItem) -> String: return item.name)
 	assert_has(tag_keys, 'lancer.term.persists', 'the card tells the player the crater persists')
+
+func test_the_crater_wears_its_own_art() -> void:
+	# THE CRATER'S OWN ART, not vanilla's blank.png (frame close M-1, handed over by the slice-5 agent).
+	# dep_maar.tres was built from a vanilla deployable frame, so the natural regression is the sprites
+	# array reverting - and no icon guard in test_content_integrity.gd can see it, because those walk
+	# the kits and buffs indexes and a Frame.sprites entry is in neither
+	# (test_fitzgerald_frame.gd:87 says so).
+	var maar_frame:Frame = ContentLibrary.get_mech_frame(MAAR_FRAME)
+	assert_false(maar_frame.sprites.is_empty(), 'the crater carries a sprite')
+	if maar_frame.sprites.is_empty(): return
+	assert_true(maar_frame.sprites[0].resource_path.ends_with('/dep_maar.svg'),
+		"and it is the Maar's own art, not vanilla's blank.png")
 
 # ---------------------------------------------------------------- the crater
 
@@ -213,6 +234,12 @@ func test_the_crater_survives_the_vaubans_death() -> void:
 	assert_true(is_difficult(NEAR_CENTRE), 'and still difficult ground - for the rest of the scene')
 
 func test_two_maars_stack() -> void:
+	# NOT REDDENABLE BY ANY MUTATION OF THE .tres, and that is worth saying rather than hiding.
+	# Stacking is the ABSENCE of queue_remove_previous_deployables from the script's overriding
+	# activate; remove_previous_deployments is only read inside the archetype's
+	# place_deployables_at_target_tiles (action_system_deploy.gd:89), which that override never calls,
+	# so flipping it to true leaves this green. What the test IS good for: it pins ruling 8 against a
+	# future rewrite of activate that reinstates the archetype's removal step.
 	await lay_maar(NEAR_CENTRE)
 	await lay_maar(SECOND_CENTRE)
 
@@ -223,6 +250,11 @@ func test_two_maars_stack() -> void:
 func test_overlapping_maars_are_simply_difficult_ground() -> void:
 	# TerrainData merges by OR (terrain_data.gd:64), so two craters over one tile is not two
 	# difficulties, and nothing here needs to de-duplicate.
+	#
+	# SAME HONESTY AS test_two_maars_stack ABOVE: no mutation of shipped content reddens the stacking
+	# half, and the difficult-ground half is already covered by
+	# test_the_crater_makes_its_blast_1_difficult. Kept because "two overlapping craters are ONE
+	# difficulty" is the ruling-8 clause nothing else states, not because it discriminates.
 	await lay_maar(NEAR_CENTRE)
 	await lay_maar(NEAR_CENTRE + Vector2i(1, 0))
 
@@ -278,12 +310,17 @@ func test_a_tile_whose_blast_holds_a_hostile_OBJECT_is_targetable() -> void:
 	assert_true(targetable().has(NEAR_CENTRE), 'ruling 8: objects do not block it, hostile or not')
 
 func test_a_tile_whose_blast_holds_a_previous_MAAR_is_targetable() -> void:
-	# HONESTY ABOUT WHAT THIS PROVES: no predicate in the engine blocks on a MARKER - vanilla's
-	# standard check skips them (target_requirements.gd:80), the caltrop launcher's skips them
-	# (action_caltrop_launcher.gd:16), and ours skips them twice over (not a character, and
-	# Faction.NONE is nobody's enemy - faction.gd:24). So this test cannot be reddened by mutating our
-	# filter, and it is a pin on the CARD CLAUSE rather than evidence for the predicate. What it does
-	# buy: it is the only test that shows overlapping craters can actually be TARGETED, where
+	# HONESTY ABOUT WHAT THIS PROVES, sharpened at the close: no predicate in the engine blocks on a
+	# MARKER - vanilla's standard check skips them (target_requirements.gd:80), the caltrop launcher's
+	# skips them (action_caltrop_launcher.gd:16), and ours skips them TWICE OVER (not a character, and
+	# Faction.NONE is nobody's enemy - faction.gd:24). So NO SINGLE-CLAUSE mutation of our filter
+	# reddens this: dropping is_character() alone still leaves are_enemies(vauban, maar) false, and
+	# dropping are_enemies alone still leaves is_character() false. Dropping BOTH does redden it - and
+	# reddens the ALLY and hostile-OBJECT tests with it, so it still adds no discrimination.
+	# THIS IS KEPT DELIBERATELY, AS A PIN ON THE CARD CLAUSE rather than as evidence for the predicate
+	# (the author's call at the close; SP2 deferred item 12, whose "cannot be reddened at all" is the
+	# claim being corrected here). What it does buy: it is the only test that shows overlapping craters
+	# can actually be TARGETED, where
 	# test_overlapping_maars_are_simply_difficult_ground reaches its second crater through
 	# SpecFactory.use and so never asks the targeting screen anything.
 	await lay_maar(NEAR_CENTRE)
@@ -310,3 +347,130 @@ func test_a_tile_beyond_sensors_is_not_targetable() -> void:
 	assert_eq(vauban.get_sensor_range(), 8, 'fixture: the Vauban sheet says Sensors 8')
 	assert_false(targetable().has(FAR_CENTRE), 'and that is 14 away')
 	assert_true(targetable().has(NEAR_CENTRE), 'fixture: the near one is in range')
+
+func test_a_tile_on_an_invalid_endpoint_is_still_a_valid_centre() -> void:
+	# THE CLAUSE OUR PREDICATE DROPS, PINNED AS A DECISION (frame close M-5). Replacing
+	# check_if_tile_is_free wholesale loses the FIRST clause of vanilla's own check, which is a TERRAIN
+	# test and not a unit test: `if map.get_surface_terrain_at(tile).is_invalid_endpoint(): return false`
+	# (target_requirements.gd:76, reached from action_system_deploy.gd:48). 45 vanilla .tres files set
+	# invalid_endpoint - wall tops, rocks, mt_stasis_barrier - so this is ordinary map furniture.
+	#
+	# KEEPING THE PERMISSION IS THE RULING, and it is vanilla's own, in vanilla's own words: the
+	# caltrop launcher drops the same clause on purpose - action_caltrop_launcher.gd:13, "skip checking
+	# for invalid endpoints from setpieces; we can intersect those just fine". The card names exactly
+	# one restriction and it is about hostile Characters; a MARKER has nothing to stand on.
+	# MUTATION: prepend that same line to no_hostile_character_here. It reddens this and nothing else.
+	lay_invalid_endpoint(NEAR_CENTRE)
+
+	assert_true(game.map.get_surface_terrain_at(NEAR_CENTRE).is_invalid_endpoint(),
+		'fixture: the tile really is an invalid endpoint')
+	assert_true(targetable().has(NEAR_CENTRE),
+		'a crater may be centred on a wall top or a rock - the card only bars hostile Characters')
+
+## Stand a piece of impassable map furniture on `tile`: ground surface terrain that is an invalid
+## endpoint and nothing else.
+##
+## Written straight onto ground_surface_terrain and recalculated, the way VaubanFixture.lay_difficult
+## does and for the reason that helper's own header gives - get_surface_terrain_at never reads
+## map.ground_terrain, so SpecFactory.set_terrain would leave this invisible to the predicate under
+## test. Single tile, so unlike lay_difficult it adds rather than replaces the whole map.
+func lay_invalid_endpoint(tile:Vector2i) -> void:
+	var block := TerrainBlockData.new()
+	block.invalid_endpoint = true
+	game.map.ground_surface_terrain[tile] = block
+	game.map.calculate_surface_merged_terrain_and_height_at(tile)
+
+# ---------------------------------------------------------------- the crater and the rest of the frame
+
+## A tile inside NEAR_CENTRE's Blast 1, and 5 from the Vauban - inside Sensors 8, with nothing in the
+## way, so Sap's own gate has no reason to decline.
+const CRATER_EDGE := Vector2i(9, 6)
+
+func test_a_hostile_starting_its_turn_in_a_crater_is_sapped() -> void:
+	# THE WHOLE REASON THE MAAR EXISTS ON THIS FRAME, and until the close nothing asserted it. Every
+	# other difficult-ground test in this mod builds its ground with VaubanFixture.lay_difficult, which
+	# writes ground_surface_terrain directly; this is the one case that goes the long way round - the
+	# real action lays a real MARKER whose PassiveTerrainZone is folded into the merged surface
+	# (map_state.gd:474-478) - and then asks Sap, which reads that same surface, whether it noticed.
+	#
+	# THE CARD CLAUSE UNDER TEST IS SAP'S SECOND HALF ("or starts their turn, in an area of difficult
+	# terrain"), because a turn start needs no pathfinding: a voluntary walk would route around a
+	# single crater the way test_sap.gd's own header records (a difficult tile is extra_cost 1, so a
+	# one-tile detour is strictly cheaper than crossing), and this test is about the GROUND, not about
+	# the mover.
+	#
+	# MUTATION: mt_maar_terrain.tres, difficult_terrain = true -> false in [sub_resource
+	# id="Resource_difficult"]. Also reddens test_the_crater_makes_its_blast_1_difficult,
+	# test_the_crater_survives_the_vaubans_death and test_overlapping_maars_are_simply_difficult_ground,
+	# and nothing outside this file.
+	await lay_maar(NEAR_CENTRE)
+
+	# The hostile arrives AFTER the crater on purpose: the target filter would have refused a centre
+	# whose Blast 1 already held one, and a test that leans on TargetActionUtil not re-validating a
+	# supplied tile would be testing the wrong thing.
+	var hostile := VaubanFixture.create_hostile(game, CRATER_EDGE)
+	VaubanFixture.track(game)
+	assert_true(is_difficult(CRATER_EDGE), 'fixture: the hostile is standing in the crater')
+
+	# The Vauban's own turn is closed first: lay_maar opened one, and two units taking a turn at once
+	# is a state nothing in play produces.
+	await SpecFactory.end_turn(game, vauban)
+	VaubanFixture.queue_save_dice(1) # a 1 fails any save in this frame
+	await VaubanFixture.open_turn(game, hostile)
+
+	assert_true(
+		UnitCondition.has_status(hostile, Lancer.STATUS.SLOWED, vauban.get_gear(VaubanFixture.SAP_ID).persistent_id),
+		'the ground the Maar made is real terrain, and Sap charges the Vauban for it')
+
+# ---------------------------------------------------------------- the picture on the ground
+
+## An id, not a path: FxEndless ids are scene BASENAMES (fx_endless.gd:93-96, reached from
+## Passive.get_fxe_id at passive.gd:31), and the basename is what an entry in fxe_map carries.
+const GROUND_FXE := &'fxe_reag_shattered_ground'
+
+func test_the_crater_draws_the_shared_ground_fx() -> void:
+	# SP3 ruling 13, and until the close it was wired on both terrain zones and asserted by nothing -
+	# deleting the fxe line from either .tres left the suite green.
+	#
+	# READ OFF THE CRATER'S OWN TOKEN, not the Vauban's: mt_maar_terrain.tres hangs the scene on the
+	# crater's PassiveTerrainZone, and PassiveTerrainZone.get_attached_fx draws one instance at every
+	# tile its own range_pattern covers (passive_terrain_zone.gd:17-27), keyed by the ticket's LOCAL
+	# tile. The spawn is what builds it: event_unit_spawn.gd:105 calls update_attached_fx on every unit
+	# on the map once the crater has landed.
+	#
+	# WRITTEN SO A ZERO IS DIAGNOSABLE. Each precondition is asserted separately, because a count of 0
+	# has at least three quite different causes - no crater, no token, or
+	# FxEndless.get_surface_tiles_intersecting_voxels dropping every voxel at its
+	# `voxel.y == map.elevation(tile)` filter (fx_endless.gd:146). The expected 9 is derived: the zone
+	# is a Blast 1 with height = 1, so get_aoe_voxels emits layers 0 and 1 over nine tiles
+	# (range_pattern.gd:102-108) and that filter keeps the layer-0 half - the crater is
+	# is_obstruction = false, so it never raises surface_height off 0 (map_state.gd:467).
+	#
+	# MUTATION: delete `fxe = ExtResource("7_fxe")` from mt_maar_terrain.tres's [sub_resource
+	# id="Resource_zone"] (leave the [ext_resource] line; an unreferenced one loads fine). Reddens this
+	# test's count assertion, 0 against 9, and nothing else.
+	await lay_maar(NEAR_CENTRE)
+
+	var laid:Array = maars()
+	assert_eq(laid.size(), 1, 'fixture: one crater')
+	if laid.size() != 1: return
+	var maar:Unit = laid.front()
+	assert_true(is_instance_valid(maar.token), 'fixture: the crater has a token to hang fx on')
+	if not is_instance_valid(maar.token): return
+	var controller:FxEndlessController = maar.token.AttachedFxEndless
+	assert_true(is_instance_valid(controller), 'fixture: and the token has an FxEndlessController')
+	if not is_instance_valid(controller): return
+
+	var live_shards := 0
+	var foreign_ids:Array[StringName] = []
+	for local_tile:Vector2i in controller.fxe_map.keys():
+		for fxe in controller.fxe_map[local_tile]:
+			if not is_instance_valid(fxe): continue
+			if fxe.id == GROUND_FXE: live_shards += 1
+			elif not foreign_ids.has(fxe.id): foreign_ids.append(fxe.id)
+
+	assert_eq(live_shards, 9, "one shard fx per tile of the crater's Blast 1")
+	assert_true(foreign_ids.is_empty(),
+		'and every fx on the crater is that scene, not another (found %s)' % [foreign_ids])
+	assert_ne(ContentLibrary.get_fxendless_path(GROUND_FXE), '',
+		'the id resolves through ContentLibrary, which is how reconstruct_add found the scene at all')

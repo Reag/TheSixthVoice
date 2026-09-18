@@ -85,7 +85,7 @@ func test_the_core_is_on_the_frame_and_carries_the_protocol() -> void:
 		'declared as a PROTOCOL (Lancer.ACTION.PROTOCOL == 4)')
 	# Asked through consumes_core_power(), which is the call the engine's own refusal chain makes
 	# (unit_action.gd:145) - but it is declared `-> int` on ActionSystem while returning the bool
-	# export (action_system.gd:32), and GUT's assert_true refuses the 1 outright ("Cannot convert 1 to
+	# export (action_system.gd:31), and GUT's assert_true refuses the 1 outright ("Cannot convert 1 to
 	# boolean"). So the VALUE is compared. test_gather_round.gd reads the export instead; either says
 	# the same thing.
 	assert_eq(int(action.consumes_core_power()), 1, 'and it spends the frame core power')
@@ -178,6 +178,70 @@ func test_the_vaubans_death_takes_the_field_with_it() -> void:
 
 	assert_eq(difficult_tiles_on_the_map().size(), 0, 'unit-projected terrain needs its unit')
 
+# ---------------------------------------------------------------- A. the picture on the ground
+#
+# SP3's shared ground fx (design ruling 13), the same scene the Maar's own crater wears. It hangs off
+# the PASSIVE rather than off the action, and that is what keeps it honest: get_attached_fx walks the
+# SAME voxel list as get_voxels_to_apply_terrain (passive_terrain_zone.gd:17-27), which
+# PassiveGatedTerrainZone returns empty while the gate is closed - so the picture is dark exactly when
+# the terrain is, with no second flag to keep in step.
+#
+# THIS IS THE GAP THE CLOSE FOUND (review slice 5, I-2): the fxe line could be deleted from both zones
+# and the whole suite stayed green - a frame shipping with invisible terrain and nothing to say so.
+# Every failure mode on this path is silent: passive.gd:31 get_fxe_id returns &'' for a null fxe and
+# passive_terrain_zone.gd:19 then returns [] with no error, and a WRONG id is quieter still
+# (fx_endless.gd:82-91 create_from_id just returns null through ContentLibrary.get_fxendless_path).
+#
+# WHAT THESE PROVE AND WHAT THEY DO NOT: as far as INSTANTIATED NODES REGISTERED on the Vauban's own
+# controller, and no further. reconstruct_add records the node in fxe_map (fx_endless_controller.gd:74)
+# but only reaches add_child on the main thread (:77-86), so tree membership is not claimed here -
+# the limit test_fungal_network.gd:1040-1063 spells out for the Myconid's cloud, and this is that
+# file's query (:1140-1160, :1231-1238) pointed at this frame.
+
+## An id, not a path: FxEndless ids are scene BASENAMES (fx_endless.gd:93-96, reached from
+## Passive.get_fxe_id at passive.gd:31), and the basename is what an entry in fxe_map carries.
+const GROUND_FXE := &'fxe_reag_shattered_ground'
+
+## Every live fxe the Vauban's token is holding, by id.
+##
+## The COUNT is what the tests below assert rather than the tiles, because fxe_map is keyed by the
+## ticket's LOCAL tile (passive_terrain_zone.gd:22-27 subtracts the origin voxel) and which nine tiles
+## the field covers is already pinned, twice, by the terrain tests above. What is unpinned is whether
+## anything is drawn on them at all.
+func drawn_fxe_ids() -> Array[StringName]:
+	var ids:Array[StringName] = []
+	if not Unit.is_valid(vauban) or not is_instance_valid(vauban.token): return ids
+	var controller:FxEndlessController = vauban.token.AttachedFxEndless
+	if not is_instance_valid(controller): return ids
+	for local_tile:Vector2i in controller.fxe_map.keys():
+		for fxe in controller.fxe_map[local_tile]:
+			if is_instance_valid(fxe): ids.append(fxe.id)
+	return ids
+
+## Rebuild the token's attached fx from scratch: unit.gd:165-169 into unit_token.gd:209-219, which
+## walks every passive on every piece of gear and feeds each ticket to reconstruct_add.
+##
+## Called explicitly rather than relied on: the press reaches it for free through
+## GearCore.set_aura_active (gear_core.gd:297-300), but a spec that reads fxe_map should ask for the
+## rebuild it is reading rather than inherit one as a side effect of something else.
+func rebuild_fx() -> void:
+	VaubanFixture.track(game)
+	vauban.update_token()
+
+func test_before_the_press_the_gate_draws_no_ground_fx() -> void:
+	# A FULL rebuild first, so this is not green because nothing was ever asked to draw -
+	# test_fungal_network.gd:1204 arranges its own control the same way.
+	rebuild_fx()
+	assert_eq(drawn_fxe_ids().count(GROUND_FXE), 0, 'the gated zone draws nothing while it is dark')
+
+func test_the_field_draws_the_shared_ground_fx() -> void:
+	await VaubanFixture.press_protocol(game, vauban)
+	rebuild_fx()
+
+	assert_eq(drawn_fxe_ids().count(GROUND_FXE), 9, 'one shard fx per tile of the Burst 1 field')
+	assert_ne(ContentLibrary.get_fxendless_path(GROUND_FXE), '',
+		'and the id resolves through ContentLibrary, which is how reconstruct_add found the scene at all')
+
 # ---------------------------------------------------------------- B. the save difficulty
 
 const CHIP_ID := &'buff_grav_amped_saves'
@@ -219,9 +283,15 @@ func test_the_chip_reaches_a_hostile_that_arrives_after_the_press() -> void:
 	var latecomer := hostile_at(Vector2i(12, 6))
 	assert_true(UnitCondition.has_buff(latecomer, CHIP_ID), 'the aura keeps tracking after the press')
 
-func test_allies_the_vauban_and_non_characters_are_not_chipped() -> void:
+func test_allies_the_vauban_and_hostile_objects_are_not_chipped() -> void:
+	# Renamed at the frame close (slice 4 M-1): the old name claimed to exercise
+	# applies_only_to_characters and did not. create_drone flips is_drone, which changes is_mech() and
+	# NOT is_character(), so the drone assertion passes whatever the export says. A hostile OBJECT is
+	# the case the export actually gates (passive_aura.gd:73 -
+	# `if applies_only_to_characters and not moving_unit.is_character(): return false`).
 	var ally := VaubanFixture.create_ally(game, Vector2i(6, 6))
 	var hostile_drone := VaubanFixture.create_drone(game, Vector2i(8, 6), Faction.AI_ENEMY)
+	var cover := VaubanFixture.create_hostile_object(game, Vector2i(9, 6))
 	VaubanFixture.track(game)
 	await VaubanFixture.press_protocol(game, vauban)
 
@@ -229,6 +299,10 @@ func test_allies_the_vauban_and_non_characters_are_not_chipped() -> void:
 	assert_false(UnitCondition.has_buff(vauban, CHIP_ID), 'nor is the Vauban itself')
 	assert_true(UnitCondition.has_buff(hostile_drone, CHIP_ID),
 		'a hostile DRONE is a character and is chipped - applies_only_to_characters lets it through')
+	# MUTATION: passive_grav_amped_aura.tres, applies_only_to_characters = true -> false. Reddens this
+	# assertion alone; before the close it reddened nothing anywhere.
+	assert_false(UnitCondition.has_buff(cover, CHIP_ID),
+		'a hostile OBJECT is not a character, so applies_only_to_characters keeps the chip off it')
 
 func test_the_chip_is_visible_to_the_player() -> void:
 	# Ruling 11: the author chose to see it. If they change their mind at the close it becomes
@@ -239,6 +313,35 @@ func test_the_chip_is_visible_to_the_player() -> void:
 	assert_not_null(chip, 'fixture: the chip is there')
 	assert_false(chip.base.hide_from_player, 'and the player can see it')
 
+func test_the_chip_speaks_in_its_own_voice_and_not_the_protocols() -> void:
+	# BECAUSE IT IS VISIBLE, WHAT IT SAYS IS CONTENT. Ruling 11 made this chip the hostile's only
+	# on-board signal that its saves are worse, and with no rows of its own Translate.buff falls all the
+	# way through to the owner gear's FIRST action (translate.gd:73-76 into gear_core.gd:337-339) -
+	# which on this Kit is the protocol, deliberately. So the victim's status chip read the VAUBAN's
+	# card, in the second person: "For the rest of the scene, you gain the following benefits...".
+	# Two rows of its own is the fix, and the mod is 8 for 8 that way on every other visible buff.
+	# (Close review slice 5, I-1.)
+	#
+	# NOT THE SAME CASE AS GRAVITY WELL, which has no rows on purpose: mt_gravity_well's actions are
+	# empty, so get_solo_action returns null and the fallback lands on that Kit's own name and effect,
+	# which is the right text there. test_gravity_well.gd:127-139 documents and pins it.
+	await VaubanFixture.press_protocol(game, vauban)
+	var hostile := hostile_at(SAP_VICTIM_TILE)
+	var chip := UnitCondition.get_buff(hostile, CHIP_ID)
+	assert_not_null(chip, 'fixture: the hostile is chipped')
+	if chip == null: return
+
+	var own_effect_key := 'gear.%s.effect' % CHIP_ID
+	assert_ne(X.tr(own_effect_key), own_effect_key, 'the chip has an effect row of its own')
+	assert_eq(chip.effect_text(), X.tr(own_effect_key), 'and that is what it renders')
+	assert_ne(chip.effect_text(), X.tr('gear.%s.%s.effect' % [CORE_ID, PROTOCOL_ID]),
+		"not the protocol card, which describes the Vauban's benefits to the unit they are used against")
+
+	# THE NAME IS DELIBERATELY NOT COMPARED THE SAME WAY. The chip's name row and the protocol's are
+	# both "Grav-Amped Interference" - one card, one name - so name_text() renders identically whether
+	# the row is read or the fallback is, and an assert_eq on it could never fail. Its resolution guard
+	# lives where it can bite instead: test_content_integrity.VAUBAN_LOCALIZATION_ROWS.
+
 func test_the_vaubans_death_clears_the_chip() -> void:
 	var hostile := hostile_at(SAP_VICTIM_TILE)
 	await VaubanFixture.press_protocol(game, vauban)
@@ -248,7 +351,7 @@ func test_the_vaubans_death_clears_the_chip() -> void:
 	VaubanFixture.track(game)
 
 	assert_false(UnitCondition.has_buff(hostile, CHIP_ID),
-		'aura buffs carry the aura gear as from_gear and go with its owner (passive_aura.gd:52-58)')
+		'aura buffs carry the aura gear as from_gear (passive_aura.gd:82) and go with its owner (event_service.gd:71)')
 
 func test_a_sap_save_before_the_press_passes_on_an_exact_roll() -> void:
 	# The control the next test is measured against. The save target is the FORCER's - the Vauban's 12
@@ -406,6 +509,35 @@ func test_a_save_forced_by_somebody_else_costs_nothing() -> void:
 	await force_save(stranger, hostile)
 
 	assert_eq(hostile.core.current.health, before, 'the card says a save YOU forced')
+
+func test_a_save_forced_with_no_gear_or_action_reaches_neither_clause() -> void:
+	# M-3, THE CLOSE'S RULING: the two clauses of one card bullet are made to AGREE about an
+	# incomplete forcer, and this is the pin.
+	#
+	# The engine hands the two halves different amounts of information. UnitHasecheck.run_save_event
+	# copies unit, gear and action onto the save event's context UNCONDITIONALLY
+	# (unit_hasecheck.gd:82-84), so the SHOCK can see a forcer that is a bare unit; roll_check refuses
+	# to copy the forcer into the SAVER's buff context at all unless SpecificAction.is_valid holds
+	# (:180, demanding all three - specific_action.gd:16-23), so the +1 difficulty cannot. The buff
+	# half cannot be widened from a mod, so the shock was narrowed to match; the full reasoning is in
+	# action_grav_amped_shock.gd's header. No vanilla caller forces a save this way - every one in
+	# content/ passes a full trifecta, and make_saves refuses a batch save without one (:66) - so the
+	# case has to be built by hand, exactly as
+	# test_a_save_with_no_valid_forcer_is_untouched_and_does_not_throw builds it.
+	#
+	# MUTATION: in action_grav_amped_shock.gd's triggers_on_event, neutralise
+	# `if not SpecificAction.is_valid(SpecificAction.from_context(context)): return false` to
+	# `if false and not SpecificAction.is_valid(SpecificAction.from_context(context)): return false`.
+	# Reddens this test alone - every other save in this file is forced with a full trifecta.
+	var hostile := hostile_at(SAP_VICTIM_TILE)
+	await VaubanFixture.press_protocol(game, vauban)
+	var before:int = hostile.core.current.health
+
+	queue_a_failure()
+	await VaubanFixture.force_hull_save(self, hostile, SpecificAction.create(vauban, null, null))
+
+	assert_eq(before - hostile.core.current.health, 0,
+		'an incomplete forcer gets neither the +1 difficulty nor the 3 AP')
 
 func test_the_damage_ignores_armor() -> void:
 	var hostile := hostile_at(SAP_VICTIM_TILE)

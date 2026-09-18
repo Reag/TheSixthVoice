@@ -14,12 +14,36 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/mt_gravity_well/mt_gravity_well.tres" id="12_well"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/cp_earth_shaker_grav_gen.tres" id="13_core"]
 
+; DERIVED FROM THE SPRITE ART, NOT CLONED FROM THE ISKANDER (ruling R4, 2026-09-18). This block was a
+; byte-for-byte copy of mf_iskander.tres:20-26 until the frame close measured the art: mf_vauban.png
+; carries 2,515 opaque pixels and EVERY ONE OF THEM IS LITERAL - not a single channel-encoded pixel -
+; against the Iskander's 2522/1503/266 across channels 0/1/2. (Counted by the shader's own test:
+; palette_swap_func.gdshaderinc:38-41 matches (v,0,0), (0,v,0), (0,0,v) and (0,v,v) against the seven
+; red values in assets/palettes/palette_index_r.png, which are 255/221/187/153/119/85/51. Re-measured
+; 2026-09-18; the ruling's own figure says 2,514, a one-pixel difference that changes nothing.)
+; Every vanilla frame sprite is channel-encoded and this one is not, so the scheme cannot repaint the
+; token at all: it is INERT today, whatever colours it holds.
+;
+; So it holds the PLACEHOLDER'S OWN colours, by a colour census of that sprite; the ruling records
+; that each base is reproduced by its generated ramp's middle stop to within 2/255, which is what
+; makes the slot assignment more than decorative. The point is the handover: when
+; real channel-encoded art is dropped in, it inherits a default scheme that already matches what the
+; placeholder looked like, instead of repainting the frame the day the art lands.
+;
+; SLOT ORDER IS VANILLA'S CONVENTION - most-used channel first, which is what the Iskander's own
+; 2522/1503/266 spread is. base_3 is written because ColorScheme really does read it (get_color(3) ->
+; target_palette_4, palette_swap_func.gdshaderinc:8); vanilla leaves it null, which on a typed Color
+; export is a no-op that keeps DEFAULT_BASE.
+;
+; palette_2 = tone_highcontrast is UNCHANGED, and it is the Iskander's own slot and ramp: the frame
+; still reads as an HA machine, it just no longer claims to be painted like one.
 [sub_resource type="Resource" id="Resource_colorscheme"]
 script = ExtResource("3_colorscheme")
 palette_2 = ExtResource("4_toneramp")
-base_0 = Color(0.16466352, 0.23109427, 0.31874013, 1)
-base_1 = Color(0.2874422, 0.52152926, 0.82283276, 1)
-base_2 = Color(0.21505132, 0.56908107, 0.6512088, 1)
+base_0 = Color(0.29411766, 0.22745098, 0.2901961, 1)
+base_1 = Color(0.8784314, 0.87058824, 0.827451, 1)
+base_2 = Color(0.1882353, 0.6431373, 0.5647059, 1)
+base_3 = Color(0.89411765, 0.78431374, 0.4392157, 1)
 
 [sub_resource type="Resource" id="Resource_statblock"]
 script = ExtResource("2_statblock")

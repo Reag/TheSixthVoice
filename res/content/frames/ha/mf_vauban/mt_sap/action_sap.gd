@@ -48,15 +48,40 @@
 ## distance below is a minimum Chebyshev over the Vauban's own occupied tiles (Tile.distance,
 ## tile.gd:380-387) - the horizontal term UnitRelation.closest_tiles_between itself uses
 ## (unit_relation.gd:13-25), without the vertical one, which has no meaning against a bare tile. Sight
-## is UnitTile.is_tile_in_los, the per-tile call UnitRelation.can_see makes (:206-215).
+## is UnitTile.is_tile_in_los, the per-tile call UnitRelation.can_see makes (:213-215), PLUS the
+## BLINDED guard can_see applies before it (:210-211) - see watches_tile.
 ## UnitTile.get_tiles_within was the other candidate and is the wrong shape here: it allocates an
 ## O(range^2) array and runs a sight pass by default, and this gate is asked for every step of every
-## move of every unit on the map.
+## move of every unit on the map. It also carries the BLINDED rule (:579), which is why that rule has
+## to be written out here rather than inherited.
+##
+## FOR A SIZE >= 2 MOVER THE TWO HALVES MEASURE DIFFERENT THINGS, AND THAT IS RECORDED RATHER THAN
+## FIXED. Terrain.is_entering_difficult expands the destination ANCHOR into the whole footprint
+## (design §1.2), so any tile of the destination being difficult is an entry; Sensors and sight below
+## are then measured to the ANCHOR ALONE, because context.target_tiles carries exactly one tile
+## (event_unit_move.gd:325-327 sets it to matching_move.next_tile). So a size-2 hostile whose anchor
+## is outside Sensors while its difficult tile is inside them is not Sapped, and the reverse case is.
+## Ruling 3 says "the entered tile" and does not distinguish which of a footprint's tiles that is; the
+## Vauban is size 1 and no shipped case reaches the asymmetry. Measuring to the closest difficult tile
+## instead would mean Terrain handing the tile back, which is a FROZEN-interface change and therefore
+## a three-frame decision rather than a Vauban one.
 ##
 ## THE SLOWED IT APPLIES IS AN ORDINARY STATUS sourced to this gear (ruling 4) - clearable by
 ## Stabilize, visible to get_status, and exactly what Solfataric Breach's gate then sees. The reprieve
 ## is a hidden buff this gate refuses. Neither is exempt from anything: the card names no exemption,
 ## unlike Caustic Earth's, so a flier or a terrain-ignoring mech still saves.
+##
+## *** TWO VAUBANS SHARE ONE REPRIEVE, AND THAT IS ACCEPTED BEHAVIOUR (ruling R3), NOT AN OVERSIGHT.
+## *** The gate asks UnitCondition.has_buff(target, REPRIEVE_BUFF) with NO source argument, and
+## has_buff matches on compcon_id alone when source_id is empty (unit_condition.gd:812-814, :819-820).
+## So a hostile that passes ONE Vauban's save is unaffected by EVERY Vauban's Sap until the reprieve
+## expires: the card's "unaffected by Sap" is read as a property of the hostile, not of the gear that
+## asked. Keyed on the ability, not on the gear - the same answer ruling R3 gives Gravity Well's one
+## shared chip. test_the_reprieve_is_shared_across_two_vaubans pins it, so a later session cannot flip
+## it in silence; adding a source argument here is the change that test exists to catch.
+## Note the FIRST entry is still asked once per Vauban: ReactionBus.trigger_occurred evaluates every
+## gate on the map and collects the blocks BEFORE any of them activates (reaction_bus.gd:50-59), so
+## the reprieve one Vauban grants cannot refuse a gate that has already been asked.
 extends ActionReaction
 
 const Terrain := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/terrain/terrain.gd')
@@ -81,10 +106,12 @@ func triggers_on_event(unit:Unit, _gear:GearCore, triggering_event:EventCore) ->
 	var context:Context = triggering_event.context
 	var target:Unit = context.unit
 	if not Unit.is_valid(target): return false
+	# SHADOWED BY are_enemies BELOW AND KEPT ANYWAY: a faction is never its own enemy
+	# (unit_relation.gd:361-362), so this line refuses nothing that line would not. It is documentation
+	# of the card's "hostile" reading, not behaviour under test - no spec can separate it.
 	if target == unit: return false
 	if not target.is_character(): return false
 	if not UnitRelation.are_enemies(unit, target): return false
-	if UnitCondition.has_buff(target, REPRIEVE_BUFF): return false
 
 	var entered:Vector2i = Tile.INVALID
 	if triggering_event.base.event_type == &'event_unit_move':
@@ -104,6 +131,13 @@ func triggers_on_event(unit:Unit, _gear:GearCore, triggering_event:EventCore) ->
 		# entry, so neither is Sapped.
 		return false
 
+	# BELOW THE EVENT-TYPE DISPATCH ON PURPOSE. has_buff ALLOCATES - it filters state.buffs through a
+	# Callable (unit_condition.gd:819-820 -> get_buffs) - while the dispatch above is a StringName
+	# compare and a Dictionary.get (map_state.gd:140-142 does no lazy computation and writes no cache),
+	# and the terrain test refuses almost every step of almost every move on the map before this is
+	# reached. Behaviour is identical either way: every clause here is a side-effect-free predicate.
+	if UnitCondition.has_buff(target, REPRIEVE_BUFF): return false
+
 	return watches_tile(unit, entered)
 
 ## Is `tile` within the Vauban's Sensors and in its line of sight? See the header for why it is
@@ -113,6 +147,15 @@ func watches_tile(unit:Unit, tile:Vector2i) -> bool:
 	var map:MapState = unit.map
 	if map == null: return false
 	if distance_to_tile(unit, tile) > unit.get_sensor_range(): return false
+	# A BLINDED VAUBAN SEES ONLY WHAT IT IS STANDING NEXT TO, and that rule has to be written out here
+	# because the per-tile call below does not carry it. UnitTile.is_tile_in_los takes TILES, not a
+	# unit (unit_tile.gd:481), so it cannot consult a status at all - while the engine's own per-tile
+	# sight does: get_tiles_in_los returns the adjacent tiles and nothing else for a Blinded unit
+	# (:530-531) and get_tiles_within clamps its range to 1 (:579). UnitRelation.can_see short-circuits
+	# the same way at :210-211, and can_see is what this frame's own Solfataric Breach asks - both
+	# cards say "within sensors and line of sight", so both have to answer it the same way. Without
+	# this line a Blinded Vauban keeps Sapping every entry out to Sensors 8.
+	if unit.has_status(Lancer.STATUS.BLINDED): return distance_to_tile(unit, tile) <= 1
 	return UnitTile.is_tile_in_los(
 		map, unit.occupied_tiles(), UnitTile.effective_height(unit, true),
 		tile, unit.core.persistent_id

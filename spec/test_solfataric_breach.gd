@@ -33,6 +33,8 @@
 extends GutTest
 
 const VaubanFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/vauban_fixture.gd')
+## Only for create_dummy at a chosen evasion and faction, which VaubanFixture.create_ally fixes at 10.
+const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 
 const TRAIT_ID := &'mt_solfataric_breach'
 const ACTION_ID := &'action_solfataric_breach'
@@ -99,6 +101,24 @@ class DamageRecorder extends Buff:
 	func activate(_core:BuffCore, _activation:EventCore) -> void:
 		pass
 
+## Takes the engine's per-round reaction cap off its holder entirely.
+##
+## THE SHAPE IS VANILLA'S OWN: the Tortuga's buff_hyper_reflex_mode_additional_overwatch is a plain
+## Buff with to = &'action_per_round' whose get_values returns a number, and
+## UnitAction.is_under_per_round_limit starts from get_per_round_hard_limit and ADDS every such buff's
+## value before comparing (unit_action.gd:170-175). Unlike the Tortuga's this one is unconditional -
+## the test below wants the cap GONE, not moved to a different action, because the cap is precisely
+## the thing standing between it and the rule it means to exercise.
+class CapLifter extends Buff:
+	func _init() -> void:
+		compcon_id = &'buff_spec_breach_cap_lifter'
+		to = Buff.TO.ACTION_PER_ROUND
+		until = Lancer.UNTIL.MANUAL
+		hide_from_player = true
+
+	func get_values(_core:BuffCore, _context:Context) -> Context:
+		return Context.create({number = 9})
+
 func before_each() -> void:
 	game = VaubanFixture.create_game(self, MAP_SIZE)
 	vauban = VaubanFixture.create_vauban(game, VAUBAN_TILE)
@@ -148,7 +168,8 @@ func place_wall() -> void:
 ## A unit carrying a range-1 aura whose one buff APPLIES Slowed rather than applying it as a status -
 ## the Myconid's Fungal Network cloud in miniature, and the probe's own idiom. Nothing here goes
 ## through UnitCondition.apply_status; the trigger is fired from apply_buff_alt instead
-## (unit_condition.gd:758-762), which is exactly the case §0.6a reverses.
+## (unit_condition.gd:757 appends the buff, :760-761 runs the status loop; :758 is on_application
+## and :759 the source line - corrected 2026-09-18), which is exactly the case §0.6a reverses.
 ##
 ## THE CARRIER IS AN ALLY, NOT A DUMMY, and that is load-bearing rather than cosmetic: the aura sets
 ## applies_to_enemies with applies_to_allies false, and VaubanFixture.create_dummy is AI_ENEMY - the
@@ -229,7 +250,8 @@ func test_the_trait_is_wired():
 		'A REAL reaction: the point is spent, so a Jammed or Stunned Vauban cannot Breach.')
 	assert_eq(action.usage_group, &'action_solfataric_breach', 'With its own usage group.')
 	# The card's "1/round" is the engine's own default for a consuming reaction
-	# (action_reaction.gd:66), so there is deliberately no get_per_round_hard_limit override to pin.
+	# (action_reaction.gd:69 - :66 is is_jammable(), corrected 2026-09-18), so there is deliberately no
+	# get_per_round_hard_limit override to pin.
 	var specific := SpecificAction.from_id(vauban, TRAIT_ID, ACTION_ID)
 	assert_eq(action.get_per_round_hard_limit(specific), 1, 'And the engine\'s own 1/round.')
 	assert_true(GearCore.is_valid(vauban.get_gear(TRAIT_ID)), 'The Vauban is wearing it.')
@@ -308,6 +330,35 @@ func test_a_second_slowed_while_the_first_is_still_held_does_not_fire():
 	assert_eq(target.current_damage(), after_first,
 		'A re-application of a status the target already holds is not a becoming.')
 
+func test_a_second_breach_re_applies_the_impaired_on_a_still_impaired_target():
+	# DESIGN §1.3: the Impaired this trait applies is an ORDINARY status, so a second Breach lands a
+	# second one rather than refreshing the first - and two listed StatusConditions is what that looks
+	# like. Recorded as a gap by the SP1 review on the grounds that it needed a cross-round shape; it
+	# does, and the file already has the vocabulary.
+	#
+	# THE SECOND BECOMING MUST BE A DIFFERENT STATUS. instances_held counts per status
+	# (action_solfataric_breach.gd's own comment), so a second Slowed on a still-Slowed target is
+	# refused - that is the test directly above. Immobilized is the other literal status on the card
+	# and the target holds none of it, so it is a first holding and a real becoming.
+	#
+	# start_turn IS WHAT MAKES THE ROUND FRESH, exactly as above: UnitAction.new_turn_refresh ->
+	# reset_per_round_usage (unit_action.gd:73-78, :87-88) hands back both the point and the round, and
+	# an END_OF_NEXT_TURN status on the TARGET is untouched by the VAUBAN's turn start - which is the
+	# second fixture assertion, and the premise the whole test rests on.
+	queue_sixes()
+	var target := VaubanFixture.create_hostile(game, NEAR)
+
+	await apply(target, Lancer.STATUS.SLOWED)
+	assert_eq(listed(target, Lancer.STATUS.IMPAIRED), 1, 'fixture: the first Breach Impaired it.')
+	await SpecFactory.start_turn(game, vauban)
+	assert_true(target.has_status(Lancer.STATUS.IMPAIRED), 'fixture: and it is STILL Impaired.')
+
+	await apply(target, Lancer.STATUS.IMMOBILIZED)
+
+	assert_eq(listed(target, Lancer.STATUS.IMPAIRED), 2,
+		'Design §1.3: the Impaired is a real status, so a second Breach applies a second one.')
+	assert_eq(target.current_damage(), 12, 'And it takes a second cheated 1d6.')
+
 func test_a_status_that_is_not_on_the_card_never_fires():
 	queue_sixes()
 	var target := VaubanFixture.create_hostile(game, NEAR)
@@ -327,27 +378,40 @@ func test_a_breach_applied_impaired_cannot_feed_another_breach():
 	# The one closed loop worth pinning: Breach applies Impaired, and Impaired is not in the trigger
 	# set, so a Breach can never chain off its own effect.
 	#
-	# WHAT THE SECOND REACTION POINT BUYS, AND WHAT IT DOES NOT. It pins the POINT ECONOMY: with the
-	# frame's one point, "6 damage, not 12" and "exactly one point spent" would hold whatever the gate
-	# said. It does NOT make the chain rule discriminate, and an earlier version of this comment claimed
-	# it did. spend_actions records the round use, so is_under_per_round_limit (unit_action.gd:170-176)
-	# refuses a second Breach in the same round whatever CARD_STATUSES holds. The chain is doubly
-	# guaranteed - the round cap AND Impaired's absence from CARD_STATUSES - and only the former is
-	# exercised here; opening a second round from inside activate() is not a thing a spec can reach.
+	# THE SECOND REACTION POINT ALONE IS NOT ENOUGH, AND THE CAP LIFTER IS WHAT MAKES THIS
+	# DISCRIMINATE. With the point alone the chain is DOUBLY guaranteed - by the round cap AND by
+	# Impaired's absence from CARD_STATUSES - so adding IMPAIRED to CARD_STATUSES left this test green
+	# and only the point economy was ever being asserted. spend_actions records the round use, and
+	# is_under_per_round_limit refuses the second Breach whatever the gate says.
+	#
+	# BUT THAT CAP IS RAISABLE IN-SPEC, which the earlier "opening a second round from inside
+	# activate() is not a thing a spec can reach" missed: is_under_per_round_limit starts from
+	# get_per_round_hard_limit and then ADDS every TO.ACTION_PER_ROUND buff on the unit
+	# (unit_action.gd:170-175), which is vanilla's own Tortuga mechanism. With the cap gone and a
+	# second point in hand, a second Breach would fire if and only if Impaired were on the card - so
+	# the chain rule is the only thing left refusing it. The fixture assertion AFTER the first Breach
+	# is what says the cap really is off; without it this would be the doubly-guaranteed test again.
 	queue_sixes()
 	var target := VaubanFixture.create_hostile(game, NEAR)
 	vauban.core.current.reactions = 2
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), vauban, CapLifter.new())
 
 	await apply(target, Lancer.STATUS.SLOWED)
 
 	assert_true(breached(target), 'fixture: it fired once.')
+	assert_true(UnitAction.is_under_per_round_limit(SpecificAction.from_id(vauban, TRAIT_ID, ACTION_ID)),
+		'fixture: and the round cap is LIFTED even with that use recorded, so nothing but the trigger '
+		+ 'set can refuse a second Breach.')
+	assert_eq(listed(target, Lancer.STATUS.IMPAIRED), 1,
+		'Impaired is not on the card, so the Breach\'s own Impaired cannot feed another Breach.')
 	assert_eq(target.current_damage(), 6, 'And exactly once - 6 damage, not 12.')
 	assert_eq(vauban.core.current.reactions, 1, 'Spending exactly one of the two points.')
 
 func test_a_zone_carried_slowed_fires_and_fires_again_on_re_entry():
 	# DESIGN §0.6a, the reversal. A status carried by a buff never passes through apply_status, and
 	# design §0.6 recorded as fact that it therefore never fires this trigger. apply_buff_alt calls
-	# on_status_application for every entry of applies_statuses (unit_condition.gd:758-762), and that
+	# on_status_application for every entry of applies_statuses (unit_condition.gd:757 appends, :760-761
+	# is the loop; corrected 2026-09-18), and that
 	# is the function that queues the trigger - so it does fire, with NOTHING listed in state.statuses
 	# and the owning gear as the source. Ruled card-literally: the hostile "becomes Slowed".
 	queue_sixes()
@@ -443,6 +507,40 @@ func test_a_grapple_of_a_larger_target_does_not_fire_the_breach():
 	assert_false(UnitCondition.is_immobilized(target), 'So the engine does not read it as Immobilized.')
 	assert_false(breached(target), 'And the Breach does not fire.')
 
+func test_a_hostile_that_grapples_a_larger_unit_is_itself_breached():
+	# THE OTHER HALF OF §0.6a, AND THE ONE NOTHING PINNED (ruling R2: keep the card-literal reading, add
+	# the test). A grapple applies Grappled to BOTH parties - onhit_grapple.gd:17 to the ATTACKING unit,
+	# sourced to its victim, and :18 to the attacked unit - and both run after recalculate_largest_unit
+	# at :14. So a hostile that grabs something LARGER than itself is, by the engine's own definition
+	# (UnitCondition.is_immobilized, unit_condition.gd:413-418), Immobilized by its own grapple, and the
+	# card says a hostile that "becomes Immobilized" is Breached. No narrowing was taken.
+	#
+	# THE SIDES ARE THE MIRROR OF THE TEST ABOVE, and that is the whole construction: there the
+	# GRAPPLER was the ally and the oversized victim the hostile, so nothing hostile was ever the
+	# smaller party. Here the grappler is the hostile and the oversized victim is the ally - identical
+	# tiles, opposite factions. The victim is built at evasion 0 through FitzgeraldFixture directly,
+	# the way VaubanFixture.create_ally does but for the hit: create_ally fixes evasion at 10 and this
+	# grapple has to land on a cheated 15.
+	#
+	# ORDER MATTERS AND IS NOT ASSUMED: :17 runs before :18, so the grappler reaches the gate first and
+	# the 1/round cap cannot be what hides it. The ally victim is never Breached at all - are_enemies
+	# refuses it - so the point is still there when the grappler's own application arrives.
+	queue_dice(15)
+	var grappler := VaubanFixture.create_hostile(game, Vector2i(4, 5), 0)
+	var victim := FitzgeraldFixture.create_dummy(game, NEAR, 0, Faction.PLAYER)
+	SpecFactory.change_size(victim, 2)
+
+	await SpecFactory.use_solo(game, grappler, &'mw_grapple', victim)
+
+	assert_true(grappler.has_status(Lancer.STATUS.GRAPPLED), 'fixture: the grapple landed.')
+	assert_false(grappler.state.is_larger_in_grapple,
+		'fixture: and the GRAPPLER is the smaller of the two, holding a size-2 unit.')
+	assert_true(UnitCondition.is_immobilized(grappler),
+		'fixture: which is the engine\'s own Immobilized (unit_condition.gd:413-418).')
+	assert_false(breached(victim), 'fixture: the ally it grabbed is not hostile, so it is not Breached.')
+	assert_true(breached(grappler), '§0.6a, ruling R2: so Breach fires on the GRAPPLER, card-literally.')
+	assert_gt(grappler.current_damage(), 0, 'Taking the 1d6 for grabbing something bigger than itself.')
+
 # ---------------------------------------------------------------- who and where
 
 func test_a_hostile_outside_sensors_is_not_breached():
@@ -469,6 +567,12 @@ func test_a_hostile_out_of_line_of_sight_is_not_breached():
 	assert_false(breached(target), 'No sight, no Breach.')
 
 func test_an_ally_and_the_vauban_itself_are_never_breached():
+	# THE VAUBAN HALF IS CHARACTERISATION, NOT A PIN, and saying so is the honest record.
+	# UnitRelation.are_enemies is a faction compare (unit_relation.gd:361-362) and a faction is never
+	# its own enemy, so the gate refuses the self case on that clause alone; neutralising
+	# action_solfataric_breach.gd's explicit `target == unit` guard leaves this test green (measured
+	# 2026-09-18) and no test can separate the two. The guard stays as documentation of the card's
+	# "hostile" reading. What this half asserts is the BEHAVIOUR, not which line produces it.
 	queue_sixes()
 	var ally := VaubanFixture.create_ally(game, NEAR)
 
@@ -574,8 +678,10 @@ func test_a_breach_is_available_again_after_the_vaubans_own_turn():
 
 func test_a_vauban_with_no_reaction_point_does_not_breach():
 	# consumes_rxn = true is what makes this a REAL reaction, and UnitAction.can_activate_gear refuses
-	# an unaffordable one before triggers_on_event is ever asked (reaction_bus.gd:118). That is also
-	# what makes a Jammed or Stunned Vauban unable to Breach (unit_action.gd:141-142, :144), which the
+	# an unaffordable one before triggers_on_event is ever asked (reaction_bus.gd:121 - :118 is the
+	# trigger_timing compare; corrected 2026-09-18). That is also what makes a Jammed or Stunned Vauban
+	# unable to Breach (unit_action.gd:139-140 for Stunned and :142 for Jammed - :141 is Dazed and :144
+	# is the protocol gate, neither of them this; corrected 2026-09-18), which the
 	# card's "Reaction" carries for free.
 	queue_sixes()
 	var target := VaubanFixture.create_hostile(game, NEAR)

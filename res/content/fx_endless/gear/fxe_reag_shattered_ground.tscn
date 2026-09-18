@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" uid="uid://ck34knquhucbv" path="res://engine/gamemaster/effects_controller/fx_endless/fx_endless.gd" id="1_fxe"]
 [ext_resource type="ArrayMesh" uid="uid://b4gmg8dwxso1o" path="res://assets/fx/resources/0_standard_spike.tres" id="2_spike"]

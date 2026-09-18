@@ -212,9 +212,12 @@ gear.mt_gravity_well.effect,"While the Vauban is in at least one space of |diffi
 ,
 gear.cp_earth_shaker_grav_gen.name,Earth shaker Grav-gen
 gear.cp_earth_shaker_grav_gen.action_grav_amped_interference.name,Grav-Amped Interference
-gear.cp_earth_shaker_grav_gen.action_grav_amped_interference.effect,"For the rest of the scene, you gain the following benefits: The Vauban generates a |Burst 1| field of |difficult terrain|. Saves you force are made with +1 Difficultly. When a hostile character fails a save you forced, they take 3 |AP| |Kinetic| damage. Each character can be affected by this ability only once per round."
+gear.cp_earth_shaker_grav_gen.action_grav_amped_interference.effect,"For the rest of the scene, you gain the following benefits: The Vauban generates a |Burst 1| field of |difficult terrain|. Saves you force are made with +1 Difficulty. When a hostile character fails a save you forced, they take 3 |AP| |Kinetic| damage. Each character can be affected by this ability only once per round."
+gear.buff_grav_amped_saves.name,Grav-Amped Interference
+gear.buff_grav_amped_saves.effect,"Saves forced by the Vauban are made with +1 |difficulty|."
 ,
 gear.cp_earth_shaker_grav_gen.action_mastication_of_the_maar.name,MASTICATION OF THE MAAR
 gear.cp_earth_shaker_grav_gen.action_mastication_of_the_maar.effect,"Choose a |Blast 1| area within Sensors and |line of sight| that contains no hostile Characters. For the rest of the scene it becomes |difficult terrain|."
+,
 frame.dep_maar.name,Maar
 gear.mt_maar_terrain.name,Maar

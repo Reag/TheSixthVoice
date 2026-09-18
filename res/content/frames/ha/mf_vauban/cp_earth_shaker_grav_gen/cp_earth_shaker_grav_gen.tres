@@ -28,7 +28,7 @@ script = ExtResource("1_kit")
 ;
 ; THE TERRAIN ZONE DOES NOT GO THROUGH THAT LIST AND NEEDS NOTHING TO REGISTER IT.
 ; MapState.add_dynamic_terrain_and_zones_from_unit walks every gear's every PassiveTerrainZone
-; unconditionally (map_state.gd:427-432), which is exactly why the field has to gate itself.
+; unconditionally (map_state.gd:427-433), which is exactly why the field has to gate itself.
 ; The protocol is FIRST because that is the order the sheet prints them and the order the gear bar
 ; shows them in. action_grav_amped_shock sits between the two pressables and is invisible on the bar
 ; (show_in_tooltip false, and reactions never reach it - gear_bar.gd:145), so it does not separate

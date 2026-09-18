@@ -32,12 +32,36 @@
 ## test_the_archetypes_movement_exports_are_inert_here pins both halves, because an inert export that
 ## looks live is what a later reader trips on.
 ##
-## WHAT IS NOT INERT: can_only_affect_a_unit_once_per_round and once_per_round_is_specific_to_gear are
-## read by has_unit_already_been_affected itself (:87), so the .tres sets them deliberately.
-## once_per_round_is_specific_to_gear stays FALSE: the card says "each character can be affected by
-## this ability only once per round", and with two Vaubans on the board that is still one 3 AP per
-## character per round rather than one per Vauban. (Author note for the close - the card is genuinely
-## ambiguous, and false is the stricter reading.)
+## AND TWO OF THE THREE ONCE-PER-ROUND EXPORTS ARE INERT TOO. Grepped over engine/ content/ ui/ at
+## the close, 2026-09-18: each of the three is read in exactly ONE place, and this file's two
+## overrides take two of them out of circulation.
+##   - can_only_affect_a_unit_once_per_round is read only at action_reaction_on_coming_within.gd:69,
+##     inside the archetype's own triggers_on_event - which this file overrides and never calls.
+##     INERT while that override stands.
+##   - can_trigger_any_number_of_times_per_round is read only at :37, inside the archetype's
+##     get_per_round_hard_limit - which this file overrides to a flat 99. INERT while that stands.
+##   - once_per_round_is_specific_to_gear is read at :87, inside has_unit_already_been_affected, which
+##     this file calls directly from both triggers_on_event and activate. LIVE, and the only real
+##     decision of the three.
+## The .tres keeps all three at the values they would need if either override were removed, and says
+## at each line which is which. once_per_round_is_specific_to_gear stays FALSE: the card says "each
+## character can be affected by this ability only once per round", and with two Vaubans on the board
+## that is still one 3 AP per character per round rather than one per Vauban. (Author note for the
+## close - the card is genuinely ambiguous, and false is the stricter reading.)
+##
+## "A SAVE YOU FORCED" MEANS THE FULL FORCING TRIFECTA, AND THAT IS A CLOSE RULING (M-3, 2026-09-18)
+## rather than a free choice. UnitHasecheck.run_save_event copies unit, gear and action off the
+## forcing action onto the save event's context UNCONDITIONALLY (unit_hasecheck.gd:82-84), so this
+## reaction can see a forcer that carries a unit and nothing else. The +1 difficulty half CANNOT:
+## roll_check refuses to copy the forcer into the saver's buff context at all unless
+## SpecificAction.is_valid(forcing_action) holds (:180), which demands all three of unit, gear and
+## action (specific_action.gd:16-23) - and that is base-game code with no mod seam short of extending
+## unit_hasecheck.gd for the whole game. So the two clauses of one card bullet disagreed: an
+## incomplete forcer got the 3 AP and not the +1. They are made to agree HERE, at the only end that
+## can move, by asking the engine's own question. THE NARROWING IS INERT AGAINST EVERY CALLER THAT
+## EXISTS: every save-forcing action in content/ passes a full trifecta, UnitHasecheck.make_saves
+## refuses a batch save outright without one (:66), and this frame's own Sap forces with
+## SpecificAction.from_context (action_sap.gd:180).
 ##
 ## AND "ONCE PER ROUND" IS SPELT "UNTIL THE START OF YOUR TURN". buff_track_affection declares
 ## until = 3 = Lancer.UNTIL.START_OF_TURN (content/gear/shared/buff_track_affection.tres,
@@ -99,6 +123,9 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 
 	var forcer:Unit = context.unit
 	if not Unit.is_valid(forcer): return false
+	# The same bar the +1 difficulty half is held to by the engine (unit_hasecheck.gd:180). See the
+	# header: this is the close's M-3 ruling, not a filter the card asks for.
+	if not SpecificAction.is_valid(SpecificAction.from_context(context)): return false
 	if forcer.get_owner_unit_or_self() != unit: return false # "a save YOU forced" - ruling 9
 
 	var target:Unit = context.target_unit

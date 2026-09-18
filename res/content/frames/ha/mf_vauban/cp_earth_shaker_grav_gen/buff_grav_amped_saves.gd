@@ -1,8 +1,14 @@
-## The +1 difficulty half of GRAV-AMPED INTERFERENCE: "Saves you force are made with +1 Difficultly."
+## The +1 difficulty half of GRAV-AMPED INTERFERENCE: "Saves you force are made with +1 Difficulty."
+##
+## QUOTED AS SHIPPED, NOT AS THE LCP SPELLS IT. Bel's sheet reads "+1 Difficultly"; the author
+## escalated that typo under the LCP-verbatim directive and it ships corrected (ruling R1, 2026-09-18
+## frame close). Recorded here so a later reader diffing the card against the sheet knows the
+## divergence is deliberate.
 ##
 ## THIS BUFF IS ON THE HOSTILE, NOT ON THE VAUBAN, AND IT HAS TO BE. UnitHasecheck.roll_check reads
-## Buff.TO.SAVE buffs from the SAVER and only from the saver - the two lines that would also have read
-## the forcer's are commented out (unit_hasecheck.gd:186-189). What it hands those buffs is a context
+## Buff.TO.SAVE buffs from the SAVER and only from the saver: the live read is unit_hasecheck.gd:186,
+## and the three lines below it are commented out (:187-189), of which :188-189 are the two that would
+## also have read the forcer's. What it hands those buffs is a context
 ## carrying target_unit = the saver and, when the save was forced by somebody, unit/gear/action copied
 ## off the forcing action (:174-184). So the only way to write "saves YOU force" is a chip on everyone
 ## who might have to save, which asks who is forcing. The Assassin's Mark does exactly this
@@ -23,11 +29,19 @@
 ## the first one's is held. That is the same one-chip-for-two-Vaubans behaviour SP1 recorded for
 ## Gravity Well and Sap's reprieve, and it is an author note for the close, not a defect to fix here.)
 ##
-## THE CONTEXT VALIDITY GATE IS NOT OPTIONAL. UnitCondition.get_buffs_to asks
-## is_buff_context_valid_for_passive before check_if_passive_applies, and a PLAIN CHECK - as opposed
-## to a forced save - reaches roll_check with no forcing_action at all, so context.unit is absent
-## (unit_hasecheck.gd:180). Without this gate the chip would be asked about a context it cannot
-## answer.
+## THE CONTEXT VALIDITY GATE IS BELT-AND-BRACES, NOT LOAD-BEARING - corrected at the close,
+## 2026-09-18, because the header used to claim the opposite and two other documents copied it.
+## UnitCondition.does_buff_apply is a short-circuit `and` chain that asks
+## is_buff_context_valid_for_passive (unit_condition.gd:848) and then check_if_passive_applies (:849),
+## and it is the only caller of the first in engine/ content/ ui/. The no-forcer case it is supposed
+## to catch - a PLAIN CHECK reaches roll_check with no forcing_action, so context.unit is never filled
+## in (unit_hasecheck.gd:180) - is already answered two lines below by check_if_passive_applies's own
+## `if not Unit.is_valid(forcer): return false`, and Context.unit is a plain typed var that is simply
+## left null, so there is nothing to throw on either. Neutralising this override to `return true`
+## reddens NOTHING, including
+## test_a_save_with_no_valid_forcer_is_untouched_and_does_not_throw - that test pins the guard BELOW,
+## and neutralising THAT is what reddens it. The override stays because it is free and it states the
+## contract; it is just not the thing holding the roof up.
 extends BuffSkillSave
 
 func is_buff_context_valid_for_passive(_core:BuffCore, context:Context) -> bool:
@@ -36,7 +50,7 @@ func is_buff_context_valid_for_passive(_core:BuffCore, context:Context) -> bool:
 func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 	if not super.check_if_passive_applies(core, context): return false # all_save_types, so this is a formality
 	var forcer:Unit = context.unit
-	if not Unit.is_valid(forcer): return false
+	if not Unit.is_valid(forcer): return false # THE load-bearing no-forcer guard - see the header
 	var vauban:Unit = core.get_owner_unit(context.map)
 	if not Unit.is_valid(vauban): return false
 	return forcer.get_owner_unit_or_self() == vauban

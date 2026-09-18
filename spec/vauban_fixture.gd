@@ -128,7 +128,7 @@ static func equip_ranged(unit:Unit) -> void:
 ## reason that has nothing to do with the trait.
 ##
 ## It is also what rebuilds MapState.dynamic_terrain from every PassiveTerrainZone on the map
-## (map_state.gd:376-378) and then recalculates the merged surface (:405-411), which is what
+## (map_state.gd:376-378) and then recalculates the merged surface (:403-413), which is what
 ## test_terrain.gd's gated-zone and lay cases read back.
 static func track(game:Gamemaster) -> void:
 	UnitTile.update_tracking_and_statuses(game.map)
@@ -153,7 +153,7 @@ static func difficult_block() -> TerrainBlockData:
 ## NOT SpecFactory.set_terrain (spec_factory.gd:166-172), DELIBERATELY, though it has the exact same
 ## whole-map-replace shape and this fixture's first draft called it verbatim. That helper writes
 ## map.ground_terrain, and get_surface_terrain_at - the accessor below, and the one the pathfinder
-## itself charges difficult terrain through (pathfinder.gd:79,93) - never reads ground_terrain.
+## itself charges difficult terrain through (pathfinder.gd:80,95) - never reads ground_terrain.
 ## surface_terrain is merged from ground_surface_terrain plus dynamic terrain only
 ## (map_state.gd:474-478: calculate_surface_merged_terrain_and_height_at calls
 ## merge_in(get_ground_surface_terrain_at(tile)), which reads ground_surface_terrain, and two

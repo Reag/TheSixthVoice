@@ -339,11 +339,25 @@ func test_is_entering_difficult_measures_the_whole_footprint_of_a_size_two_unit(
 	assert_true(Terrain.is_entering_difficult(big, WEST_OF_FIELD),
 		'Anchoring clean while the body overlaps the field is still an entry.')
 
+func test_is_entering_difficult_refuses_tile_invalid_for_a_size_two_unit():
+	# THE SIZE-1 ASSERTION ABOVE CANNOT SEE THIS GUARD (close review I1, 2026-09-18), because
+	# UnitTile.get_occupied clamps (-1,-1) to [(0,0)] for size 2 (unit_tile.gd:47-51) and to [] for
+	# size 1 - so at size 1 the answer is false with or without terrain.gd:76, and only at size 2 does
+	# an absent next-anchor become a question about the map's corner.
+	VaubanFixture.lay_difficult(game, [Vector2i(0, 0)])
+	var big := VaubanFixture.create_dummy(game, CLEAN)
+	SpecFactory.change_size(big, 2)
+	assert_eq(UnitTile.get_occupied(Tile.INVALID, big.state.occupying_size, game.map.size),
+		[Vector2i(0, 0)] as Array[Vector2i], 'fixture: the clamp really does land on the corner.')
+	assert_true(Terrain.is_difficult(game.map, Vector2i(0, 0)), 'fixture: and the corner is difficult.')
+	assert_false(Terrain.is_entering_difficult(big, Tile.INVALID),
+		'An absent next anchor is refused, not answered about (0,0).')
+
 # ---------------------------------------------------------------- the gated zone
 
 func test_a_gated_zone_projects_nothing_until_its_state_is_set():
 	# The engine collects every PassiveTerrainZone on every gear of every unit UNCONDITIONALLY
-	# (map_state.gd:427-432) - there is no "active" flag for a zone the way there is for an aura
+	# (map_state.gd:427-433) - there is no "active" flag for a zone the way there is for an aura
 	# (is_aura_active) or a dynamic zone (is_dynamic_zone_active). Overriding the voxel list is the
 	# only way a zone on a Kit stays dark, and Thy Hubris' passive_poisoned_soil.gd is the precedent.
 	var unit := VaubanFixture.create_dummy(game, MAAR_TILE)
@@ -412,7 +426,7 @@ func test_lay_returns_null_when_the_spawn_aborts():
 	# vanilla's own standalone-map constructor (map_state.gd:67, what Level.map itself defaults to and
 	# what X.map() returns when there is no level), and pointing a unit's `map` at a MapState directly
 	# is what map_node_3d.add_unit does (:135) and what SpecFactory.create_unit_outside_of_gamemaster
-	# does deliberately (spec_factory.gd:113). The layer keeps its token in the real map node, so it
+	# does deliberately (spec_factory.gd:110). The layer keeps its token in the real map node, so it
 	# stays Unit.is_valid and lay() gets all the way past its own four guards - which is the whole point:
 	# a test that tripped an early guard would pass against the unfixed helper too.
 	var layer := VaubanFixture.create_dummy(game, LAYER_TILE)
@@ -434,6 +448,39 @@ func test_lay_returns_null_when_the_spawn_aborts():
 	assert_null(maar, 'An aborted spawn hands back null, not a "valid" Unit that never reached the map.')
 	assert_eq(game.map.get_all_units().size(), units_before,
 		'And nothing was spawned - the abort is real, not just a return value.')
+
+func test_lay_refuses_each_of_its_four_early_guards():
+	# NOTHING IN THE MOD ASKS ANY OF THESE (close review M2, 2026-09-18). The Maar passes a real
+	# activation, a real SpecificAction and a tile off the targeting screen, and the abort case above
+	# deliberately steps OVER the fifth guard - it substitutes a 32x32 map precisely so lay() gets past
+	# its own bounds check. So all four are frozen here instead: each returns NULL, which is the same
+	# contract every other failure path in lay() keeps, and unguarded each is a crash on the next line
+	# rather than a wrong answer. Four cases in one test because they share one fixture and differ by a
+	# single argument.
+	var layer := VaubanFixture.create_dummy(game, LAYER_TILE)
+	VaubanFixture.equip_ranged(layer)
+	var specific := SpecificAction.from_id(layer, VaubanFixture.RANGED_ID)
+	assert_true(SpecificAction.is_valid(specific), 'fixture: the layer has a gear to be billed for it.')
+	var units_before:int = game.map.get_all_units().size()
+
+	assert_null(await Terrain.lay(null, specific, MAAR_TILE, null),
+		'No deployable frame, so there is nothing to lay.')
+	assert_null(await Terrain.lay(null, null, MAAR_TILE, marker_frame()),
+		'No specific at all, so there is no unit to own it.')
+	assert_null(await Terrain.lay(null, SpecificAction.create(layer, null, null), MAAR_TILE, marker_frame()),
+		'A unit but no gear - set_deployable_owner bills the gear, so a gearless caller is refused.')
+	assert_null(await Terrain.lay(null, specific, Vector2i(99, 99), marker_frame()),
+		'And a centre off the map is refused before anything is built.')
+
+	assert_eq(game.map.get_all_units().size(), units_before,
+		'None of the four spawned anything - each refusal is real, not just a return value.')
+	# AND NO OWNERSHIP WAS RECORDED, which is the only thing that separates the BOUNDS guard from the
+	# engine's own abort: both hand back null, but lay() calls UnitAction.set_deployable_owner before
+	# the spawn (terrain.gd:147 -> unit_action.gd:523), so a centre that gets past the guard and is
+	# then refused by EventUnitSpawn leaves the never-landed id in the gear's deployed_ids. Without
+	# this line the fourth case above would pass with the guard neutralised.
+	assert_eq(specific.gear.get_state_string_array(UnitAction.DEPLOYED_IDS_KEY), [] as Array[String],
+		'And none of them billed the gear for a deployable it never got.')
 
 func test_the_laid_terrain_survives_the_layers_death():
 	# RULING 8's requirement, and the reason the marker frame above sets

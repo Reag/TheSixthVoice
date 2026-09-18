@@ -20,6 +20,10 @@ const LICENSE_ID := &'li_iskander'
 const ISKANDER_ID := &'mf_iskander'
 const MOD_ID := 'Reag-TheSixthVoice'
 
+## The licence extension script, by path, so this file can run it a SECOND time itself - which is the
+## only way a single-install test run can say anything about idempotence.
+const LICENSE_EXTENDER := 'res://unpacked/Reag-TheSixthVoice/res/content/licenses/ha/li_iskander.tres_ext.gd'
+
 ## Vanilla li_iskander's OWN rank 2 gear, pinned as an exact ordered list (read off
 ## content/licenses/ha/li_iskander.tres, 2026-09-18). An alt frame adds a frame and nothing else, so
 ## anything appearing here is either our extension overreaching or a modkit update moving HA's gear -
@@ -44,8 +48,14 @@ const OTHER_EXTENDERS := {}
 ## The sheet's table (specs/sixth-voice/06-vauban.md), in the engine's field names. Transcribed once,
 ## here, so a typo in the .tres shows up as a number and not as a vague "feels wrong".
 ##
-## SIXTEEN FIELDS, not the card's fourteen columns: Statblock carries `reactions` and `activations`
-## too, and design ruling 14's own list names both.
+## SEVENTEEN FIELDS, not the card's fourteen columns. `reactions` and `activations` are the vanilla
+## default and the Iskander's own values (mf_iskander.tres:44-45); neither the card nor design ruling
+## 14 names them, so they are pinned as an engine default rather than as sourced numbers (close review
+## M4, 2026-09-18 - the sentence here used to claim ruling 14 listed both, and it does not).
+## `limited_bonus` is the seventeenth Statblock PROP field (statblock.gd:28) and the one this loop
+## used to leave unpinned. It is not inert - GearCore.get_max_charges adds it to every limited gear's
+## max charges (gear_core.gd:236-238, :244) - and no vanilla frame under content/frames/ sets it at
+## all, so a non-zero here would be both unprecedented and silent.
 ##
 ## Worth reading beside the Iskander's own (size 2, armor 1, evasion 8, edef 10, speed 3, Sensors 15,
 ## tech attack +1, repairs 3): the Vauban is SMALLER, better armoured, easier to hit, far blinder and
@@ -53,7 +63,7 @@ const OTHER_EXTENDERS := {}
 const SHEET_STATS := {
 	size = 1, structure = 4, stress = 4, health = 8, armor = 2, evasion = 6, edef = 8,
 	speed = 4, heat = 7, save_target = 12, sensor_range = 8, tech_attack = -1, repairs = 4,
-	systems_points = 6, reactions = 1, activations = 1,
+	systems_points = 6, reactions = 1, activations = 1, limited_bonus = 0,
 }
 
 const VAUBAN_TILE := Vector2i(4, 4)
@@ -81,6 +91,14 @@ func _rank_2_frame_ids() -> Array[StringName]:
 	if tree == null or tree.rank_2 == null: return ids
 	for frame:Frame in tree.rank_2.granted_frames: ids.append(frame.compcon_id)
 	return ids
+
+## How many times rank 2 grants OUR frame. Counted rather than asked with has(), because the failure
+## this guards is a DUPLICATE grant, which has() cannot see.
+func _vauban_grants_in(tree:UnlockTree) -> int:
+	var count := 0
+	for frame:Frame in tree.rank_2.granted_frames:
+		if frame.compcon_id == FRAME_ID: count += 1
+	return count
 
 func after_each() -> void:
 	Dice.CHEAT_ROLL_QUEUE.clear()
@@ -134,9 +152,12 @@ func test_the_frame_has_a_sprite_that_actually_loaded():
 	# frame resource fails to parse, and the frame drops out of ContentLibrary with no error a player
 	# would ever see. This is the only thing in the suite that reads mf_vauban.sprites.
 	#
-	# 80x80 because the Vauban is size 1. The art is the AUTHOR'S OWN commissioned sprite, dropped in
-	# on 2026-09-18 - not a placeholder - so unlike the Maiden's Blush at SP1 this file CAN assert the
-	# "not the placeholder" half now rather than deferring it to SP3.
+	# 80x80 because the Vauban is size 1. The art is the frame's OWN file rather than the shared
+	# mf_placeholder.png stand-in, so unlike the Maiden's Blush at SP1 this file CAN assert the
+	# "not the placeholder" half now rather than deferring it to SP3. Note the frame close uses the
+	# word in a SECOND sense: ruling R4 calls this art a placeholder because it is not
+	# channel-encoded yet, so the ColorScheme cannot repaint it. Both are true and they are not the
+	# same claim - see test_the_colour_scheme_is_derived_from_the_frames_own_art.
 	var frame:Frame = _frame()
 	assert_not_null(frame, 'mf_vauban loads.')
 	if frame == null: return
@@ -148,33 +169,56 @@ func test_the_frame_has_a_sprite_that_actually_loaded():
 	assert_eq(sprite.get_size(), Vector2(80, 80), 'A size-1 frame uses an 80x80 sprite.')
 	assert_false(sprite.resource_path.contains('placeholder'),
 		'And it is the author\'s own art, not the shared stand-in.')
+	# NEITHER ASSERTION ABOVE CAN SEE THE LIKELIEST REGRESSION (close review I1, 2026-09-18), and the
+	# mitigation this file used to lean on only covers half of it: the Iskander's own three sprites are
+	# 160x160, so a copy-paste from the BASE frame is caught by the size check - but three of this
+	# mod's own frames (mf_maidens_blush, ipsn_fitzgerald, mk2_bombard) are 80x80 with no "placeholder"
+	# in their paths, so pointing the ext_resource at a SIBLING is invisible to the whole suite. Only
+	# checking the frame's own filename does. Matches test_maidens_blush_frame.gd:160-161.
+	assert_true(sprite.resource_path.ends_with('/mf_vauban.png'),
+		'The frame wears its OWN sprite - not a sibling frame\'s, and not the stand-in.')
 
-func test_the_frame_has_the_iskanders_colour_scheme():
-	# CLONED FROM THE BASE FRAME, byte for byte (mf_iskander.tres:19-25), the way the Maiden's Blush
-	# cloned the Mourning Cloak's - so the Vauban reads as an Iskander variant on the board.
+func test_the_colour_scheme_is_derived_from_the_frames_own_art():
+	# LITERALS, NOT A RELATIONSHIP, AND THAT IS THE WHOLE POINT (ruling R4, 2026-09-18). This test used
+	# to assert equality against the LIVE Iskander, because the scheme was a byte-for-byte clone of
+	# mf_iskander.tres:20-26 - the shape test_maidens_blush_frame.gd and test_myconid_frame.gd still
+	# use, where the statement worth making is "the alt is painted like its base, so a modkit update
+	# that repaints the base should say so". The Vauban's scheme is not that. It is generated by a
+	# colour census of OUR OWN mf_vauban.png, so there is no relationship left to assert and the
+	# Iskander's values are no longer what would notice a drift. Only transcribed literals can.
 	#
-	# PINNED AGAINST BOTH FRAMES, not against transcribed literals. Reading the Iskander's live scheme
-	# is what makes this a statement about the relationship rather than about four Color values: if a
-	# modkit update repaints the Iskander, this goes red and the author decides whether the alt
-	# follows. It is also the guard on the palette SLOT: the Iskander sets palette_2 and the Myconid's
-	# scheme sets palette_1, so a copy from the wrong sibling drops the toneramp silently.
+	# The four are the sprite's four materials - dark plum chassis, bone plating, teal glow, gold
+	# accent - in vanilla's most-used-channel-first slot order, and they agree with the .tres byte for
+	# byte. They are INERT on the token today: mf_vauban.png carries 2,515 opaque pixels and not one
+	# channel-encoded pixel, so nothing routes through the scheme at all. (That is what ruling R4 means
+	# by calling the art a placeholder - it is the frame's own file, not the shared mf_placeholder.png
+	# stand-in the sprite test above rules out; the two senses of the word are unrelated.) Pinned
+	# anyway, because the day channel-encoded art is dropped in these become the frame's default paint,
+	# and an edit made between now and then would land unnoticed.
 	var frame:Frame = _frame()
-	var iskander:Frame = ContentLibrary.get_mech_frame(ISKANDER_ID)
 	assert_not_null(frame, 'mf_vauban loads.')
-	assert_not_null(iskander, 'mf_iskander loads.')
-	if frame == null or iskander == null: return
+	if frame == null: return
 	var ours:ColorScheme = frame.default_color_scheme
-	var theirs:ColorScheme = iskander.default_color_scheme
 	assert_not_null(ours, 'The Vauban carries a default colour scheme.')
-	assert_not_null(theirs, 'The Iskander carries one to compare against.')
-	if ours == null or theirs == null: return
-	assert_eq(ours.base_0, theirs.base_0, 'base_0 matches the Iskander.')
-	assert_eq(ours.base_1, theirs.base_1, 'base_1 matches the Iskander.')
-	assert_eq(ours.base_2, theirs.base_2, 'base_2 matches the Iskander.')
+	if ours == null: return
+	assert_eq(ours.base_0, Color(0.29411766, 0.22745098, 0.2901961, 1), 'base_0 is the dark plum chassis.')
+	assert_eq(ours.base_1, Color(0.8784314, 0.87058824, 0.827451, 1), 'base_1 is the bone plating.')
+	assert_eq(ours.base_2, Color(0.1882353, 0.6431373, 0.5647059, 1), 'base_2 is the teal glow.')
+	assert_eq(ours.base_3, Color(0.89411765, 0.78431374, 0.4392157, 1), 'base_3 is the gold accent.')
 	assert_not_null(ours.palette_2, 'The toneramp is on palette_2, the slot the Iskander uses.')
-	if ours.palette_2 == null or theirs.palette_2 == null: return
-	assert_eq(ours.palette_2.resource_path, theirs.palette_2.resource_path,
-		'And it is the same toneramp file - tone_highcontrast.')
+	if ours.palette_2 == null: return
+	assert_eq(ours.palette_2.resource_path, 'res://assets/palettes/toneramps/tone_highcontrast.png',
+		'And it is still tone_highcontrast - the ramp is the one thing kept from the base frame.')
+
+	# AND IT IS DELIBERATELY NOT THE ISKANDER'S ANY MORE. Read off the live frame rather than
+	# transcribed, so this stays honest if a modkit update repaints HA: whatever the Iskander wears,
+	# ours differs. A revert of the .tres block to its cloned state fails here as well as above.
+	var iskander:Frame = ContentLibrary.get_mech_frame(ISKANDER_ID)
+	assert_not_null(iskander, 'mf_iskander loads.')
+	if iskander == null or iskander.default_color_scheme == null: return
+	var theirs:ColorScheme = iskander.default_color_scheme
+	assert_true(ours.base_0 != theirs.base_0 or ours.base_1 != theirs.base_1 or ours.base_2 != theirs.base_2,
+		'The Vauban is distinguishable from the Iskander in data, not a clone of its scheme.')
 
 func test_the_name_and_flavour_resolve():
 	# tr() falling through to the raw key is the signature of a missing CSV row OR of a stale compiled
@@ -213,16 +257,29 @@ func test_the_iskander_is_still_first_so_the_licence_keeps_its_name():
 		'The licence is still named for the Iskander.')
 
 func test_the_extension_is_applied_only_once_however_many_times_it_runs():
-	# apply_resource_extensions_directly() stamps APPLIED_META on the instance so a re-activation
-	# cannot append the frame twice. A duplicated grant shows in game as the Vauban listed twice on
-	# the licence card.
+	# COUNTING ONCE PROVES NOTHING (close review M1, 2026-09-18): a testkit run installs the mod
+	# exactly once, so the count below is 1 whether or not any idempotence guard exists, and the
+	# version of this test that stopped there was only catching a double-grant shipped in the file.
+	# The second half is what earns the name - it runs li_iskander.tres_ext.gd again, by hand, on the
+	# live licence and re-counts.
+	#
+	# IT IS THE EXTENSION'S OWN GUARD THIS PINS, not mod_main's. There are two, on different layers:
+	# li_iskander.tres_ext.gd:38 refuses to append a frame the rank already grants, and mod_main's
+	# APPLIED_META stamp stops a re-activation calling the extension at all. Calling modify_resource
+	# directly steps past the second on purpose, because the first is the one that has to hold when
+	# anything else - the engine's own queue, a later mod - loads and edits the same cached instance.
+	# A duplicated grant shows in game as the Vauban listed twice on the licence card.
 	var tree := _license()
 	assert_not_null(tree, 'li_iskander loads.')
 	if tree == null or tree.rank_2 == null: return
-	var count := 0
-	for frame:Frame in tree.rank_2.granted_frames:
-		if frame.compcon_id == FRAME_ID: count += 1
-	assert_eq(count, 1, 'The Vauban is granted exactly once.')
+	assert_eq(_vauban_grants_in(tree), 1, 'The Vauban is granted exactly once.')
+
+	var extender:Script = load(LICENSE_EXTENDER)
+	assert_not_null(extender, 'li_iskander.tres_ext.gd loads.')
+	if extender == null: return
+	extender.new().modify_resource(tree)
+
+	assert_eq(_vauban_grants_in(tree), 1, 'And still exactly once after the extension runs again.')
 
 func test_a_pilot_with_the_licence_at_rank_two_can_pick_the_vauban():
 	# THE PLAYER-FACING HALF OF THE LICENCE. The tests above read the UnlockTree directly and
@@ -242,7 +299,7 @@ func test_a_pilot_with_the_licence_at_rank_two_can_pick_the_vauban():
 	assert_has(ids, FRAME_ID, 'An Iskander 2 pilot is offered the Vauban.')
 	assert_has(ids, ISKANDER_ID, 'And is still offered the Iskander itself.')
 
-	# The rank actually gates it. get_all_unlocked_ranks_for_rank is cumulative (unlock_tree.gd:44-49),
+	# The rank actually gates it. get_all_unlocked_ranks_for_rank is cumulative (unlock_tree.gd:34-39),
 	# so an extension that appended to rank_1 by mistake would still show up at rank 2 and every
 	# assertion above would stay green - this is the half that notices.
 	var rank_1_pilot := PilotCore.create()
@@ -292,7 +349,7 @@ func test_the_instance_content_library_serves_is_the_one_mod_main_retains():
 func test_the_other_extenders_of_li_iskander_also_land():
 	# LICENCE GUARD 3 of 3. Whoever else touched li_iskander in this run must still have their frame
 	# in it - the queue collision (mod_main.gd's header) drops a queue-path extender silently, and
-	# apply_resource_extensions_directly erases OUR key from the shared dictionary at :110 precisely
+	# apply_resource_extensions_directly erases OUR key from the shared dictionary at :112 precisely
 	# so that theirs survives.
 	#
 	# OTHER_EXTENDERS is empty today (see its own comment: no installed mod names this licence at
@@ -320,8 +377,8 @@ func test_a_unit_can_actually_wear_the_frame():
 	assert_eq(vauban.core.frame.compcon_id, FRAME_ID, 'It is wearing the Vauban frame.')
 	assert_eq(vauban.core.current.health, SHEET_STATS.health, 'It has the sheet HP after a repair.')
 	# Through the ACCESSORS, not core.current: the engine never writes evasion or sensor range into
-	# the current block (only health/armor/heat/speed/structure/stress/repairs are synced);
-	# Unit.get_evasion is core.get_evasion() + state.stat_bonus.evasion (unit.gd:305-306).
+	# the current block (only health/armor/heat/speed/structure/stress/repairs are synced). Both are
+	# frame value plus buff bonus - Unit.get_sensor_range is unit.gd:305 and Unit.get_evasion is :306.
 	assert_eq(vauban.get_evasion(), SHEET_STATS.evasion, 'It has the sheet evasion, read the way the engine reads it.')
 	assert_eq(vauban.get_sensor_range(), SHEET_STATS.sensor_range,
 		'And the sheet Sensors - which both Sap and Solfataric Breach measure their trigger with.')
@@ -344,7 +401,7 @@ func test_the_fixture_lays_difficult_terrain_the_way_its_callers_assume():
 		assert_true(game.map.get_surface_terrain_at(tile).is_difficult(),
 			'%s is difficult ground.' % tile)
 	assert_false(game.map.get_surface_terrain_at(VAUBAN_TILE).is_difficult(),
-		'And the tile beside it is not - set_terrain writes the WHOLE map, so this is the control.')
+		'And the tile beside it is not - lay_difficult writes the WHOLE map, so this is the control.')
 
 	var drone:Unit = VaubanFixture.create_drone(game, HOSTILE_TILE)
 	assert_true(drone.is_character(), 'A drone IS a character - applies_only_to_characters passes it.')

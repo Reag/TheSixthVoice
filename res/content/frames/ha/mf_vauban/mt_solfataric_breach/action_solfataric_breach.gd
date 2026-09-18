@@ -11,7 +11,8 @@
 ##
 ## consumes_rxn = true, so this is a REAL reaction: the point is spent, a Jammed or Stunned Vauban
 ## cannot Breach, and the card's "1/round" is the engine's own default hard limit for a consuming
-## reaction (action_reaction.gd:66) - which is why there is no get_per_round_hard_limit override here.
+## reaction (action_reaction.gd:69 - :66 is is_jammable(), corrected 2026-09-18) - which is why there
+## is no get_per_round_hard_limit override here.
 ##
 ## ============================ WHAT "BECOMES" MEANS ============================
 ##
@@ -75,8 +76,30 @@ func get_required_triggering_context() -> Array[Context.PROP]:
 
 func triggers_on_event(unit:Unit, _gear:GearCore, triggering_event:EventCore) -> bool:
 	var context:Context = triggering_event.context
+	# THE FREE HALF OF THE STATUS TEST GOES FIRST, and it is the cheapest clause in the gate: two
+	# StringName compares, no allocation, and it refuses every statuses_changed firing on the map that
+	# is not one of three statuses - Prone, Engaged, Lockon, Burn, Shredded, this trait's own Impaired.
+	# Everything below it costs more: UnitRelation.distance_between allocates two Arrays and a
+	# Dictionary through closest_tiles_between (unit_relation.gd:13-25, :31) before its four vertical
+	# UnitTile reads, and can_see traces per-tile LOS. is_a_becoming keeps its own copy of this test -
+	# it is a public predicate the header documents and must answer correctly when called directly -
+	# so this is a duplicate on purpose, and behaviour is identical: every clause here is a
+	# side-effect-free predicate of a conjunction. (The SP1 review asked for the opposite reorder, on
+	# the premise that is_a_becoming was the expensive clause and distance_between the O(1) one.
+	# Re-measured 2026-09-18 from source: both halves of that premise are false.)
+	#
+	# IT COSTS ONE MUTATION, AND THAT IS RECORDED RATHER THAN HIDDEN. Before this hoist,
+	# test_a_status_that_is_not_on_the_card_never_fires went red on neutralising the CARD_STATUSES
+	# clause inside is_a_becoming alone. It now takes BOTH lines - this one and that one - exactly as
+	# the grapple pair below takes both of its clauses, and for the same reason: two clauses that
+	# overlap on purpose. The test still discriminates; the mutation is a pair, not a line.
+	var status:StringName = context.category_str
+	if status != Lancer.STATUS.GRAPPLED and not CARD_STATUSES.has(status): return false
 	var target:Unit = context.unit
 	if not Unit.is_valid(target): return false
+	# SHADOWED BY are_enemies BELOW AND KEPT ANYWAY: a faction is never its own enemy
+	# (unit_relation.gd:361-362), so this line refuses nothing that line would not. It is documentation
+	# of the card's "hostile" reading, not behaviour under test - no spec can separate it.
 	if target == unit: return false
 	if not target.is_character(): return false
 	if not UnitRelation.are_enemies(unit, target): return false
@@ -111,6 +134,21 @@ func instances_held(target:Unit, status:StringName) -> int:
 
 ## The second of a grapple's two Grappled applications, on a target that is not the larger of the two.
 ##
+## NO IMMUNITY CLAUSE IS NEEDED ON THIS BRANCH, and that is a measurement rather than an omission. The
+## clause above (:99) exists for the BUFF-CARRIED path, which bypasses apply_status' own immunity
+## refusal - and no shipped buff carries Grappled. Both of the engine's Grappled applications go
+## through UnitCondition.apply_status (katamari.gd:313, onhit_grapple.gd:18), which returns at
+## unit_condition.gd:93-99 BEFORE the append for an immune unit, so an immune target never reaches
+## this gate on that path at all.
+##
+## IT FIRES ON THE GRAPPLER TOO, CARD-LITERALLY, AND THAT IS RULED (R2, ruling row 203). onhit_grapple
+## applies Grappled to the ATTACKING unit at :17 - sourced to the victim - and to the attacked unit at
+## :18, both after recalculate_largest_unit at :14. So a hostile that grabs something LARGER than
+## itself is, by the engine's own definition (UnitCondition.is_immobilized, unit_condition.gd:413-418),
+## Immobilized by its own grapple - and being the first of the pair to reach this gate, it is the one
+## the round cap lets through. No narrowing: the card says "becomes Immobilized" and the engine says
+## this is that. test_a_hostile_that_grapples_a_larger_unit_is_itself_breached pins it.
+##
 ## An empty context.string is the UNSOURCED katamari duplicate, which names nobody and whose
 ## is_larger_in_grapple is still stale; skipping it is what stops one grapple reading as two becomings.
 ## Exactly one SOURCED Grappled listed is then the "first holding" test for this status.
@@ -138,7 +176,9 @@ func activate(context:Context, activation:EventCore) -> void:
 	if not Unit.is_valid(unit) or not Unit.is_valid(target) or not GearCore.is_valid(gear): return
 
 	# PAID FIRST, AND NOTHING BELOW CAN REFUSE IT. A consuming reaction does not spend itself: the
-	# engine only reaches UnitAction.spend (unit_action.gd:236-278) through Action.spend_actions
+	# engine only reaches UnitAction.spend (unit_action.gd:236-280 - :279 records the usage and :280
+	# informs the UI, which are the two lines this comment's own argument rests on) through
+	# Action.spend_actions
 	# (action.gd:144-147), which an ActionReaction's own activate() has to call - vanilla's
 	# Dismemberment does not, because its consumes_rxn is false. Without this line the point is never
 	# taken AND gear.uses_this_round is never incremented, so the engine's 1/round hard limit

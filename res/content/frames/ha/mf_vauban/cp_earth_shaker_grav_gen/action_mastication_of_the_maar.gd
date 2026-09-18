@@ -7,7 +7,7 @@
 ## idiom (action_system_deploy.gd:28-29), can_target_unit is false outright (:25-26),
 ## get_target_requirements duplicates the .tres override before touching it (:31-38), and
 ## get_glossary_tags puts a "Persists" tag on the card precisely because dep_maar sets
-## is_deactivated_on_owner_death = false (:53-60). Writing this as a plain ActionSystem would have
+## is_deactivated_on_owner_death = false (:52-59). Writing this as a plain ActionSystem would have
 ## meant re-implementing all of that, worse.
 ##
 ## ONE CORRECTION TO THE PLAN'S LIST, measured 2026-09-18: `needs_los` (action_system_deploy.gd:11) is
@@ -15,8 +15,12 @@
 ## sight this action actually requires comes from Action.requires_line_of_sight, which returns
 ## `requires_line_of_sight_baseline` (action.gd:36, :124) and also defaults true. The behaviour the
 ## card wants is therefore delivered, just not by the export the archetype advertises; so this .tres
-## sets NEITHER flag and leans on the Action default, and eight vanilla .tres files that set
-## `needs_los = false` are quietly not getting what they asked for.
+## sets NEITHER flag and leans on the Action default, and the SEVEN vanilla .tres files that set
+## `needs_los = false` are quietly not getting what they asked for. (Seven, re-counted at the close:
+## action_high_angle_fire_bombard, action_firebreak_pyro, action_lingering_flames_deploy,
+## action_stasis_barrier, action_plasma_thrower_deploy_flames, action_dimensional_emblems_deploy,
+## action_magnetic_shield. Reag-ThyHubris's mf_banshee/cp_the_keening/action_tear.tres is an eighth
+## victim, in our own mods rather than vanilla's.)
 ##
 ## BUT THE SPAWN IS STILL Terrain.lay's, AND THAT IS NOT DECORATION EITHER. The archetype's
 ## place_deployable creates the unit with unit.get_faction() (:117) and QUEUES the spawn, returning a
@@ -43,6 +47,20 @@
 ## centre a crater on the space it is standing in - it can centre one beside it and stand in the
 ## result. A measured divergence from ruling 8, recorded for the close and pinned by
 ## test_the_vaubans_own_tile_is_not_a_valid_centre.
+##
+## AND ONE MORE THING IT LETS THROUGH, WHICH IS A CLOSE RULING (M-5, 2026-09-18): INVALID ENDPOINTS.
+## Replacing check_if_tile_is_free wholesale rather than composing with it drops the FIRST clause of
+## TargetRequirements.standard_check_if_tile_is_free, which is a terrain test and not a unit test -
+## `if map.get_surface_terrain_at(tile).is_invalid_endpoint(): return false` (target_requirements.gd:76,
+## reached from the archetype's deploy_check_if_tile_is_free at action_system_deploy.gd:48). 45 vanilla
+## .tres files set invalid_endpoint - wall tops, rocks, smokestacks, mt_stasis_barrier - so the Vauban
+## really can centre a crater on one. THAT IS CORRECT AND IT IS KEPT. The card names exactly one
+## restriction ("contains no hostile Characters"), so adding a terrain clause would narrow it; a
+## MARKER has nothing to stand on and intersects setpieces without complaint; and this is the vanilla
+## precedent the file already copies, deliberately, in vanilla's own words -
+## action_caltrop_launcher.gd:13, "skip checking for invalid endpoints from setpieces; we can
+## intersect those just fine". Terrain.lay bounds-checks and nothing else (terrain.gd:143), so no
+## other layer re-imposes it. Pinned by test_a_tile_on_an_invalid_endpoint_is_still_a_valid_centre.
 ##
 ## AND A WARNING FOR ANYONE WRITING A SPEC AGAINST THIS: the filter governs the player's TARGETING
 ## SCREEN, not the activation. TargetActionUtil takes a supplied tile automatically and never
@@ -83,8 +101,24 @@ static func no_hostile_character_here(tile:Vector2i, map:MapState, specific:Spec
 	)
 
 func activate(context:Context, activation:EventCore) -> void:
-	# The archetype's own activate, copied line for line down to the spawn
-	# (action_system_deploy.gd:63-75), ordering included.
+	# The archetype's own activate down to the spawn (action_system_deploy.gd:63-75), ordering
+	# included - with ONE deliberate divergence, corrected here at the close because the header used
+	# to claim "line for line" and it is not.
+	#
+	# WHAT IS DROPPED IS LINE :75's EMPTY-TARGET FALLBACK. The archetype spawns at
+	# `plan.target_tiles if not plan.target_tiles.is_empty() else unit.occupied_tiles()`; the loop
+	# below has no else. A plan that is valid but EMPTY is reachable - CompconPlan.is_valid_with_targets
+	# refuses only when requires_tile_target holds and neither tiles nor units are all-valid
+	# (compcon_plan.gd:48-52), and Tile.all_valid([]) is vacuously true - so such a press spends the
+	# Quick action and lays nothing.
+	#
+	# THAT IS THE RIGHT TRADE HERE. The fallback exists for smoke mines detonating at their layer's
+	# feet (the archetype says so at :74), and the Vauban cannot centre a crater on its own tile at
+	# all: filter_for_free_spaces drops the acting unit's own tiles before the predicate is asked
+	# (unit_targeting.gd:252-256, pinned by test_the_vaubans_own_tile_is_not_a_valid_centre). So the
+	# fallback would deploy exactly where the targeting screen refuses to let the player aim, which is
+	# worse than laying nothing. No spec produces an empty plan, so nothing reddens either way; the
+	# divergence is recorded rather than tested.
 	var unit:Unit = context.unit
 
 	# get the chosen target tile, either from the player or the AI

@@ -7,7 +7,7 @@
 		"1.4.3"
 	],
 	"dependencies": [],
-	"description": "Is normal technology too understandable? Have you ever wanted to perform feats that are nigh indistinguishable from magic? Do you like using technology taken from strange sources that has been turned into pure killing power by corporate giants? If so, that's kind of weird, but The Sixth Voice has you covered!\n\nImplemented so far: the Fitzgerald (IPS-N, full three-rank license), the M/K2 (GMS, an Everest alt frame), the Subutai (HA, a Barbarossa alt frame), the Myconid (HORUS, a Gorgon alt frame) and the Maiden's Blush (SSC, a Mourning Cloak alt frame). The supplement's other frames are still being built, one release at a time.",
+	"description": "Is normal technology too understandable? Have you ever wanted to perform feats that are nigh indistinguishable from magic? Do you like using technology taken from strange sources that has been turned into pure killing power by corporate giants? If so, that's kind of weird, but The Sixth Voice has you covered!\n\nImplemented so far: the Fitzgerald (IPS-N, full three-rank license), the M/K2 (GMS, an Everest alt frame), the Subutai (HA, a Barbarossa alt frame), the Myconid (HORUS, a Gorgon alt frame) and the Maiden's Blush (SSC, a Mourning Cloak alt frame) and the Vauban (HA, an Iskander alt frame). The supplement's other frames are still being built, one release at a time.",
 	"image": "thumbnail.png",
 	"incompatibilities": [],
 	"load_before": [],
@@ -32,6 +32,6 @@
 		"Systems and weapons"
 	],
 	"title": "The Sixth Voice",
-	"version_number": "0.5.0",
+	"version_number": "0.6.0",
 	"website_url": "https://belram.itch.io/the-sixth-voice"
 }

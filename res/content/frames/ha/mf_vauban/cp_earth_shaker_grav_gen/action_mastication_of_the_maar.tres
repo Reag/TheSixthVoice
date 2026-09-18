@@ -40,12 +40,22 @@ deploy_to_sensors = true
 ; asks for is delivered by Action.requires_line_of_sight_baseline, which defaults true. See the
 ; script's header.
 ;
-; ONE crater per press, at the chosen tile - not one per tile of the blast. deploy_to_every_aoe_space
-; stays false: the Blast 1 is the AREA THAT BECOMES DIFFICULT, and that is the single crater's own
-; terrain zone, not nine craters.
+; INERT HERE, BOTH OF THEM, and that is measured rather than assumed (close, 2026-09-18). Each is read
+; in exactly ONE place in engine/ content/ ui/, and it is the same place: inside
+; ActionSystemDeploy.place_deployables_at_target_tiles (action_system_deploy.gd:89 and :93), which the
+; script's overriding activate never calls - it lays the crater through Terrain.lay instead. Both
+; lines keep the value they would need if that override were ever removed, and both describe what
+; really happens; they are just not what makes it happen.
+;
+; INERT: ONE crater per press, at the chosen tile - not one per tile of the blast.
+; deploy_to_every_aoe_space stays false: the Blast 1 is the AREA THAT BECOMES DIFFICULT, and that is
+; the single crater's own terrain zone, not nine craters. What actually delivers it is the script's
+; single-centre loop over plan.target_tiles.
 deploy_to_every_aoe_space = false
-; They STACK. The card lays a new area each time and says nothing about the last one going away, and
-; ruling 8 has them merging by OR.
+; INERT: they STACK. The card lays a new area each time and says nothing about the last one going
+; away, and ruling 8 has them merging by OR. What actually delivers it is the ABSENCE of
+; queue_remove_previous_deployables from the overriding activate - which is why flipping this line to
+; true reddens nothing, and why test_two_maars_stack says so at its own site.
 remove_previous_deployments = false
 disable_while_deployed = false
 ; QUICK (Lancer.ACTION.QUICK == 1).
