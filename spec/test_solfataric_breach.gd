@@ -16,8 +16,13 @@
 # StatusConditions of that type plus buffs whose applies_statuses carries it. Exactly one means this
 # application is the becoming.
 #
-# AN IMMUNE UNIT NEVER REACHES THE GATE (unit_condition.gd:93-99 returns before the append), so there
-# is no immunity clause here and adding one would be dead code.
+# AN IMMUNE UNIT NEVER REACHES THE GATE ON THE DIRECT PATH (unit_condition.gd:93-99 returns before the
+# append) - but it DOES on the buff-carried one, which is why the gate carries an immunity clause after
+# all. apply_buff_alt appends the buff and calls on_status_application for every entry of
+# applies_statuses (:757, :760-761) with NO immunity check, and get_buffs_that_apply_status (:809-818)
+# does not filter immunity either - so the count would read 1 while get_current_statuses (:375-382),
+# which DOES filter it, leaves the unit holding nothing.
+# test_a_zone_carried_slowed_on_an_immune_hostile_does_not_fire is what pins that clause.
 #
 # STATUSES ARE APPLIED THROUGH THE REAL EVENT, never SpecFactory.apply: that helper hands apply_status
 # a dummy_event() whose block is not valid, and EventCore.queue_reaction_events returns on
@@ -55,6 +60,7 @@ const WALL:Array[Vector2i] = [
 const SOURCE := 'spec_breach_source'
 const CLOUD_KIT := &'mt_spec_slowing_cloud'
 const CLOUD_BUFF := &'buff_spec_slowing_cloud'
+const IMMUNITY_BUFF := &'buff_spec_breach_immunity'
 
 var game:Gamemaster
 var vauban:Unit
@@ -175,6 +181,34 @@ func install_damage_recorder(on:Unit) -> DamageRecorder:
 	UnitCondition.apply_buff_alt(SpecFactory.dummy_event(), on, BuffCore.create(recorder))
 	return recorder
 
+## Make a unit immune to Slowed the way shipped content does - the probe's own shape
+## (test_spike_vauban_probe.gd test_b), and the shape of the Aegis' buff_defense_net_status_immunity
+## and the Priest's buff_empowered_investiture_immunity, both of which carry
+## immune_to_statuses = [impaired, slowed] under content/frames/npc/.
+##
+## apply_buff, not apply, and a dummy_event is enough: nothing here has to fire a trigger, it only has
+## to be on the unit before the cloud reaches it.
+func make_immune_to_slowed(target:Unit) -> void:
+	var immunity := BuffStatusImmunity.new()
+	immunity.compcon_id = IMMUNITY_BUFF
+	immunity.to = Buff.TO.STATUS_IMMUNITY
+	immunity.immune_to_statuses = [Lancer.STATUS.SLOWED]
+	immunity.hide_from_player = true
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), target, immunity)
+
+## Low enough for the cheated 1d6 to finish: 1 HP and its LAST point of structure, so the 6 takes
+## structure to zero and destroys the unit outright rather than rolling the structure table.
+## test_blasting_powder.gd's make_fragile, verbatim and for the same reason.
+##
+## A DEATH IS SAFE IN THIS FIXTURE, which is not true of every spec: EventService.remove_unit_from_game
+## dereferences map.campaign_core with no guard (event_service.gd:80), and the re-use branch of
+## SpecFactory.setup_gamemaster is the one that builds a CampaignCore and hangs it on the map
+## (spec_factory.gd:47-48). VaubanFixture.create_game takes that branch - see its header.
+func make_fragile(target:Unit) -> void:
+	target.core.frame.stat.health = 1
+	target.core.frame.stat.structure = 1
+	target.core.full_repair()
+
 # ---------------------------------------------------------------- wiring and text
 
 func test_the_trait_is_wired():
@@ -293,10 +327,13 @@ func test_a_breach_applied_impaired_cannot_feed_another_breach():
 	# The one closed loop worth pinning: Breach applies Impaired, and Impaired is not in the trigger
 	# set, so a Breach can never chain off its own effect.
 	#
-	# THE SECOND REACTION POINT IS WHAT MAKES THIS DISCRIMINATE. With the frame's one point, a second
-	# Breach would be refused by the economy whatever the gate said, and the test would pass against a
-	# trait that DID chain. Two points is not a shape the game produces; it is a fixture that removes
-	# the only other explanation.
+	# WHAT THE SECOND REACTION POINT BUYS, AND WHAT IT DOES NOT. It pins the POINT ECONOMY: with the
+	# frame's one point, "6 damage, not 12" and "exactly one point spent" would hold whatever the gate
+	# said. It does NOT make the chain rule discriminate, and an earlier version of this comment claimed
+	# it did. spend_actions records the round use, so is_under_per_round_limit (unit_action.gd:170-176)
+	# refuses a second Breach in the same round whatever CARD_STATUSES holds. The chain is doubly
+	# guaranteed - the round cap AND Impaired's absence from CARD_STATUSES - and only the former is
+	# exercised here; opening a second round from inside activate() is not a thing a spec can reach.
 	queue_sixes()
 	var target := VaubanFixture.create_hostile(game, NEAR)
 	vauban.core.current.reactions = 2
@@ -339,6 +376,41 @@ func test_a_zone_carried_slowed_fires_and_fires_again_on_re_entry():
 	await SpecFactory.move(game, target, CLOUD_EDGE, MovementType.create_for_involuntary(target))
 
 	assert_gt(target.current_damage(), after_first, 'Re-entering the cloud is a new becoming.')
+
+func test_a_zone_carried_slowed_on_an_immune_hostile_does_not_fire():
+	# THE OTHER HALF OF §0.6a, and the one the design missed. The zone path fires this trigger for an
+	# IMMUNE unit too: apply_buff_alt appends the buff and calls on_status_application for every entry
+	# of applies_statuses (unit_condition.gd:757, :760-761) with no immunity check anywhere in it, and
+	# get_buffs_that_apply_status (:809-818) does not filter immunity either - so the gate's count reads
+	# 1. What the unit actually HOLDS is computed by get_current_statuses (:375-382), which DOES filter
+	# immunity, so the answer there is nothing at all. Without the gate's own immunity clause the
+	# Vauban Breaches a hostile for a becoming that never happened.
+	#
+	# NOT A HYPOTHETICAL: the Aegis' buff_defense_net_status_immunity and the Priest's
+	# buff_empowered_investiture_immunity are both immune_to_statuses = [impaired, slowed], and a
+	# Slowing cloud beside either of them is shipped content meeting shipped content.
+	#
+	# THE DIRECT PATH NEEDS NO SUCH CLAUSE, and the probe measured that separately
+	# (test_spike_vauban_probe.gd test_b_an_immune_unit_never_reaches_the_gate): apply_status returns at
+	# :93-99 before the append, so the trigger is never queued at all.
+	queue_sixes()
+	place_slowing_cloud(CLOUD_TILE)
+	var target := VaubanFixture.create_hostile(game, CLOUD_AWAY)
+	make_immune_to_slowed(target)
+	assert_true(UnitCondition.is_immune_to_status(target, Lancer.STATUS.SLOWED), 'fixture: immune to Slowed.')
+	assert_eq(vauban.core.current.reactions, 1, 'fixture: and the Vauban is holding its reaction point.')
+
+	await SpecFactory.move(game, target, CLOUD_EDGE, MovementType.create_for_involuntary(target))
+
+	# THE FIXTURE SELF-CHECK THAT MAKES THIS DISCRIMINATE. The cloud's buff really is on the target, so
+	# instances_held() really would count 1 and the gate really was asked - the refusal below is the
+	# immunity clause and nothing else.
+	assert_eq(UnitCondition.get_buffs_that_apply_status(target, Lancer.STATUS.SLOWED).size(), 1,
+		'fixture: the cloud buff landed, so the gate was asked with a count of one.')
+	assert_false(target.has_status(Lancer.STATUS.SLOWED), 'It never becomes Slowed - it is immune.')
+	assert_eq(target.current_damage(), 0, 'So no Breach damage.')
+	assert_false(breached(target), 'And no Impaired.')
+	assert_eq(vauban.core.current.reactions, 1, 'And the reaction point was never spent.')
 
 # ---------------------------------------------------------------- grappled
 
@@ -434,6 +506,31 @@ func test_the_impaired_lasts_until_the_end_of_the_targets_next_turn():
 	assert_not_null(condition, 'The Impaired is sourced to the Breach gear.')
 	if condition == null: return
 	assert_eq(condition.until, Lancer.UNTIL.END_OF_NEXT_TURN, 'Until the end of their next turn.')
+
+func test_a_breach_that_kills_its_target_never_applies_the_impaired():
+	# THE ORDERING, AND THE ONLY CASE IN WHICH IT IS OBSERVABLE. activate() awaits the damage INLINE and
+	# then returns on abort_without_unit(target), so a hostile the 1d6 finishes is dead before the
+	# Impaired is reached and never gets it. Swap that await for queue_event - vanilla's Lesson of the
+	# Open Door shape - and the damage runs after activate() returns, which puts the Impaired on a unit
+	# that is about to die: measured, this is the ONE test of the twenty that moves under that mutation,
+	# which is exactly why it exists. Every other test here has a 200 HP target.
+	#
+	# THE POINT IS STILL SPENT, and that is the card's reading rather than an accident: spend_actions
+	# runs before the damage on purpose (see activate's own comment), so a Breach that kills costs the
+	# Vauban its reaction just the same.
+	queue_sixes()
+	var target := VaubanFixture.create_hostile(game, NEAR)
+	make_fragile(target)
+
+	await apply(target, Lancer.STATUS.SLOWED)
+
+	assert_false(Unit.is_valid(target), 'The cheated 1d6 finished it.')
+	# LISTED, not breached(): the corpse keeps its state, so this reads the StatusConditions themselves
+	# and says "no Impaired was ever appended" rather than "a helper declined to find one".
+	assert_eq(listed(target, Lancer.STATUS.IMPAIRED), 0,
+		'And nothing Impaired the corpse - abort_without_unit returned before the status.')
+	assert_false(breached(target), 'Which is what the trait-sourced read says too.')
+	assert_eq(vauban.core.current.reactions, 0, 'The point was spent all the same - paid before the damage.')
 
 # ---------------------------------------------------------------- the round
 

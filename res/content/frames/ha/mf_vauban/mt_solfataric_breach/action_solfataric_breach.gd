@@ -22,15 +22,24 @@
 ##  - The trigger is queued from UnitCondition.on_status_application (unit_condition.gd:167), which
 ##    runs AFTER the StatusCondition is appended (:105-106). At this gate has_status is ALREADY true
 ##    for every application, first or fifth, so it cannot discriminate at all.
-##  - An immune unit never reaches the gate: apply_status returns at :93-99, before the append. There
-##    is deliberately no immunity clause below; the engine has already refused.
+##  - An immune unit never reaches the gate ON THE DIRECT PATH: apply_status returns at :93-99, before
+##    the append. NO IMMUNITY CLAUSE IS NEEDED THERE - and one IS needed on the buff-carried path
+##    below, which is the half the design missed. apply_buff_alt appends the buff and then calls
+##    on_status_application for every entry of applies_statuses (:757, :760-761) with NO immunity check
+##    anywhere in it, and get_buffs_that_apply_status (:809-818) does not filter immunity either - so
+##    instances_held() would read 1 and the gate would pass, while get_current_statuses (:375-382), the
+##    function that decides what the unit actually HOLDS, DOES filter it and leaves the unit with
+##    nothing. Shipped content reaches this: a hostile under the Aegis' buff_defense_net_status_immunity
+##    or the Priest's buff_empowered_investiture_immunity (both immune_to_statuses = [impaired, slowed],
+##    content/frames/npc/) walking into a Slowing cloud would be Breached for a becoming that never
+##    happened. is_a_becoming refuses it explicitly.
 ##
 ## What IS readable is HOW MANY instances of the status the target holds, and "becomes" is exactly
 ## one. Two places carry them and both have to be counted:
 ##
 ##  - unit.state.statuses, one StatusCondition per direct application (duplicates and all, :105).
-##  - buffs whose applies_statuses carries it. apply_buff_alt appends the buff at :758 and THEN calls
-##    on_status_application for each of its statuses at :759-762 - so at this gate the new buff is
+##  - buffs whose applies_statuses carries it. apply_buff_alt appends the buff at :757 and THEN calls
+##    on_status_application for each of its statuses at :760-761 - so at this gate the new buff is
 ##    already in state.buffs and UnitCondition.get_buffs_that_apply_status (:809-818) counts it.
 ##    Design §0.6a: a zone-carried Slowed or Immobilized DOES fire this trigger, and is ruled a
 ##    becoming, card-literally.
@@ -80,6 +89,14 @@ func is_a_becoming(target:Unit, context:Context) -> bool:
 	var status:StringName = context.category_str
 	if status == Lancer.STATUS.GRAPPLED: return is_the_sourced_grapple_of_a_smaller_unit(target, context)
 	if not CARD_STATUSES.has(status): return false
+	# THE BUFF-CARRIED PATH BRINGS ITS OWN IMMUNE UNITS (see the header). apply_buff_alt fires this
+	# trigger for an immune target too and instances_held() would count the buff, so without this line
+	# the Breach fires on a becoming the engine never granted. Dead on the direct path, where
+	# apply_status has already refused at :93-99 - and NOT dead on the zone path, which is why the
+	# clause is here rather than absent: test_a_zone_carried_slowed_on_an_immune_hostile_does_not_fire
+	# goes red without it (measured 2026-09-18). The source argument is the status' own source, which is
+	# what lets a tech-immunity buff answer for a tech-sourced status (unit_condition.gd:519-525).
+	if UnitCondition.is_immune_to_status(target, status, StringName(context.string)): return false
 	return instances_held(target, status) == 1
 
 ## How many separate instances of `status` the target holds right now: listed StatusConditions plus
@@ -141,11 +158,13 @@ func activate(context:Context, activation:EventCore) -> void:
 	# function returns, at which point the Impaired would already be on a corpse. Teleport.move does
 	# the same thing from inside an activate() (teleport.gd:385).
 	#
-	# NO SPEC PINS THIS, and the note is here so nobody reads one into it. Swapping this line for
-	# queue_event leaves all 18 tests green (measured 2026-09-18): every spec here awaits the whole
-	# event chain, so the queued damage has landed by the time any assertion reads it, and none of
-	# them kills its target - the only case where the ordering is observable, and one that needs a
-	# hostile the 1d6 can finish.
+	# ONE SPEC PINS THIS, AND IT HAD TO BE BUILT ON PURPOSE. Swapping this line for queue_event left all
+	# 18 tests of the first draft green (measured 2026-09-18): every spec there awaited the whole event
+	# chain, so the queued damage had landed by the time any assertion read it, and none of them killed
+	# its target - the only case where the ordering is observable, and one that needs a hostile the 1d6
+	# can finish. The review added exactly that case. Re-measured 2026-09-18 with the mutation in place:
+	# 19/20, and the one red is test_a_breach_that_kills_its_target_never_applies_the_impaired, on the
+	# Impaired landing before the damage that kills.
 	await activation.execute_event(&'event_unit_damage', {
 		unit = target,
 		number = Dice.roll_string(DAMAGE_DICE),
