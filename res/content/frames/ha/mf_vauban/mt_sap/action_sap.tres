@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/mt_sap/action_sap.gd" id="1_sap"]
+
+[resource]
+script = ExtResource("1_sap")
+usage_group = &"action_sap"
+triggers_on = Array[StringName]([&"step", &"new_turn"])
+trigger_timing = 0
+consumes_rxn = false

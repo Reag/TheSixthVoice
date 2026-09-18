@@ -201,3 +201,8 @@ gear.mt_solfataric_breach.effect,Gain the Solfataric Breach |reaction|.
 gear.mt_solfataric_breach.action_solfataric_breach.name,Solfataric Breach
 gear.mt_solfataric_breach.action_solfataric_breach.trigger,A hostile character within Sensors and |line of sight| becomes |Slowed| or |Immobilized|.
 gear.mt_solfataric_breach.action_solfataric_breach.effect,They take 1d6 |Kinetic| damage and become |impaired| until the end of their next turn.
+,
+gear.mt_sap.name,Sap
+gear.mt_sap.effect,"When a hostile character within sensors and |line of sight| enters, or starts their turn, in an area of |difficult terrain|, they must make a |Hull save| or become |Slowed| until the end of their next turn. A character that succeeds this save is unaffected by Sap until the end of their next turn."
+gear.mt_sap.action_sap.name,Sap
+gear.mt_sap.action_sap.effect,"When a hostile character within sensors and |line of sight| enters, or starts their turn, in an area of |difficult terrain|, they must make a |Hull save| or become |Slowed| until the end of their next turn. A character that succeeds this save is unaffected by Sap until the end of their next turn."

@@ -391,6 +391,15 @@ const ICON_TARGETS := {
 	# The Kit's icon and the action's are both SP3's, so this row is what makes
 	# test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then.
 	&'mt_solfataric_breach': [&'action_solfataric_breach'],
+	# SP1 Task 4 (Vauban). ITS ONE ACTION GETS NO ROW, for two independent reasons and by design.
+	# action_sap.gd overrides show_in_tooltip to false outright (design §1.4, the Poisoned Soil
+	# lesson) - and even without that, Action.show_in_tooltip (action.gd:350-353) returns false when
+	# an action's own `effect` row equals the KIT's generic one, which the localisation makes true
+	# here. Reactions never reach the gear bar either (gear_bar.gd:145), so nothing the player sees
+	# ever wears an icon for it: the ms_heaer / mt_uncertainty_field shape, not the
+	# mt_solfataric_breach one. Its buff_sap_reprieve is hidden and is correctly absent from
+	# VISIBLE_BUFFS. The Kit's own icon is SP3's.
+	&'mt_sap': [],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
