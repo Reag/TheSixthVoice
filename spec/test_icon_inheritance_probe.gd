@@ -35,15 +35,24 @@ func test_the_action_resource_is_shared_and_the_inherited_icon_is_cached_on_it()
 	# Action INSTANCE, and ContentLibrary hands out one instance per .tres, so two Kits carrying
 	# the same Action would both show whichever asked first.
 	#
-	# Self-contained on purpose - it does not lean on the get_icon call in the test above. A spec
-	# that depends on sibling test order passes or fails for reasons that have nothing to do with
-	# the engine.
-	var kit:Kit = ContentLibrary.get_kit(&'mt_sap')
-	if not Kit.is_valid(kit) or kit.actions.is_empty(): return
+	# Uses mt_halo, not mt_sap: GUT sorts test methods alphabetically before running them
+	# (addons/gut/script_parser.gd:224-226), so the sibling test above always runs first and
+	# would have already warmed mt_sap's shared Action via its own get_icon call. mt_halo is
+	# untouched by every other test in this file, so its Action's icon_from_kit is still at its
+	# declared default (action.gd:58, = null) when this test starts, and the assertion below on
+	# the BEFORE state is what actually demonstrates the caching rather than assuming it.
+	var kit:Kit = ContentLibrary.get_kit(&'mt_halo')
+	assert_true(Kit.is_valid(kit), 'mt_halo is registered.')
+	if not Kit.is_valid(kit): return
+	assert_not_null(kit.icon_override, 'mt_halo carries an icon_override to inherit FROM.')
+	assert_false(kit.actions.is_empty(), 'mt_halo carries an action.')
+	if kit.actions.is_empty(): return
 	var a:Action = kit.actions[0]
-	var b:Action = ContentLibrary.get_kit(&'mt_sap').actions[0]
+	var b:Action = ContentLibrary.get_kit(&'mt_halo').actions[0]
 	# Objects compare by reference, so assert_eq here IS an identity check.
 	assert_eq(a, b, 'ContentLibrary returns one shared Action instance, not a copy.')
+	assert_null(a.icon_from_kit,
+		"nothing has resolved this Action's icon yet, so the cache starts empty.")
 	a.get_icon(kit)
 	assert_not_null(a.icon_from_kit,
-		'the resolution is cached on the shared Action, where a second Kit would inherit it.')
+		'the resolution is now cached on the shared Action, where a second Kit would inherit it.')
