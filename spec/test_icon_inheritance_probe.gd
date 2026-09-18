@@ -35,12 +35,13 @@ func test_the_action_resource_is_shared_and_the_inherited_icon_is_cached_on_it()
 	# Action INSTANCE, and ContentLibrary hands out one instance per .tres, so two Kits carrying
 	# the same Action would both show whichever asked first.
 	#
-	# Uses mt_halo, not mt_sap: GUT sorts test methods alphabetically before running them
-	# (addons/gut/script_parser.gd:224-226), so the sibling test above always runs first and
-	# would have already warmed mt_sap's shared Action via its own get_icon call. mt_halo is
-	# untouched by every other test in this file, so its Action's icon_from_kit is still at its
-	# declared default (action.gd:58, = null) when this test starts, and the assertion below on
-	# the BEFORE state is what actually demonstrates the caching rather than assuming it.
+	# Uses mt_halo, not mt_sap: the test above calls get_icon on mt_sap's Action, which warms the
+	# very cache this test exists to demonstrate. Rather than depend on which of them GUT happens
+	# to run first, this test takes a Kit that NO other test in this file touches, so its Action's
+	# icon_from_kit is still at its declared default (action.gd:58, = null) whatever the order.
+	# The assertion on the BEFORE state below is what turns that into evidence: it demonstrates
+	# the null -> non-null transition rather than asserting an end state that something else
+	# could have produced.
 	var kit:Kit = ContentLibrary.get_kit(&'mt_halo')
 	assert_true(Kit.is_valid(kit), 'mt_halo is registered.')
 	if not Kit.is_valid(kit): return
