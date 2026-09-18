@@ -264,9 +264,10 @@ func test_the_vaubans_unguarded_rows_resolve():
 const KIT := &'__kit__'
 const ICON_TARGETS := {
 	&'mt_weak_computer': {}, # its only action is the kit itself
-	# Three buttons on one Kit: the base weapon profile, the MORE BLACK POWDER protocol, and the
-	# second weapon profile the protocol unlocks. Each is separately pressable, so each wears its own
-	# icon rather than sharing the Kit's.
+	# The protocol's own row. It shares a glyph family with the charged weapon profile it unlocks
+	# (action_more_black_powder, on mw_bizarre_cannon below) - pressing the protocol visibly swaps
+	# that profile in, so the two wear the identical texture. The base profile keeps its own icon
+	# (action_bizarre_cannon) rather than sharing.
 	&'cp_broadside': {&'action_more_black_powder_protocol': &'action_more_black_powder'},
 	# The two CANNON PROFILES moved to their own Kit at the frame close, so the character sheet
 	# titles the integrated-weapon box "Bizarre Cannon" instead of "Broadside"
@@ -555,9 +556,11 @@ const VISIBLE_BUFFS:Array[StringName] = [
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
-	# A kit or action without icon_override falls back to the generic glyph, which reads as "this
-	# gear is unfinished" in the gear bar. The placeholder check is the other half: an icon pass that
-	# wired the stand-in everywhere would otherwise sail through.
+	# A Kit without icon_override falls back to the generic glyph, which reads as "this gear is
+	# unfinished" in the gear bar. An action without icon_override does NOT fall back to a generic -
+	# it inherits its Kit's glyph (the KIT family, below) - and only reaches the generic itself if
+	# the Kit's own icon_override is missing too. The placeholder check is the other half: an icon
+	# pass that wired the stand-in everywhere would otherwise sail through.
 	#
 	# The subject is the mod's OWN contributions, not ICON_TARGETS, so a kit added without a table
 	# row cannot slip past unchecked - that is what the size assertion pins, and it is also what
@@ -608,6 +611,9 @@ func test_every_player_facing_kit_and_action_has_a_real_icon():
 				assert_eq(kits_per_action.get(action.resource_path, 0), 1,
 					'%s is carried by exactly one Kit, so inheriting is safe (action.gd:58 caches it).'
 						% label)
+				assert_eq(action.get_icon(kit), kit.icon_override,
+					'%s is a KIT row: the engine fallback it depends on (action.gd:324-326 -> kit.gd:209) must actually resolve to the Kit glyph, or it renders a generic grey box.'
+						% label)
 				continue
 			_assert_real_icon(action.icon_override, label)
 			if action.icon_override == null: continue
@@ -625,7 +631,7 @@ func test_every_player_facing_kit_and_action_has_a_real_icon():
 		for family:StringName in texture_by_family:
 			var tex:Texture2D = texture_by_family[family]
 			assert_false(claimed.has(tex),
-				'%s: family %s wears a texture no other family on this Kit uses (clashes with %s).'
+				'%s: family %s wears the same texture as family %s - the gear bar draws them as one button.'
 					% [kit.compcon_id, family, claimed.get(tex, &'-')])
 			claimed[tex] = family
 		# Added at the MYCONID FRAME CLOSE, 2026-09-16 (close review slice 5, finding B): the checks
