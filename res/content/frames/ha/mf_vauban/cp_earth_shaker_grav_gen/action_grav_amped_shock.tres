@@ -1,0 +1,21 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/action_grav_amped_shock.gd" id="1_shock"]
+
+[resource]
+script = ExtResource("1_shock")
+; Its own usage_group, like every other pressable and reaction on this Kit (unit_action.gd:167-168).
+usage_group = &"grav_amped_shock"
+triggers_on = Array[StringName]([&"forced_save"])
+; POST (ReactionBus.TIMING.POST == 1): context.boolean does not exist until event_unit_save.gd:54,
+; and POST is queued at :70. Written explicitly even though it is ActionReaction's default
+; (action_reaction.gd:7), because on this Kit it is a measured decision rather than an omission.
+trigger_timing = 1
+; A trait, not a reaction the pilot spends - see the script's header. Solfataric Breach needs that
+; point.
+consumes_rxn = false
+; Read by ActionReactionOnComingWithin.has_unit_already_been_affected (:87), which is the only part
+; of that archetype this reaction actually uses.
+can_only_affect_a_unit_once_per_round = true
+can_trigger_any_number_of_times_per_round = true
+once_per_round_is_specific_to_gear = false
