@@ -8,6 +8,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/passive_grav_amped_aura.tres" id="6_aura"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/action_grav_amped_shock.tres" id="7_shock"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/action_mastication_of_the_maar.tres" id="8_maar"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_earth_shaker_grav_gen.svg" id="9_icon"]
 
 [resource]
 script = ExtResource("1_kit")
@@ -41,3 +42,4 @@ is_trait = true
 ; NO INTEGRATED WEAPON. The Vauban's sheet lists none, so unlike the Subutai and the Myconid there is
 ; no mw_ Kit beside this one and no integrated-weapon box to title. The 2026-09-17 directive
 ; (memory integrated-weapon-two-kit-rule) has nothing to bite on here.
+icon_override = ExtResource("9_icon")

@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/terrain/passive_gated_terrain_zone.gd" id="1_gatedzone"]
 [ext_resource type="Script" uid="uid://bhirgicgi66th" path="res://engine/gamemaster/map/terrain/terrain_data.gd" id="2_terraindata"]
 [ext_resource type="Script" uid="uid://c0yv6pnw2be6l" path="res://engine/character/gear_action/resources/range_pattern.gd" id="3_rangepattern"]
+[ext_resource type="PackedScene" path="res://unpacked/Reag-TheSixthVoice/res/content/fx_endless/gear/fxe_reag_shattered_ground.tscn" id="4_fxe"]
 
 ; BURST 1, not Blast 1, and the distinction is only visible in the code. Lancer.AOE_TYPE is
 ; {NONE, BLAST, LINE, CONE, BURST} (lancer.gd:96-100), so pattern = 4 is BURST. For a size-1 origin
@@ -36,3 +37,8 @@ range_pattern = SubResource("Resource_burst1")
 ; default to the pattern's value, which is the same 1 here - written out because "the same by
 ; accident" is not a thing to leave in a file.
 height = 1
+; SP3, design ruling 13: the same shared ground fx the Maar's own crater wears
+; (mt_maar_terrain.tres). Gated exactly like the voxel list above - dark until state_key flips true,
+; because get_attached_fx (passive_terrain_zone.gd:17-27) walks get_voxels_to_apply_terrain, which
+; this class overrides to return [] while the gate is closed.
+fxe = ExtResource("4_fxe")

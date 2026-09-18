@@ -4,6 +4,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/deployable/dep_maar.tres" id="2_maar_frame"]
 [ext_resource type="Script" uid="uid://c0yv6pnw2be6l" path="res://engine/character/gear_action/resources/range_pattern.gd" id="3_rangepattern"]
 [ext_resource type="Script" uid="uid://df1yicp7kbf3x" path="res://engine/character/gear_action/resources/target_requirements.gd" id="4_targetreqs"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_mastication_of_the_maar.svg" id="5_icon"]
 
 ; BLAST 1 (pattern == Lancer.AOE_TYPE.BLAST == 1). This is the TARGETING preview and the shape the
 ; filter below is applied over; the crater's own zone declares its own identical Blast 1, because the
@@ -53,3 +54,4 @@ target_requirements_override = SubResource("Resource_targeting")
 ; Its own group, separate from the protocol's and the shock's (unit_action.gd:167-168).
 usage_group = &"mastication_of_the_maar"
 emit_text_popcorn_on_use = true
+icon_override = ExtResource("5_icon")
