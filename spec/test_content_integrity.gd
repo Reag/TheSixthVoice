@@ -377,6 +377,20 @@ const ICON_TARGETS := {
 	# it would fail. The player reads "Efficient" in the core power's own effect text, where the card
 	# puts it.
 	&'cp_caj_overhaul_modules': [&'action_step_of_mist_and_thunder', &'action_abjuration_of_metal'],
+	# SP1 Task 3 (Vauban). ITS ONE ACTION EARNS A ROW, unlike the Maiden's Blush's Uncertainty Field,
+	# and the difference is the localisation rather than the .tres. Action.show_in_tooltip
+	# (action.gd:350-353) returns false when an action's own `effect` row equals the KIT's generic
+	# one; here the Kit says "Gain the Solfataric Breach reaction" and the action says what it does,
+	# so the trait card draws a separate reaction row and that row wears its own icon - the
+	# mt_juggernaut_drive / action_draw_fire shape, not the ms_heaer one.
+	#
+	# NOTE WHICH CLAUSE IS NOT DOING THE WORK: the `.trigger` row is keyed on the ACTION, and
+	# show_in_tooltip's trigger clause (action.gd:344) reads the KIT's own `gear.<kit>.trigger` key,
+	# which this mod does not write. Same distinction the Gyre's row records.
+	#
+	# The Kit's icon and the action's are both SP3's, so this row is what makes
+	# test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then.
+	&'mt_solfataric_breach': [&'action_solfataric_breach'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

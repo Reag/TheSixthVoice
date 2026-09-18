@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/mt_solfataric_breach/action_solfataric_breach.gd" id="1_breach"]
+
+[resource]
+script = ExtResource("1_breach")
+usage_group = &"action_solfataric_breach"
+triggers_on = Array[StringName]([&"statuses_changed"])
+trigger_timing = 0
+consumes_rxn = true

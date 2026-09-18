@@ -195,3 +195,9 @@ gear.cp_caj_overhaul_modules.action_abjuration_of_metal.no_space.log,"{unit} fin
 frame.mf_vauban.name,Vauban
 frame.mf_vauban.flavor.short,Gravity Wins
 frame.mf_vauban.flavor,"The earth was made to be shattered, metal was made to be heated and broken and battered. The world was made to be destroyed piece by piece. The Vauban stands as the Harrison's testament to dominion, each piece bent towards the singular point of progress and control. With the vast amount of data being spewed out of the Broadcasts it was only a matter of time until something truly devastating was unleashed that really ought to have stayed unknown. The Vauban was built upon that something. Gravity control is a tough nut to crack, and even now its secrets are not yet all teased out of its potential, but HA found enough to work with, and work with it they did. By leveraging hyper localized gravity pulses, the Vauban can sunder the ground, turning it into a mass of dangerous shards that can rend and drag down unwary opponents. No one can beat gravity forever."
+,
+gear.mt_solfataric_breach.name,Solfataric Breach
+gear.mt_solfataric_breach.effect,Gain the Solfataric Breach |reaction|.
+gear.mt_solfataric_breach.action_solfataric_breach.name,Solfataric Breach
+gear.mt_solfataric_breach.action_solfataric_breach.trigger,A hostile character within Sensors and |line of sight| becomes |Slowed| or |Immobilized|.
+gear.mt_solfataric_breach.action_solfataric_breach.effect,They take 1d6 |Kinetic| damage and become |impaired| until the end of their next turn.
