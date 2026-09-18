@@ -565,3 +565,20 @@ func test_the_archetypes_movement_exports_are_inert_here() -> void:
 
 	assert_eq(hostile.tile(), Vector2i(5, 4), 'fixture: it arrived, right up against the Vauban')
 	assert_eq(hostile.core.current.health, before, 'walking next to the Vauban is not a failed save')
+
+# ---------------------------------------------------------------- the finished Kit
+
+func test_the_core_kit_is_the_shape_the_design_describes() -> void:
+	# Two pressables, one reaction, two passives. Written as an exact ordered list rather than a count
+	# for test_vauban_frame.SHEET_TRAITS' reason: a count cannot see a swap, and the ORDER is
+	# player-visible on the gear bar.
+	var kit:Kit = core().kit
+	var action_ids:Array[StringName] = []
+	for action:Action in kit.actions: action_ids.append(action.get_id())
+	assert_eq(action_ids, [&'action_grav_amped_interference', &'action_grav_amped_shock', &'action_mastication_of_the_maar'] as Array[StringName],
+		'the protocol, the shock and the Maar, in build order')
+
+	assert_eq(kit.get_passives(PassiveTerrainZone).size(), 1, 'one terrain zone: the gated field')
+	assert_eq(kit.get_passives(PassiveAura).size(), 1, 'one aura: the save chip')
+	assert_true(kit.has_passive_type(PassiveAura),
+		'which is what puts this Kit in LoadoutCore.auras at all (loadout_core.gd:298-301) - without it set_aura_active reaches nothing')

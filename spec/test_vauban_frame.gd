@@ -380,3 +380,10 @@ func test_every_trait_kit_is_in_the_content_library():
 		assert_true(Kit.is_valid(kit), '%s is in the kits index.' % trait_id)
 		if not Kit.is_valid(kit): continue
 		assert_true(kit.is_trait, '%s is a trait, so it costs no SP and cannot be unequipped.' % trait_id)
+
+func test_the_core_system_is_the_frames_last_trait() -> void:
+	# The sheet lists the three traits and then the core system; the frame card shows them in array
+	# order, so this is player-visible ordering rather than bookkeeping.
+	var ids:Array[StringName] = []
+	for kit:Kit in _frame().traits: ids.append(kit.compcon_id)
+	assert_eq(ids.back(), &'cp_earth_shaker_grav_gen', 'the core comes last')
