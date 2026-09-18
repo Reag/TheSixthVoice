@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The Maar's own token art (SP3, design ruling 8 and 13): a shattered-ground crater rather than a
+     generic hole, in the Iskander's blue-violet gravitic palette. 80x80 to match this mod's other
+     frame tokens (mf_vauban.png, mf_fitzgerald.png) - the token pipeline (token_base.gd) accepts any
+     Texture2D the frame's own sprites array names, and Godot's SVG importer produces one the same way
+     it does for every icon in this set. -->
+<svg width="80px" height="80px" viewBox="0 0 80 80" version="1.1" xmlns="http://www.w3.org/2000/svg">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<defs>
+  <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#8f7bd6" stop-opacity="0.85"/>
+    <stop offset="45%" stop-color="#5a4a9e" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="#5a4a9e" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="crater" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#1c1720"/>
+    <stop offset="70%" stop-color="#332a38"/>
+    <stop offset="100%" stop-color="#4a3f4d"/>
+  </radialGradient>
+</defs>
+<!-- residual gravitic glow, under everything -->
+<circle cx="40" cy="40" r="36" fill="url(#glow)"/>
+<!-- the crater rim, an irregular broken ring -->
+<path d="M40,10 L46,14 L52,12 L57,18 L64,19 L66,26 L71,30 L70,38 L74,44 L69,50
+         L70,57 L63,60 L60,66 L52,66 L47,71 L40,68 L33,71 L27,67 L20,66 L17,60
+         L10,57 L11,49 L6,44 L10,37 L8,30 L14,26 L15,19 L22,17 L27,12 L33,14 Z"
+      fill="#6b5a52"/>
+<!-- the crater basin -->
+<circle cx="40" cy="40" r="24" fill="url(#crater)"/>
+<!-- radiating fissures, splitting the rim -->
+<g fill="#241d28">
+  <path d="M40,16 L44,32 L38,33 L36,16 Z"/>
+  <path d="M64,40 L48,44 L47,38 L64,36 Z"/>
+  <path d="M40,64 L36,48 L42,47 L44,64 Z"/>
+  <path d="M16,40 L32,36 L33,42 L16,44 Z"/>
+  <path d="M58,22 L46,36 L42,32 L54,18 Z"/>
+  <path d="M58,58 L44,46 L48,42 L62,54 Z"/>
+</g>
+<!-- the glowing seam at the very centre, where the gravity is amped -->
+<circle cx="40" cy="40" r="6" fill="#c9baf5" opacity="0.9"/>
+<circle cx="40" cy="40" r="10" fill="none" stroke="#a893e8" stroke-width="1.5" opacity="0.6"/>
+</svg>
