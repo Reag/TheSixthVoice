@@ -34,7 +34,7 @@ Planned:
 
 | Family | Born with | Consumers |
 |---|---|---|
-| Lock-on consumed hook | 7 Naga | Black Mountain |
+| Lock-on consumed hook | 10 Naga | Black Mountain |
 | Attack redirection | 3 Subutai | Sluagh, Rakshasa, Lovers Knot — shape set by that frame's spike |
 | Once-per-round on-hit | 2 Fitzgerald, `mt_knock_em_down` | 5 Maiden's Blush, `mt_rend` — already two in-mod instances of the same two-method shape (`check_if_passive_applies` gating on `get_uses_this_round_alt(...) == 0`, and a `should_abort` that increments before `super`), differing only in `TRAIT_ID`/`USAGE_KEY` and the weapon type. **Trigger: extract into a shared parametrised base at the THIRD in-mod instance — or now, if the author says so.** Not done at two, deliberately: vanilla's Crack Shot III (`buff_watch_this.gd`) is the same one-script-per-trait duplication, both headers already say they are the same mechanism written the same way, and extracting means turning those two constants into `@export`s on a SHIPPED trait's `.tres`. |
 
