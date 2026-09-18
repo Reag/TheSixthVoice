@@ -1,0 +1,55 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/action_mastication_of_the_maar.gd" id="1_maar"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/deployable/dep_maar.tres" id="2_maar_frame"]
+[ext_resource type="Script" uid="uid://c0yv6pnw2be6l" path="res://engine/character/gear_action/resources/range_pattern.gd" id="3_rangepattern"]
+[ext_resource type="Script" uid="uid://df1yicp7kbf3x" path="res://engine/character/gear_action/resources/target_requirements.gd" id="4_targetreqs"]
+
+; BLAST 1 (pattern == Lancer.AOE_TYPE.BLAST == 1). This is the TARGETING preview and the shape the
+; filter below is applied over; the crater's own zone declares its own identical Blast 1, because the
+; two are different things that happen to agree.
+[sub_resource type="Resource" id="Resource_blast1"]
+script = ExtResource("3_rangepattern")
+pattern = 1
+value = 1
+
+[sub_resource type="Resource" id="Resource_targeting"]
+script = ExtResource("4_targetreqs")
+count = 1
+range_pattern = SubResource("Resource_blast1")
+; We are picking a SPACE, not a unit.
+can_target_empty_tiles = true
+can_target_units = false
+; BOTH of these are needed and neither is sufficient. UnitTargeting.filter_for_free_spaces returns
+; immediately unless requires_free_space is set (unit_targeting.gd:249), and only then does
+; aoe_must_be_free_space extend the same predicate over the whole Blast (:258-266). The predicate
+; itself is replaced in the script with one that only counts HOSTILE CHARACTERS, so "free" here means
+; "no hostile in it", not "empty".
+requires_free_space = true
+aoe_must_be_free_space = true
+
+[resource]
+script = ExtResource("1_maar")
+deployable_frame = ExtResource("2_maar_frame")
+; The engine's only "range = Sensors" idiom (action_system_deploy.gd:28-29). deploy_range is left at
+; its default because this overrides it.
+deploy_to_sensors = true
+; needs_los is deliberately NOT set. It is a dead export on 1.4.3 - declared at
+; action_system_deploy.gd:11 and read nowhere in engine/ or content/ - and the line of sight the card
+; asks for is delivered by Action.requires_line_of_sight_baseline, which defaults true. See the
+; script's header.
+;
+; ONE crater per press, at the chosen tile - not one per tile of the blast. deploy_to_every_aoe_space
+; stays false: the Blast 1 is the AREA THAT BECOMES DIFFICULT, and that is the single crater's own
+; terrain zone, not nine craters.
+deploy_to_every_aoe_space = false
+; They STACK. The card lays a new area each time and says nothing about the last one going away, and
+; ruling 8 has them merging by OR.
+remove_previous_deployments = false
+disable_while_deployed = false
+; QUICK (Lancer.ACTION.QUICK == 1).
+action_type = 1
+target_requirements_override = SubResource("Resource_targeting")
+; Its own group, separate from the protocol's and the shock's (unit_action.gd:167-168).
+usage_group = &"mastication_of_the_maar"
+emit_text_popcorn_on_use = true

@@ -408,6 +408,10 @@ const ICON_TARGETS := {
 	# and each needs its own icon; action_grav_amped_shock does not - it is a reaction with
 	# show_in_tooltip false, the mt_sap shape. All of these are SP3's.
 	&'cp_earth_shaker_grav_gen': [&'action_grav_amped_interference', &'action_mastication_of_the_maar'],
+	# SP2 Task 4 (Vauban). The Maar's own trait, on the deployable frame dep_maar rather than on the
+	# mech. It carries one terrain zone and no actions at all, so there is nothing here to illustrate
+	# beyond the Kit's own icon, which is SP3's - the mt_gravity_well shape.
+	&'mt_maar_terrain': [],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

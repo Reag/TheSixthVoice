@@ -78,6 +78,17 @@ static func create_hostile(game:Gamemaster, tile:Vector2i, evasion:int = 10) -> 
 static func create_ally(game:Gamemaster, tile:Vector2i) -> Unit:
 	return FitzgeraldFixture.create_dummy(game, tile, 10, Faction.PLAYER)
 
+## A hostile OBJECT - a Jericho cover on the enemy side.
+##
+## THE POINT IS THAT IT IS NOT A CHARACTER. Frame.ENTITY.OBJECT makes Unit.is_character() false
+## (unit.gd:116 -> frame.gd:101), so anything keyed on "hostile Characters" - which is the Maar's
+## target filter, design ruling 8 - must let this through even though it IS hostile. A hostile MECH
+## and a friendly object each fail to separate the two clauses on their own; this is the case that
+## does. Numbers are test_heaer.gd's (10 HP, no armor, evasion 10); none of them matter to a filter
+## that only asks what side it is on and whether it is a character.
+static func create_hostile_object(game:Gamemaster, tile:Vector2i) -> Unit:
+	return FitzgeraldFixture.create_deployable(game, tile, 10, 0, 10, Faction.AI_ENEMY)
+
 ## An allied DRONE: a character that is not a mech.
 ##
 ## Built by flipping is_drone on an ALREADY-ISOLATED frame rather than by loading a vanilla drone
