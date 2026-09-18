@@ -85,7 +85,8 @@ static func is_entering_difficult(unit:Unit, next_anchor:Vector2i) -> bool:
 	return not is_unit_in_difficult(unit)
 
 
-## Spawn `deployable` at `center`, owned by `specific.unit`, and hand the spawned unit back.
+## Spawn `deployable` at `center`, owned by `specific.unit`, and hand the spawned unit back - or NULL
+## if it did not land.
 ##
 ## The Apocalypse Rail's recipe (action_charge_rail_fire.gd:49-53): a Faction.NONE unit built from the
 ## frame, spawned with SKIP_ANIMATION. The frame decides the shape - MARKER or OBJECT, obstructing or
@@ -114,6 +115,22 @@ static func is_entering_difficult(unit:Unit, next_anchor:Vector2i) -> bool:
 ## nothing to order against, and a queued spawn would hand back a Unit that is not on the map yet.
 ## Same shape, and the same X.current_level() fallback for a caller with no live activation, as
 ## Teleport._run (teleport.gd:383-390).
+##
+## *** NULL MEANS "DID NOT LAND", AND THE SPAWN'S OWN EventCore IS WHAT SAYS SO. *** Teleport._run
+## hands its core back precisely so a caller can check; this helper's contract is the unit, so it does
+## the checking here instead and returns null. THE UNIT ALONE CANNOT BE THAT ANSWER: Unit.is_valid
+## does not include is_on_map (unit.gd:82-91), so an aborted spawn leaves a perfectly "valid" Unit with
+## no token, no tile and no terrain zone - and since every other failure path above returns null, a
+## caller reading non-null as success would take that corpse for a laid field. Three things are
+## checked, because they are three different failures:
+##   - a null core: execute_event returns bare when the block died under us (event_core.gd:72)
+##   - `aborted`: EventBlock sets it when the event's required context does not hold (event_block.gd:103,
+##     :121) - Tile.contains_valid(target_tiles, map) is measured against X.map(), not against the map
+##     this function bounds-checked, because the spawning unit is by definition not on the map yet
+##     (context.gd:79, :147)
+##   - not on the map: the level exited during the await, so EventBlock.execute returned at its own
+##     X.is_current_level_valid() guard and nothing was ever aborted OR spawned. Unit.is_valid is asked
+##     first here only so a unit freed under us is a null rather than a throw.
 static func lay(activation:EventCore, specific:SpecificAction, center:Vector2i, deployable:Frame) -> Unit:
 	if deployable == null: return null
 	if not SpecificAction.has_valid_unit(specific): return null
@@ -132,10 +149,14 @@ static func lay(activation:EventCore, specific:SpecificAction, center:Vector2i, 
 		target_tiles = [center],
 		flags = [EventUnitSpawn.FLAG.SKIP_ANIMATION],
 	}
+	var spawn:EventCore = null
 	if activation != null and activation.is_block_valid():
-		await activation.execute_event(&'event_unit_spawn', data)
-		return laid
-	var level := X.current_level()
-	if level == null: return null
-	await level.execute_event_block(EventBlock.create_multiple([EventCore.create(&'event_unit_spawn', data)]))
+		spawn = await activation.execute_event(&'event_unit_spawn', data)
+	else:
+		var level := X.current_level()
+		if level == null: return null
+		spawn = EventCore.create(&'event_unit_spawn', data)
+		await level.execute_event_block(EventBlock.create_multiple([spawn]))
+	if spawn == null or spawn.aborted: return null
+	if not Unit.is_valid(laid) or not laid.is_on_map(): return null
 	return laid
