@@ -506,6 +506,10 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# trait draws nothing else on the board, and the condition is the VAUBAN's ground rather than the
 	# ally's, so there is nothing under the ally's feet to explain it.
 	&'buff_gravity_well',
+	# SP2 Task 2 (Vauban). The +1 difficulty chip GRAV-AMPED INTERFERENCE hangs on every hostile once
+	# the protocol is pressed, per design ruling 11 - the author chose to see it rather than hide it.
+	# It is the only on-board signal a hostile gets that its saves are worse. Icon is SP3's.
+	&'buff_grav_amped_saves',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

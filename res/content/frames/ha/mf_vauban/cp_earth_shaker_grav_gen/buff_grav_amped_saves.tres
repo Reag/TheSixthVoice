@@ -1,0 +1,21 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/buff_grav_amped_saves.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+; TO.SAVE is the channel UnitHasecheck.roll_check reads (unit_hasecheck.gd:186).
+to = &"save"
+; EVERY save type: the card says "saves you force", not "Hull saves you force". With this true,
+; BuffSkillSave.check_if_passive_applies never consults save_type (buff_skill_save.gd:19), which is
+; why save_type is left at its default here rather than set to something arbitrary.
+all_save_types = true
+; ACCURACY, not FLAT: roll_check sorts a buff's value by its subtype (unit_hasecheck.gd:192-194), and
+; +1 Difficulty in Lancer is a difficulty DIE, not a -1 to the total. Dice.roll_d6_accuracy(-1) rolls
+; one d6 and negates it (dice.gd:86-88).
+bonus_subtype = &"accuracy"
+mod = -1
+; VISIBLE, per design ruling 11 - the author chose to see the chip on every hostile rather than hide
+; it. If they change their mind at the close this becomes true and
+; test_the_chip_is_visible_to_the_player flips with it.
+hide_from_player = false

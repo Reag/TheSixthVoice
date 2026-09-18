@@ -177,3 +177,146 @@ func test_the_vaubans_death_takes_the_field_with_it() -> void:
 	VaubanFixture.track(game)
 
 	assert_eq(difficult_tiles_on_the_map().size(), 0, 'unit-projected terrain needs its unit')
+
+# ---------------------------------------------------------------- B. the save difficulty
+
+const CHIP_ID := &'buff_grav_amped_saves'
+const SAP_ID := &'mt_sap'
+
+## A hostile far enough from the Vauban to be outside its Burst 1 field, and close enough to be inside
+## its Sensors (8) and line of sight - which is what Sap measures to.
+const SAP_VICTIM_TILE := Vector2i(10, 4)
+
+func hostile_at(tile:Vector2i) -> Unit:
+	var unit := VaubanFixture.create_hostile(game, tile)
+	VaubanFixture.track(game)
+	return unit
+
+## Stand `unit` in its own patch of difficult ground and open its turn, which is Sap's `new_turn` half.
+##
+## lay_difficult REPLACES the whole map's ground terrain, so it is called ONCE with every tile any
+## test wants; the Vauban's own field is DYNAMIC terrain and is merged on top of this rather than
+## erased by it (map_state.gd:474-478), so pressing the protocol and laying a patch compose.
+func sap_turn_for(unit:Unit) -> void:
+	VaubanFixture.lay_difficult(game, [unit.tile()])
+	VaubanFixture.track(game)
+	await VaubanFixture.open_turn(game, unit)
+
+func test_before_the_press_no_hostile_carries_the_chip() -> void:
+	var hostile := hostile_at(SAP_VICTIM_TILE)
+	assert_false(UnitCondition.has_buff(hostile, CHIP_ID), 'the aura starts dark')
+
+func test_the_press_chips_every_hostile() -> void:
+	var near := hostile_at(Vector2i(6, 4))
+	var far := hostile_at(Vector2i(13, 8)) # the far corner: the clause has no range on the card
+	await VaubanFixture.press_protocol(game, vauban)
+
+	assert_true(UnitCondition.has_buff(near, CHIP_ID), 'the near hostile is chipped')
+	assert_true(UnitCondition.has_buff(far, CHIP_ID), 'and so is the far one')
+
+func test_the_chip_reaches_a_hostile_that_arrives_after_the_press() -> void:
+	await VaubanFixture.press_protocol(game, vauban)
+	var latecomer := hostile_at(Vector2i(12, 6))
+	assert_true(UnitCondition.has_buff(latecomer, CHIP_ID), 'the aura keeps tracking after the press')
+
+func test_allies_the_vauban_and_non_characters_are_not_chipped() -> void:
+	var ally := VaubanFixture.create_ally(game, Vector2i(6, 6))
+	var hostile_drone := VaubanFixture.create_drone(game, Vector2i(8, 6), Faction.AI_ENEMY)
+	VaubanFixture.track(game)
+	await VaubanFixture.press_protocol(game, vauban)
+
+	assert_false(UnitCondition.has_buff(ally, CHIP_ID), 'an ally is not chipped')
+	assert_false(UnitCondition.has_buff(vauban, CHIP_ID), 'nor is the Vauban itself')
+	assert_true(UnitCondition.has_buff(hostile_drone, CHIP_ID),
+		'a hostile DRONE is a character and is chipped - applies_only_to_characters lets it through')
+
+func test_the_chip_is_visible_to_the_player() -> void:
+	# Ruling 11: the author chose to see it. If they change their mind at the close it becomes
+	# hide_from_player = true and this assertion flips with it.
+	await VaubanFixture.press_protocol(game, vauban)
+	var hostile := hostile_at(SAP_VICTIM_TILE)
+	var chip := UnitCondition.get_buff(hostile, CHIP_ID)
+	assert_not_null(chip, 'fixture: the chip is there')
+	assert_false(chip.base.hide_from_player, 'and the player can see it')
+
+func test_the_vaubans_death_clears_the_chip() -> void:
+	var hostile := hostile_at(SAP_VICTIM_TILE)
+	await VaubanFixture.press_protocol(game, vauban)
+	assert_true(UnitCondition.has_buff(hostile, CHIP_ID), 'fixture: chipped')
+
+	await game.execute_event(&'event_unit_die', {unit = vauban})
+	VaubanFixture.track(game)
+
+	assert_false(UnitCondition.has_buff(hostile, CHIP_ID),
+		'aura buffs carry the aura gear as from_gear and go with its owner (passive_aura.gd:52-58)')
+
+func test_a_sap_save_before_the_press_passes_on_an_exact_roll() -> void:
+	# The control the next test is measured against. The save target is the FORCER's - the Vauban's 12
+	# (event_unit_save.gd:41-43) - and the flat bonus is the SAVER's Hull, so a d20 of exactly
+	# (target - hull) meets it.
+	var hostile := hostile_at(SAP_VICTIM_TILE)
+	VaubanFixture.queue_save_dice(VaubanFixture.save_target_of(vauban) - hostile.core.get_hull())
+
+	await sap_turn_for(hostile)
+
+	assert_false(hostile.has_status(Lancer.STATUS.SLOWED), 'the save was made: no Slowed')
+
+func test_the_same_sap_save_after_the_press_fails() -> void:
+	# The difficulty die: Dice.roll_d6_accuracy(-1) rolls ONE d6 and negates it (dice.gd:86-88), and
+	# VaubanFixture.queue_save_dice's tail of sixes is what it pops - so the roll that exactly met the
+	# target now misses it by six.
+	var hostile := hostile_at(SAP_VICTIM_TILE)
+	await VaubanFixture.press_protocol(game, vauban)
+	VaubanFixture.queue_save_dice(VaubanFixture.save_target_of(vauban) - hostile.core.get_hull())
+
+	await sap_turn_for(hostile)
+
+	assert_true(hostile.has_status(Lancer.STATUS.SLOWED), 'the +1 difficulty turned the pass into a failure')
+
+func test_a_save_forced_by_somebody_else_is_untouched() -> void:
+	var hostile := hostile_at(SAP_VICTIM_TILE)
+	var stranger := hostile_at(Vector2i(12, 2))
+	await VaubanFixture.press_protocol(game, vauban)
+	VaubanFixture.queue_save_dice(VaubanFixture.save_target_of(stranger) - hostile.core.get_hull())
+
+	var passed:bool = await VaubanFixture.force_hull_save(self, hostile, VaubanFixture.forcer(stranger))
+
+	assert_true(passed, 'the chip asks WHO is forcing, and it is not the Vauban')
+
+func test_a_save_with_no_valid_forcer_is_untouched_and_does_not_throw() -> void:
+	# MEASURED BY THE SP2 PROBE, and the reason the buff's context-validity gate is load-bearing:
+	# roll_check copies the forcer into the buff context only `if SpecificAction.is_valid(forcing_action)`
+	# (unit_hasecheck.gd:180), and SpecificAction.is_valid demands ALL THREE of unit, gear and action
+	# (specific_action.gd:16-23). A save forced with anything less reaches the saver's buffs with NO
+	# forcer at all - the battle log says "failed a Hull save from ?" - and the chip must answer "no"
+	# rather than throw on a null context.unit.
+	var hostile := hostile_at(SAP_VICTIM_TILE)
+	await VaubanFixture.press_protocol(game, vauban)
+	VaubanFixture.queue_save_dice(VaubanFixture.save_target_of(vauban) - hostile.core.get_hull())
+
+	var passed:bool = await VaubanFixture.force_hull_save(self, hostile, SpecificAction.create(vauban, null, null))
+
+	assert_true(passed, 'no valid forcer reached the roll, so no -1 and no error')
+
+func test_a_save_forced_by_a_mine_the_vauban_owns_is_at_plus_one_difficulty() -> void:
+	# Ruling 9, and the reason the Iskander licence's own gear synergises with this core: "saves you
+	# force" is the forcer resolved through get_owner_unit_or_self (unit.gd:270-273), so a Grounding
+	# Charge mine the Vauban put down counts as the Vauban.
+	#
+	# The mine is DEPLOYED for real and then asked to force a save directly, rather than detonated:
+	# action_grounding_mine_trigger.activate calls TargetActionUtil.ask_for_targets_alt, an
+	# interactive pick, and a spec that hangs proves nothing. What is under test is the forcer
+	# resolution, not the mine's own targeting.
+	var hostile := hostile_at(SAP_VICTIM_TILE)
+	var gear := vauban.core.equip_system(&'ms_grounding_charges')
+	SpecFactory.apply_passive_buffs(vauban)
+	await VaubanFixture.press_protocol(game, vauban) # LAST: a repair would clear the press
+	await SpecFactory.use(game, vauban, &'ms_grounding_charges', &'action_grounding_mine', Vector2i(5, 4))
+	var deployed:Array = UnitAction.get_deployables_from(vauban, gear)
+	assert_false(deployed.is_empty(), 'fixture: a grounding mine was deployed')
+	var mine:Unit = deployed.front()
+
+	VaubanFixture.queue_save_dice(VaubanFixture.save_target_of(mine) - hostile.core.get_hull())
+	var passed:bool = await VaubanFixture.force_hull_save(self, hostile, VaubanFixture.forcer(mine, &'mt_grounding_mine'))
+
+	assert_false(passed, 'the mine forced it, and the mine is the Vauban')

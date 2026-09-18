@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="3_passive"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/action_grav_amped_interference.tres" id="4_protocol"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/passive_grav_amped_field.tres" id="5_field"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/passive_grav_amped_aura.tres" id="6_aura"]
 
 [resource]
 script = ExtResource("1_kit")
@@ -26,7 +27,7 @@ script = ExtResource("1_kit")
 ; MapState.add_dynamic_terrain_and_zones_from_unit walks every gear's every PassiveTerrainZone
 ; unconditionally (map_state.gd:427-432), which is exactly why the field has to gate itself.
 actions = Array[ExtResource("2_action")]([ExtResource("4_protocol")])
-passives = Array[ExtResource("3_passive")]([ExtResource("5_field")])
+passives = Array[ExtResource("3_passive")]([ExtResource("5_field"), ExtResource("6_aura")])
 ; A frame trait, not equippable gear: it costs no SP and cannot be unequipped. cp_quietus_machines,
 ; cp_siege_engine and cp_broadside are the same.
 is_trait = true
