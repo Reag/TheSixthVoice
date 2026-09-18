@@ -267,7 +267,7 @@ const ICON_TARGETS := {
 	# Three buttons on one Kit: the base weapon profile, the MORE BLACK POWDER protocol, and the
 	# second weapon profile the protocol unlocks. Each is separately pressable, so each wears its own
 	# icon rather than sharing the Kit's.
-	&'cp_broadside': {&'action_more_black_powder_protocol': &'action_more_black_powder_protocol'},
+	&'cp_broadside': {&'action_more_black_powder_protocol': &'action_more_black_powder'},
 	# The two CANNON PROFILES moved to their own Kit at the frame close, so the character sheet
 	# titles the integrated-weapon box "Bizarre Cannon" instead of "Broadside"
 	# (weapon_mount_item.gd:101 reads the KIT's name). See test_integrated_weapon_names.gd.
@@ -311,7 +311,7 @@ const ICON_TARGETS := {
 	# SP1 Task 1 (M/K2). A 1/scene trait whose single FREE action is a separately pressable button on
 	# the gear bar, so it wears its own icon as well as the Kit's - the ms_hull_break_thrusters
 	# reasoning, not the ms_heaer one.
-	&'mt_rapid_stabilization_jets': {&'action_rapid_stabilization_jets': &'action_rapid_stabilization_jets'},
+	&'mt_rapid_stabilization_jets': {&'action_rapid_stabilization_jets': KIT},
 	# SP1 Task 2 (M/K2). A pure passive: no action of its own, so it wears the Kit's icon.
 	&'mt_hybridized_shot': {},
 	# SP1 Task 3 (M/K2). The core system, one pressable protocol - cp_broadside's shape with one
@@ -321,7 +321,7 @@ const ICON_TARGETS := {
 	# gear bar (gear_bar.gd:145) - but unlike mt_blasting_powder's and ms_heaer's hidden bookkeeping
 	# reactions, this one does NOT override show_in_tooltip, so it is drawn on the trait card with
 	# its own row. It therefore earns its own icon as well as the Kit's.
-	&'mt_juggernaut_drive': {&'action_juggernaut_drive': &'action_juggernaut_drive'},
+	&'mt_juggernaut_drive': {&'action_juggernaut_drive': KIT},
 	# SP1 Task 2 (Subutai). A pure passive: no action of its own, so it wears the Kit's icon. Its
 	# BuffResistDamage is an inline SubResource and carries hide_from_player, so it is correctly
 	# absent from VISIBLE_BUFFS - it is never a chip on the unit.
@@ -335,7 +335,7 @@ const ICON_TARGETS := {
 	# The Rail is its OWN Kit since the frame close, so the character sheet can title the
 	# integrated-weapon box "Diversion Rail" instead of "Siege Engine"
 	# (weapon_mount_item.gd:101 reads the KIT's name). See test_integrated_weapon_names.gd.
-	&'mw_diversion_rail': {&'action_diversion_rail': &'action_diversion_rail'},
+	&'mw_diversion_rail': {&'action_diversion_rail': KIT},
 	# SP1 Task 3 (Myconid). Pure passives: a Gaze-shaped PassiveStatIncrease and a
 	# PassiveBuffApplicator carrying THREE hidden bookkeeping buffs since SP2.5 Task 1 (the third
 	# relieves a non-consuming reaction's per-round cap). No actions at all, so it wears the Kit's
@@ -428,7 +428,7 @@ const ICON_TARGETS := {
 	#
 	# The Kit's icon and the action's are both SP3's, so this row is what makes
 	# test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then.
-	&'mt_solfataric_breach': {&'action_solfataric_breach': &'action_solfataric_breach'},
+	&'mt_solfataric_breach': {&'action_solfataric_breach': KIT},
 	# SP1 Task 4 (Vauban). ITS ONE ACTION GETS NO ROW, for two independent reasons and by design.
 	# action_sap.gd overrides show_in_tooltip to false outright (design §1.4, the Poisoned Soil
 	# lesson) - and even without that, Action.show_in_tooltip (action.gd:350-353) returns false when
