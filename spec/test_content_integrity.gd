@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.5.0'
+const EXPECTED_VERSION := '0.6.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -220,6 +220,28 @@ func test_the_maidens_blush_consolation_rows_resolve():
 	for key:String in REACH_LOCALIZATION_ROWS:
 		assert_ne(tr(key), key, '%s resolves to real text.' % key)
 
+## The two Vauban rows no behavioural spec can falsify, housed here for the same reason as the two
+## lists above (frame close review slice 5, M-2 and I-1).
+##
+## The frame's other rows are guarded where they are used - test_vauban_frame.gd:180-188,
+## test_solfataric_breach.gd:238-242, test_sap.gd:277-279, test_gravity_well.gd:127-128,
+## test_grav_amped_interference.gd:93-99, test_mastication_of_the_maar.gd:136-140. These two cannot be:
+##
+## - `gear.mt_maar_terrain.name` belongs to a MARKER's trait Kit, and no surface a spec in this mod can
+##   reach renders its card at all.
+## - `gear.buff_grav_amped_saves.name` is the same string as the protocol's own name row - one card,
+##   one name - so the chip's name_text() renders identically whether it reads its own row or falls
+##   through to the protocol's (translate.gd:73-76). An assertion on the rendered text could never
+##   fail; an assertion that the row RESOLVES can.
+const VAUBAN_LOCALIZATION_ROWS:Array[String] = [
+	'gear.mt_maar_terrain.name',
+	'gear.buff_grav_amped_saves.name',
+]
+
+func test_the_vaubans_unguarded_rows_resolve():
+	for key:String in VAUBAN_LOCALIZATION_ROWS:
+		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+
 ## Every kit and player-facing buff this mod ships, and the actions on each kit that need their own
 ## icon. Filled in by each sub-project as it builds content; the icon pass is what makes it green.
 ##
@@ -377,6 +399,41 @@ const ICON_TARGETS := {
 	# it would fail. The player reads "Efficient" in the core power's own effect text, where the card
 	# puts it.
 	&'cp_caj_overhaul_modules': [&'action_step_of_mist_and_thunder', &'action_abjuration_of_metal'],
+	# SP1 Task 3 (Vauban). ITS ONE ACTION EARNS A ROW, unlike the Maiden's Blush's Uncertainty Field,
+	# and the difference is the localisation rather than the .tres. Action.show_in_tooltip
+	# (action.gd:350-353) returns false when an action's own `effect` row equals the KIT's generic
+	# one; here the Kit says "Gain the Solfataric Breach reaction" and the action says what it does,
+	# so the trait card draws a separate reaction row and that row wears its own icon - the
+	# mt_juggernaut_drive / action_draw_fire shape, not the ms_heaer one.
+	#
+	# NOTE WHICH CLAUSE IS NOT DOING THE WORK: the `.trigger` row is keyed on the ACTION, and
+	# show_in_tooltip's trigger clause (action.gd:344) reads the KIT's own `gear.<kit>.trigger` key,
+	# which this mod does not write. Same distinction the Gyre's row records.
+	#
+	# The Kit's icon and the action's are both SP3's, so this row is what makes
+	# test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then.
+	&'mt_solfataric_breach': [&'action_solfataric_breach'],
+	# SP1 Task 4 (Vauban). ITS ONE ACTION GETS NO ROW, for two independent reasons and by design.
+	# action_sap.gd overrides show_in_tooltip to false outright (design §1.4, the Poisoned Soil
+	# lesson) - and even without that, Action.show_in_tooltip (action.gd:350-353) returns false when
+	# an action's own `effect` row equals the KIT's generic one, which the localisation makes true
+	# here. Reactions never reach the gear bar either (gear_bar.gd:145), so nothing the player sees
+	# ever wears an icon for it: the ms_heaer / mt_uncertainty_field shape, not the
+	# mt_solfataric_breach one. Its buff_sap_reprieve is hidden and is correctly absent from
+	# VISIBLE_BUFFS. The Kit's own icon is SP3's.
+	&'mt_sap': [],
+	# SP1 Task 5 (Vauban). A pure passive: no action of its own, so it wears the Kit's icon and lists
+	# none. Its one buff, buff_gravity_well, is VISIBLE and is listed in VISIBLE_BUFFS below. The
+	# Kit's own icon is SP3's.
+	&'mt_gravity_well': [],
+	# EARTH SHAKER GRAV-GEN, the core system (SP2). Its two PRESSABLE actions each reach the gear bar
+	# and each needs its own icon; action_grav_amped_shock does not - it is a reaction with
+	# show_in_tooltip false, the mt_sap shape. All of these are SP3's.
+	&'cp_earth_shaker_grav_gen': [&'action_grav_amped_interference', &'action_mastication_of_the_maar'],
+	# SP2 Task 4 (Vauban). The Maar's own trait, on the deployable frame dep_maar rather than on the
+	# mech. It carries one terrain zone and no actions at all, so there is nothing here to illustrate
+	# beyond the Kit's own icon, which is SP3's - the mt_gravity_well shape.
+	&'mt_maar_terrain': [],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -467,6 +524,18 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# turn and the consequence lands on every attack the holder makes afterwards, with nothing else on
 	# the board to explain it - and unlike most chips here it lasts the whole scene.
 	&'buff_mist_and_thunder_invisible',
+	# SP1 Task 5 (Vauban). Gravity Well's chip, and visible for two independent reasons.
+	# attack_roll.gd:189 passes buff_core.base.icon RAW into the roll breakdown - NOT through
+	# Buff.get_icon() - so BuffBonus's difficulty-svg fallback (buff_bonus.gd:34-42) never runs on
+	# that path and a null icon draws a blank beside the -1; buff_diversion_rail is listed for exactly
+	# that reason. And it is a sheltered ally's only signal that it is being sheltered at all: the
+	# trait draws nothing else on the board, and the condition is the VAUBAN's ground rather than the
+	# ally's, so there is nothing under the ally's feet to explain it.
+	&'buff_gravity_well',
+	# SP2 Task 2 (Vauban). The +1 difficulty chip GRAV-AMPED INTERFERENCE hangs on every hostile once
+	# the protocol is pressed, per design ruling 11 - the author chose to see it rather than hide it.
+	# It is the only on-board signal a hostile gets that its saves are worse. Icon is SP3's.
+	&'buff_grav_amped_saves',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

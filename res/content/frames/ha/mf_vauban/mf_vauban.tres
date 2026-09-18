@@ -1,0 +1,74 @@
+[gd_resource type="Resource" script_class="Frame" format=3]
+
+[ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="1_frame"]
+[ext_resource type="Script" uid="uid://bxpc46igtsmvw" path="res://engine/character/unit/statblock.gd" id="2_statblock"]
+[ext_resource type="Script" uid="uid://dch85ypcupfgo" path="res://engine/character/unit_core/color_scheme.gd" id="3_colorscheme"]
+[ext_resource type="Texture2D" uid="uid://f4wtf6eaedu8" path="res://assets/palettes/toneramps/tone_highcontrast.png" id="4_toneramp"]
+[ext_resource type="Script" uid="uid://djuk56crywqss" path="res://engine/character/unit_core/mount_type.gd" id="5_mounttype"]
+[ext_resource type="Resource" uid="uid://bsktp4ushq6g1" path="res://content/mounts/mount_flex.tres" id="6_mountflex"]
+[ext_resource type="Resource" uid="uid://dj0bl2ve85q5o" path="res://content/mounts/mount_heavy.tres" id="7_mountheavy"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ha/mf_vauban/mf_vauban.png" id="9_sprite"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/mt_solfataric_breach/mt_solfataric_breach.tres" id="10_breach"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/mt_sap/mt_sap.tres" id="11_sap"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/mt_gravity_well/mt_gravity_well.tres" id="12_well"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/cp_earth_shaker_grav_gen.tres" id="13_core"]
+
+; DERIVED FROM THE SPRITE ART, NOT CLONED FROM THE ISKANDER (ruling R4, 2026-09-18). This block was a
+; byte-for-byte copy of mf_iskander.tres:20-26 until the frame close measured the art: mf_vauban.png
+; carries 2,515 opaque pixels and EVERY ONE OF THEM IS LITERAL - not a single channel-encoded pixel -
+; against the Iskander's 2522/1503/266 across channels 0/1/2. (Counted by the shader's own test:
+; palette_swap_func.gdshaderinc:38-41 matches (v,0,0), (0,v,0), (0,0,v) and (0,v,v) against the seven
+; red values in assets/palettes/palette_index_r.png, which are 255/221/187/153/119/85/51. Re-measured
+; 2026-09-18; the ruling's own figure says 2,514, a one-pixel difference that changes nothing.)
+; Every vanilla frame sprite is channel-encoded and this one is not, so the scheme cannot repaint the
+; token at all: it is INERT today, whatever colours it holds.
+;
+; So it holds the PLACEHOLDER'S OWN colours, by a colour census of that sprite; the ruling records
+; that each base is reproduced by its generated ramp's middle stop to within 2/255, which is what
+; makes the slot assignment more than decorative. The point is the handover: when
+; real channel-encoded art is dropped in, it inherits a default scheme that already matches what the
+; placeholder looked like, instead of repainting the frame the day the art lands.
+;
+; SLOT ORDER IS VANILLA'S CONVENTION - most-used channel first, which is what the Iskander's own
+; 2522/1503/266 spread is. base_3 is written because ColorScheme really does read it (get_color(3) ->
+; target_palette_4, palette_swap_func.gdshaderinc:8); vanilla leaves it null, which on a typed Color
+; export is a no-op that keeps DEFAULT_BASE.
+;
+; palette_2 = tone_highcontrast is UNCHANGED, and it is the Iskander's own slot and ramp: the frame
+; still reads as an HA machine, it just no longer claims to be painted like one.
+[sub_resource type="Resource" id="Resource_colorscheme"]
+script = ExtResource("3_colorscheme")
+palette_2 = ExtResource("4_toneramp")
+base_0 = Color(0.29411766, 0.22745098, 0.2901961, 1)
+base_1 = Color(0.8784314, 0.87058824, 0.827451, 1)
+base_2 = Color(0.1882353, 0.6431373, 0.5647059, 1)
+base_3 = Color(0.89411765, 0.78431374, 0.4392157, 1)
+
+[sub_resource type="Resource" id="Resource_statblock"]
+script = ExtResource("2_statblock")
+size = 1
+structure = 4
+stress = 4
+health = 8
+armor = 2
+evasion = 6
+edef = 8
+speed = 4
+heat = 7
+save_target = 12
+sensor_range = 8
+tech_attack = -1
+repairs = 4
+systems_points = 6
+reactions = 1
+activations = 1
+
+[resource]
+script = ExtResource("1_frame")
+default_color_scheme = SubResource("Resource_colorscheme")
+sprites = Array[Texture2D]([ExtResource("9_sprite")])
+traits = Array[ExtResource("8_kit")]([ExtResource("10_breach"), ExtResource("11_sap"), ExtResource("12_well"), ExtResource("13_core")])
+mount_types = Array[ExtResource("5_mounttype")]([ExtResource("6_mountflex"), ExtResource("7_mountheavy")])
+stat = SubResource("Resource_statblock")
+role_primary = 3

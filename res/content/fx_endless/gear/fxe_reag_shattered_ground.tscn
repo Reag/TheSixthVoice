@@ -1,0 +1,74 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://ck34knquhucbv" path="res://engine/gamemaster/effects_controller/fx_endless/fx_endless.gd" id="1_fxe"]
+[ext_resource type="ArrayMesh" uid="uid://b4gmg8dwxso1o" path="res://assets/fx/resources/0_standard_spike.tres" id="2_spike"]
+
+; Design ruling 13: both terrain zones (the Maar's crater, the Grav-Amped field) draw this one
+; scene, built from the same violet-grey palette as dep_maar.svg's glow - shattered rock shards
+; drifting up off the broken ground rather than the haze Poisoned Soil uses, since this ground is
+; cracked open rather than toxic. Structurally the Poisoned Soil shape (fxe_poisoned_soil.tscn):
+; lock_height_to = 3 (SURFACE) so it sits on the ground rather than at the unit's centre, one
+; GPUParticles3D, one ParticleProcessMaterial, low amount, long lifetime.
+[sub_resource type="Gradient" id="Gradient_shattered_ground"]
+colors = PackedColorArray(0.62, 0.54, 0.87, 0.6, 0.2, 0.16, 0.24, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_shattered_ground"]
+gradient = SubResource("Gradient_shattered_ground")
+
+[sub_resource type="Curve" id="Curve_tumble_x"]
+_limits = [-2.0, 2.0, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_tumble_y"]
+_limits = [-2.0, 2.0, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_tumble_z"]
+_limits = [-2.0, 2.0, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveXYZTexture" id="CurveXYZTexture_shattered_ground"]
+curve_x = SubResource("Curve_tumble_x")
+curve_y = SubResource("Curve_tumble_y")
+curve_z = SubResource("Curve_tumble_z")
+
+[sub_resource type="Curve" id="Curve_scale_shattered_ground"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.14406781, 1), 0.0, 0.0, 0, 0, Vector2(0.8483051, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="CurveTexture" id="CurveTexture_scale_shattered_ground"]
+curve = SubResource("Curve_scale_shattered_ground")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_shattered_ground"]
+lifetime_randomness = 0.5
+direction = Vector3(0, -1, 0)
+spread = 35.0
+flatness = 0.15
+initial_velocity_min = 0.03
+initial_velocity_max = 0.09
+orbit_velocity_min = 0.006
+orbit_velocity_max = 0.015
+orbit_velocity_curve = SubResource("CurveXYZTexture_shattered_ground")
+gravity = Vector3(0, -0.02, 0)
+damping_min = 0.08
+damping_max = 0.08
+scale_min = 0.3
+scale_max = 0.7
+scale_curve = SubResource("CurveTexture_scale_shattered_ground")
+color = Color(0.5, 0.44, 0.68, 1)
+color_ramp = SubResource("GradientTexture1D_shattered_ground")
+
+[node name="Fxe" type="Node3D"]
+script = ExtResource("1_fxe")
+lock_height_to = 3
+
+[node name="ShatteredShards" type="GPUParticles3D" parent="."]
+amount = 6
+lifetime = 18.0
+speed_scale = 0.4
+randomness = 0.6
+process_material = SubResource("ParticleProcessMaterial_shattered_ground")
+draw_pass_1 = ExtResource("2_spike")

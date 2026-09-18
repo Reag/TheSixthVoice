@@ -1,0 +1,194 @@
+## SAP: the shattered ground drags at anything hostile that walks into it.
+##
+##   "When a hostile character within sensors and line of sight enters, or starts their turn, in an
+##    area of difficult terrain, they must make a Hull save or become Slowed until the end of their
+##    next turn. A character that succeeds this save is unaffected by Sap until the end of their next
+##    turn."
+##
+## ONE REACTION ON TWO TRIGGERS, because the card is one sentence with two clauses and splitting it
+## would need two usage groups, two localisation blocks and two things to keep in step.
+##
+##  - `step` at PRE (event_unit_move.gd:198) is the ONLY timing at which the tile about to be entered
+##    is readable: :325-327 sets context.target_tiles to it for the mover and for every virtual
+##    involuntary move in the katamari, and clears it again afterwards.
+##  - `new_turn` at PRE (event_turn_start.gd:14) is the other clause. Note event_turn_start ALSO fires
+##    a virtual core for every DEPLOYABLE the turn-taker owns (:17-21), with the deployable as
+##    context.unit - which is why is_character() below is load-bearing rather than defensive. Without
+##    it a piece of cover in the field would be asked to save, and UnitHasecheck.make_hull_save returns
+##    false for a non-character without rolling anything (unit_hasecheck.gd:53), which this action
+##    would read as a failure.
+##
+## THE GATE IS CLOSED: IT RECOGNISES TWO EVENT TYPES AND REFUSES EVERY OTHER ONE. `step` at PRE has
+## THREE emitters, not one, and only the first of them is a move:
+##   - event_unit_move.gd:198          - the real step, context.target_tiles = the tile being entered
+##   - ms_land/action_land.gd:43       - a LANDING, on the gear activation's OWN core
+##   - action_takeoff/action_takeoff.gd:54 - a TAKEOFF, likewise
+## The latter two run execute_reaction_events(STEP, PRE) on an `event_gear_activate` core whose context
+## carries `unit` = the user (their own comments say they "impersonate event_unit_move for any
+## reactions that care about movement type"), so they pass the required-context check and reach this
+## gate with no target_tiles at all. Taking off from, or landing on, the tile a unit ALREADY occupies
+## is neither "enters" nor "starts their turn in" - consistent with ruling 3, where an entry is the
+## destination footprint touching difficult ground while the current one does not. So the fall-through
+## returns false rather than treating an unrecognised core as a turn start; a hostile flier hovering
+## over the Vauban's shattered ground is not Sapped for putting its feet down.
+##
+## NOT A REAL REACTION. consumes_rxn = false and the per-round hard limit is overridden to 99, because
+## ActionReaction only returns 99 for a non-consuming reaction and returns 1 otherwise
+## (action_reaction.gd:69, measured 2026-09-18 - :66 is is_jammable()) - the card gives Sap no cadence
+## at all, and ruling 3 took "a save on every entry" over a cap. A Vauban that has already spent its
+## reaction on Solfataric Breach still Saps.
+##
+## show_in_tooltip IS OVERRIDDEN TO FALSE (design §1.4, the Poisoned Soil lesson): the Kit's own rows
+## describe the whole trait, and a second copy of the same paragraph under a "Trigger:" heading is
+## noise on the trait card. show_in_tooltip is a FUNCTION on Action (action.gd:341), not an exported
+## property, so this is the only way to set it.
+##
+## WHERE IT MEASURES (ruling 3): TO THE ENTERED TILE, not to the mover. At the step-PRE gate the mover
+## has not moved, so UnitRelation.distance_between would measure to the tile it is LEAVING. The
+## distance below is a minimum Chebyshev over the Vauban's own occupied tiles (Tile.distance,
+## tile.gd:380-387) - the horizontal term UnitRelation.closest_tiles_between itself uses
+## (unit_relation.gd:13-25), without the vertical one, which has no meaning against a bare tile. Sight
+## is UnitTile.is_tile_in_los, the per-tile call UnitRelation.can_see makes (:213-215), PLUS the
+## BLINDED guard can_see applies before it (:210-211) - see watches_tile.
+## UnitTile.get_tiles_within was the other candidate and is the wrong shape here: it allocates an
+## O(range^2) array and runs a sight pass by default, and this gate is asked for every step of every
+## move of every unit on the map. It also carries the BLINDED rule (:579), which is why that rule has
+## to be written out here rather than inherited.
+##
+## FOR A SIZE >= 2 MOVER THE TWO HALVES MEASURE DIFFERENT THINGS, AND THAT IS RECORDED RATHER THAN
+## FIXED. Terrain.is_entering_difficult expands the destination ANCHOR into the whole footprint
+## (design §1.2), so any tile of the destination being difficult is an entry; Sensors and sight below
+## are then measured to the ANCHOR ALONE, because context.target_tiles carries exactly one tile
+## (event_unit_move.gd:325-327 sets it to matching_move.next_tile). So a size-2 hostile whose anchor
+## is outside Sensors while its difficult tile is inside them is not Sapped, and the reverse case is.
+## Ruling 3 says "the entered tile" and does not distinguish which of a footprint's tiles that is; the
+## Vauban is size 1 and no shipped case reaches the asymmetry. Measuring to the closest difficult tile
+## instead would mean Terrain handing the tile back, which is a FROZEN-interface change and therefore
+## a three-frame decision rather than a Vauban one.
+##
+## THE SLOWED IT APPLIES IS AN ORDINARY STATUS sourced to this gear (ruling 4) - clearable by
+## Stabilize, visible to get_status, and exactly what Solfataric Breach's gate then sees. The reprieve
+## is a hidden buff this gate refuses. Neither is exempt from anything: the card names no exemption,
+## unlike Caustic Earth's, so a flier or a terrain-ignoring mech still saves.
+##
+## *** TWO VAUBANS SHARE ONE REPRIEVE, AND THAT IS ACCEPTED BEHAVIOUR (ruling R3), NOT AN OVERSIGHT.
+## *** The gate asks UnitCondition.has_buff(target, REPRIEVE_BUFF) with NO source argument, and
+## has_buff matches on compcon_id alone when source_id is empty (unit_condition.gd:812-814, :819-820).
+## So a hostile that passes ONE Vauban's save is unaffected by EVERY Vauban's Sap until the reprieve
+## expires: the card's "unaffected by Sap" is read as a property of the hostile, not of the gear that
+## asked. Keyed on the ability, not on the gear - the same answer ruling R3 gives Gravity Well's one
+## shared chip. test_the_reprieve_is_shared_across_two_vaubans pins it, so a later session cannot flip
+## it in silence; adding a source argument here is the change that test exists to catch.
+## Note the FIRST entry is still asked once per Vauban: ReactionBus.trigger_occurred evaluates every
+## gate on the map and collects the blocks BEFORE any of them activates (reaction_bus.gd:50-59), so
+## the reprieve one Vauban grants cannot refuse a gate that has already been asked.
+extends ActionReaction
+
+const Terrain := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/terrain/terrain.gd')
+
+const REPRIEVE_BUFF := &'buff_sap_reprieve'
+
+## Both triggering events carry the unit this is about: the mover for `step`, the turn-taker (or the
+## deployable, see the header) for `new_turn`.
+func get_required_triggering_context() -> Array[Context.PROP]:
+	return [Context.PROP.unit]
+
+## ActionReaction returns 1 for a consuming reaction and 99 otherwise (action_reaction.gd:69); this
+## one consumes nothing, so 99 is already what it would return. Written out anyway, because the
+## card's "no cadence" is a RULING (ruling 3, the author's call over a once-per-round cap) and a
+## future edit that flipped consumes_rxn would otherwise silently acquire a cap.
+func get_per_round_hard_limit(_specific:SpecificAction) -> int:
+	return 99
+
+func show_in_tooltip(_kit:Kit) -> bool: return false
+
+func triggers_on_event(unit:Unit, _gear:GearCore, triggering_event:EventCore) -> bool:
+	var context:Context = triggering_event.context
+	var target:Unit = context.unit
+	if not Unit.is_valid(target): return false
+	# SHADOWED BY are_enemies BELOW AND KEPT ANYWAY: a faction is never its own enemy
+	# (unit_relation.gd:361-362), so this line refuses nothing that line would not. It is documentation
+	# of the card's "hostile" reading, not behaviour under test - no spec can separate it.
+	if target == unit: return false
+	if not target.is_character(): return false
+	if not UnitRelation.are_enemies(unit, target): return false
+
+	var entered:Vector2i = Tile.INVALID
+	if triggering_event.base.event_type == &'event_unit_move':
+		# The tile about to be entered, readable at PRE only. A move context without one is not a step
+		# this action can measure.
+		if context.target_tiles.is_empty(): return false
+		entered = context.target_tiles.front()
+		if not Terrain.is_entering_difficult(target, entered): return false
+	elif triggering_event.base.event_type == &'event_turn_start':
+		# Includes the virtual cores event_turn_start.gd:17-21 raises for the turn-taker's deployables;
+		# is_character() above has already refused those.
+		if not Terrain.is_unit_in_difficult(target): return false
+		entered = target.tile()
+	else:
+		# Anything else carrying `step` PRE is a Land (action_land.gd:43) or a Takeoff
+		# (action_takeoff.gd:54) on its own event_gear_activate core. See the header: neither is an
+		# entry, so neither is Sapped.
+		return false
+
+	# BELOW THE EVENT-TYPE DISPATCH ON PURPOSE. has_buff ALLOCATES - it filters state.buffs through a
+	# Callable (unit_condition.gd:819-820 -> get_buffs) - while the dispatch above is a StringName
+	# compare and a Dictionary.get (map_state.gd:140-142 does no lazy computation and writes no cache),
+	# and the terrain test refuses almost every step of almost every move on the map before this is
+	# reached. Behaviour is identical either way: every clause here is a side-effect-free predicate.
+	if UnitCondition.has_buff(target, REPRIEVE_BUFF): return false
+
+	return watches_tile(unit, entered)
+
+## Is `tile` within the Vauban's Sensors and in its line of sight? See the header for why it is
+## measured to the TILE rather than to the unit standing on it.
+func watches_tile(unit:Unit, tile:Vector2i) -> bool:
+	if tile == Tile.INVALID: return false
+	var map:MapState = unit.map
+	if map == null: return false
+	if distance_to_tile(unit, tile) > unit.get_sensor_range(): return false
+	# A BLINDED VAUBAN SEES ONLY WHAT IT IS STANDING NEXT TO, and that rule has to be written out here
+	# because the per-tile call below does not carry it. UnitTile.is_tile_in_los takes TILES, not a
+	# unit (unit_tile.gd:481), so it cannot consult a status at all - while the engine's own per-tile
+	# sight does: get_tiles_in_los returns the adjacent tiles and nothing else for a Blinded unit
+	# (:530-531) and get_tiles_within clamps its range to 1 (:579). UnitRelation.can_see short-circuits
+	# the same way at :210-211, and can_see is what this frame's own Solfataric Breach asks - both
+	# cards say "within sensors and line of sight", so both have to answer it the same way. Without
+	# this line a Blinded Vauban keeps Sapping every entry out to Sensors 8.
+	if unit.has_status(Lancer.STATUS.BLINDED): return distance_to_tile(unit, tile) <= 1
+	return UnitTile.is_tile_in_los(
+		map, unit.occupied_tiles(), UnitTile.effective_height(unit, true),
+		tile, unit.core.persistent_id
+	)
+
+## Chebyshev distance from the CLOSEST of the unit's own tiles to `tile`.
+func distance_to_tile(unit:Unit, tile:Vector2i) -> int:
+	var closest := 9999
+	for own_tile:Vector2i in unit.occupied_tiles():
+		closest = mini(closest, Tile.distance(own_tile, tile))
+	return closest
+
+func activate(context:Context, activation:EventCore) -> void:
+	var gear:GearCore = context.gear
+	var triggering:Context = context.event.context
+	var target:Unit = triggering.unit
+	if not Unit.is_valid(target) or not GearCore.is_valid(gear): return
+
+	# SpecificAction.from_context(context) is (the Vauban, the Sap gear, the Sap action) - the forcer
+	# triple SP2's core power keys "saves you force" on (ruling 9). The save target is the FORCER's
+	# (event_unit_save.gd:41-43), i.e. the Vauban's 12; the flat bonus is the SAVER's Hull.
+	var passed:bool = await UnitHasecheck.make_hull_save(activation, target, SpecificAction.from_context(context))
+
+	# The save resolves inside its own event, and SP2's 3 AP reaction fires at forced_save POST from
+	# inside it - so the target can be dead by the time we get here, and a hostile the 3 AP kills is
+	# never Slowed and never feeds Breach (ruling 10).
+	if activation.abort_without_unit(target): return
+
+	if passed:
+		UnitCondition.apply_buff_id(activation, target, REPRIEVE_BUFF, gear)
+		return
+	UnitCondition.apply_status(
+		activation, target,
+		Lancer.STATUS.SLOWED, Lancer.UNTIL.END_OF_NEXT_TURN,
+		gear.persistent_id
+	)

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/mt_gravity_well/buff_gravity_well.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/buff_gravity_well.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_buff")
+icon = ExtResource("2_icon")
+to = &"attack_roll_incoming"
+bonus_subtype = &"accuracy"
+bonus_value = -1
+; MANUAL. The aura owns this chip's lifetime - it hangs it on everyone in range and strips it on
+; leaving range or on the Vauban's death (passive_aura.gd:55-59). Nothing else should expire it.
+until = 0
+; VISIBLE, deliberately, and listed in test_content_integrity's VISIBLE_BUFFS. Two independent
+; reasons: attack_roll.gd:189 passes base.icon RAW into the roll breakdown - not through
+; Buff.get_icon() - so BuffBonus's difficulty-svg fallback never runs there and a null icon draws a
+; blank beside the -1; and it is a sheltered ally's only signal that it is being sheltered at all.
+; SP3: bespoke art (the gravity-well wedge ring with a downward chevron for "your shot bends"),
+; not vanilla's inaccuracy.svg - see gen_vauban_icons.py's header for why.
+hide_from_player = false

@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="2_passive"]
+[ext_resource type="Script" uid="uid://cdg8upk76j000" path="res://engine/character/gear_passive/passive_terrain_zone.gd" id="3_terrainzone"]
+[ext_resource type="Script" uid="uid://bhirgicgi66th" path="res://engine/gamemaster/map/terrain/terrain_data.gd" id="4_terraindata"]
+[ext_resource type="Script" uid="uid://c0yv6pnw2be6l" path="res://engine/character/gear_action/resources/range_pattern.gd" id="5_rangepattern"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_maar_terrain.svg" id="6_icon"]
+[ext_resource type="PackedScene" path="res://unpacked/Reag-TheSixthVoice/res/content/fx_endless/gear/fxe_reag_shattered_ground.tscn" id="7_fxe"]
+
+; BLAST 1 (Lancer.AOE_TYPE.BLAST == 1, lancer.gd:96-100), centred on the crater itself, and it takes
+; the Apocalypse Rail's shape (mt_apocalypse_difficult.tres declares pattern = 1, value = 2 - a
+; Blast 2, not the Burst 2 design §4 called it).
+;
+; A BLAST IS THE RIGHT PATTERN FOR A MARKER, which is a better reason than "the same 3x3 anyway".
+; BURST covers the origin's whole FOOTPRINT plus the radius (AoeCalculator.burst iterates
+; range(-radius, center_size+radius), aoe_calculator.gd:33-35) where BLAST covers the anchor plus or
+; minus the radius (blast iterates range(-radius, radius+1), :13-14). A crater has no footprint to
+; project from - it is one tile of ground that never moves and never grows - so there is nothing for
+; BURST's extra term to express, and the vanilla precedent says BLAST. The Vauban's own field is a
+; BURST for the opposite reason (passive_grav_amped_field.tres): it is projected from a unit, and a
+; unit can have a footprint.
+[sub_resource type="Resource" id="Resource_blast1"]
+script = ExtResource("5_rangepattern")
+pattern = 1
+value = 1
+
+[sub_resource type="Resource" id="Resource_difficult"]
+script = ExtResource("4_terraindata")
+difficult_terrain = true
+
+; A PLAIN PassiveTerrainZone, not the gated one SP1 built: a crater has nothing to gate on. It exists
+; only while its unit does, which IS its lifetime.
+[sub_resource type="Resource" id="Resource_zone"]
+script = ExtResource("3_terrainzone")
+terrain_data = SubResource("Resource_difficult")
+range_pattern = SubResource("Resource_blast1")
+height = 1
+; SP3, design ruling 13: the shared per-tile ground fx, the same scene the Grav-Amped field wears
+; (passive_grav_amped_field.tres). PassiveTerrainZone.get_attached_fx draws one instance at every
+; voxel this zone's own range_pattern covers - Passive.fxe (passive.gd:6), read through get_fxe_id().
+fxe = ExtResource("7_fxe")
+
+[resource]
+script = ExtResource("1_kit")
+; The crater's only content: the ground it makes difficult. No actions - in particular NOT
+; mt_die_on_owner_death, which is the trait the Magnetic Field Projector's deployable adds beside its
+; zone and which this one deliberately leaves off (design ruling 8: the Maar outlives the Vauban).
+passives = Array[ExtResource("2_passive")]([SubResource("Resource_zone")])
+is_trait = true
+icon_override = ExtResource("6_icon")

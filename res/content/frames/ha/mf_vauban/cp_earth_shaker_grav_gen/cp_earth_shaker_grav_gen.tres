@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="2_action"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="3_passive"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/action_grav_amped_interference.tres" id="4_protocol"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/passive_grav_amped_field.tres" id="5_field"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/passive_grav_amped_aura.tres" id="6_aura"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/action_grav_amped_shock.tres" id="7_shock"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/cp_earth_shaker_grav_gen/action_mastication_of_the_maar.tres" id="8_maar"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_earth_shaker_grav_gen.svg" id="9_icon"]
+
+[resource]
+script = ExtResource("1_kit")
+; EARTH SHAKER GRAV-GEN, the Vauban's core system. One protocol that lights three things, one quick
+; action that lays a crater, and the deployable that crater is.
+;
+; GROWS ACROSS FOUR TASKS, in this order: the protocol and the field (Task 1), the save aura and its
+; buff (Task 2), the 3 AP reaction (Task 3), MASTICATION OF THE MAAR (Task 4). Each appends; nothing
+; reorders. The arrays below are therefore in build order, which is also the order the gear bar shows
+; the two pressables in (gear_bar.gd walks the actions array).
+;
+; WHAT PUTS THIS KIT IN LoadoutCore.auras: the PassiveAura added in Task 2. regenerate_caches
+; (loadout_core.gd:298-301) walks every piece of gear and appends any whose Kit has_passive_type
+; (PassiveAura); that list is what PassiveAura.update_unit iterates (:31). A Kit without one is
+; invisible to the aura system however its passives are shaped - which is why Task 2's aura is not
+; optional scaffolding but the thing that makes set_aura_active mean anything here.
+;
+; THE TERRAIN ZONE DOES NOT GO THROUGH THAT LIST AND NEEDS NOTHING TO REGISTER IT.
+; MapState.add_dynamic_terrain_and_zones_from_unit walks every gear's every PassiveTerrainZone
+; unconditionally (map_state.gd:427-433), which is exactly why the field has to gate itself.
+; The protocol is FIRST because that is the order the sheet prints them and the order the gear bar
+; shows them in. action_grav_amped_shock sits between the two pressables and is invisible on the bar
+; (show_in_tooltip false, and reactions never reach it - gear_bar.gd:145), so it does not separate
+; them in play.
+actions = Array[ExtResource("2_action")]([ExtResource("4_protocol"), ExtResource("7_shock"), ExtResource("8_maar")])
+passives = Array[ExtResource("3_passive")]([ExtResource("5_field"), ExtResource("6_aura")])
+; A frame trait, not equippable gear: it costs no SP and cannot be unequipped. cp_quietus_machines,
+; cp_siege_engine and cp_broadside are the same.
+is_trait = true
+;
+; NO INTEGRATED WEAPON. The Vauban's sheet lists none, so unlike the Subutai and the Myconid there is
+; no mw_ Kit beside this one and no integrated-weapon box to title. The 2026-09-17 directive
+; (memory integrated-weapon-two-kit-rule) has nothing to bite on here.
+icon_override = ExtResource("9_icon")
