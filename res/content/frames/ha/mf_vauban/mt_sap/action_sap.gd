@@ -18,6 +18,20 @@
 ##    false for a non-character without rolling anything (unit_hasecheck.gd:53), which this action
 ##    would read as a failure.
 ##
+## THE GATE IS CLOSED: IT RECOGNISES TWO EVENT TYPES AND REFUSES EVERY OTHER ONE. `step` at PRE has
+## THREE emitters, not one, and only the first of them is a move:
+##   - event_unit_move.gd:198          - the real step, context.target_tiles = the tile being entered
+##   - ms_land/action_land.gd:43       - a LANDING, on the gear activation's OWN core
+##   - action_takeoff/action_takeoff.gd:54 - a TAKEOFF, likewise
+## The latter two run execute_reaction_events(STEP, PRE) on an `event_gear_activate` core whose context
+## carries `unit` = the user (their own comments say they "impersonate event_unit_move for any
+## reactions that care about movement type"), so they pass the required-context check and reach this
+## gate with no target_tiles at all. Taking off from, or landing on, the tile a unit ALREADY occupies
+## is neither "enters" nor "starts their turn in" - consistent with ruling 3, where an entry is the
+## destination footprint touching difficult ground while the current one does not. So the fall-through
+## returns false rather than treating an unrecognised core as a turn start; a hostile flier hovering
+## over the Vauban's shattered ground is not Sapped for putting its feet down.
+##
 ## NOT A REAL REACTION. consumes_rxn = false and the per-round hard limit is overridden to 99, because
 ## ActionReaction only returns 99 for a non-consuming reaction and returns 1 otherwise
 ## (action_reaction.gd:66) - the card gives Sap no cadence at all, and ruling 3 took "a save on every
@@ -78,9 +92,16 @@ func triggers_on_event(unit:Unit, _gear:GearCore, triggering_event:EventCore) ->
 		if context.target_tiles.is_empty(): return false
 		entered = context.target_tiles.front()
 		if not Terrain.is_entering_difficult(target, entered): return false
-	else:
+	elif triggering_event.base.event_type == &'event_turn_start':
+		# Includes the virtual cores event_turn_start.gd:17-21 raises for the turn-taker's deployables;
+		# is_character() above has already refused those.
 		if not Terrain.is_unit_in_difficult(target): return false
 		entered = target.tile()
+	else:
+		# Anything else carrying `step` PRE is a Land (action_land.gd:43) or a Takeoff
+		# (action_takeoff.gd:54) on its own event_gear_activate core. See the header: neither is an
+		# entry, so neither is Sapped.
+		return false
 
 	return watches_tile(unit, entered)
 

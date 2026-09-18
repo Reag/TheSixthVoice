@@ -42,6 +42,7 @@ const TRAIT_ID := &'mt_sap'
 const ACTION_ID := &'action_sap'
 const REPRIEVE_BUFF := &'buff_sap_reprieve'
 const BREACH_ID := &'mt_solfataric_breach'
+const RECORDER_KIT := &'spec_sap_step_recorder'
 
 const MAP_SIZE := Vector2i(15, 9)
 const VAUBAN_TILE := Vector2i(2, 4)
@@ -127,6 +128,39 @@ class SaveRecorder extends Buff:
 		})
 		return false
 
+## A `step` PRE recorder for the Vauban, and the ONLY reason the landing test below is not vacuous: it
+## records the event_type of every core that reaches a step-PRE gate on this unit, so the test can say
+## the landing really did raise one before asserting that Sap refused it. Without it the test would
+## read exactly the same if action_land had emitted nothing at all.
+##
+## It NEVER fires - triggers_on_event records and returns false - so it adds nothing to the dice and
+## nothing to the unit. The probe's StepSlower (spec/test_spike_vauban_probe.gd:94-130) is the shape
+## this is cut down from.
+##
+## AN IN-CODE REACTION MUST CARRY AN ID, or its gate is asked TWICE (that probe's header, measured
+## 2026-09-18): Action.get_id() falls back to the resource path's basename, empty for a Resource built
+## in code, and ReactionBus.does_reaction_trigger opens with `if rxn.get_id() == X.DEBUG_REACTION`,
+## whose default is ALSO &'' (global.gd:239) - the debug branch then calls triggers_on_event once for
+## its print before the real evaluation calls it again (reaction_bus.gd:97-108).
+class StepRecorder extends ActionReaction:
+	var seen:Array[StringName] = []
+
+	func _init() -> void:
+		original_id = &'action_spec_sap_step_recorder'
+		triggers_on = [ReactionBus.TRIGGER.STEP]
+		trigger_timing = ReactionBus.TIMING.PRE
+		consumes_rxn = false
+
+	func get_required_triggering_context() -> Array[Context.PROP]:
+		return [Context.PROP.unit]
+
+	func get_per_round_hard_limit(_specific:SpecificAction) -> int:
+		return 99
+
+	func triggers_on_event(_unit:Unit, _gear:GearCore, triggering_event:EventCore) -> bool:
+		seen.append(triggering_event.base.event_type)
+		return false
+
 func before_each() -> void:
 	game = VaubanFixture.create_game(self, MAP_SIZE)
 	vauban = VaubanFixture.create_vauban(game, VAUBAN_TILE)
@@ -177,6 +211,25 @@ func reprieved(target:Unit) -> bool:
 func install_save_recorder(on:Unit) -> SaveRecorder:
 	var recorder := SaveRecorder.new()
 	UnitCondition.apply_buff_alt(SpecFactory.dummy_event(), on, BuffCore.create(recorder))
+	return recorder
+
+## Put the step recorder above on the Vauban. The probe's install() idiom: full_repair() is what
+## rebuilds LoadoutCore.reactions_by_trigger (loadout_core.gd:291-296), and without it the reaction is
+## invisible to ReactionBus.trigger_occurred.
+##
+## apply_passive_buffs rather than a bare full_repair, so the Vauban keeps its own traits' passive
+## buffs; and the reaction point is zeroed AGAIN afterwards because full_repair hands it back, which
+## would let Solfataric Breach into the dice sequence (see the file header).
+func install_step_recorder() -> StepRecorder:
+	var recorder := StepRecorder.new()
+	var kit := Kit.new()
+	kit.compcon_id = RECORDER_KIT
+	kit.is_trait = true
+	kit.actions.append(recorder)
+	vauban.core.loadout.equipped_kits.append(kit)
+	SpecFactory.apply_passive_buffs(vauban)
+	VaubanFixture.track(game)
+	vauban.core.current.reactions = 0
 	return recorder
 
 func place_wall() -> void:
@@ -412,6 +465,48 @@ func test_a_hostile_starting_its_turn_on_clean_ground_is_not_asked():
 	await SpecFactory.start_turn(game, hostile)
 
 	assert_eq(recorder.saves.size(), 0, 'Standing on clean ground, nobody is asked.')
+
+# ---------------------------------------------------------------- landing is not entering
+
+func test_a_hostile_flier_landing_on_difficult_ground_is_not_asked():
+	# THE THREE `step` PRE EMITTERS ARE NOT ALL MOVES, and the gate is CLOSED because of it.
+	# event_unit_move.gd:198 is the real step; ms_land/action_land.gd:43 and
+	# action_takeoff/action_takeoff.gd:54 run execute_reaction_events(STEP, PRE) on their OWN
+	# event_gear_activate core, deliberately - both files say they "MODIFY our own context to
+	# impersonate event_unit_move for any reactions that care about movement type". That core carries
+	# `unit` = the user, so it passes this action's required-context check and reaches the gate with no
+	# target_tiles at all. Putting your feet down on the tile you are already standing over is neither
+	# "enters" nor "starts their turn in" - ruling 3 makes an entry the destination footprint touching
+	# difficult ground while the current one does not, and a landing has only one footprint.
+	#
+	# WITH THE OLD `else` THIS WAS RED, and the failure is worth naming: the else treated ANY non-move
+	# core as a turn start, is_unit_in_difficult was true, and the flier was asked a Hull save it failed
+	# on the queued 1 - Slowed for landing.
+	VaubanFixture.lay_difficult(game, [FIELD_A])
+	var step_recorder := install_step_recorder()
+	var flier := VaubanFixture.create_hostile(game, FIELD_A)
+	var save_recorder := install_save_recorder(flier)
+	# Through the REAL event, never SpecFactory.apply: that helper hands apply_status a dummy_event()
+	# whose block is not valid, and EventCore.queue_reaction_events returns on is_block_valid()
+	# (event_core.gd:60) - so the flight would never reach the bus at all.
+	await game.execute_event(&'event_unit_apply_status',
+		{unit = flier, category = Lancer.STATUS.FLYING, flags = [Lancer.UNTIL.MANUAL]})
+	queue_rolls([1])
+	assert_true(flier.has_status(Lancer.STATUS.FLYING), 'fixture: the hostile is airborne.')
+	assert_true(game.map.get_surface_terrain_at(FIELD_A).is_difficult(),
+		'fixture: and it is hovering over difficult ground, inside Sensors and in plain sight.')
+	assert_true(Tile.distance(VAUBAN_TILE, FIELD_A) <= vauban.get_sensor_range(),
+		'fixture: well inside Sensors, so only the event type can refuse this.')
+
+	await SpecFactory.use_solo(game, flier, &'ms_land')
+
+	assert_false(flier.has_status(Lancer.STATUS.FLYING), 'fixture: it really landed.')
+	assert_eq(step_recorder.seen, [&'event_gear_activate'] as Array[StringName],
+		'fixture: and the landing really did raise one `step` PRE core - on its own gear activation, '
+		+ 'not an event_unit_move. Without this the test would pass if action_land emitted nothing.')
+	assert_eq(save_recorder.saves.size(), 0, 'Landing on the tile you already occupy is not an entry.')
+	assert_false(slowed_by_sap(flier), 'So nothing Slowed it.')
+	assert_false(reprieved(flier), 'And nothing reprieved it - it was never in the conversation at all.')
 
 # ---------------------------------------------------------------- who and where
 
