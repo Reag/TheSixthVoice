@@ -209,3 +209,7 @@ gear.mt_sap.action_sap.effect,"When a hostile character within sensors and |line
 ,
 gear.mt_gravity_well.name,Gravity Well
 gear.mt_gravity_well.effect,"While the Vauban is in at least one space of |difficult terrain|, all ranged and melee attacks made against it have +1 |difficulty|. Any adjacent allied mechs also benefit from this ability."
+,
+gear.cp_earth_shaker_grav_gen.name,Earth shaker Grav-gen
+gear.cp_earth_shaker_grav_gen.action_grav_amped_interference.name,Grav-Amped Interference
+gear.cp_earth_shaker_grav_gen.action_grav_amped_interference.effect,"For the rest of the scene, you gain the following benefits: The Vauban generates a |Burst 1| field of |difficult terrain|. Saves you force are made with +1 Difficultly. When a hostile character fails a save you forced, they take 3 |AP| |Kinetic| damage. Each character can be affected by this ability only once per round."

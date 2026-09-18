@@ -64,9 +64,9 @@ const FIELD:Array[Vector2i] = [Vector2i(5, 4), Vector2i(6, 4)]
 ## order, so this is player-visible - and it is the one thing guarding an array that four separate
 ## tasks appended to, one at a time, each rewriting the whole file.
 ##
-## SP2 APPENDS cp_earth_shaker_grav_gen AFTER these three (design §2.1) and will extend this list
-## rather than replace it. The Vauban has no integrated weapon, so nothing follows the core.
-const SHEET_TRAITS:Array[StringName] = [&'mt_solfataric_breach', &'mt_sap', &'mt_gravity_well']
+## SP2 appended cp_earth_shaker_grav_gen after the three traits (design §2.1). The Vauban has no
+## integrated weapon, so nothing follows the core.
+const SHEET_TRAITS:Array[StringName] = [&'mt_solfataric_breach', &'mt_sap', &'mt_gravity_well', &'cp_earth_shaker_grav_gen']
 
 func _frame() -> Frame:
 	return ContentLibrary.get_mech_frame(FRAME_ID)
@@ -350,9 +350,10 @@ func test_the_fixture_lays_difficult_terrain_the_way_its_callers_assume():
 	assert_true(drone.is_character(), 'A drone IS a character - applies_only_to_characters passes it.')
 	assert_false(drone.is_mech(), 'And is NOT a mech - which is the clause Gravity Well needs.')
 
-func test_the_traits_are_the_three_sheet_traits_in_sheet_order():
+func test_the_traits_are_the_sheet_traits_in_sheet_order():
 	# Asserted as an exact ORDERED list rather than as a set: the sheet prints Solfataric Breach, Sap,
-	# Gravity Well in that order and the character sheet draws them in array order, so a reshuffle is
+	# Gravity Well and then the core system in that order and the character sheet draws them in array
+	# order, so a reshuffle is
 	# a visible change with no other guard anywhere in the suite. It also catches the natural mistake
 	# in the append-per-task shape this sub-project used - an entry added to the ext_resource block and
 	# forgotten in the array, or added twice.
@@ -366,7 +367,8 @@ func test_the_traits_are_the_three_sheet_traits_in_sheet_order():
 	if frame == null: return
 	var ids:Array[StringName] = []
 	for kit:Kit in frame.traits: ids.append(kit.compcon_id)
-	assert_eq(ids, SHEET_TRAITS, 'Solfataric Breach, Sap, Gravity Well - in sheet order, and nothing else.')
+	assert_eq(ids, SHEET_TRAITS,
+		'Solfataric Breach, Sap, Gravity Well, Earth shaker Grav-gen - in sheet order, and nothing else.')
 
 func test_every_trait_kit_is_in_the_content_library():
 	# The frame holding a Kit and ContentLibrary indexing it are different facts: a Kit whose filename

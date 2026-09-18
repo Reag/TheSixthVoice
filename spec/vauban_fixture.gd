@@ -31,6 +31,13 @@ const BREACH_ID := &'mt_solfataric_breach'
 const SAP_ID := &'mt_sap'
 const GRAVITY_WELL_ID := &'mt_gravity_well'
 
+## EARTH SHAKER GRAV-GEN, the core system (SP2). One Kit carrying two pressables - the protocol and
+## MASTICATION OF THE MAAR - plus the crater frame the second one lays.
+const CORE_ID := &'cp_earth_shaker_grav_gen'
+const PROTOCOL_ID := &'action_grav_amped_interference'
+const MAAR_ACTION_ID := &'action_mastication_of_the_maar'
+const MAAR_FRAME_ID := &'dep_maar'
+
 ## The plain vanilla rifle every Fitzgerald spec uses. Not melee - its weapon_type is unset, so it is
 ## the archetype default, RIFLE (3, action_attack_weapon.gd:12). It carries NO accuracy modifier, so
 ## an attack with it pops a d20 and nothing else off Dice.CHEAT_ROLL_QUEUE.
@@ -156,3 +163,70 @@ static func lay_difficult(game:Gamemaster, tiles:Array[Vector2i]) -> void:
 			var tile:Vector2i = Vector2i(x, y)
 			game.map.ground_surface_terrain[tile] = block if tile in tiles else TerrainBlockData.BLANK
 			game.map.calculate_surface_merged_terrain_and_height_at(tile)
+
+## Press GRAV-AMPED INTERFERENCE, turn and all.
+##
+## THE TURN IS NOT DECORATION: unit_action.gd:144 refuses a protocol unless
+## unit.state.is_using_protocols, which only event_turn_start opens (the same gate
+## MyconidFixture.fungal_network opens for the same reason). Without it the press fails with
+## "[ Gear not available ] reason : protocol" and every assertion downstream reads as broken content.
+##
+## SpecFactory.use(game, unit, kit_id, action_id) rather than use_solo(): this Kit carries TWO
+## pressables by the end of SP2, and use_solo fires the Kit's FIRST action whatever it is.
+##
+## CALL THIS LAST. GearCore.short_repair clears gear state (gear_core.gd:143-150) and
+## SpecFactory.apply_passive_buffs calls full_repair, so equipping anything after the press silently
+## puts the field out again.
+static func press_protocol(game:Gamemaster, vauban:Unit) -> void:
+	await open_turn(game, vauban)
+	await SpecFactory.use(game, vauban, CORE_ID, PROTOCOL_ID)
+
+## The number a save forced by `unit` has to beat - the FORCER's save target, which is what
+## event_unit_save reads (event_unit_save.gd:41-43), not the saver's.
+static func save_target_of(unit:Unit) -> int:
+	return unit.get_save_target() if Unit.is_valid(unit) else 10
+
+## A real EventCore with a real, VALID EventBlock, which a save has to be run inside.
+##
+## UnitHasecheck.make_*_save routes through run_save_event, which calls event.execute_events - a no-op
+## unless event.block is a real, is_block_valid() EventBlock (event_core.gd:77-81, :48). Lifted from
+## this mod's own test_weak_computer.gd, which lifted it from test/gear/test_ms_stable_structure.gd.
+## It needs the GutTest itself, for add_child_autoqfree.
+static func save_event(test:GutTest) -> EventCore:
+	var event := SpecFactory.dummy_event()
+	event.block = EventBlock.create_multiple([event])
+	test.add_child_autoqfree(event.block)
+	return event
+
+## A forcer named the way every vanilla save-forcing action in content/ names one: unit AND gear AND
+## action.
+##
+## ALL THREE OR NOTHING, and this is not tidiness. UnitHasecheck.roll_check copies the forcer into the
+## buff context only `if SpecificAction.is_valid(forcing_action)` (unit_hasecheck.gd:180), and
+## SpecificAction.is_valid demands all three (specific_action.gd:16-23). Force a save with a bare Unit
+## and the saver's TO.SAVE buffs are asked about a context with NO forcer in it - which reads in a log
+## as "failed a Hull save from ?" and in a spec as "save buffs do not work". Measured by the SP2 probe.
+##
+## ms_fragment_signal is the default gear for the same reason every Vauban spec uses it as its tech
+## control: it is in every player mech's basic loadout, so any unit can name it without equipping
+## anything.
+static func forcer(unit:Unit, gear_id:StringName = TECH_ID, action_id:StringName = &'') -> SpecificAction:
+	return SpecificAction.from_id(unit, gear_id, action_id)
+
+## Force a Hull save on `saver` in `forcing`'s name, through the same production call every vanilla
+## save-forcing action makes. Returns whether it passed.
+static func force_hull_save(test:GutTest, saver:Unit, forcing:SpecificAction) -> bool:
+	return await UnitHasecheck.make_hull_save(save_event(test), saver, forcing)
+
+## Queue a d20 and then a tail of sixes, so a save resolves to exactly what the caller intends and
+## nothing downstream drains the FIFO into real RNG (test_draw_fire.gd's shape).
+##
+## WHY THE TAIL MATTERS HERE SPECIFICALLY: a -1 accuracy buff makes roll_check pop a SECOND die
+## (Dice.roll_d6_accuracy rolls one d6 and negates it for -1, dice.gd:86-88), so the buffed and
+## unbuffed paths through the same save consume different numbers of entries. A short queue would
+## make the two cases differ for a reason that has nothing to do with the buff.
+static func queue_save_dice(d20:int) -> void:
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	var queue:Array[int] = [d20]
+	for i:int in 60: queue.append(6)
+	Dice.CHEAT_ROLL_QUEUE.assign(queue)

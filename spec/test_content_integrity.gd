@@ -404,6 +404,10 @@ const ICON_TARGETS := {
 	# none. Its one buff, buff_gravity_well, is VISIBLE and is listed in VISIBLE_BUFFS below. The
 	# Kit's own icon is SP3's.
 	&'mt_gravity_well': [],
+	# EARTH SHAKER GRAV-GEN, the core system (SP2). Its two PRESSABLE actions each reach the gear bar
+	# and each needs its own icon; action_grav_amped_shock does not - it is a reaction with
+	# show_in_tooltip false, the mt_sap shape. All of these are SP3's.
+	&'cp_earth_shaker_grav_gen': [&'action_grav_amped_interference', &'action_mastication_of_the_maar'],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
