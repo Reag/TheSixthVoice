@@ -191,3 +191,7 @@ gear.cp_caj_overhaul_modules.action_abjuration_of_metal.name,Abjuration of Metal
 gear.cp_caj_overhaul_modules.action_abjuration_of_metal.trigger,A hostile character within sensors misses you with an attack.
 gear.cp_caj_overhaul_modules.action_abjuration_of_metal.effect,"Roll 1d6: You may |teleport| up to that many spaces in the direction of the attacker. If this puts the attacker in |Threat| of one of your weapons, you may immediately use that weapon to |Skirmish| against them."
 gear.cp_caj_overhaul_modules.action_abjuration_of_metal.no_space.log,"{unit} finds no space to fold into."
+,
+frame.mf_vauban.name,Vauban
+frame.mf_vauban.flavor.short,Gravity Wins
+frame.mf_vauban.flavor,"The earth was made to be shattered, metal was made to be heated and broken and battered. The world was made to be destroyed piece by piece. The Vauban stands as the Harrison's testament to dominion, each piece bent towards the singular point of progress and control. With the vast amount of data being spewed out of the Broadcasts it was only a matter of time until something truly devastating was unleashed that really ought to have stayed unknown. The Vauban was built upon that something. Gravity control is a tough nut to crack, and even now its secrets are not yet all teased out of its potential, but HA found enough to work with, and work with it they did. By leveraging hyper localized gravity pulses, the Vauban can sunder the ground, turning it into a mass of dangerous shards that can rend and drag down unwary opponents. No one can beat gravity forever."

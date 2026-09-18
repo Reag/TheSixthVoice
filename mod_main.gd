@@ -12,6 +12,7 @@ const EXTENDED_RESOURCES:Array[String] = [
 	'res://content/licenses/ha/li_barbarossa.tres', # Subutai, the Barbarossa alt, appended to rank 2
 	'res://content/licenses/horus/li_gorgon.tres', # Myconid, the Gorgon alt, appended to rank 2
 	'res://content/licenses/ssc/li_mourning_cloak.tres', # Maiden's Blush, the Mourning Cloak alt, appended to rank 2
+	'res://content/licenses/ha/li_iskander.tres', # Vauban, the Iskander alt, appended to rank 2
 ]
 
 ## Stamped on each resource INSTANCE we have edited, so a re-activation never edits it twice. On the
