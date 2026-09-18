@@ -3,7 +3,6 @@
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/action_psychopomp_strike.gd" id="1_strike"]
 [ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="2_onhit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/onhit_uffish_gyre.tres" id="3_gyreonhit"]
-[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_psychopomp_fold_pike.svg" id="4_icon"]
 
 [resource]
 script = ExtResource("1_strike")
@@ -93,7 +92,9 @@ usage_group = &"psychopomp_strike"
 ; Kept because the card says so in as many words, and because the alternative is shipping a weapon
 ; whose targeting silently disagrees with its own trigger.
 requires_line_of_sight_baseline = false
-; SHARES THE PIKE KIT'S GLYPH rather than bespoke art - vanilla's own pattern for a Kit and its
-; primary action (cp_m35_mjolnir_cannon.tres / action_m35_mjolnir.tres both icon_override the same
-; file). The author confirmed this at the SP3 contact-sheet gate.
-icon_override = ExtResource("4_icon")
+; SHARES THE PIKE KIT'S GLYPH, and since the icon-glyph-families retrofit that is done by carrying
+; NO icon_override at all rather than by writing the same file twice: this is a KIT row in
+; test_content_integrity.gd's ICON_TARGETS (icon-sharing.md section 5), and Action.get_icon falls
+; through to the Kit's own icon_override (action.gd:324-326 -> kit.gd:209). Vanilla's own
+; cp_m35_mjolnir_cannon.tres / action_m35_mjolnir.tres is the same pattern, and the author confirmed
+; this sharing at the SP3 contact-sheet gate.

@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_subutai/mt_juggernaut_drive/action_juggernaut_drive.gd" id="1_action"]
 [ext_resource type="Script" uid="uid://udxarj3kb6nm" path="res://engine/character/unit/movement_type.gd" id="2_movementtype"]
-[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_juggernaut_drive.svg" id="3_icon"]
 
 [sub_resource type="Resource" id="Resource_movetype"]
 script = ExtResource("2_movementtype")
@@ -14,7 +13,6 @@ straight_line = true
 
 [resource]
 script = ExtResource("1_action")
-icon_override = ExtResource("3_icon")
 triggers_on = Array[StringName]([&"end_turn"])
 trigger_timing = 0
 consumes_rxn = false

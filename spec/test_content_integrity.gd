@@ -242,95 +242,117 @@ func test_the_vaubans_unguarded_rows_resolve():
 	for key:String in VAUBAN_LOCALIZATION_ROWS:
 		assert_ne(tr(key), key, '%s resolves to real text.' % key)
 
-## Every kit and player-facing buff this mod ships, and the actions on each kit that need their own
-## icon. Filled in by each sub-project as it builds content; the icon pass is what makes it green.
+## Every kit this mod ships, and the actions on each kit that reach a player-facing surface, each
+## naming the GLYPH FAMILY it belongs to. Filled in by each sub-project as it builds content; the
+## icon pass is what makes it green.
 ##
-## Shape: kit id => the action ids on that kit that are player-facing. A kit whose only action is
-## the kit itself wears the kit's icon, so it lists none.
+## Shape: kit id => { action id => family }. A kit whose only action is the kit itself lists that
+## action as KIT. A kit with no player-facing action of its own lists none.
+##
+## A family is a set of rows that wear ONE texture. KIT means "inherit the Kit's glyph and carry no
+## icon_override at all"; any other name means "carry this family's texture", and the same name
+## anywhere in this table - including on another Kit - must resolve to the identical texture. That
+## is what pins cp_broadside's protocol to the charged profile on mw_bizarre_cannon.
+##
+## Rule and rationale: specs/2026-09-18-icon-sharing-design.md section 3. Vanilla's reference shape
+## is cp_m35_mjolnir_cannon: {Kit, action_m35_mjolnir} and {action_thunder_god,
+## action_thunder_god_chamber_rounds, buff_thunder_god}, the second a _spin_up variant of the first.
+
+## A row whose family is KIT carries no icon_override and inherits its Kit's glyph through
+## Action.get_icon(kit) (action.gd:324-326 -> kit.gd:209). Banned for an action carried by more
+## than one Kit: action.gd:58 caches the resolution on the shared Action instance.
+const KIT := &'__kit__'
 const ICON_TARGETS := {
-	&'mt_weak_computer': [], # its only action is the kit itself
-	# Three buttons on one Kit: the base weapon profile, the MORE BLACK POWDER protocol, and the
-	# second weapon profile the protocol unlocks. Each is separately pressable, so each wears its own
-	# icon rather than sharing the Kit's.
-	&'cp_broadside': [&'action_more_black_powder_protocol'],
+	&'mt_weak_computer': {}, # its only action is the kit itself
+	# The protocol's own row. It shares a glyph family with the charged weapon profile it unlocks
+	# (action_more_black_powder, on mw_bizarre_cannon below) - pressing the protocol visibly swaps
+	# that profile in, so the two wear the identical texture. The base profile inherits its own
+	# Kit's glyph directly (a KIT row below) rather than sharing a named family.
+	&'cp_broadside': {&'action_more_black_powder_protocol': &'action_more_black_powder'},
 	# The two CANNON PROFILES moved to their own Kit at the frame close, so the character sheet
 	# titles the integrated-weapon box "Bizarre Cannon" instead of "Broadside"
 	# (weapon_mount_item.gd:101 reads the KIT's name). See test_integrated_weapon_names.gd.
-	&'mw_bizarre_cannon': [&'action_bizarre_cannon', &'action_more_black_powder'],
-	&'mt_hole_puncher': [], # a passive trait: no action of its own, so it wears the Kit's icon
-	&'mt_knock_em_down': [], # a passive trait: no action of its own, so it wears the Kit's icon
+	# action_bizarre_cannon is the Kit's own base profile and wore action_bizarre_cannon.svg a
+	# second time via its own icon_override - one texture written twice under a family name equal
+	# to itself. Retrofitted to KIT (icon-sharing.md section 5: KIT is absence, not duplication):
+	# it now carries no icon_override at all and inherits the Kit's glyph through the engine
+	# fallback. action_more_black_powder stays a named family - it spans this Kit and cp_broadside.
+	&'mw_bizarre_cannon': {&'action_bizarre_cannon': KIT, &'action_more_black_powder': &'action_more_black_powder'},
+	&'mt_hole_puncher': {}, # a passive trait: no action of its own, so it wears the Kit's icon
+	&'mt_knock_em_down': {}, # a passive trait: no action of its own, so it wears the Kit's icon
 	# Its one action (action_blasting_powder_spend) is a hidden bookkeeping reaction: reactions never
 	# reach the gear bar (gear_bar.gd:145) and it overrides show_in_tooltip to false, so nothing the
 	# player sees ever wears an icon for it. The Kit's own icon still has to be real.
-	&'mt_blasting_powder': [],
+	&'mt_blasting_powder': {},
 	# SP2 Task 1. A weapon Kit, not a trait: its SINGLE SHOT profile is a separately pressable button
 	# on the gear bar, so it wears its own icon rather than sharing the Kit's - same reasoning as
 	# cp_broadside's three entries. Task 2 adds GRAPESHOT here for the same reason: a second,
 	# separately pressable profile on the same Kit. (Task 3's hidden reload reaction gets no row, for
 	# the mt_blasting_powder reason above.)
-	&'mw_breech_loading_swivel_gun': [&'action_swivel_single_shot', &'action_swivel_grapeshot'],
+	&'mw_breech_loading_swivel_gun': {&'action_swivel_single_shot': &'action_swivel_single_shot', &'action_swivel_grapeshot': &'action_swivel_grapeshot'},
 	# SP2 Task 4. Its one action (action_heaer_detonate) is a hidden bookkeeping reaction: reactions
 	# never reach the gear bar (gear_bar.gd:145) and it overrides show_in_tooltip to false, so nothing
 	# the player sees ever wears an icon for it. The Kit's own icon still has to be real - the system
 	# is equippable, and sits in the loadout like any other.
-	&'ms_heaer': [],
+	&'ms_heaer': {},
 	# SP3 Task 1. Unlike ms_heaer, this system's one action is a QUICK the player presses on the gear
 	# bar, so it wears its own icon rather than sharing the Kit's - vanilla's ms_ramjet is the shape
 	# (its Kit carries no icon_override at all and its single action carries one). This mod's own
 	# guard is stricter and wants both, which is SP5's job.
-	&'ms_hull_break_thrusters': [&'action_full_speed_ahead'],
+	&'ms_hull_break_thrusters': {&'action_full_speed_ahead': &'action_full_speed_ahead'},
 	# SP3 Task 3. A weapon mod: no actions at all, so nothing but the Kit's own icon is ever shown -
 	# it appears in the weapon-mod dropdown and on the modded weapon's card.
-	&'wm_ripper_mod': [],
+	&'wm_ripper_mod': {},
 	# SP4 Task 1. A weapon Kit with a single profile, and that profile still earns its own row: it is
 	# a separately pressable button on the gear bar, exactly the mw_breech_loading_swivel_gun
 	# reasoning. Having only one profile does not merge the button into the Kit - the gear bar draws
-	# the action, and an action with no icon_override falls back to a generic, which is what this
-	# guard exists to catch.
-	&'mw_rapier_class_carronade': [&'action_rapier_carronade'],
+	# the action, and an action with no icon_override does NOT fall back to a generic - it inherits
+	# the Kit's glyph (action.gd:324-326, proved by the Task 0 probe of the icon-glyph-families
+	# plan) - which is exactly what a KIT row now relies on.
+	&'mw_rapier_class_carronade': {&'action_rapier_carronade': &'action_rapier_carronade'},
 	# SP4 Task 3. A system whose one action is a QUICK the player presses on the gear bar, so it wears
 	# its own icon as well as the Kit's - the ms_hull_break_thrusters reasoning exactly, not the
 	# ms_heaer one (HEAER's only action is a hidden reaction that never reaches the gear bar).
-	&'ms_grit_latch_magnets': [&'action_reinforcement_blast'],
+	&'ms_grit_latch_magnets': {&'action_reinforcement_blast': &'action_reinforcement_blast'},
 	# SP1 Task 1 (M/K2). A 1/scene trait whose single FREE action is a separately pressable button on
 	# the gear bar, so it wears its own icon as well as the Kit's - the ms_hull_break_thrusters
 	# reasoning, not the ms_heaer one.
-	&'mt_rapid_stabilization_jets': [&'action_rapid_stabilization_jets'],
+	&'mt_rapid_stabilization_jets': {&'action_rapid_stabilization_jets': KIT},
 	# SP1 Task 2 (M/K2). A pure passive: no action of its own, so it wears the Kit's icon.
-	&'mt_hybridized_shot': [],
+	&'mt_hybridized_shot': {},
 	# SP1 Task 3 (M/K2). The core system, one pressable protocol - cp_broadside's shape with one
 	# button instead of three.
-	&'cp_auxiliary_power_rerouter': [&'action_ors_hypercharge'],
+	&'cp_auxiliary_power_rerouter': {&'action_ors_hypercharge': &'action_ors_hypercharge'},
 	# SP1 Task 4 (Subutai). Its one action is an end_turn reaction, and reactions never reach the
 	# gear bar (gear_bar.gd:145) - but unlike mt_blasting_powder's and ms_heaer's hidden bookkeeping
 	# reactions, this one does NOT override show_in_tooltip, so it is drawn on the trait card with
 	# its own row. It therefore earns its own icon as well as the Kit's.
-	&'mt_juggernaut_drive': [&'action_juggernaut_drive'],
+	&'mt_juggernaut_drive': {&'action_juggernaut_drive': KIT},
 	# SP1 Task 2 (Subutai). A pure passive: no action of its own, so it wears the Kit's icon. Its
 	# BuffResistDamage is an inline SubResource and carries hide_from_player, so it is correctly
 	# absent from VISIBLE_BUFFS - it is never a chip on the unit.
-	&'mt_reinforced_chassis': [],
+	&'mt_reinforced_chassis': {},
 	# SP2 Task 1 (Subutai). The core system. GATHER ROUND is a PROTOCOL the player presses on the
 	# gear bar, so it wears its own icon as well as the Kit's - cp_auxiliary_power_rerouter's shape.
 	# Task 2 appends action_diversion_rail (a pressable weapon profile) and Task 3 action_draw_fire
 	# (a reaction that never reaches the gear bar, but does not override show_in_tooltip, so it is
 	# drawn on the trait card with its own row - the mt_juggernaut_drive reasoning).
-	&'cp_siege_engine': [&'action_gather_round', &'action_draw_fire'],
+	&'cp_siege_engine': {&'action_gather_round': &'action_gather_round', &'action_draw_fire': &'action_draw_fire'},
 	# The Rail is its OWN Kit since the frame close, so the character sheet can title the
 	# integrated-weapon box "Diversion Rail" instead of "Siege Engine"
 	# (weapon_mount_item.gd:101 reads the KIT's name). See test_integrated_weapon_names.gd.
-	&'mw_diversion_rail': [&'action_diversion_rail'],
+	&'mw_diversion_rail': {&'action_diversion_rail': KIT},
 	# SP1 Task 3 (Myconid). Pure passives: a Gaze-shaped PassiveStatIncrease and a
 	# PassiveBuffApplicator carrying THREE hidden bookkeeping buffs since SP2.5 Task 1 (the third
 	# relieves a non-consuming reaction's per-round cap). No actions at all, so it wears the Kit's
 	# icon and lists none. All three set hide_from_player and are correctly absent from
 	# VISIBLE_BUFFS - none is ever a chip on the unit.
-	&'mt_symbiosis': [],
+	&'mt_symbiosis': {},
 	# SP1 Task 5 (Myconid). Its one action (action_halo) is a hidden reaction: reactions never reach
 	# the gear bar (gear_bar.gd:145) and it overrides show_in_tooltip to false, so nothing the player
 	# sees ever wears an icon for it - the ms_heaer shape, not the mt_juggernaut_drive one. The Kit's
 	# own icon still has to be real.
-	&'mt_halo': [],
+	&'mt_halo': {},
 	# SP2 Task 3 (Myconid). The core system. FUNGAL NETWORK is a PROTOCOL the player presses on the
 	# gear bar, so it wears its own icon as well as the Kit's - cp_siege_engine's and
 	# cp_auxiliary_power_rerouter's shape. The Kit's FOUR passives - three PassiveAuras (SP2.5 Task 4
@@ -347,7 +369,7 @@ const ICON_TARGETS := {
 	# The Pike is deliberately NOT here: it is its own mw_ Kit (ruling 9), listed separately when
 	# SP2 Task 4 lands, because weapon_mount_item.gd:101 titles the character sheet's
 	# integrated-weapon box from the KIT that holds the weapon action.
-	&'cp_quietus_machines': [&'action_fungal_network'],
+	&'cp_quietus_machines': {&'action_fungal_network': &'action_fungal_network'},
 	# SP2 Task 4 (Myconid). Its own mw_ Kit (ruling 9), listed separately from cp_quietus_machines
 	# for the same reason as mw_diversion_rail above: weapon_mount_item.gd:101 titles the character
 	# sheet's integrated-weapon box from the KIT that holds the weapon action, so a strike living on
@@ -363,13 +385,17 @@ const ICON_TARGETS := {
 	# `gear.mw_psychopomp_fold_pike.trigger` key, which this mod does not have; the mod's trigger row
 	# is action-keyed instead. It draws because its own `.effect` row is non-empty and differs from
 	# the Kit's generic one (action.gd:350-353) - the mt_juggernaut_drive / action_draw_fire shape,
-	# not the strike's.
-	&'mw_psychopomp_fold_pike': [&'action_psychopomp_strike', &'action_uffish_gyre'],
+	# not the strike's. The strike's real icon does not have to be a real icon_override of its
+	# own, though - it wore mw_psychopomp_fold_pike.svg a second time via its own icon_override,
+	# the same file the Kit already wears, so it is a KIT row (icon-sharing.md section 5): no
+	# icon_override at all, inheriting the Kit's glyph through the engine fallback. The Gyre keeps
+	# its own family - a genuinely different picture for a genuinely different action.
+	&'mw_psychopomp_fold_pike': {&'action_psychopomp_strike': KIT, &'action_uffish_gyre': &'action_uffish_gyre'},
 	# SP1 Task 3 (Maiden's Blush). A pure passive: no action of its own, so it wears the Kit's icon
 	# and lists none. Its buff_rend sets hide_from_player and is correctly absent from VISIBLE_BUFFS -
 	# it is never a chip on the unit. The Kit's own icon is SP3's, so this row is one of the two that
 	# make test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then.
-	&'mt_rend': [],
+	&'mt_rend': {},
 	# SP1 Task 4 (Maiden's Blush). ITS ONE ACTION GETS NO ROW, and that is an engine consequence
 	# rather than a choice: Action.show_in_tooltip (action.gd:350-353) returns false when the action's
 	# own `effect` row equals the KIT's generic one, and ruling 17 makes them identical - the reaction
@@ -382,11 +408,11 @@ const ICON_TARGETS := {
 	#
 	# Its buff_uncertainty_field_break sets hide_from_player and is correctly absent from
 	# VISIBLE_BUFFS. The Kit's own icon is SP3's.
-	&'mt_uncertainty_field': [],
+	&'mt_uncertainty_field': {},
 	# SP1 Task 5 (Maiden's Blush). A pure passive with NO action at all, so it wears the Kit's icon
 	# and lists none. Its two buffs split: buff_fade_strike_arm is hidden bookkeeping and is correctly
 	# absent from VISIBLE_BUFFS, while buff_fade_strike is the visible chip and is listed there.
-	&'mt_fade_strike': [],
+	&'mt_fade_strike': {},
 	# SP2 Task 3 (Maiden's Blush). The CORE SYSTEM, and EMPTY FOR NOW rather than empty on principle -
 	# Step of Mist and Thunder (Task 4) and Abjuration of Metal (Task 5) both belong here and both
 	# arrive with their own tasks. Unlike mt_uncertainty_field above, THOSE TWO ARE NOT `[]`: each has
@@ -398,7 +424,13 @@ const ICON_TARGETS := {
 	# show_in_tooltip to false, so the reverse check below computes "should not be listed" and listing
 	# it would fail. The player reads "Efficient" in the core power's own effect text, where the card
 	# puts it.
-	&'cp_caj_overhaul_modules': [&'action_step_of_mist_and_thunder', &'action_abjuration_of_metal'],
+	#
+	# action_step_of_mist_and_thunder wore cp_caj_overhaul_modules.svg a second time via its own
+	# icon_override - the same file the Kit already wears - under a family name that was just the
+	# Kit's own id. Retrofitted to KIT (icon-sharing.md section 5): no icon_override of its own,
+	# inheriting the Kit's glyph through the engine fallback. action_abjuration_of_metal keeps its
+	# own family - it wears an unrelated glyph, a genuinely different picture.
+	&'cp_caj_overhaul_modules': {&'action_step_of_mist_and_thunder': KIT, &'action_abjuration_of_metal': &'action_abjuration_of_metal'},
 	# SP1 Task 3 (Vauban). ITS ONE ACTION EARNS A ROW, unlike the Maiden's Blush's Uncertainty Field,
 	# and the difference is the localisation rather than the .tres. Action.show_in_tooltip
 	# (action.gd:350-353) returns false when an action's own `effect` row equals the KIT's generic
@@ -412,7 +444,7 @@ const ICON_TARGETS := {
 	#
 	# The Kit's icon and the action's are both SP3's, so this row is what makes
 	# test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then.
-	&'mt_solfataric_breach': [&'action_solfataric_breach'],
+	&'mt_solfataric_breach': {&'action_solfataric_breach': KIT},
 	# SP1 Task 4 (Vauban). ITS ONE ACTION GETS NO ROW, for two independent reasons and by design.
 	# action_sap.gd overrides show_in_tooltip to false outright (design §1.4, the Poisoned Soil
 	# lesson) - and even without that, Action.show_in_tooltip (action.gd:350-353) returns false when
@@ -421,19 +453,19 @@ const ICON_TARGETS := {
 	# ever wears an icon for it: the ms_heaer / mt_uncertainty_field shape, not the
 	# mt_solfataric_breach one. Its buff_sap_reprieve is hidden and is correctly absent from
 	# VISIBLE_BUFFS. The Kit's own icon is SP3's.
-	&'mt_sap': [],
+	&'mt_sap': {},
 	# SP1 Task 5 (Vauban). A pure passive: no action of its own, so it wears the Kit's icon and lists
 	# none. Its one buff, buff_gravity_well, is VISIBLE and is listed in VISIBLE_BUFFS below. The
 	# Kit's own icon is SP3's.
-	&'mt_gravity_well': [],
+	&'mt_gravity_well': {},
 	# EARTH SHAKER GRAV-GEN, the core system (SP2). Its two PRESSABLE actions each reach the gear bar
 	# and each needs its own icon; action_grav_amped_shock does not - it is a reaction with
 	# show_in_tooltip false, the mt_sap shape. All of these are SP3's.
-	&'cp_earth_shaker_grav_gen': [&'action_grav_amped_interference', &'action_mastication_of_the_maar'],
+	&'cp_earth_shaker_grav_gen': {&'action_grav_amped_interference': &'action_grav_amped_interference', &'action_mastication_of_the_maar': &'action_mastication_of_the_maar'},
 	# SP2 Task 4 (Vauban). The Maar's own trait, on the deployable frame dep_maar rather than on the
 	# mech. It carries one terrain zone and no actions at all, so there is nothing here to illustrate
 	# beyond the Kit's own icon, which is SP3's - the mt_gravity_well shape.
-	&'mt_maar_terrain': [],
+	&'mt_maar_terrain': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -539,9 +571,11 @@ const VISIBLE_BUFFS:Array[StringName] = [
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
-	# A kit or action without icon_override falls back to the generic glyph, which reads as "this
-	# gear is unfinished" in the gear bar. The placeholder check is the other half: an icon pass that
-	# wired the stand-in everywhere would otherwise sail through.
+	# A Kit without icon_override falls back to the generic glyph, which reads as "this gear is
+	# unfinished" in the gear bar. An action without icon_override does NOT fall back to a generic -
+	# it inherits its Kit's glyph (the KIT family, below) - and only reaches the generic itself if
+	# the Kit's own icon_override is missing too. The placeholder check is the other half: an icon
+	# pass that wired the stand-in everywhere would otherwise sail through.
 	#
 	# The subject is the mod's OWN contributions, not ICON_TARGETS, so a kit added without a table
 	# row cannot slip past unchecked - that is what the size assertion pins, and it is also what
@@ -550,25 +584,79 @@ func test_every_player_facing_kit_and_action_has_a_real_icon():
 	# and fails on a stranger's parse error.
 	var kits:Array[Resource] = ModResources.load_ours(MOD_ID, &'kits')
 	assert_eq(ICON_TARGETS.size(), kits.size(), 'ICON_TARGETS lists every kit this mod ships.')
+
+	# How many of this mod's Kits carry each Action. A KIT row inherits through
+	# Action.icon_from_kit, which action.gd:58 caches on the SHARED Action resource and never
+	# invalidates - so an Action on two Kits would show whichever Kit asked first, on BOTH. Vanilla
+	# obeys this silently: action_redeploy (9 Kits) and action_takeoff (6) carry their own icons,
+	# and every shared action that inherits is hidden bookkeeping that never draws.
+	var kits_per_action := {}
 	for kit:Kit in kits:
-		# The count above is not enough on its own: a stale row for a deleted kit plus a new kit with
-		# no row balances it, and `ICON_TARGETS.get(id, [])` would then silently check no actions on
-		# the new kit. This is what makes the pairing exact.
+		for action:Action in kit.actions:
+			kits_per_action[action.resource_path] = kits_per_action.get(action.resource_path, 0) + 1
+
+	# family name => [texture, the row that first claimed it]. Accumulated across the WHOLE table,
+	# so a family can span Kits - which is what pins cp_broadside's protocol to the charged profile
+	# on mw_bizarre_cannon.
+	var family_texture := {}
+
+	for kit:Kit in kits:
+		# The count above is not enough on its own: a stale row for a deleted kit plus a new kit
+		# with no row balances it, and `ICON_TARGETS.get(id, {})` would then silently check no
+		# actions on the new kit. This is what makes the pairing exact.
 		assert_true(ICON_TARGETS.has(kit.compcon_id),
 			'%s is listed in ICON_TARGETS.' % kit.resource_path.get_file())
 		_assert_real_icon(kit.icon_override, kit.compcon_id)
-		var listed:Array = ICON_TARGETS.get(kit.compcon_id, [])
+		var listed:Dictionary = ICON_TARGETS.get(kit.compcon_id, {})
 		var by_id := {}
 		for action:Action in kit.actions: by_id[action.get_id()] = action
+		var texture_by_family := {}
 		for action_id:StringName in listed:
 			assert_true(by_id.has(action_id), '%s carries %s.' % [kit.compcon_id, action_id])
 			if not by_id.has(action_id): continue
-			_assert_real_icon(by_id[action_id].icon_override, '%s.%s' % [kit.compcon_id, action_id])
-		# Added at the MYCONID FRAME CLOSE, 2026-09-16 (close review slice 5, finding B): the two checks above only
-		# look at what IS listed - nothing compares it against kit.actions, so an action quietly
-		# dropped from ICON_TARGETS is invisible to every assertion above this line. Walk the OTHER
-		# direction - every action the Kit actually carries - and assert its presence in `listed`
-		# agrees with whether the engine would ever draw it with an icon of its own. See
+			var action:Action = by_id[action_id]
+			var label:String = '%s.%s' % [kit.compcon_id, action_id]
+			var family:StringName = listed[action_id]
+			if family == KIT:
+				assert_null(action.icon_override,
+					'%s is a KIT row, so it carries NO icon_override and inherits the Kit glyph.' % label)
+				assert_not_null(kit.icon_override,
+					'%s inherits from %s, which therefore needs an icon_override of its own.'
+						% [label, kit.compcon_id])
+				assert_eq(kits_per_action.get(action.resource_path, 0), 1,
+					'%s is carried by exactly one Kit, so inheriting is safe (action.gd:58 caches it).'
+						% label)
+				assert_eq(action.get_icon(kit), kit.icon_override,
+					'%s is a KIT row: the engine fallback it depends on (action.gd:324-326 -> kit.gd:209) must actually resolve to the Kit glyph, or it renders a generic grey box.'
+						% label)
+				continue
+			_assert_real_icon(action.icon_override, label)
+			if action.icon_override == null: continue
+			assert_ne(action.icon_override, kit.icon_override,
+				"%s and its own Kit %s both wear %s - a row duplicating its Kit's glyph should be a KIT row instead."
+					% [label, kit.compcon_id, action.icon_override.resource_path])
+			if family_texture.has(family):
+				assert_eq(action.icon_override, family_texture[family][0],
+					'%s wears the same texture as %s - they are one family (%s).'
+						% [label, family_texture[family][1], family])
+			else:
+				family_texture[family] = [action.icon_override, label]
+			if not texture_by_family.has(family): texture_by_family[family] = action.icon_override
+		# Two families on ONE Kit must look different, or the gear bar draws two buttons the player
+		# cannot tell apart. Rows INSIDE a family may coincide - vanilla's action_thunder_god and
+		# action_thunder_god_chamber_rounds do exactly that.
+		var claimed := {}
+		for family:StringName in texture_by_family:
+			var tex:Texture2D = texture_by_family[family]
+			assert_false(claimed.has(tex),
+				'%s: family %s wears the same texture as family %s - the gear bar draws them as one button.'
+					% [kit.compcon_id, family, claimed.get(tex, &'-')])
+			claimed[tex] = family
+		# Added at the MYCONID FRAME CLOSE, 2026-09-16 (close review slice 5, finding B): the checks
+		# above only look at what IS listed - nothing compares it against kit.actions, so an action
+		# quietly dropped from ICON_TARGETS is invisible to every assertion above this line. Walk
+		# the OTHER direction - every action the Kit actually carries - and assert its presence in
+		# `listed` agrees with whether the engine would ever draw it with an icon of its own. See
 		# _action_reaches_a_player_facing_surface's header for the three surfaces and the rule.
 		var first_weapon_action:Action = null
 		var weapon_actions:Array[ActionAttackWeapon] = kit.get_weapon_actions() # kit.gd:129-132
@@ -576,7 +664,8 @@ func test_every_player_facing_kit_and_action_has_a_real_icon():
 		for action:Action in kit.actions:
 			var should_be_listed:bool = _action_reaches_a_player_facing_surface(action, kit, first_weapon_action)
 			assert_eq(listed.has(action.get_id()), should_be_listed,
-				'%s.%s is listed in ICON_TARGETS exactly when it reaches a player-facing surface.' % [kit.compcon_id, action.get_id()])
+				'%s.%s is listed in ICON_TARGETS exactly when it reaches a player-facing surface.'
+					% [kit.compcon_id, action.get_id()])
 
 ## Whether ACTION would be drawn with an icon of its own by some real player-facing surface, rather
 ## than borrowing the Kit's - i.e. whether it belongs in ICON_TARGETS at all. Three surfaces do
