@@ -266,13 +266,18 @@ const ICON_TARGETS := {
 	&'mt_weak_computer': {}, # its only action is the kit itself
 	# The protocol's own row. It shares a glyph family with the charged weapon profile it unlocks
 	# (action_more_black_powder, on mw_bizarre_cannon below) - pressing the protocol visibly swaps
-	# that profile in, so the two wear the identical texture. The base profile keeps its own icon
-	# (action_bizarre_cannon) rather than sharing.
+	# that profile in, so the two wear the identical texture. The base profile inherits its own
+	# Kit's glyph directly (a KIT row below) rather than sharing a named family.
 	&'cp_broadside': {&'action_more_black_powder_protocol': &'action_more_black_powder'},
 	# The two CANNON PROFILES moved to their own Kit at the frame close, so the character sheet
 	# titles the integrated-weapon box "Bizarre Cannon" instead of "Broadside"
 	# (weapon_mount_item.gd:101 reads the KIT's name). See test_integrated_weapon_names.gd.
-	&'mw_bizarre_cannon': {&'action_bizarre_cannon': &'action_bizarre_cannon', &'action_more_black_powder': &'action_more_black_powder'},
+	# action_bizarre_cannon is the Kit's own base profile and wore action_bizarre_cannon.svg a
+	# second time via its own icon_override - one texture written twice under a family name equal
+	# to itself. Retrofitted to KIT (icon-sharing.md section 5: KIT is absence, not duplication):
+	# it now carries no icon_override at all and inherits the Kit's glyph through the engine
+	# fallback. action_more_black_powder stays a named family - it spans this Kit and cp_broadside.
+	&'mw_bizarre_cannon': {&'action_bizarre_cannon': KIT, &'action_more_black_powder': &'action_more_black_powder'},
 	&'mt_hole_puncher': {}, # a passive trait: no action of its own, so it wears the Kit's icon
 	&'mt_knock_em_down': {}, # a passive trait: no action of its own, so it wears the Kit's icon
 	# Its one action (action_blasting_powder_spend) is a hidden bookkeeping reaction: reactions never
@@ -380,8 +385,12 @@ const ICON_TARGETS := {
 	# `gear.mw_psychopomp_fold_pike.trigger` key, which this mod does not have; the mod's trigger row
 	# is action-keyed instead. It draws because its own `.effect` row is non-empty and differs from
 	# the Kit's generic one (action.gd:350-353) - the mt_juggernaut_drive / action_draw_fire shape,
-	# not the strike's.
-	&'mw_psychopomp_fold_pike': {&'action_psychopomp_strike': &'mw_psychopomp_fold_pike', &'action_uffish_gyre': &'action_uffish_gyre'},
+	# not the strike's. The strike's real icon does not have to be a real icon_override of its
+	# own, though - it wore mw_psychopomp_fold_pike.svg a second time via its own icon_override,
+	# the same file the Kit already wears, so it is a KIT row (icon-sharing.md section 5): no
+	# icon_override at all, inheriting the Kit's glyph through the engine fallback. The Gyre keeps
+	# its own family - a genuinely different picture for a genuinely different action.
+	&'mw_psychopomp_fold_pike': {&'action_psychopomp_strike': KIT, &'action_uffish_gyre': &'action_uffish_gyre'},
 	# SP1 Task 3 (Maiden's Blush). A pure passive: no action of its own, so it wears the Kit's icon
 	# and lists none. Its buff_rend sets hide_from_player and is correctly absent from VISIBLE_BUFFS -
 	# it is never a chip on the unit. The Kit's own icon is SP3's, so this row is one of the two that
@@ -415,7 +424,13 @@ const ICON_TARGETS := {
 	# show_in_tooltip to false, so the reverse check below computes "should not be listed" and listing
 	# it would fail. The player reads "Efficient" in the core power's own effect text, where the card
 	# puts it.
-	&'cp_caj_overhaul_modules': {&'action_step_of_mist_and_thunder': &'cp_caj_overhaul_modules', &'action_abjuration_of_metal': &'action_abjuration_of_metal'},
+	#
+	# action_step_of_mist_and_thunder wore cp_caj_overhaul_modules.svg a second time via its own
+	# icon_override - the same file the Kit already wears - under a family name that was just the
+	# Kit's own id. Retrofitted to KIT (icon-sharing.md section 5): no icon_override of its own,
+	# inheriting the Kit's glyph through the engine fallback. action_abjuration_of_metal keeps its
+	# own family - it wears an unrelated glyph, a genuinely different picture.
+	&'cp_caj_overhaul_modules': {&'action_step_of_mist_and_thunder': KIT, &'action_abjuration_of_metal': &'action_abjuration_of_metal'},
 	# SP1 Task 3 (Vauban). ITS ONE ACTION EARNS A ROW, unlike the Maiden's Blush's Uncertainty Field,
 	# and the difference is the localisation rather than the .tres. Action.show_in_tooltip
 	# (action.gd:350-353) returns false when an action's own `effect` row equals the KIT's generic
@@ -617,6 +632,9 @@ func test_every_player_facing_kit_and_action_has_a_real_icon():
 				continue
 			_assert_real_icon(action.icon_override, label)
 			if action.icon_override == null: continue
+			assert_ne(action.icon_override, kit.icon_override,
+				"%s and its own Kit %s both wear %s - a row duplicating its Kit's glyph should be a KIT row instead."
+					% [label, kit.compcon_id, action.icon_override.resource_path])
 			if family_texture.has(family):
 				assert_eq(action.icon_override, family_texture[family][0],
 					'%s wears the same texture as %s - they are one family (%s).'
