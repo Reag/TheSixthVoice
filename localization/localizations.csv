@@ -206,3 +206,6 @@ gear.mt_sap.name,Sap
 gear.mt_sap.effect,"When a hostile character within sensors and |line of sight| enters, or starts their turn, in an area of |difficult terrain|, they must make a |Hull save| or become |Slowed| until the end of their next turn. A character that succeeds this save is unaffected by Sap until the end of their next turn."
 gear.mt_sap.action_sap.name,Sap
 gear.mt_sap.action_sap.effect,"When a hostile character within sensors and |line of sight| enters, or starts their turn, in an area of |difficult terrain|, they must make a |Hull save| or become |Slowed| until the end of their next turn. A character that succeeds this save is unaffected by Sap until the end of their next turn."
+,
+gear.mt_gravity_well.name,Gravity Well
+gear.mt_gravity_well.effect,"While the Vauban is in at least one space of |difficult terrain|, all ranged and melee attacks made against it have +1 |difficulty|. Any adjacent allied mechs also benefit from this ability."

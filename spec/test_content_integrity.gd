@@ -400,6 +400,10 @@ const ICON_TARGETS := {
 	# mt_solfataric_breach one. Its buff_sap_reprieve is hidden and is correctly absent from
 	# VISIBLE_BUFFS. The Kit's own icon is SP3's.
 	&'mt_sap': [],
+	# SP1 Task 5 (Vauban). A pure passive: no action of its own, so it wears the Kit's icon and lists
+	# none. Its one buff, buff_gravity_well, is VISIBLE and is listed in VISIBLE_BUFFS below. The
+	# Kit's own icon is SP3's.
+	&'mt_gravity_well': [],
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -490,6 +494,14 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# turn and the consequence lands on every attack the holder makes afterwards, with nothing else on
 	# the board to explain it - and unlike most chips here it lasts the whole scene.
 	&'buff_mist_and_thunder_invisible',
+	# SP1 Task 5 (Vauban). Gravity Well's chip, and visible for two independent reasons.
+	# attack_roll.gd:189 passes buff_core.base.icon RAW into the roll breakdown - NOT through
+	# Buff.get_icon() - so BuffBonus's difficulty-svg fallback (buff_bonus.gd:34-42) never runs on
+	# that path and a null icon draws a blank beside the -1; buff_diversion_rail is listed for exactly
+	# that reason. And it is a sheltered ally's only signal that it is being sheltered at all: the
+	# trait draws nothing else on the board, and the condition is the VAUBAN's ground rather than the
+	# ally's, so there is nothing under the ally's feet to explain it.
+	&'buff_gravity_well',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
