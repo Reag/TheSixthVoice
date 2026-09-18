@@ -60,6 +60,14 @@ const VAUBAN_TILE := Vector2i(4, 4)
 const HOSTILE_TILE := Vector2i(7, 4)
 const FIELD:Array[Vector2i] = [Vector2i(5, 4), Vector2i(6, 4)]
 
+## The sheet's trait order (specs/sixth-voice/06-vauban.md). The frame card lists traits in ARRAY
+## order, so this is player-visible - and it is the one thing guarding an array that four separate
+## tasks appended to, one at a time, each rewriting the whole file.
+##
+## SP2 APPENDS cp_earth_shaker_grav_gen AFTER these three (design §2.1) and will extend this list
+## rather than replace it. The Vauban has no integrated weapon, so nothing follows the core.
+const SHEET_TRAITS:Array[StringName] = [&'mt_solfataric_breach', &'mt_sap', &'mt_gravity_well']
+
 func _frame() -> Frame:
 	return ContentLibrary.get_mech_frame(FRAME_ID)
 
@@ -341,3 +349,32 @@ func test_the_fixture_lays_difficult_terrain_the_way_its_callers_assume():
 	var drone:Unit = VaubanFixture.create_drone(game, HOSTILE_TILE)
 	assert_true(drone.is_character(), 'A drone IS a character - applies_only_to_characters passes it.')
 	assert_false(drone.is_mech(), 'And is NOT a mech - which is the clause Gravity Well needs.')
+
+func test_the_traits_are_the_three_sheet_traits_in_sheet_order():
+	# Asserted as an exact ORDERED list rather than as a set: the sheet prints Solfataric Breach, Sap,
+	# Gravity Well in that order and the character sheet draws them in array order, so a reshuffle is
+	# a visible change with no other guard anywhere in the suite. It also catches the natural mistake
+	# in the append-per-task shape this sub-project used - an entry added to the ext_resource block and
+	# forgotten in the array, or added twice.
+	#
+	# AND IT PINS THE ABSENCE OF THE ISKANDER'S OWN FOUR. The Vauban carries NONE of
+	# mt_assault_launcher, mt_mine_deployers, mt_skeleton_key or cp_broad_sweep_seeder (ruling 14),
+	# and an exact list is the only assertion that would notice one arriving by copy-paste from the
+	# base frame.
+	var frame:Frame = _frame()
+	assert_not_null(frame, 'mf_vauban loads.')
+	if frame == null: return
+	var ids:Array[StringName] = []
+	for kit:Kit in frame.traits: ids.append(kit.compcon_id)
+	assert_eq(ids, SHEET_TRAITS, 'Solfataric Breach, Sap, Gravity Well - in sheet order, and nothing else.')
+
+func test_every_trait_kit_is_in_the_content_library():
+	# The frame holding a Kit and ContentLibrary indexing it are different facts: a Kit whose filename
+	# prefix or resource group is wrong is filed somewhere else and vanishes from get_kit with no
+	# error, while the frame's own ext_resource keeps working perfectly. Everything that looks a trait
+	# up by id - unit.get_gear, every trait spec's fixture, the icon guard - goes through the index.
+	for trait_id:StringName in SHEET_TRAITS:
+		var kit:Kit = ContentLibrary.get_kit(trait_id)
+		assert_true(Kit.is_valid(kit), '%s is in the kits index.' % trait_id)
+		if not Kit.is_valid(kit): continue
+		assert_true(kit.is_trait, '%s is a trait, so it costs no SP and cannot be unequipped.' % trait_id)

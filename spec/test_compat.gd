@@ -17,6 +17,7 @@ extends GutTest
 
 const MyconidFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/myconid_fixture.gd')
 const MaidensBlushFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/maidens_blush_fixture.gd')
+const VaubanFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/vauban_fixture.gd')
 
 const TALENTS_MOD := 'gavstarb-talents_1st_party'
 ## House Guard rank 1. Hidden buff, adjacency_range = 2, only_to_allies - see the registry row.
@@ -43,6 +44,14 @@ const SAVING_TILE := Vector2i(8, 4)  # 1 from the landing: Step asks it to save
 const SPARED_TILE := Vector2i(9, 4)  # 2 from the landing: Step does not, and House Guard does not
                                      # change that - which is the ruling
 const STEP_CHIP := &'buff_mist_and_thunder_invisible'
+
+# The Vauban case builds its OWN game (see the test below). The Vauban is SIZE 1, so adjacency here is
+# simply distance 1 from its one tile.
+const VAUBAN_TILE := Vector2i(4, 4)
+const VAUBAN_ADJACENT := Vector2i(5, 4)  # 1 out - inside the range-1 aura either way
+const VAUBAN_NEAR := Vector2i(6, 4)      # 2 out - OUTSIDE the aura, and exactly the tile House
+                                         # Guard's widening pulls into "adjacent"
+const WELL_CHIP := &'buff_gravity_well'
 
 var game:Gamemaster
 var myconid:Unit
@@ -216,3 +225,69 @@ func test_house_guard_does_not_widen_step_of_mist_and_thunders_adjacent_saves() 
 		'The character ONE tile from the landing was asked to save, and failed.')
 	assert_false(UnitCondition.has_buff(far_character, STEP_CHIP),
 		'The one TWO tiles out was never asked, however wide House Guard has made "adjacent".')
+
+
+# ===================== THE RULING: GRAVITY WELL MEASURES ITS OWN RANGE =====================
+
+## RULING, 2026-09-18, taken at the Vauban DESIGN - the frame's `Contested seams:` line, and the
+## second one on this project decided before the content existed rather than at a close.
+##
+## Gravity Well's "any adjacent allied mechs also benefit" is a PassiveAura of range 1, and
+## PassiveAura.is_within_range compares UnitRelation.distance_between against aura_range directly
+## (passive_aura.gd:85). House Guard overrides UnitRelation.adjacent_characters() and NOTHING ELSE -
+## not distance_between - so its widening does not reach any aura in the game, ours or vanilla's.
+## The Fungal Network reasoning exactly (see above): ask where the engine measures.
+##
+## THIS ASSERTS THE RULING, NOT COMPLIANCE, and inverts if the ruling is ever reversed - at which
+## point the aura would have to subclass is_within_range through a GUARDED call to
+## get_adjacency_range_alt, which is what the talents mod's own Greater Guardian does.
+##
+## THREE ASSERTIONS BEHIND A PRECONDITION, and the precondition is what keeps the other two honest:
+## with the talents mod absent, or its extension silently dead, "the far ally got nothing" would be
+## true for the boring reason. skipped_without_talents() announces that case rather than passing
+## quietly.
+func test_house_guard_does_not_widen_gravity_wells_shelter() -> void:
+	if skipped_without_talents(): return
+
+	game = VaubanFixture.create_game(self)
+	var vauban := VaubanFixture.create_vauban(game, VAUBAN_TILE)
+	# ALLIES, because House Guard's widening is only_to_allies - a hostile control would be outside
+	# the buff and the ruling would never be contested. Gravity Well shelters allied MECHS, which
+	# create_ally produces.
+	var near_ally := VaubanFixture.create_ally(game, VAUBAN_ADJACENT)
+	var far_ally := VaubanFixture.create_ally(game, VAUBAN_NEAR)
+	widen_adjacency_on(vauban)
+	VaubanFixture.lay_difficult(game, [VAUBAN_TILE])
+	VaubanFixture.track(game)
+
+	assert_true(UnitRelation.adjacent_characters(vauban).has(far_ally),
+		'The widening is live for this ally - two tiles out reads as adjacent.')
+	assert_false(UnitCondition.has_buff(far_ally, WELL_CHIP),
+		'RULED: the widened ally is not sheltered by Gravity Well.')
+	assert_true(UnitCondition.has_buff(near_ally, WELL_CHIP),
+		'While a genuinely adjacent one is - so the assertion above is not vacuous.')
+
+## The other half of the same ruling, and the one that keeps the test above from passing for the wrong
+## reason: the shelter still WORKS with the widening active. Without this, deleting the whole aura
+## would leave the ruling test green.
+func test_a_genuinely_adjacent_allied_mech_is_still_sheltered_with_the_widening_active() -> void:
+	if skipped_without_talents(): return
+
+	game = VaubanFixture.create_game(self)
+	var vauban := VaubanFixture.create_vauban(game, VAUBAN_TILE)
+	var near_ally := VaubanFixture.create_ally(game, VAUBAN_ADJACENT)
+	var shooter := VaubanFixture.create_hostile(game, Vector2i(10, 8))
+	VaubanFixture.equip_ranged(shooter)
+	widen_adjacency_on(vauban)
+	VaubanFixture.lay_difficult(game, [VAUBAN_TILE])
+	VaubanFixture.track(game)
+
+	# FIRES THE CONTENT rather than restating a property of the engine: the observable is the -1
+	# actually folded into a roll against the sheltered ally, the way test_gravity_well.gd measures it.
+	var weapon:GearCore = shooter.get_gear(VaubanFixture.RANGED_ID)
+	var specific := SpecificAction.create(shooter, weapon, weapon.get_solo_action())
+	var pre := AttackRoll.PreAttack.create(Context.clone(specific.to_context(), {target_unit = near_ally}))
+	var lines := 0
+	for mod:AttackRoll.AccuracyMod in pre.accuracy_mods:
+		if mod.title_key == X.tr('gear.mt_gravity_well.name') and mod.mod == -1: lines += 1
+	assert_eq(lines, 1, 'A truly adjacent allied mech still takes the -1 with the widening active.')
