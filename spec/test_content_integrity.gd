@@ -300,8 +300,9 @@ const ICON_TARGETS := {
 	# SP4 Task 1. A weapon Kit with a single profile, and that profile still earns its own row: it is
 	# a separately pressable button on the gear bar, exactly the mw_breech_loading_swivel_gun
 	# reasoning. Having only one profile does not merge the button into the Kit - the gear bar draws
-	# the action, and an action with no icon_override falls back to a generic, which is what this
-	# guard exists to catch.
+	# the action, and an action with no icon_override does NOT fall back to a generic - it inherits
+	# the Kit's glyph (action.gd:324-326, proved by the Task 0 probe of the icon-glyph-families
+	# plan) - which is exactly what a KIT row now relies on.
 	&'mw_rapier_class_carronade': {&'action_rapier_carronade': &'action_rapier_carronade'},
 	# SP4 Task 3. A system whose one action is a QUICK the player presses on the gear bar, so it wears
 	# its own icon as well as the Kit's - the ms_hull_break_thrusters reasoning exactly, not the
@@ -565,25 +566,73 @@ func test_every_player_facing_kit_and_action_has_a_real_icon():
 	# and fails on a stranger's parse error.
 	var kits:Array[Resource] = ModResources.load_ours(MOD_ID, &'kits')
 	assert_eq(ICON_TARGETS.size(), kits.size(), 'ICON_TARGETS lists every kit this mod ships.')
+
+	# How many of this mod's Kits carry each Action. A KIT row inherits through
+	# Action.icon_from_kit, which action.gd:58 caches on the SHARED Action resource and never
+	# invalidates - so an Action on two Kits would show whichever Kit asked first, on BOTH. Vanilla
+	# obeys this silently: action_redeploy (9 Kits) and action_takeoff (6) carry their own icons,
+	# and every shared action that inherits is hidden bookkeeping that never draws.
+	var kits_per_action := {}
 	for kit:Kit in kits:
-		# The count above is not enough on its own: a stale row for a deleted kit plus a new kit with
-		# no row balances it, and `ICON_TARGETS.get(id, {})` would then silently check no actions on
-		# the new kit. This is what makes the pairing exact.
+		for action:Action in kit.actions:
+			kits_per_action[action.resource_path] = kits_per_action.get(action.resource_path, 0) + 1
+
+	# family name => [texture, the row that first claimed it]. Accumulated across the WHOLE table,
+	# so a family can span Kits - which is what pins cp_broadside's protocol to the charged profile
+	# on mw_bizarre_cannon.
+	var family_texture := {}
+
+	for kit:Kit in kits:
+		# The count above is not enough on its own: a stale row for a deleted kit plus a new kit
+		# with no row balances it, and `ICON_TARGETS.get(id, {})` would then silently check no
+		# actions on the new kit. This is what makes the pairing exact.
 		assert_true(ICON_TARGETS.has(kit.compcon_id),
 			'%s is listed in ICON_TARGETS.' % kit.resource_path.get_file())
 		_assert_real_icon(kit.icon_override, kit.compcon_id)
 		var listed:Dictionary = ICON_TARGETS.get(kit.compcon_id, {})
 		var by_id := {}
 		for action:Action in kit.actions: by_id[action.get_id()] = action
+		var texture_by_family := {}
 		for action_id:StringName in listed:
 			assert_true(by_id.has(action_id), '%s carries %s.' % [kit.compcon_id, action_id])
 			if not by_id.has(action_id): continue
-			_assert_real_icon(by_id[action_id].icon_override, '%s.%s' % [kit.compcon_id, action_id])
-		# Added at the MYCONID FRAME CLOSE, 2026-09-16 (close review slice 5, finding B): the two checks above only
-		# look at what IS listed - nothing compares it against kit.actions, so an action quietly
-		# dropped from ICON_TARGETS is invisible to every assertion above this line. Walk the OTHER
-		# direction - every action the Kit actually carries - and assert its presence in `listed`
-		# agrees with whether the engine would ever draw it with an icon of its own. See
+			var action:Action = by_id[action_id]
+			var label:String = '%s.%s' % [kit.compcon_id, action_id]
+			var family:StringName = listed[action_id]
+			if family == KIT:
+				assert_null(action.icon_override,
+					'%s is a KIT row, so it carries NO icon_override and inherits the Kit glyph.' % label)
+				assert_not_null(kit.icon_override,
+					'%s inherits from %s, which therefore needs an icon_override of its own.'
+						% [label, kit.compcon_id])
+				assert_eq(kits_per_action.get(action.resource_path, 0), 1,
+					'%s is carried by exactly one Kit, so inheriting is safe (action.gd:58 caches it).'
+						% label)
+				continue
+			_assert_real_icon(action.icon_override, label)
+			if action.icon_override == null: continue
+			if family_texture.has(family):
+				assert_eq(action.icon_override, family_texture[family][0],
+					'%s wears the same texture as %s - they are one family (%s).'
+						% [label, family_texture[family][1], family])
+			else:
+				family_texture[family] = [action.icon_override, label]
+			if not texture_by_family.has(family): texture_by_family[family] = action.icon_override
+		# Two families on ONE Kit must look different, or the gear bar draws two buttons the player
+		# cannot tell apart. Rows INSIDE a family may coincide - vanilla's action_thunder_god and
+		# action_thunder_god_chamber_rounds do exactly that.
+		var claimed := {}
+		for family:StringName in texture_by_family:
+			var tex:Texture2D = texture_by_family[family]
+			assert_false(claimed.has(tex),
+				'%s: family %s wears a texture no other family on this Kit uses (clashes with %s).'
+					% [kit.compcon_id, family, claimed.get(tex, &'-')])
+			claimed[tex] = family
+		# Added at the MYCONID FRAME CLOSE, 2026-09-16 (close review slice 5, finding B): the checks
+		# above only look at what IS listed - nothing compares it against kit.actions, so an action
+		# quietly dropped from ICON_TARGETS is invisible to every assertion above this line. Walk
+		# the OTHER direction - every action the Kit actually carries - and assert its presence in
+		# `listed` agrees with whether the engine would ever draw it with an icon of its own. See
 		# _action_reaches_a_player_facing_surface's header for the three surfaces and the rule.
 		var first_weapon_action:Action = null
 		var weapon_actions:Array[ActionAttackWeapon] = kit.get_weapon_actions() # kit.gd:129-132
@@ -591,7 +640,8 @@ func test_every_player_facing_kit_and_action_has_a_real_icon():
 		for action:Action in kit.actions:
 			var should_be_listed:bool = _action_reaches_a_player_facing_surface(action, kit, first_weapon_action)
 			assert_eq(listed.has(action.get_id()), should_be_listed,
-				'%s.%s is listed in ICON_TARGETS exactly when it reaches a player-facing surface.' % [kit.compcon_id, action.get_id()])
+				'%s.%s is listed in ICON_TARGETS exactly when it reaches a player-facing surface.'
+					% [kit.compcon_id, action.get_id()])
 
 ## Whether ACTION would be drawn with an icon of its own by some real player-facing surface, rather
 ## than borrowing the Kit's - i.e. whether it belongs in ICON_TARGETS at all. Three surfaces do
