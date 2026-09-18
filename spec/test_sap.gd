@@ -141,7 +141,8 @@ class SaveRecorder extends Buff:
 ## 2026-09-18): Action.get_id() falls back to the resource path's basename, empty for a Resource built
 ## in code, and ReactionBus.does_reaction_trigger opens with `if rxn.get_id() == X.DEBUG_REACTION`,
 ## whose default is ALSO &'' (global.gd:239) - the debug branch then calls triggers_on_event once for
-## its print before the real evaluation calls it again (reaction_bus.gd:97-108).
+## its print before the real evaluation calls it again (reaction_bus.gd:106-115, measured 2026-09-18;
+## the extra triggers_on_event call is :115).
 class StepRecorder extends ActionReaction:
 	var seen:Array[StringName] = []
 
@@ -507,6 +508,65 @@ func test_a_hostile_flier_landing_on_difficult_ground_is_not_asked():
 	assert_eq(save_recorder.saves.size(), 0, 'Landing on the tile you already occupy is not an entry.')
 	assert_false(slowed_by_sap(flier), 'So nothing Slowed it.')
 	assert_false(reprieved(flier), 'And nothing reprieved it - it was never in the conversation at all.')
+
+# ---------------------------------------------------------------- nobody is exempt
+
+func test_a_flying_hostile_entering_the_field_is_still_asked_and_still_slowed():
+	# RULING 4's "NOBODY IS EXEMPT", AND THE REASON THIS FILE HOLDS TWO FLIERS. THE TWO ARE NOT
+	# DUPLICATES AND NEITHER CAN REPLACE THE OTHER. The one directly above LANDS, and is deliberately
+	# not Sapped - because a landing is not an ENTRY, not because it flies. This one WALKS IN, and is
+	# Sapped exactly like any other character: the card names no exemption, unlike Caustic Earth's, so
+	# a flier or a Bulwark-Mod mech that pays nothing for the ground still saves when it enters the
+	# area (ruling 4, design §1.4, and action_sap.gd's own header). Read either test alone and the
+	# frame reads the opposite way round.
+	#
+	# THE MOVEMENT COST IS THE DISCRIMINATOR AND IT IS ASSERTED, because "a flier still saves" is only
+	# a claim if the flier really did ignore the terrain. MovementType.create sets flying = true off the
+	# FLYING status (movement_type.gd:34-56, the assignment at :46) and ignores_difficult_terrain()
+	# returns true for any flying type (:107-108), so pathfinder.gd:99-100 never adds the extra point:
+	# this mover spends 4 of its 8 crossing the same band over which the walker in
+	# test_a_failed_save_slows_the_mover_and_the_move_still_completes spends 5. The ground costs it
+	# NOTHING and Sap asks anyway.
+	#
+	# WHAT THIS GUARDS AGAINST, concretely: an
+	#   if context.resource is MovementType and context.resource.ignores_difficult_terrain(): return false
+	# short-circuit added to the gate - the obvious "optimisation" a reader makes after seeing the
+	# landing test, and the one a move context invites because it carries the MovementType in
+	# context.resource (event_unit_move.gd:52, :279). Measured 2026-09-18: with that line at the top of
+	# triggers_on_event the file goes 10/19, and this test is RED on the save count (0 against 1) with
+	# every fixture assertion above it still green - the flier moved, crossed the band and stayed
+	# airborne; only the gate refused. It is the ONLY VOLUNTARY-move case that moves: the two walkers
+	# stay green (a standard move by a non-flier ignores nothing), and the other eight reds are the
+	# shove()/knockback cases, which MovementType.create_for_involuntary makes terrain-ignoring too
+	# (movement_type.gd:67, :108). So this test is what stands between the flier reading and a gate
+	# that quietly exempts it.
+	#
+	# A BAND, NOT A TILE (see BAND_A: the pathfinder routes around a single difficult tile), and the
+	# REAL event for the status rather than SpecFactory.apply (see the landing test: that helper's
+	# dummy_event() has no valid block, so the flight never reaches the bus).
+	VaubanFixture.lay_difficult(game, bands(BAND_A))
+	var flier := walker(START)
+	var recorder := install_save_recorder(flier)
+	await game.execute_event(&'event_unit_apply_status',
+		{unit = flier, category = Lancer.STATUS.FLYING, flags = [Lancer.UNTIL.MANUAL]})
+	queue_rolls([1])
+	assert_true(flier.has_status(Lancer.STATUS.FLYING),
+		'fixture: the hostile is airborne BEFORE it moves, not after.')
+	assert_true(game.map.get_surface_terrain_at(Vector2i(BAND_A, START.y)).is_difficult(),
+		'fixture: and the band it is about to cross really is difficult ground.')
+
+	await SpecFactory.move(game, flier, DESTINATION, MovementType.create_for_standard_move(flier))
+
+	assert_true(flier.has_status(Lancer.STATUS.FLYING),
+		'fixture: it was STILL airborne when the move resolved - nothing landed it mid-step.')
+	assert_eq(flier.tile(), DESTINATION,
+		'fixture: and it really crossed the band, ending east of it on clean ground.')
+	assert_eq(flier.core.current.speed, 4,
+		'fixture: having spent 4 of its 8 - FOUR steps at cost 1, so the difficult ground charged it '
+		+ 'nothing at all. The walker over the same band spends 5.')
+	assert_eq(recorder.saves.size(), 1, 'It is asked exactly one Hull save, exactly like a walker.')
+	assert_true(slowed_by_sap(flier),
+		'And the failed save Slowed it, sourced to the Sap gear: nobody is exempt.')
 
 # ---------------------------------------------------------------- who and where
 

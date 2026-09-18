@@ -404,8 +404,9 @@ func test_lay_returns_null_when_the_spawn_aborts():
 	# spawned is not on the map yet - which it never is, by definition (context.gd:79). Make those two
 	# reads disagree and the engine refuses the event for real: EventBlock.execute calls set_aborted()
 	# and prints [ ABORT event_unit_spawn ] with target_tiles named as the missing prop
-	# (event_block.gd:103,:117-124). No mock, no stub, no double - the engine's own abort path, on the
-	# engine's own event.
+	# (event_block.gd:99 in the preblock pass, then :119 with the print at :120-124 in the main one;
+	# :103 is the validity gate that routes there, not the abort. All measured 2026-09-18.) No mock,
+	# no stub, no double - the engine's own abort path, on the engine's own event.
 	#
 	# The divergence is one assignment and it is put back on the next line. MapState.create_dummy is
 	# vanilla's own standalone-map constructor (map_state.gd:67, what Level.map itself defaults to and

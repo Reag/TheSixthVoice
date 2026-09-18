@@ -34,8 +34,9 @@
 ##
 ## NOT A REAL REACTION. consumes_rxn = false and the per-round hard limit is overridden to 99, because
 ## ActionReaction only returns 99 for a non-consuming reaction and returns 1 otherwise
-## (action_reaction.gd:66) - the card gives Sap no cadence at all, and ruling 3 took "a save on every
-## entry" over a cap. A Vauban that has already spent its reaction on Solfataric Breach still Saps.
+## (action_reaction.gd:69, measured 2026-09-18 - :66 is is_jammable()) - the card gives Sap no cadence
+## at all, and ruling 3 took "a save on every entry" over a cap. A Vauban that has already spent its
+## reaction on Solfataric Breach still Saps.
 ##
 ## show_in_tooltip IS OVERRIDDEN TO FALSE (design §1.4, the Poisoned Soil lesson): the Kit's own rows
 ## describe the whole trait, and a second copy of the same paragraph under a "Trigger:" heading is
@@ -67,7 +68,7 @@ const REPRIEVE_BUFF := &'buff_sap_reprieve'
 func get_required_triggering_context() -> Array[Context.PROP]:
 	return [Context.PROP.unit]
 
-## ActionReaction returns 1 for a consuming reaction and 99 otherwise (action_reaction.gd:66); this
+## ActionReaction returns 1 for a consuming reaction and 99 otherwise (action_reaction.gd:69); this
 ## one consumes nothing, so 99 is already what it would return. Written out anyway, because the
 ## card's "no cadence" is a RULING (ruling 3, the author's call over a once-per-round cap) and a
 ## future edit that flipped consumes_rxn would otherwise silently acquire a cap.

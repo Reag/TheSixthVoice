@@ -124,8 +124,10 @@ static func is_entering_difficult(unit:Unit, next_anchor:Vector2i) -> bool:
 ## caller reading non-null as success would take that corpse for a laid field. Three things are
 ## checked, because they are three different failures:
 ##   - a null core: execute_event returns bare when the block died under us (event_core.gd:72)
-##   - `aborted`: EventBlock sets it when the event's required context does not hold (event_block.gd:103,
-##     :121) - Tile.contains_valid(target_tiles, map) is measured against X.map(), not against the map
+##   - `aborted`: EventBlock sets it when the event's required context does not hold - at
+##     event_block.gd:99 in the preblock pass and again at :119 in the main one (both measured
+##     2026-09-18; :103 is the validity GATE that routes there, not the abort itself).
+##     Tile.contains_valid(target_tiles, map) is measured against X.map(), not against the map
 ##     this function bounds-checked, because the spawning unit is by definition not on the map yet
 ##     (context.gd:79, :147)
 ##   - not on the map: the level exited during the await, so EventBlock.execute returned at its own
