@@ -248,6 +248,29 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	# own), then fixed here. SP3 Task 4 (the DDMR) will touch this same line next; SP4 fills rank 3
 	# (the Eternity Hammer and Flourishing Twirl).
 	#
+	# UPDATED AGAIN, SP3 Task 5 (2026-09-19): the DDMR joined the Falcata at rank 2, exactly as the
+	# line above predicted. Task 4 deliberately left this RED rather than fixing it in passing - the
+	# suite carried it as its one non-icon failure between the two tasks, and its own failure message
+	# named the DDMR as the thing that would break it - so closing it is this task's job and the red
+	# was information the whole time.
+	#
+	# AND A LATENT DEFECT IN THE RANK-1 LINE, FOUND AND FIXED HERE, MEASURED NOT REASONED:
+	# Array[StringName].sort() DOES NOT SORT ALPHABETICALLY. Godot's StringName comparison operators
+	# compare the interned _data POINTER, not the text, so .sort() on a StringName array orders by
+	# allocation address - which depends on which scripts ran earlier in the process and interned which
+	# names first. Measured on this file AT HEAD, before this task changed a line of it: run in
+	# ISOLATION (--gut-script=...test_primrose_frame.gd) the rank-1 assertion fails with
+	# ARRAY([&"mw_rend_axe", &"ms_dazzling_wind"]) != ARRAY([&"ms_dazzling_wind", &"mw_rend_axe"]),
+	# while the same assertion passes inside the full-suite run where it was written. So it has been
+	# green by luck since SP2 Task 3 and would have reddened the first time anyone ran this file alone,
+	# or the first time an earlier script's load order changed.
+	#
+	# THE FIX IS TO SORT Strings, NOT StringNames - String's < IS lexicographic - so both lists are now
+	# built as Array[String] and compared against String literals. This is the only sort in the file;
+	# nothing else here orders ids. (Every OTHER id list in this mod's specs is either compared
+	# unsorted against a declaration order or searched with assert_has, so this is not a pattern to
+	# sweep for - but any NEW sorted-id assertion must be built this way.)
+	#
 	# EXACT LISTS, not "contains ours", and that is the original reasoning unchanged: the natural
 	# mistake when copying li_fitzgerald.tres is to carry over ITS granted_gear entries, and those
 	# are vanilla-shaped ids this mod really does ship, so a has-assertion would pass over them.
@@ -255,15 +278,16 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	assert_not_null(license, 'fixture: the licence loads.')
 	if license == null: return
 	if license.rank_1 == null or license.rank_2 == null or license.rank_3 == null: return
-	var rank_1_ids:Array[StringName] = []
-	for kit:Kit in license.rank_1.granted_gear: rank_1_ids.append(kit.compcon_id)
+	var rank_1_ids:Array[String] = []
+	for kit:Kit in license.rank_1.granted_gear: rank_1_ids.append(String(kit.compcon_id))
 	rank_1_ids.sort()
-	assert_eq(rank_1_ids, [&'ms_dazzling_wind', &'mw_rend_axe'] as Array[StringName],
+	assert_eq(rank_1_ids, ['ms_dazzling_wind', 'mw_rend_axe'] as Array[String],
 		'Rank 1 grants exactly the Rend Axe and Dazzling Wind, once each.')
-	var rank_2_ids:Array[StringName] = []
-	for kit:Kit in license.rank_2.granted_gear: rank_2_ids.append(kit.compcon_id)
-	assert_eq(rank_2_ids, [&'mw_acrasial_falcata'] as Array[StringName],
-		'Rank 2 grants exactly the Acrasial Falcata so far (SP3 Task 4 adds the DDMR).')
+	var rank_2_ids:Array[String] = []
+	for kit:Kit in license.rank_2.granted_gear: rank_2_ids.append(String(kit.compcon_id))
+	rank_2_ids.sort()
+	assert_eq(rank_2_ids, ['mw_acrasial_falcata', 'wm_ddmr'] as Array[String],
+		'Rank 2 grants exactly the Acrasial Falcata and the DDMR, once each - the whole of rank II.')
 	assert_eq(license.rank_3.granted_gear.size(), 0, 'Rank 3 grants no gear yet (SP4 fills it).')
 
 func test_a_pilot_at_rank_one_can_take_the_rank_one_gear():

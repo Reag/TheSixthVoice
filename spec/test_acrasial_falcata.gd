@@ -82,18 +82,39 @@ const DAMAGE_DICE := '2d6+4'
 ## 2d6+4 with the fixture's cheat_a_hit() all-sixes buffer: 6 + 6 + 4 = 16, always, never a range.
 const FALCATA_DAMAGE := 16
 
+## SP3 Task 5. The three threat sources that stack on this weapon (ruling 11), and the trait ids the
+## three pins below read.
+const THREAT_WITH_CARESS_AND_DDMR := 5
+const THREAT_WITH_EVERYTHING := 6
+const MWR_USAGE_KEY := &'magnetic_weight'
+
 const START := Vector2i(4, 4)
 const ADJACENT := Vector2i(5, 4)     # threat 1 would still reach this; not what THREAT proves alone
 const AT_THREE := Vector2i(7, 4)     # exactly threat 3 away - a threat-1 regression cannot reach it
 const CONTROL_TILE := Vector2i(20, 20) # far from everything else in this spec's map
 
 var game:Gamemaster
+var responder
 var primrose:Unit
 var hostile:Unit
 var gear:GearCore
 
+## SP3 Task 5 CHANGED THE FIXTURE FROM create_game TO create_game_with_prompts, and the difference is
+## exactly one object: which ChoiceBusResponder is in the tree. setup_gamemaster's add_responder
+## argument goes false and testkit/mod_choice_responder.gd is added instead (primrose_fixture.gd:102-107);
+## everything else - the combat, the landscape, the forbidden_interiors_enabled flag - is identical
+## between the two helpers (fitzgerald_fixture.gd:69-73 against primrose_fixture.gd:103-106). The
+## testkit responder inherits choose_gear untouched and falls back to the stock `chosen_yesnos` /
+## `chosen_multiple_choice_index` whenever its own queues are empty (mod_choice_responder.gd:82-83,
+## :172), so the eight tests written under the stock responder see the same answers they always did -
+## MEASURED, not assumed: this file went 8/8 -> 11/11 with no change to any pre-existing assertion.
+## It is needed because PrimroseFixture.press_protocol takes a responder as an argument and answers
+## GLIMMERING ARMAMENTS' multiple-choice from multiple_choice_queue, which the stock responder has no
+## equivalent of at all.
 func before_each() -> void:
-	game = PrimroseFixture.create_game(self)
+	var pair := PrimroseFixture.create_game_with_prompts(self)
+	game = pair[0]
+	responder = pair[1]
 	primrose = PrimroseFixture.create_primrose(game, START)
 	hostile = PrimroseFixture.create_hostile(game, ADJACENT, -10) # every swing hits
 	hostile.core.frame.stat.health = 200
@@ -108,6 +129,29 @@ func weapon() -> ActionAttackWeapon:
 
 func specific() -> SpecificAction:
 	return PrimroseFixture.specific(primrose, FALCATA)
+
+## The Falcata's CURRENT threat, re-derived from the unit on every call.
+##
+## RE-DERIVED RATHER THAN CACHED, and that is load-bearing for the stacking pin: fit_ddmr and
+## press_protocol both run SpecFactory.apply_passive_buffs -> full_repair -> regenerate_derived_gear,
+## which rebuilds the loadout's GearCores, so a SpecificAction taken before either of them can be
+## reading a gear the unit no longer holds. test_ddmr.gd re-takes its specific for the same reason.
+func falcata_threat() -> int:
+	var current := PrimroseFixture.specific(primrose, FALCATA)
+	return current.action.threat_distance(current)
+
+## Whether an overwatch-weapon list offers the Falcata. Matched on the KIT id, the shape
+## test_wormhole_grasp.gd's offers_superheavy() uses for the Combat Drill.
+func offers_falcata(list:Array[SpecificAction]) -> bool:
+	for candidate:SpecificAction in list:
+		if candidate.gear.kit.compcon_id == FALCATA: return true
+	return false
+
+## How many times Magnetic Weight Redistribution has spent its 1/round this round. -1 when the trait
+## gear cannot be found at all, which is a different failure from "it never fired".
+func mwr_uses() -> int:
+	var trait_gear := primrose.get_gear(PrimroseFixture.MWR_ID)
+	return trait_gear.get_uses_this_round_alt(MWR_USAGE_KEY) if GearCore.is_valid(trait_gear) else -1
 
 ## Fires the Falcata at `target_unit` (default `hostile`), opening the turn first. Does NOT clear the
 ## dice queue - the caller's cheat_* call is what decides the roll, same idiom as test_rend_axe.gd's
@@ -256,3 +300,94 @@ func test_the_card_text_reaches_the_player() -> void:
 	assert_true(flavor.contains('no mere "gunsword", it is far too sharp'),
 		'the doubled CSV quotes compiled down to a single literal pair, not zero and not four.')
 	assert_false(flavor.contains('""'), 'no doubled quotes survived into the compiled text.')
+
+# ------------------------------------------------------- SP3 Task 5: the frame meeting the weapon
+
+## THE THREE PINS BELOW ARE IN THIS FILE, NOT IN test_ddmr.gd OR test_magnetic_weight_redistribution.gd,
+## and the reason is the same one for all three: each asks what the FALCATA does, and the frame
+## mechanic is the variable. A reader who sees a red here is told "the Falcata is wrong"; the same
+## assertion in the DDMR's or the trait's file would say "the DDMR is wrong" about a weapon that file
+## otherwise never mounts. This file already carries the weapon's other two threat readings (3 printed,
+## 4 under Artful Caress), so the stacking pin is the third and fourth entries of a table that already
+## lives here, rather than a fifth reading in a fourth place.
+##
+## ALL THREE ARE CHARACTERISATION PINS AND WERE GREEN ON ARRIVAL: no content was written for any of
+## them, which was the expected result (this sub-project's remaining content shipped in Tasks 1-4).
+## Their discriminating evidence is therefore the mutation each one carries, recorded in
+## .superpowers/sdd/progress-primrose-sp3.md - not a first-run RED.
+
+func test_the_three_threat_sources_stack_on_the_falcata() -> void:
+	# RULING 11: Artful Caress (+1, Heavy/Superheavy melee), the DDMR (+1, the modded weapon) and
+	# Wormhole Grasp (+1, every weapon) are unfiltered BY EACH OTHER and stack. threat_distance sums
+	# every Buff.TO.ACTION_RANGE buff whose bonus_subtype is threat_range (action_attack_weapon.gd:
+	# 187-190), and none of the three overrides, so the arithmetic is plain addition.
+	#
+	# EVERY INTERMEDIATE NUMBER IS ASSERTED, deliberately, so a red names the missing source instead of
+	# just "6 was not 6": 3 is the printed field, 4 adds the frame's trait, 5 adds the weapon mod, 6
+	# adds the core power. Tasks 1 and 4 measured the first three; only the last is new here.
+	assert_eq(weapon().threat, THREAT, 'printed threat 3, before anything at all.')
+	assert_eq(falcata_threat(), THREAT_WITH_CARESS, '+ Artful Caress (frame trait) = 4.')
+
+	PrimroseFixture.fit_ddmr(primrose, primrose.get_gear(FALCATA))
+	assert_eq(falcata_threat(), THREAT_WITH_CARESS_AND_DDMR, '+ the DDMR (weapon mod) = 5.')
+
+	# THE PROTOCOL IS PRESSED LAST, AND THAT IS NOT STYLE. PrimroseFixture.equip's header records why:
+	# every equip/fit runs SpecFactory.apply_passive_buffs -> full_repair, which sets
+	# core.has_core_power = true again (unit_printer.gd:76) - so fitting the DDMR after this press would
+	# silently refund the core power and the assertion below would be measuring a Primrose that had
+	# never spent it.
+	await PrimroseFixture.press_protocol(game, primrose, responder, PrimroseFixture.WORMHOLE_INDEX)
+	assert_true(UnitCondition.has_buff(primrose, PrimroseFixture.WORMHOLE_GRASP),
+		'fixture: the Wormhole Grasp marker landed.')
+	assert_eq(falcata_threat(), THREAT_WITH_EVERYTHING, '+ Wormhole Grasp (core power) = 6, ruling 11.')
+
+func test_the_falcata_can_overwatch_only_under_wormhole_grasp() -> void:
+	# SP1 proved this waiver (res/engine/character/unit/service/unit_relation.gd_ext.gd) with vanilla's
+	# mw_combat_drill, the only Superheavy melee weapon in the base game. This is the same claim asked
+	# of the frame's OWN Superheavy, which is what a player will actually be holding: the extension
+	# reads nothing but the marker buff and the weapon's size, so a Falcata that failed here would mean
+	# the weapon's size export, not the waiver.
+	#
+	# THE EXACT CALL action_overwatch.gd:21 MAKES, copied from test_wormhole_grasp.gd rather than
+	# invented - get_weapons_that_can_overwatch is where vanilla's SUPERHEAVY refusal
+	# (unit_relation.gd:293-299, through is_weapon_available_as_a_rxn) is reached from.
+
+	# VACUITY GUARD, and it is the one this test actually needs: "not offered" is also what an
+	# out-of-threat or unreachable target produces, and that failure would survive the press and make
+	# BOTH halves read as a broken waiver. Asking the engine's own legal-target set first rules it out.
+	assert_has(UnitTargeting.get_tiles_in_range(specific()), ADJACENT,
+		'GUARD: the hostile is inside the Falcata\'s threat, so nothing but the SIZE gate is in play.')
+
+	assert_false(offers_falcata(UnitRelation.get_weapons_that_can_overwatch(primrose, hostile)),
+		'Vanilla refuses a SUPERHEAVY weapon an Overwatch, and so does the extension without the marker.')
+
+	await PrimroseFixture.press_protocol(game, primrose, responder, PrimroseFixture.WORMHOLE_INDEX)
+	assert_true(UnitCondition.has_buff(primrose, PrimroseFixture.WORMHOLE_GRASP),
+		'fixture: the Wormhole Grasp marker landed.')
+
+	assert_true(offers_falcata(UnitRelation.get_weapons_that_can_overwatch(primrose, hostile)),
+		'THE CLAIM: with the marker up, Overwatch offers the frame\'s own Superheavy.')
+
+func test_a_falcata_crit_fires_magnetic_weight_redistribution() -> void:
+	# The trait is "a Heavy or Superheavy melee weapon", and until this sub-project the only Superheavy
+	# a Primrose could hold was vanilla's Combat Drill - so test_magnetic_weight_redistribution.gd
+	# proves the trait against a weapon the frame does not ship. This is the same claim against the
+	# frame's own, and it is the only place the two halves of the licence meet.
+	#
+	# THE SAVE IS FORCED TO FAIL THROUGH HaseBlock, NOT THE DICE QUEUE (PrimroseFixture.force_save_to_
+	# fail): the attack ahead of the save pops an unpredictable number of accuracy and damage dice out
+	# of the same global FIFO, so queuing a d20 for the save would be guessing how many the attack ate
+	# first. With the save pinned, Prone is an assertion about the TRAIT and not about the dice.
+	PrimroseFixture.force_save_to_fail(hostile)
+	assert_eq(mwr_uses(), 0, 'fixture: the trait has not fired yet this round.')
+
+	PrimroseFixture.cheat_a_crit()
+	await swing()
+
+	assert_gt(hostile.current_damage(), 0, 'VACUITY GUARD: the swing really landed.')
+	assert_true(hostile.has_status(Lancer.STATUS.PRONE),
+		'THE CLAIM: a Superheavy melee CRIT with the Falcata forced a Hull save, and it was failed.')
+	# RULING 12's own pin, restated here: the round is spent by FORCING the save, so this reads 1 only
+	# if onhit_magnetic_weight_redistribution.should_abort actually ran for this weapon. Without it,
+	# "Prone" alone could in principle come from anywhere.
+	assert_eq(mwr_uses(), 1, 'And the trait spent its 1/round on this weapon.')
