@@ -379,3 +379,76 @@ func test_the_superheavy_waiver_still_works_with_the_talents_mod_resident() -> v
 	assert_true(offers_with,
 		'And the waiver still reaches the deepest call in the chain with two other mods extending the '
 		+ 'same file - so ours composes with theirs.')
+
+
+# ===================== RULING 18: DAZZLING WIND'S LEAP MEASURES ITS OWN RADIUS =====================
+#
+# RULING 18 (design, taken before the content existed - the frame's `Contested seams:` line).
+# "adjacent to you" on the Leap's card is a distance-1 RADIUS from the mech's own tiles
+# (action_leap.gd:59-62 - UnitRelation.get_characters_within(unit, 1, false, ...)), the Fungal
+# Network and Gravity Well shape exactly: House Guard overrides adjacent_characters() and NOTHING
+# ELSE, so its widening does not reach a radius query.
+#
+# THIS TEST IS THE RULING, NOT A DESCRIPTION OF IT. If a talents update ever moved the widening into
+# get_characters_within, this goes red and somebody decides again rather than the prose quietly
+# becoming false.
+func test_house_guard_does_not_widen_the_leaps_adjacent_pick() -> void:
+	if skipped_without_talents(): return
+	var pair:Array = PrimroseFixture.create_game_with_prompts(self)
+	var game:Gamemaster = pair[0]
+	var responder = pair[1]
+	var primrose:Unit = PrimroseFixture.create_primrose(game, PRIMROSE_TILE)
+	var wind:GearCore = PrimroseFixture.equip(primrose, PrimroseFixture.DAZZLING_WIND)
+	await PrimroseFixture.open_turn(game, primrose)
+
+	# A hostile two tiles from where each leap below will END: outside the card's own distance-1
+	# reach.
+	var far:Unit = PrimroseFixture.create_hostile(game, PRIMROSE_NEAR + Vector2i(1, 0))
+
+	# CONTROL, ABOVE THE BUFF (SP1 finding 25): with no widening in play, two tiles out is not
+	# offered. Landing at PRIMROSE_ADJACENT, one real tile away from where the Primrose starts, is
+	# what makes this a genuine leap - CORRECTED AT IMPLEMENTATION: the brief's draft aimed this
+	# activation at PRIMROSE_TILE, the Primrose's OWN starting tile, so nothing would have moved and
+	# "nobody offered" would have been true for the wrong reason (a no-op activation, not a correctly
+	# measured adjacency). The VACUITY assertion right below is what would have caught that.
+	await game.execute_event(&'event_gear_activate', {
+		unit = primrose, gear = wind, action = wind.kit.get_action(&'action_leap'),
+		target_tiles = [PRIMROSE_ADJACENT] as Array[Vector2i],
+	})
+	assert_eq(primrose.tile(), PRIMROSE_ADJACENT, 'VACUITY: the control leap actually moved the mech.')
+	assert_eq(responder.unit_prompts.size(), 0, 'CONTROL: two tiles out is not adjacent before the buff.')
+
+	# A fresh turn: Leap is capped at the engine's own per-turn soft limit like any non-free action
+	# (action.gd:161-163), so firing it twice in the same turn would be silently refused - the same
+	# "nothing happened" trap as above, one level up the call stack.
+	await SpecFactory.end_turn(game, primrose)
+	await PrimroseFixture.open_turn(game, primrose)
+
+	# Now with House Guard's widening live on the Primrose. THE only_to_allies TRAP: the resident
+	# rank-1 buff (buff_front_rank_adjacency_range.tres) sets only_to_allies = true, and the talents
+	# mod's own adjacent_characters() override (unit_relation.gd_ext.gd:40-44) filters its WIDENED
+	# half to Faction.is_ally(u.state.faction, values.category) - so a HOSTILE two tiles out can NEVER
+	# be pulled into adjacent_characters() by this buff, whatever Leap's own code does. Testing only a
+	# hostile far unit would therefore pass whether Leap reads the widened set or its own radius - a
+	# vacuous "green while testing nothing" of exactly the kind this file's header warns about.
+	# far_ally, at the same distance the compat-seams doc measures ("an enemy two tiles out still
+	# triggers nothing"), is what proves the widening is actually LIVE on this Primrose at the moment
+	# of the ruling check, rather than merely silent because nothing here could ever show it.
+	widen_adjacency_on(primrose)
+	var far_ally:Unit = PrimroseFixture.create_ally(game, PRIMROSE_ADJACENT + Vector2i(0, 2))
+	assert_true(UnitRelation.adjacent_characters(primrose).has(far_ally),
+		'fixture: the widening is live on this Primrose - two tiles out reads as adjacent for an ally.')
+
+	responder.unit_prompts.clear()
+	# A perpendicular hop, not back onto PRIMROSE_ADJACENT: the brief's draft aimed this second leap
+	# at the tile the Primrose already stood on after the first leap, which is the identical no-op
+	# trap one tile later. One tile south keeps far at exactly Chebyshev distance 2 (dx 2, dy 1 -> 2).
+	var second_landing := PRIMROSE_ADJACENT + Vector2i(0, 1)
+	await game.execute_event(&'event_gear_activate', {
+		unit = primrose, gear = wind, action = wind.kit.get_action(&'action_leap'),
+		target_tiles = [second_landing] as Array[Vector2i],
+	})
+	assert_eq(primrose.tile(), second_landing, 'VACUITY: the second leap also actually moved the mech.')
+	assert_eq(responder.unit_prompts.size(), 0,
+		'RULING 18: the widening does not reach a radius query, so the Leap still offers nobody.')
+	assert_true(Unit.is_valid(far), 'VACUITY: the hostile was there the whole time.')

@@ -259,6 +259,19 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	assert_eq(license.rank_2.granted_gear.size(), 0, 'Rank 2 grants no gear yet (SP3 fills it).')
 	assert_eq(license.rank_3.granted_gear.size(), 0, 'Rank 3 grants no gear yet (SP4 fills it).')
 
+func test_a_pilot_at_rank_one_can_take_the_rank_one_gear():
+	# THE PLAYER-FACING HALF OF THE GRANT LIST, the way test_a_pilot_with_the_licence_at_rank_two_can_
+	# pick_the_primrose below is the player-facing half of the frame grant. The licence is not just a
+	# list - it is what a pilot's loadout reads. PilotCore.get_available_gear (pilot_core.gd:238-247)
+	# walks get_unlocked_licensed_gear, which is cumulative over each license's RankProgress rows
+	# (rank_progress.get_unlocked_gear), so a rank-1 pilot must be offered both rank-1 items.
+	var pilot := PilotCore.create()
+	pilot.set_license_to_rank(LICENSE_ID, 1)
+	var ids:Array[StringName] = []
+	for kit:Kit in pilot.get_available_gear(): ids.append(kit.compcon_id)
+	assert_has(ids, &'mw_rend_axe', 'a Primrose 1 pilot may take the Rend Axe.')
+	assert_has(ids, &'ms_dazzling_wind', 'and Dazzling Wind.')
+
 func test_the_licence_names_itself_after_the_frame():
 	# THERE IS NO LICENCE NAME ROW, AND THAT IS THE ENGINE'S DESIGN rather than an omission.
 	# UnlockTree.license_name (unlock_tree.gd:28-32) reads rank_2.granted_frames.FRONT() and
