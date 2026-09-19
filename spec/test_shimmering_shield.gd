@@ -56,6 +56,7 @@ const Immunity := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/
 const MARKER := &'buff_shimmering_shield'
 const COVER_CHIP := &'buff_shimmering_shield_cover'
 const CHIP_NAME_KEY := 'gear.buff_shimmering_shield.name'
+const IMMUNITY_CHIP := &'buff_effervescent_immunity' ## the counter's visible chip, read for its card text
 
 ## Vanilla SSC Markerlight's chip: to = &"ignore_cover", and its own gate asks that the context's
 ## category is SOFT cover and that the holder is the defender
@@ -400,6 +401,16 @@ func test_the_cap_rises_to_five_under_the_shield():
 	assert_eq(Immunity.stacks_on(primrose), 5, 'The fourth and fifth are the ones the shield buys.')
 	assert_eq(bonus(), 5, 'And the bonus really is +5, read through the accessor.')
 
+	# AND THE CHIP SAYS SO. effect_text is cap-aware through the same cap_for
+	# (buff_effervescent_immunity.gd:76-78), so this is the one assertion that reads the raised cap the
+	# way a PLAYER does - by hovering the chip. It is also the reason the row carries no fixed maximum:
+	# a row ending "up to a maximum of +3" would render "+5 ... maximum of +3" right here.
+	var rendered:String = UnitCondition.get_buff(primrose, IMMUNITY_CHIP).effect_text()
+	assert_string_contains(rendered, '+5',
+		'The chip renders the raised bonus, not a value clamped to the base cap.')
+	assert_false(rendered.contains('maximum'),
+		'And names no fixed maximum, which under this shield would contradict the number beside it.')
+
 func test_the_sixth_miss_grants_1d3_overshield():
 	# RULING 7: "If it would increase past this point, you instead gain 1d3 OVERSHIELD." Through the
 	# shared helper's grant(), which is max-semantics: event_unit_overshield sets
@@ -424,14 +435,19 @@ func test_a_further_miss_leaves_a_higher_overshield_unchanged():
 	# "you instead GAIN 1d3 Overshield" is the engine's max semantics, so a roll below what the
 	# Primrose already holds changes nothing. Overshield.grant's own header says every "gains
 	# OVERSHIELD" card wants exactly this.
+	# THE ORDER IS 1 -> 3 -> 1 AND THAT IS THE WHOLE DESIGN OF THIS TEST (SP1 final review, I4). The
+	# shape it replaced ran 3 -> 1 -> 3 and expected 3 every time, which a regression that let the
+	# overflow fire ONCE and never again - a 1/scene guard added to the overflow branch, say - would
+	# have passed unchanged. Opening on a 1 makes the first grant's value load-bearing, the 3 that
+	# follows proves a LATER overflow still fires AND can raise, and the closing 1 is the max clause.
 	await raise_shield()
 	for i:int in 5: await miss()
+	await miss_then_d3(1)
+	assert_eq(primrose.state.overshield, 1, 'The first overflow grants exactly what it rolled - a 1.')
+
 	await miss_then_d3(3)
-	assert_eq(primrose.state.overshield, 3, 'fixture: it holds 3.')
+	assert_eq(primrose.state.overshield, 3,
+		'A LATER overflow still fires, and a higher roll raises it - so it is not a once-only grant.')
 
 	await miss_then_d3(1)
-
 	assert_eq(primrose.state.overshield, 3, 'A 1d3 of 1 does not reduce a 3 - grant() takes the max.')
-
-	await miss_then_d3(3)
-	assert_eq(primrose.state.overshield, 3, 'And an equal roll leaves it where it is.')

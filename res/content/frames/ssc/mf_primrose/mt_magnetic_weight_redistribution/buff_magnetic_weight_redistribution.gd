@@ -21,7 +21,7 @@
 ## weapon.
 ##
 ## WHY NOT UnitAction.is_melee_weapon HERE TOO: weapon_types = [MELEE] on the .tres already asks that,
-## through the same is_weapon_type call (buff_weapon_type.gd:42 binds context.gear, exactly as
+## through the same is_weapon_type call (buff_weapon_type.gd:43 binds context.gear, exactly as
 ## UnitAction.is_melee_weapon does at unit_action.gd:549-553). Repeating it would be a second gate
 ## nobody could delete without deleting the first.
 extends BuffWeaponTypeOnHit

@@ -79,7 +79,7 @@ func test_the_frame_is_not_size_half():
 
 func test_the_mounts_are_main_main_heavy():
 	# SHEET ORDER ("Mounts: Main, Main, Heavy"), and it is player-visible: the mech sheet draws mounts
-	# in array order. Three mounts is rare - content/frames/ha/mf_barbarossa/mf_barbarossa.tres:36 is
+	# in array order. Three mounts is rare - content/frames/ha/mf_barbarossa/mf_barbarossa.tres:50 is
 	# the vanilla precedent - so this is also the guard against a two-mount copy from another frame.
 	#
 	# THE HEAVY MOUNT IS LOAD-BEARING FOR THIS WHOLE SUB-PROJECT: a SUPERHEAVY weapon needs it (plus a
@@ -249,7 +249,7 @@ func test_the_licence_names_itself_after_the_frame():
 	# translates frame.<id>.name - so the licence is named "Primrose" off the frame's own row, and
 	# writing a gear.li_primrose.name row would do nothing at all. li_fitzgerald.tres has none either.
 	#
-	# This also means an empty rank_2 renames the licence "???" (:31), which the exact-list assertion
+	# This also means an empty rank_2 renames the licence "???" (:32), which the exact-list assertion
 	# above is what prevents.
 	var license := _license()
 	assert_not_null(license, 'fixture: the licence loads.')
@@ -274,7 +274,7 @@ func test_a_pilot_with_the_licence_at_rank_two_can_pick_the_primrose():
 	for frame:Frame in pilot.get_available_frames(): ids.append(frame.compcon_id)
 	assert_has(ids, FRAME_ID, 'A Primrose 2 pilot is offered the Primrose.')
 
-	# The rank actually gates it. get_all_unlocked_ranks_for_rank is cumulative (unlock_tree.gd:44-49),
+	# The rank actually gates it. get_all_unlocked_ranks_for_rank is cumulative (unlock_tree.gd:34-39),
 	# so a licence that granted the frame at rank_1 by mistake would still show up at rank 2 and the
 	# assertion above would stay green - this is the half that notices.
 	var rank_1_pilot := PilotCore.create()
@@ -317,7 +317,7 @@ func test_the_fixture_arms_the_primrose_the_way_its_callers_assume():
 	#    UnitRelation.get_weapons_that_can_overwatch, and Task 5 would fail for a reason that has
 	#    nothing to do with Wormhole Grasp.
 	# 2. IT IS NOT BASIC. BuffWeaponType.check_if_passive_applies refuses basic gear unless allow_basic
-	#    (buff_weapon_type.gd:55), so a weapon handed over any other route would be invisible to Artful
+	#    (buff_weapon_type.gd:52), so a weapon handed over any other route would be invisible to Artful
 	#    Caress and to Magnetic Weight Redistribution.
 	# 3. equip() IS IDEMPOTENT. Every equip call runs SpecFactory.apply_passive_buffs, which runs
 	#    full_repair, which sets core.has_core_power = true (unit_printer.gd:76) and re-applies the

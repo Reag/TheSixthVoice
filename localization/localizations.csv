@@ -236,7 +236,7 @@ gear.cp_mobian_rainbow.name,MÖBIAN RAINBOW
 gear.cp_mobian_rainbow.flavor,"The details and technological foundation of the Möbian Rainbow is a closely guarded secret within Exotic Materials. What is known however, is that it acts as a perpetual coating that forms a thin transparent layer overtop of mechs, creating a kaleidoscopic effect. The combat benefits of this coating remain unknown, but reports indicate a significant increase in successful operations while it is applied."
 gear.cp_mobian_rainbow.effect,"Each time a hostile character fails an attack against you, gain +1 |EVASION| for the rest of the scene up to a maximum of +3."
 gear.buff_effervescent_immunity.name,Effervescent Immunity
-gear.buff_effervescent_immunity.effect,"+{bonus} |EVASION| for the rest of the scene, one for each hostile attack that has failed against you, up to a maximum of +3."
+gear.buff_effervescent_immunity.effect,"+{bonus} |EVASION| for the rest of the scene, one for each hostile attack that has failed against you."
 ,
 gear.cp_mobian_rainbow.action_glimmering_armaments.name,GLIMMERING ARMAMENTS
 gear.cp_mobian_rainbow.action_glimmering_armaments.effect,"For the rest of the scene you gain one of the following effects:

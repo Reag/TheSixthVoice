@@ -13,7 +13,7 @@
 #
 # THE WEAPON MUST BE EQUIPPED AS A SYSTEM, which PrimroseFixture.equip does:
 # BuffWeaponType.check_if_passive_applies refuses basic gear unless allow_basic
-# (buff_weapon_type.gd:55), so a weapon handed over any other route would be invisible to this trait
+# (buff_weapon_type.gd:52), so a weapon handed over any other route would be invisible to this trait
 # for a reason that has nothing to do with its filters.
 #
 #   godot --resolution 800x600 --position -2400,-2400 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_artful_caress.gd

@@ -8,7 +8,7 @@
 ##
 ## THE CHARACTER GATE, also ruling 12 and the Fitzgerald's own review finding 1: the card says "the
 ## target", and event_unit_attack.gd's apply_on_crits is reached for ANY valid target unit - it only
-## checks is_character() two lines later, for the crit bark (:93). Without the explicit gate below, a
+## checks is_character() two lines later, for the crit bark (:95). Without the explicit gate below, a
 ## crit on a destructible object would spend the 1/round and force a Hull save that can do nothing
 ## (a non-character is immune to Prone outright, unit_condition.gd:502).
 ##

@@ -192,6 +192,31 @@ func test_the_rows_resolve_and_the_chip_has_its_own_card():
 	assert_ne(core.name_text(), X.tr('gear.cp_mobian_rainbow.name'),
 		'And not off the core Kit\'s, which is what the fallback would give it.')
 
+	# THE RENDERED NUMBER, which is the half no other test could see. effect_text() here is
+	# BuffCore.effect_text (buff_core.gd:79) -> Buff.effect_text (buff.gd:188-201) -> this chip's own
+	# override, which runs a second .format({bonus = held}) over it (buff_effervescent_immunity.gd:76-78).
+	# Everything above reads state through stacks_on/get_evasion; only this reads what the PLAYER reads
+	# off the status chip, and a substitution that silently stopped firing would leave a literal
+	# "{bonus}" on the card with every other test in this file still green.
+	#
+	# AND THE ROW MUST NOT NAME A FIXED MAXIMUM. The substituted value is cap-aware (cap_for), and
+	# Shimmering Shield raises that cap to 5 - so a row ending "up to a maximum of +3" renders
+	# "+4 EVASION ... maximum of +3" on a shielded Primrose. That contradiction shipped in this row
+	# until the SP1 final review; this assertion is what stops it coming back.
+	await fresh_turn(hostile)
+	await miss_at(hostile, primrose)
+	await fresh_turn(hostile)
+	await miss_at(hostile, primrose)
+	assert_eq(stacks(), 2, 'fixture: two misses really landed two stacks.')
+
+	var rendered:String = chip().effect_text()
+	assert_string_contains(rendered, '+2',
+		'The chip renders the LIVE bonus, substituted into {bonus}.')
+	assert_false(rendered.contains('{bonus}'),
+		'And the placeholder is gone - the second format really ran.')
+	assert_false(rendered.contains('maximum'),
+		'The row names no fixed maximum, because the cap is dynamic (Shimmering Shield raises it to 5).')
+
 # ---------------------------------------------------------------- what counts
 
 func test_one_hostile_miss_raises_evasion_by_one():

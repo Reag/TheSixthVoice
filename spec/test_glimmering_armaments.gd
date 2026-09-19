@@ -119,7 +119,7 @@ func test_the_prompt_offers_exactly_the_two_effects():
 func test_cancelling_spends_nothing():
 	# RULING 1: "cancelling the prompt spends nothing." choice_bus.choose_from_multiple_choice returns
 	# -1 on a cancel (choice_bus.gd:138-141), and the script returns BEFORE spend_actions - which is
-	# what UnitAction.spend_actions_gain_heat calls spend_core_power from (unit_action.gd:271).
+	# what UnitAction.spend_actions_gain_heat calls spend_core_power from (unit_action.gd:272).
 	await PrimroseFixture.press_protocol(game, primrose, responder, PrimroseFixture.CANCEL_INDEX)
 
 	assert_eq(responder.multiple_choice_prompts.size(), 1, 'fixture: the prompt really was raised.')
@@ -169,6 +169,25 @@ func test_the_chosen_marker_persists_across_a_turn_boundary():
 	assert_true(holds(WORMHOLE_THREAT), 'And so are its companions.')
 	assert_true(holds(WORMHOLE_HALF), 'All of them.')
 	assert_true(holds(WORMHOLE_SLOW), 'Every one.')
+
+func test_the_shield_marker_persists_across_a_turn_boundary():
+	# DESIGN 1.5 SAYS "CHOOSING SHIMMERING SHIELD LIKEWISE", and the test above presses Wormhole only -
+	# so this is that case, run rather than reasoned (SP1 final review, I3). The two bundles are
+	# separate .tres files with separately declared `until` values, so the sibling test proves nothing
+	# about this one: a Shield marker authored with until = END_OF_TURN would leave every assertion in
+	# this file green except these.
+	#
+	# test_shimmering_shield.test_the_shield_bundle_is_wired asserts marker.until == MANUAL statically;
+	# this is the half that presses the protocol and cycles the clock the engine actually runs.
+	await PrimroseFixture.press_protocol(game, primrose, responder, PrimroseFixture.SHIELD_INDEX)
+	assert_true(holds(SHIELD), 'fixture: the marker landed.')
+
+	await SpecFactory.end_turn(game, primrose)
+	await SpecFactory.start_turn(game, primrose)
+	await SpecFactory.end_turn(game, primrose)
+
+	assert_true(holds(SHIELD), 'A full turn later, the marker is still held.')
+	assert_true(holds(SHIELD_COVER), 'And so is its hidden cover chip - the half that does the work.')
 
 func test_a_second_press_is_refused_once_the_core_power_is_spent():
 	# "ONE OF THE FOLLOWING EFFECTS", and this is what enforces it: consumes_cp = true, and

@@ -17,7 +17,7 @@
 ##
 ## THE DURATION IS THE ENGINE'S OWN AND THERE IS DELIBERATELY NO OVERRIDE.
 ## OnHitEffect.get_applied_duration_for_statuses returns StatusType.get_standard_until(status)
-## (on_hit_effect.gd:89-90), and content/statuses/status_slowed.tres declares standard_until = 1 =
+## (on_hit_effect.gd:91-92), and content/statuses/status_slowed.tres declares standard_until = 1 =
 ## Lancer.UNTIL.END_OF_NEXT_TURN - which is exactly what ruling 10 asks for.
 ## test_the_slow_lasts_until_the_end_of_the_targets_next_turn is what would notice an override being
 ## added.

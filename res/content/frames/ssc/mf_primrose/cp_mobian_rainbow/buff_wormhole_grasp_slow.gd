@@ -2,7 +2,7 @@
 ## succeed a Hull save or be Slowed until the end of their next turn."
 ##
 ## UNFILTERED, because the card is: no weapon_sizes, no weapon_types, and allow_basic TRUE on the
-## .tres. BuffWeaponType refuses basic gear unless that flag is set (buff_weapon_type.gd:55), and an
+## .tres. BuffWeaponType refuses basic gear unless that flag is set (buff_weapon_type.gd:52), and an
 ## overwatch with a basic weapon is still an Overwatch. The IS_OVERWATCH gate lives on the
 ## OnHitEffect rather than here, because `should_abort` is where the activation's flags are in scope -
 ## the Tortuga's onhit_hyper_reflex_mode_immobilize.gd is the vanilla shape.

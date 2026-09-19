@@ -15,7 +15,7 @@
 # then draws a real Overwatch with a Superheavy weapon.
 #
 # TWO ROUTES TO AN OVERWATCH, AND BOTH ARE USED ON PURPOSE. ms_overwatch is ITSELF 1/round -
-# ActionReaction.get_per_round_hard_limit returns 1 for a consuming reaction (action_reaction.gd:66) -
+# ActionReaction.get_per_round_hard_limit returns 1 for a consuming reaction (action_reaction.gd:69) -
 # so a second real overwatch inside one round is impossible and this trait's OWN 1/round could never
 # be reached. Every case except the real-move one therefore fires the weapon directly with
 # SpecFactory.use_solo(..., [Action.FLAG.IS_OVERWATCH]); flags flow from event_gear_activate straight
@@ -155,7 +155,7 @@ func test_the_bundle_is_wired():
 	assert_eq(slow.weapon_types, [] as Array[int], 'And no type filter.')
 	assert_true(slow.allow_basic,
 		'Including basic gear - an overwatch with a basic weapon is still an Overwatch, and '
-		+ 'BuffWeaponType refuses basics by default (buff_weapon_type.gd:55).')
+		+ 'BuffWeaponType refuses basics by default (buff_weapon_type.gd:52).')
 	assert_eq(slow.effects.size(), 1, 'Carrying one OnHitEffect.')
 	if slow.effects.is_empty(): return
 	var effect:OnHitEffect = slow.effects[0]
@@ -394,7 +394,7 @@ func test_the_second_overwatch_hit_in_a_round_forces_no_save():
 	# BOTH OVERWATCHES IN ONE TURN, because "1/round" is cleared by UnitAction.new_turn_refresh at the
 	# PRIMROSE'S OWN turn start (unit_action.gd:73-78, :87-88) - a start_turn between them would make
 	# this vacuous. This is the case that only the flag route can reach: ms_overwatch is itself 1/round
-	# (action_reaction.gd:66), so two REAL overwatches in one round do not exist.
+	# (action_reaction.gd:69), so two REAL overwatches in one round do not exist.
 	PrimroseFixture.equip_superheavy_melee(primrose)
 	await mark()
 	PrimroseFixture.force_save_to_pass(mover)
