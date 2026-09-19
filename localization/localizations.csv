@@ -221,3 +221,7 @@ gear.cp_earth_shaker_grav_gen.action_mastication_of_the_maar.effect,"Choose a |B
 ,
 frame.dep_maar.name,Maar
 gear.mt_maar_terrain.name,Maar
+,
+frame.mf_primrose.name,Primrose
+frame.mf_primrose.flavor.short,Elegant Melee
+frame.mf_primrose.flavor,"The Primrose is the flagship model of SSC's LIM-AMOK line, and the culmination of SSC's experimentations with Broadcast tech. Built to be a close range combatant, with significant evasive and diversion options, it excels with elegant melee combat while offering variable engagement distance options. It marks SSC's first foray into large scale hand-to-hand options with rapid limb extension and magnetic attachment points allowing massive weapons to be hefted around with ease. Its ability to quickly close the distance, control a wide area around it, and evade any retaliation, has made it a popular option for many pilots who prefer direct and efficient solutions, immaculately done."
