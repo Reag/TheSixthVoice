@@ -229,17 +229,29 @@ func test_the_licence_grants_the_frame_at_rank_two_and_nowhere_else():
 	assert_true(license.rank_1.granted_frames.is_empty(), 'rank_1 grants no frame.')
 	assert_true(license.rank_3.granted_frames.is_empty(), 'rank_3 grants no frame.')
 
-func test_the_licence_grants_no_gear_at_any_rank_yet():
-	# SP2 fills rank 1 (the Rend Axe and Dazzling Wind), SP3 rank 2 (the Acrasial Falcata and the
-	# DDMR) and SP4 rank 3 (the Eternity Hammer and Flourishing Twirl). Asserted as EXACT empty lists
-	# rather than "does not contain ours": the natural mistake when copying li_fitzgerald.tres is to
-	# carry over ITS granted_gear entries, and those are vanilla-shaped ids this mod really does ship.
-	# Each of the three lines below goes red exactly once, in the sub-project that fills that rank.
+func test_the_licence_grants_exactly_the_gear_built_so_far():
+	# RENAMED AND REWRITTEN BY THE CONTROLLER, SP2 Task 1 (2026-09-19). It was
+	# test_the_licence_grants_no_gear_at_any_rank_yet, and its own comment said each line "goes red
+	# exactly once, in the sub-project that fills that rank" - which it duly did the moment the Rend
+	# Axe landed. Rewriting it here rather than at the end of SP2 (where the plan first put it) keeps
+	# the suite at its three deliberate icon reds between tasks, so a genuinely new red is visible
+	# instead of hiding in a crowd; the property the old comment describes is preserved exactly, and
+	# rank 1 will go red once more when SP2 Task 3 adds Dazzling Wind.
+	#
+	# EXACT LISTS, not "contains ours", and that is the original reasoning unchanged: the natural
+	# mistake when copying li_fitzgerald.tres is to carry over ITS granted_gear entries, and those
+	# are vanilla-shaped ids this mod really does ship, so a has-assertion would pass over them.
+	# SP3 fills rank 2 (the Acrasial Falcata and the DDMR), SP4 rank 3 (the Eternity Hammer and
+	# Flourishing Twirl).
 	var license := _license()
 	assert_not_null(license, 'fixture: the licence loads.')
 	if license == null: return
 	if license.rank_1 == null or license.rank_2 == null or license.rank_3 == null: return
-	assert_eq(license.rank_1.granted_gear.size(), 0, 'Rank 1 grants no gear yet (SP2 fills it).')
+	var rank_1_ids:Array[StringName] = []
+	for kit:Kit in license.rank_1.granted_gear: rank_1_ids.append(kit.compcon_id)
+	rank_1_ids.sort()
+	assert_eq(rank_1_ids, [&'mw_rend_axe'] as Array[StringName],
+		'Rank 1 grants exactly the Rend Axe, once (SP2 Task 3 adds Dazzling Wind).')
 	assert_eq(license.rank_2.granted_gear.size(), 0, 'Rank 2 grants no gear yet (SP3 fills it).')
 	assert_eq(license.rank_3.granted_gear.size(), 0, 'Rank 3 grants no gear yet (SP4 fills it).')
 

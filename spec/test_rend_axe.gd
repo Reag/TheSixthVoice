@@ -232,6 +232,14 @@ func test_a_thrown_crit_still_shreds__ruling_22() -> void:
 	# some other reason cannot quietly take the clause away.
 	Fixture.cheat_a_crit()
 	await throw_it()
+	# VACUITY GUARD, ADDED BY THE CONTROLLER AFTER TASK 1's M4 (2026-09-19). Without it this test
+	# does not test a THROW at all: use_solo's desired_variant asks for the group by name, and a
+	# weapon with no Thrown tag simply has no such group (action_attack_weapon.gd:349-372), so the
+	# call silently falls back to the ordinary threat-1 swing - which shreds for the ordinary
+	# reason and leaves the assertion below green. M4 measured exactly that. A real throw sets
+	# is_thrown_retrieved false (action_attack_weapon.gd:293-295), and nothing else in this spec
+	# does, so this is the one fact that can only be true if the variant really applied.
+	assert_false(gear.is_thrown_retrieved, 'VACUITY: the axe was really THROWN, not swung.')
 	assert_true(target.has_status(Lancer.STATUS.SHREDDED), 'a thrown crit shreds too.')
 
 # ---------------------------------------------------------------- the licence and the card text
