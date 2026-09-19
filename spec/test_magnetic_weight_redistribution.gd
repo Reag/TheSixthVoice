@@ -282,7 +282,7 @@ func test_the_second_qualifying_crit_in_a_round_does_nothing_and_the_next_round_
 	# Second crit, same round, with the save now pinned to auto-FAIL: if the round limit were not
 	# gating the buff, this shot would force a save and the target would go Prone.
 	#
-	# force_save_to_fail RE-REPAIRS THE TARGET (primrose_fixture.gd:215-216 - the hase only reaches
+	# force_save_to_fail RE-REPAIRS THE TARGET (primrose_fixture.gd:251-253 - the hase only reaches
 	# core.current through full_repair), so current_damage() is back at 0 here and the assertion below
 	# measures the SECOND shot alone rather than a running total.
 	PrimroseFixture.force_save_to_fail(target)

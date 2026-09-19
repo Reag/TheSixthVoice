@@ -275,3 +275,8 @@ gear.buff_ddmr_aegis.effect,The next attack against you has |+1 Difficulty|.
 gear.mw_eternity_hammer.name,Eternity Hammer
 gear.mw_eternity_hammer.flavor,"Meant to be one of the centerpieces of the LIM-AMOK line, the Eternity Hammer is the counterpart to the complex designs that surround it. There is elegance too in simplicity. There is only so much sheer force any structure can handle. There are only so many types of shielding available to a foe. There are only so many times a pilot can miss. When you have biggest and best hammer there is, the whole world starts to look like a nail."
 gear.mw_eternity_hammer.effect,"On hit: hostile characters adjacent to the target must make an |Agility save| or take 2 |Burn|."
+,
+gear.ms_flourishing_twirl.name,Flourishing Twirl
+gear.ms_flourishing_twirl.flavor,"Unlike some of its sister parts, the Flourishing Twirl subsystems are a very concise description of their function. By rapidly spinning a frame around its Y axis, any substantially sized weapon held can decimate nearby foes. However, those function are only half of the systems, the other half consist of gyroscopic balancers to keep the pilot inside from getting violently dizzy."
+gear.ms_flourishing_twirl.action_spin.name,Spin
+gear.ms_flourishing_twirl.action_spin.effect,"Choose a weapon you have mounted, all hostile characters within its threat and line of sight must succeed an |Agility save| or take 4 |kinetic| damage and become |Impaired| until the end of their next turn."

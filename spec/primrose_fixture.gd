@@ -78,6 +78,20 @@ const DDMR := &'wm_ddmr'
 ## SP2 Task 3. The Primrose's own rank-I system.
 const DAZZLING_WIND := &'ms_dazzling_wind'
 
+## SP4 Task 3. The Primrose's own rank-III system.
+const FLOURISHING_TWIRL := &'ms_flourishing_twirl'
+
+## Vanilla IPS-N War Pike: MAIN MELEE (weapon_size unset, so the archetype default MAIN), 1d6,
+## Knockback, Thrown 3, and PRINTED THREAT 3 - the one vanilla weapon in that shape.
+##
+## IT IS HERE BECAUSE OF WHAT ARTFUL CARESS DOES NOT DO TO IT. Spin measures a weapon's BUFFED threat
+## (ruling 4), and every Heavy or Superheavy melee weapon on this frame is silently +1 from the
+## frame's own trait - so a spec that wants "a weapon that reaches exactly three" and a spec that
+## wants "a weapon Artful Caress widens" need two different weapons or they cannot tell the buff from
+## the profile. A MAIN melee weapon is the right type and the wrong size (test_artful_caress.gd
+## :94-96), so this one prints 3 and measures 3.
+const LONG_MELEE := &'mw_war_pike'
+
 ## The two markers GLIMMERING ARMAMENTS chooses between, and the prompt indices that pick them.
 ## buff_wormhole_grasp already exists as a bare file (SP1 Task 0, the probe); Task 5 fills it.
 const WORMHOLE_GRASP := &'buff_wormhole_grasp'
@@ -288,3 +302,43 @@ static func press_protocol(game:Gamemaster, primrose:Unit, responder, choice_ind
 	responder.multiple_choice_queue.append(choice_index)
 	await open_turn(game, primrose)
 	await SpecFactory.use(game, primrose, CORE_ID, PROTOCOL_ID)
+
+## Press SPIN and answer its weapon prompt with `choice_index`. SP4 Task 3.
+##
+## MODELLED ON press_protocol ABOVE, AND ITS TWO RULES ARE THE SAME TWO RULES.
+##
+## THE RESPONDER IS AN ARGUMENT because it has to be: create_game_with_prompts builds it through
+## test.add_child_autoqfree and never assigns it to SpecFactory.current_responder, so no helper could
+## find it for itself.
+##
+## CALL THIS LAST - see equip()'s header. Spin needs the same equip-first discipline as the protocol,
+## for a reason of its own on top of the core-power one: UnitPrinter.equip_system calls full_repair,
+## which regenerates the mounts (loadout_core.gd:195-214) and refills every charge, so equipping
+## anything after a Spin would silently hand the system its charge back.
+##
+## THE TURN IS OPENED even though Spin is a QUICK and not a protocol, because spend_actions has to
+## have an action point to take: test_cancelling_the_prompt_spends_nothing compares
+## primrose.state.actions against UnitAction.current_total(primrose), and outside a turn both are
+## whatever the unit was left with rather than a full allowance.
+##
+## THE QUEUED ANSWER IS APPENDED EVEN WHEN NO PROMPT IS EXPECTED, and that is deliberate rather than
+## sloppy: with exactly one mounted weapon Spin takes it with no prompt (ruling 4), so the queue
+## coming back UNCONSUMED is a second, independent witness that no menu was raised -
+## test_with_one_mounted_weapon_no_prompt_appears_and_its_threat_is_used reads both.
+##
+## SpecFactory.use(..., kit_id, action_id) rather than use_solo(), for press_protocol's reason: this
+## Kit's actions array is [action_spin] today and is not promised to stay a single entry.
+##
+## `flags` EXISTS FOR THE SECOND PRESS IN ONE TURN, and nothing else. A QUICK is refused a second
+## time in the same turn - UnitAction.can_activate_gear fails is_under_per_turn_limit and
+## event_gear_activate.check_specific_context aborts the whole event (measured at SP4 Task 3, where
+## the abort reads as a bare "[ ABORT event_gear_activate ] ... specific: invalid" with no
+## "[ Gear not available ]" line, because the REASON is NONE and it is the affordability half that
+## refuses). Action.FLAG.AS_FREEBIE short-circuits that check (unit_action.gd:114) while STILL
+## spending a charge and recording the usage (:272-280), which is what
+## test_spin.test_the_picked_weapons_threat_is_the_one_used needs to press twice at one hostile.
+## test_biting_retort.gd uses the same flag for the same reason.
+static func spin(game:Gamemaster, primrose:Unit, responder, choice_index:int = 0, flags:Array = []) -> void:
+	responder.multiple_choice_queue.append(choice_index)
+	await open_turn(game, primrose)
+	await SpecFactory.use(game, primrose, FLOURISHING_TWIRL, &'action_spin', [], flags)

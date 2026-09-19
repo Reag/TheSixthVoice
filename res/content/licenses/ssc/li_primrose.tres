@@ -11,6 +11,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_acrasial_falcata/mw_acrasial_falcata.tres" id="9_mw_acrasial_falcata"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/wm_ddmr/wm_ddmr.tres" id="10_wm_ddmr"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_eternity_hammer/mw_eternity_hammer.tres" id="11_mw_eternity_hammer"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_flourishing_twirl/ms_flourishing_twirl.tres" id="12_ms_flourishing_twirl"]
 
 [sub_resource type="Resource" id="Resource_rank1"]
 script = ExtResource("2_unlockrank")
@@ -23,7 +24,7 @@ granted_gear = Array[ExtResource("4_kit")]([ExtResource("9_mw_acrasial_falcata")
 
 [sub_resource type="Resource" id="Resource_rank3"]
 script = ExtResource("2_unlockrank")
-granted_gear = Array[ExtResource("4_kit")]([ExtResource("11_mw_eternity_hammer")])
+granted_gear = Array[ExtResource("4_kit")]([ExtResource("11_mw_eternity_hammer"), ExtResource("12_ms_flourishing_twirl")])
 
 [resource]
 script = ExtResource("1_unlocktree")
