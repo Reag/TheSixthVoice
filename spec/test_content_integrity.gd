@@ -242,6 +242,44 @@ func test_the_vaubans_unguarded_rows_resolve():
 	for key:String in VAUBAN_LOCALIZATION_ROWS:
 		assert_ne(tr(key), key, '%s resolves to real text.' % key)
 
+## The Rend Axe's three rows (SP2 Task 1, Primrose). Unlike the three lists above, these ARE also
+## guarded where they are used - test_rend_axe.gd's test_the_name_and_flavour_and_effect_resolve
+## reads the same keys off this mod's own compiled artifact - so this entry is belt-and-braces
+## consistency with the per-sub-project pattern this file keeps, not the last line of defence for an
+## unreachable row the way the Vauban pair above is.
+const REND_AXE_LOCALIZATION_ROWS:Array[String] = [
+	'gear.mw_rend_axe.name',
+	'gear.mw_rend_axe.flavor',
+	'gear.mw_rend_axe.action_rend_axe.effect',
+	# SP2 Task 2, the FREE profile's two rows. The .name row is NOT decoration and has no sibling on
+	# action_rend_axe: an action with no name row of its own falls through to the Kit's
+	# (translate.gd:73-76), which is right for the ordinary swing - one card, one name - and wrong the
+	# moment there are two buttons, because both would then read "Rend Axe". Vanilla-adjacent
+	# precedent in this same file: gear.mw_bizarre_cannon.action_more_black_powder.name is
+	# "Bizarre Cannon (More Black Powder)" for exactly this reason.
+	'gear.mw_rend_axe.action_rend_axe_free.name',
+	'gear.mw_rend_axe.action_rend_axe_free.effect',
+]
+
+func test_the_rend_axes_rows_resolve():
+	for key:String in REND_AXE_LOCALIZATION_ROWS:
+		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+
+## Dazzling Wind's four rows (SP2 Task 3, Primrose). Same belt-and-braces reasoning as the Rend Axe's
+## list above - test_leap.gd's test_the_card_text_resolves reads the identical keys through the
+## global tr(), so this entry is consistency with the per-sub-project pattern this file keeps, not
+## the only guard on an otherwise-unreachable row.
+const DAZZLING_WIND_LOCALIZATION_ROWS:Array[String] = [
+	'gear.ms_dazzling_wind.name',
+	'gear.ms_dazzling_wind.flavor',
+	'gear.ms_dazzling_wind.action_leap.name',
+	'gear.ms_dazzling_wind.action_leap.effect',
+]
+
+func test_the_dazzling_winds_rows_resolve():
+	for key:String in DAZZLING_WIND_LOCALIZATION_ROWS:
+		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+
 ## Every kit this mod ships, and the actions on each kit that reach a player-facing surface, each
 ## naming the GLYPH FAMILY it belongs to. Filled in by each sub-project as it builds content; the
 ## icon pass is what makes it green.
@@ -466,6 +504,99 @@ const ICON_TARGETS := {
 	# mech. It carries one terrain zone and no actions at all, so there is nothing here to illustrate
 	# beyond the Kit's own icon, which is SP3's - the mt_gravity_well shape.
 	&'mt_maar_terrain': {},
+	# SP1 Task 2 (Primrose). A pure passive trait: no action of its own, so it wears the Kit's icon
+	# and lists none - the mt_knock_em_down shape it is copied from. Its
+	# buff_magnetic_weight_redistribution sets hide_from_player and is correctly absent from
+	# VISIBLE_BUFFS; it is trait plumbing, never a chip on the unit, and nothing draws it.
+	#
+	# The Kit's own icon is SP5's, so THIS ROW is what makes
+	# test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then - it is the
+	# first new Kit of the sub-project.
+	&'mt_magnetic_weight_redistribution': {},
+	# SP1 Task 3 (Primrose). A pure passive trait with no script at all: no action of its own, so it
+	# wears the Kit's icon and lists none. Its buff_artful_caress sets hide_from_player and is
+	# correctly absent from VISIBLE_BUFFS - a THREAT_RANGE bonus is read by
+	# ActionAttackWeapon.threat_distance and drawn nowhere, so it is not in
+	# HIDDEN_BUFFS_NEEDING_ICONS either (unlike an ATTACK_ROLL_INCOMING chip, which
+	# attack_roll.gd:189 draws with its raw icon). The Kit's own icon is SP5's.
+	&'mt_artful_caress': {},
+	# SP1 Task 4 and Task 5 (Primrose). MÖBIAN RAINBOW, the core system. GLIMMERING ARMAMENTS is a
+	# PROTOCOL the player presses on the gear bar, so it wears its own icon as well as the Kit's -
+	# cp_auxiliary_power_rerouter's and cp_quietus_machines' shape, not the ms_heaer one. Both icons
+	# are SP5's.
+	#
+	# A NAMED FAMILY rather than KIT, because the two glyphs are genuinely different pictures: the Kit
+	# is the coating and the protocol is the choice it offers. A KIT row would say they are the same
+	# drawing, which the icon pass would then have to honour.
+	&'cp_mobian_rainbow': {&'action_glimmering_armaments': &'action_glimmering_armaments'},
+	# SP2 Task 1 (Primrose). The Rend Axe. Its attack profile is a separately pressable button on the
+	# gear bar, so it needs a row - but it takes a KIT row rather than a named family, because the
+	# family the design gives this weapon (design §5) is {the Kit, both attack actions}: one glyph, an
+	# axe, worn by the weapon and by every way of swinging it. icon-sharing.md section 5 - KIT is
+	# absence, not duplication - so the action carries NO icon_override and inherits through
+	# action.gd:324-326. Task 2 adds the free profile to this same row, also KIT.
+	# The Kit's own icon is SP5's, which is what makes this row deliberately red until then.
+	#
+	# SP2 Task 2 added action_rend_axe_free. It is a SECOND pressable button on the gear bar - the
+	# card's free swing - so it needs a row of its own, and it is KIT for the same reason its sibling
+	# is: the design's family for this weapon is {the Kit, both attack actions}, one axe glyph worn by
+	# every way of swinging it. Note the free profile carries hide_if_disabled, which removes the
+	# button at 0 charges rather than greying it - that is per-instance runtime state, not a fixed
+	# shape, so _action_reaches_a_player_facing_surface deliberately has no clause for it and the row
+	# is required regardless (the same reasoning gear_bar.gd:141-156 gets in that helper's header).
+	&'mw_rend_axe': {&'action_rend_axe': KIT, &'action_rend_axe_free': KIT},
+	# SP2 Task 3 (Primrose). Dazzling Wind. Its one action is a QUICK the player presses on the gear
+	# bar, so it needs a row - and it is a KIT row for the same reason the Rend Axe's are: the design
+	# gives this system ONE glyph family, {the Kit, action_leap}. vanilla's ms_ramjet is the other
+	# shape (Kit bare, action carrying the icon) and is deliberately NOT what this is. The Kit's icon
+	# is SP5's, which is what makes this row deliberately red until then.
+	&'ms_dazzling_wind': {&'action_leap': KIT},
+	# SP3 Task 1 (Primrose). The Falcata's one attack profile is the only thing the gear bar draws
+	# for this Kit, so it inherits the Kit's glyph and carries no icon_override of its own - the same
+	# mw_rend_axe / ms_dazzling_wind KIT shape immediately above.
+	#
+	# CORRECTED FROM THE PLAN'S DRAFT, which cited "the ms_ramjet shape" for this row. ms_ramjet is
+	# the OPPOSITE pattern, documented at :337-339 above: "its Kit carries no icon_override at all
+	# and its single action carries one" - a bare Kit plus a NAMED family on the action, not a KIT
+	# row. Citing it here would have pointed a later reader at the wrong precedent for what this row
+	# actually does. The Kit's own icon is SP5's, which is what makes this row deliberately red until
+	# then, same as its two rank-I siblings. action_biting_retort earns its own family in Task 2.
+	#
+	# SP3 Task 2 added action_biting_retort, and it takes a NAMED family rather than a KIT row - the
+	# cp_mobian_rainbow shape, not the mw_rend_axe one. The two glyphs are different pictures: the Kit
+	# is the sword, the reaction is the cross-guard cannon answering a swing. A KIT row would say they
+	# are the same drawing, which the SP5 icon pass would then have to honour.
+	#
+	# IT NEEDS A ROW AT ALL BECAUSE Action.show_in_tooltip(kit) ANSWERS TRUE FOR IT, which is the third
+	# clause of _action_reaches_a_player_facing_surface below (a reaction never reaches the gear bar,
+	# and this one is not the Kit's first weapon action, so that clause is the only one that can list
+	# it). MEASURED, not assumed: spec/test_biting_retort.gd's
+	# test_the_reaction_is_drawn_on_the_weapons_card calls the same function. The deciding clause is
+	# action.gd:350-353 - the reaction has an `effect` row of its own, different from the Kit's - and
+	# it is exactly the clause the Maiden's Blush's mt_uncertainty_field FAILS, which is why that Kit's
+	# row two hundred lines above is `{}` while this one is not.
+	&'mw_acrasial_falcata': {&'action_acrasial_falcata': KIT, &'action_biting_retort': &'action_biting_retort'},
+	# SP3 Task 4 (Primrose). A weapon mod: no actions at all, so nothing but the Kit's own icon is
+	# ever shown - it appears in the weapon-mod dropdown and on the modded weapon's card. The
+	# wm_ripper_mod shape (:343 above). The Kit's own icon is SP5's, so this row is what makes
+	# test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then.
+	&'wm_ddmr': {},
+	# SP4 Task 1 (Primrose). The Eternity Hammer, rank III. Its one attack profile is the only thing
+	# the gear bar draws for this Kit, so it needs a row - and it is a KIT row, not a named family,
+	# because design §5 (specs/2026-09-19-primrose-design.md:529) gives this weapon ONE glyph family,
+	# {mw_eternity_hammer} - the mw_rend_axe / mw_acrasial_falcata shape immediately above, not the
+	# ms_ramjet one (a bare Kit with the action carrying a NAMED icon of its own). icon-sharing.md
+	# section 5 - KIT is absence, not duplication - so the action carries NO icon_override and
+	# inherits through action.gd:324-326. The Kit's own icon is SP5's, which is what makes this row
+	# deliberately red until then, same as every other rank-III-or-earlier weapon row above it.
+	&'mw_eternity_hammer': {&'action_eternity_hammer': KIT},
+	# SP4 Task 3 (Primrose). Flourishing Twirl, rank III. Its one action (Spin) is a QUICK the player
+	# presses on the gear bar, so it needs a row - and it is a KIT row for the same reason Dazzling
+	# Wind's is: design §5 gives this system ONE glyph family, {ms_flourishing_twirl, action_spin}
+	# (specs/2026-09-19-primrose-design.md:529). vanilla's ms_ramjet is the other shape (Kit bare,
+	# action carrying the icon) and is deliberately NOT what this is - the ms_dazzling_wind precedent
+	# above is. The Kit's icon is SP5's, which is what makes this row deliberately red until then.
+	&'ms_flourishing_twirl': {&'action_spin': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -568,6 +699,32 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# the protocol is pressed, per design ruling 11 - the author chose to see it rather than hide it.
 	# It is the only on-board signal a hostile gets that its saves are worse. Icon is SP3's.
 	&'buff_grav_amped_saves',
+	# SP1 Task 4 (Primrose). The Effervescent Immunity chip, and visible because the NUMBER on it is
+	# the mechanic: one chip carrying a running count is legible where three stacked chips are not
+	# (ruling 6), and it is the only signal on the board that the Primrose is getting harder to hit.
+	# Its hidden sibling buff_effervescent_immunity_counter is deliberately ABSENT - the pair is one
+	# mechanic, and the observer is never a chip on the unit.
+	&'buff_effervescent_immunity',
+	# SP1 Task 0 (Primrose), ADOPTED HERE. The probe (spec/test_unit_relation_extension.gd) shipped
+	# buff_wormhole_grasp.tres as a BARE visible Buff so the extension had a marker to read, and left
+	# this row unwritten - which is why test_every_visible_buff_has_a_real_icon has been red since
+	# 62a44a9 for THREE reasons at once: the size count, the missing row, and the null icon. Adopting
+	# the row here takes the first two green and leaves exactly one failing assert, so the guard means
+	# "no icon yet" and nothing else from now on. Task 5 fills the buff's display fields; it is already
+	# a real standalone buff_*.tres and belongs in this list whoever wrote it.
+	&'buff_wormhole_grasp',
+	# SP1 Task 5 (Primrose). The other armament's marker, visible for the same reason its twin is: the
+	# chip is the only thing on the board that says which of the two the pilot chose, and both of them
+	# last the whole scene. Its hidden companion buff_shimmering_shield_cover (Task 6) is NOT listed
+	# here - the pair is one mechanic, and two chips for one effect would read as two effects; it goes
+	# in HIDDEN_BUFFS_NEEDING_ICONS instead, because the roll breakdown draws it.
+	&'buff_shimmering_shield',
+	# SP3 Task 4 (Primrose). The DDMR's on-hit chip, and visible per ruling 24: named "DDMR" -
+	# the mod's own name off the card - and it is the only signal the wearer gets that its next
+	# incoming attack is worse. Its sibling buff_ddmr_threat is hidden and correctly absent here -
+	# a THREAT_RANGE bonus is read by ActionAttackWeapon.threat_distance and drawn nowhere, same as
+	# buff_artful_caress above, so it is not in HIDDEN_BUFFS_NEEDING_ICONS either.
+	&'buff_ddmr_aegis',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -724,7 +881,25 @@ func test_every_visible_buff_has_a_real_icon():
 ## normal case for trait plumbing (Hole Puncher ships three hidden buffs that draw nothing anywhere)
 ## and a count assertion here would demand a row for every one of them. The entries are therefore
 ## added by hand, by whoever builds a hidden buff that something draws. SP1 Task 2 is the first.
-const HIDDEN_BUFFS_NEEDING_ICONS:Array[StringName] = [&'buff_hybridized_shot']
+const HIDDEN_BUFFS_NEEDING_ICONS:Array[StringName] = [
+	&'buff_hybridized_shot',
+	# SP1 Task 6 (Primrose). Shimmering Shield's cover half is hidden - the marker is the chip the
+	# player reads, and two chips for one effect would read as two effects - but attack_roll.gd:189
+	# draws it anyway, passing buff_core.base.icon RAW into the roll breakdown rather than through
+	# Buff.get_icon(), so BuffBonus's difficulty-svg fallback never runs on that path and a null icon
+	# leaves a blank beside the -1. Its icon is SP5's, so this row is what makes this test deliberately
+	# red until then.
+	&'buff_shimmering_shield_cover',
+	# SP3 Task 2 (Primrose). Biting Retort's +1 Difficulty chip, and the same case one card over: it
+	# is hidden because it lives only between the PRE reaction and event_unit_attack.gd:114's
+	# consume_buffs - a chip for it would be a flicker on the token, not information - while
+	# attack_roll.gd:189 draws it in the roll breakdown regardless, from buff_core.base.icon RAW rather
+	# than through Buff.get_icon(), so BuffBonus's difficulty-svg fallback never runs there and a null
+	# leaves a blank beside the -1. It diverges from vanilla's own buff_warp_shield.tres, which is
+	# visible; the reasoning is in action_biting_retort.gd's DIFFICULTY_BUFF docstring. Its icon is
+	# SP5's, so this row is what makes this test deliberately red until then.
+	&'buff_biting_retort_difficulty',
+]
 
 func test_every_hidden_buff_that_is_still_drawn_has_a_real_icon():
 	# This list is hand-maintained and, unlike ICON_TARGETS and VISIBLE_BUFFS, NOT size-checked

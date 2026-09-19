@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BuffBonus" format=3]
+
+[ext_resource type="Script" uid="uid://bav10yhc56w73" path="res://engine/character/buff/archtypes/buff_bonus.gd" id="1_bonus"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/buff_ddmr_aegis.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_bonus")
+icon = ExtResource("2_icon")
+bonus_subtype = &"accuracy"
+bonus_value = -1
+until = 6
+to = &"attack_roll_incoming"
+is_onetime = true
+metadata/_custom_type_script = "uid://bav10yhc56w73"

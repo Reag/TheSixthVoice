@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_acrasial_falcata/buff_biting_retort_riposte.gd" id="1_riposte"]
+
+[resource]
+script = ExtResource("1_riposte")
+until = 2
+hide_from_player = true
+triggers_on = Array[StringName]([&"attack"])
+trigger_timing = 1

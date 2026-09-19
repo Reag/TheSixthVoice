@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_rend_axe/action_rend_axe.tres" id="3_rendaxe"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_rend_axe/action_rend_axe_free.tres" id="4_rendaxefree"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_rend_axe.svg" id="5_icon"]
+
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("3_rendaxe"), ExtResource("4_rendaxefree")])
+sp_cost = 0
+system_tags = 1
+charges_max = 3
+icon_override = ExtResource("5_icon")
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

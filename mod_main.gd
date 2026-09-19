@@ -26,10 +26,13 @@ const MOD_LIBRARY := 'res://engine/mod/mod_library.gd'
 
 ## Autoloads this mod extends with a `.gd_ext.gd`, by autoload name => vanilla script path.
 ##
-## Empty for now. Note that not every autoload can be extended: unit_action.gd logs the install and
-## then never invokes an override, for reasons nobody has found. Prove any new seam with a spec that
-## only the override can pass before building content on it.
-const EXTENDED_AUTOLOADS := {}
+## Note that not every autoload can be extended: unit_action.gd logs the install and then never
+## invokes an override, for reasons nobody has found. Prove any new seam with a spec that only the
+## override can pass before building content on it - spec/test_unit_relation_extension.gd is that
+## spec for the one entry here.
+const EXTENDED_AUTOLOADS := {
+	&'UnitRelation': 'res://engine/character/unit/service/unit_relation.gd', # Primrose: Superheavy Overwatch under Wormhole Grasp
+}
 
 ## Terms this mod's rule text uses in |markup| that the base game's glossary does not list.
 const GLOSSARY_TERMS:Array[StringName] = [&'lancer.term.efficient']

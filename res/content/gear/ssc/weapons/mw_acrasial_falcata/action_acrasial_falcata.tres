@@ -1,0 +1,12 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://vi3dfs5ql3lg" path="res://engine/character/gear_action/action_attack_weapon.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+damage_type = 0
+damage_dice = "2d6+4"
+weapon_size = 3
+weapon_type = 2
+aim_range = 0
+threat = 3

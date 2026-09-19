@@ -221,3 +221,62 @@ gear.cp_earth_shaker_grav_gen.action_mastication_of_the_maar.effect,"Choose a |B
 ,
 frame.dep_maar.name,Maar
 gear.mt_maar_terrain.name,Maar
+,
+frame.mf_primrose.name,Primrose
+frame.mf_primrose.flavor.short,Elegant Melee
+frame.mf_primrose.flavor,"The Primrose is the flagship model of SSC's LIM-AMOK line, and the culmination of SSC's experimentations with Broadcast tech. Built to be a close range combatant, with significant evasive and diversion options, it excels with elegant melee combat while offering variable engagement distance options. It marks SSC's first foray into large scale hand-to-hand options with rapid limb extension and magnetic attachment points allowing massive weapons to be hefted around with ease. Its ability to quickly close the distance, control a wide area around it, and evade any retaliation, has made it a popular option for many pilots who prefer direct and efficient solutions, immaculately done."
+,
+gear.mt_magnetic_weight_redistribution.name,Magnetic Weight Redistribution
+gear.mt_magnetic_weight_redistribution.effect,"1/round, when the Primrose critically hits with a |Heavy| or |Superheavy| melee weapon, the target must succeed a |Hull save| or be knocked |Prone|."
+,
+gear.mt_artful_caress.name,Artful Caress
+gear.mt_artful_caress.effect,|Heavy| and |Superheavy| melee weapons on the Primrose gain +1 |threat|.
+,
+gear.cp_mobian_rainbow.name,MÖBIAN RAINBOW
+gear.cp_mobian_rainbow.flavor,"The details and technological foundation of the Möbian Rainbow is a closely guarded secret within Exotic Materials. What is known however, is that it acts as a perpetual coating that forms a thin transparent layer overtop of mechs, creating a kaleidoscopic effect. The combat benefits of this coating remain unknown, but reports indicate a significant increase in successful operations while it is applied."
+gear.cp_mobian_rainbow.effect,"Each time a hostile character fails an attack against you, gain +1 |EVASION| for the rest of the scene up to a maximum of +3."
+gear.buff_effervescent_immunity.name,Effervescent Immunity
+gear.buff_effervescent_immunity.effect,"+{bonus} |EVASION| for the rest of the scene, one for each hostile attack that has failed against you."
+,
+gear.cp_mobian_rainbow.action_glimmering_armaments.name,GLIMMERING ARMAMENTS
+gear.cp_mobian_rainbow.action_glimmering_armaments.effect,"For the rest of the scene you gain one of the following effects:
+Wormhole Grasp
+Your weapons gain +1 |threat| and you may |Overwatch| with |Superheavy| weapons. Attacks made this way deal half damage, |Heat|, and |Burn|. 1/round, when you damage a character with an |Overwatch|, they must succeed a |Hull save| or be |Slowed| until the end of their next turn.
+Shimmering Shield
+While you are in |cover|, melee attacks against you receive |+1 Difficulty|. Additionally, Effervescent Immunity can stack up to a maximum of +5. If it would increase past this point, you instead gain 1d3 |OVERSHIELD|."
+gear.buff_wormhole_grasp.name,Wormhole Grasp
+gear.buff_wormhole_grasp.effect,"Your weapons gain +1 |threat| and you may |Overwatch| with |Superheavy| weapons. Attacks made this way deal half damage, |Heat|, and |Burn|. 1/round, when you damage a character with an |Overwatch|, they must succeed a |Hull save| or be |Slowed| until the end of their next turn."
+gear.buff_shimmering_shield.name,Shimmering Shield
+gear.buff_shimmering_shield.effect,"While you are in |cover|, melee attacks against you receive |+1 Difficulty|. Additionally, Effervescent Immunity can stack up to a maximum of +5. If it would increase past this point, you instead gain 1d3 |OVERSHIELD|."
+,
+gear.mw_rend_axe.name,Rend Axe
+gear.mw_rend_axe.flavor,"One of SSC's more experimental creations, the Rend Axe is a masterwork of design. Consisting of a ferromagnetic blade and a focused propulsion system, it allows for quick strikes that can puncture through armor and peel it away."
+gear.mw_rend_axe.action_rend_axe.effect,"You may attack with this weapon without expending or requiring charges, and this weapon can be destroyed (due to critical damage or other effects) even if it has no charges remaining. On a |critical hit|, until the start of their next turn, the target is |Shredded|."
+gear.mw_rend_axe.action_rend_axe_free.name,Rend Axe (Free)
+gear.mw_rend_axe.action_rend_axe_free.effect,"1/round, you may expend a charge to attack with this weapon as a |free action| during your turn."
+gear.ms_dazzling_wind.name,Dazzling Wind
+gear.ms_dazzling_wind.flavor,"While its name does not bely its true purpose, the Dazzling Wind suite of systems is nevertheless a core part of SSC's LIM-AMOK line. Powerful hydraulic mobility augments allow for a pilot to leap across a battlefield, easily clearing any terrain or hostile forces. Unfortunately for its users however, each time it is recharged, it must be manually put back together in a painstakingly long process to achieve maximum combat efficiency."
+gear.ms_dazzling_wind.action_leap.name,Leap
+gear.ms_dazzling_wind.action_leap.effect,"Expend a charge: fly your |Speed| in a straight line. At the end of your movement, you may choose a hostile character adjacent to you; they must make a |hull save| or be knocked |Prone|."
+,
+gear.mw_acrasial_falcata.name,Acrasial Falcata
+gear.mw_acrasial_falcata.flavor,"SSC does not acknowledge the common term for weapons such as the Acrasial Falcata. It is uncouth, a violent misrepresentation of the mastery of its design. A long elegant blade, fashioned in the style of ancient Cradle. A flash-printer ammunition feed contained within the handle. The small cannon in the cross-guard, the perfect response to a would-be assailant. The Falcata is no mere ""gunsword"", it is far too sharp, too clever, and too wonderous to be contained by such a term."
+gear.mw_acrasial_falcata.effect,"Gain the |Biting Retort=gear.mw_acrasial_falcata.action_biting_retort| |reaction|."
+gear.mw_acrasial_falcata.action_biting_retort.name,Biting Retort
+gear.mw_acrasial_falcata.action_biting_retort.trigger,A hostile character within |line of sight| attempts to hit you with a melee attack.
+gear.mw_acrasial_falcata.action_biting_retort.effect,"The attack is made with |+1 Difficulty|. If the attack misses, the attacker takes 3 |AP| |Kinetic| damage and must succeed a |Hull save| or be knocked |prone|."
+,
+gear.wm_ddmr.name,DDMR
+gear.wm_ddmr.flavor,"A specialty modification for melee combatants, the DDMR, or Debris Detachment Magnetic Aegis, adds some additional heft and reach its attached weapon. Its primary function however lies in its ferrofluid core, upon impact with a target, any debris are pulled back towards the user and suspended in the air around them. The field of particles are able to absorb stray blows and offer the user some additional safety while up close and personal. [>//:why is it called DDMR if the last letter stands for Aegis? [>//:shut up //<]"
+gear.wm_ddmr.effect,"This weapon gains |+1 Threat|. 1/round, on a hit with the weapon this mod is applied to, the next attack against you has |+1 Difficulty| until the start of your next turn."
+gear.buff_ddmr_aegis.name,DDMR
+gear.buff_ddmr_aegis.effect,The next attack against you has |+1 Difficulty|.
+,
+gear.mw_eternity_hammer.name,Eternity Hammer
+gear.mw_eternity_hammer.flavor,"Meant to be one of the centerpieces of the LIM-AMOK line, the Eternity Hammer is the counterpart to the complex designs that surround it. There is elegance too in simplicity. There is only so much sheer force any structure can handle. There are only so many types of shielding available to a foe. There are only so many times a pilot can miss. When you have biggest and best hammer there is, the whole world starts to look like a nail."
+gear.mw_eternity_hammer.effect,"On hit: Hostile characters adjacent to the target must make an |Agility save| or take 2 |BURN|."
+,
+gear.ms_flourishing_twirl.name,Flourishing Twirl
+gear.ms_flourishing_twirl.flavor,"Unlike some of its sister parts, the Flourishing Twirl subsystems are a very concise description of their function. By rapidly spinning a frame around its Y axis, any substantially sized weapon held can decimate nearby foes. However, those function are only half of the systems, the other half consist of gyroscopic balancers to keep the pilot inside from getting violently dizzy."
+gear.ms_flourishing_twirl.action_spin.name,Spin
+gear.ms_flourishing_twirl.action_spin.effect,"Choose a weapon you have mounted, all hostile characters within its threat and |line of sight| must succeed an |Agility save| or take 4 |kinetic| damage and become |Impaired| until the end of their next turn."

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/wm_ddmr/onhit_ddmr.gd" id="1_onhit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/wm_ddmr/buff_ddmr_aegis.tres" id="2_aegis"]
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="3_buff"]
+
+[resource]
+script = ExtResource("1_onhit")
+apply_on = 1
+apply_buffs_to_self = true
+buffs = Array[ExtResource("3_buff")]([ExtResource("2_aegis")])

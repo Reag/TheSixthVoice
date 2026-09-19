@@ -18,6 +18,7 @@ extends GutTest
 const MyconidFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/myconid_fixture.gd')
 const MaidensBlushFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/maidens_blush_fixture.gd')
 const VaubanFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/vauban_fixture.gd')
+const PrimroseFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/primrose_fixture.gd')
 
 const TALENTS_MOD := 'gavstarb-talents_1st_party'
 ## House Guard rank 1. Hidden buff, adjacency_range = 2, only_to_allies - see the registry row.
@@ -53,6 +54,25 @@ const VAUBAN_NEAR := Vector2i(6, 4)      # 2 out - OUTSIDE the aura, and exactly
                                          # Guard's widening pulls into "adjacent"
 const WELL_CHIP := &'buff_gravity_well'
 
+# The Primrose case builds its OWN game (see the tests below). The Primrose is SIZE 1, so adjacency
+# here is simply distance 1 from its one tile, and the mover starts inside the Drill's threat.
+const PRIMROSE_TILE := Vector2i(4, 4)
+const PRIMROSE_ADJACENT := Vector2i(5, 4)  # 1 out
+const PRIMROSE_NEAR := Vector2i(6, 4)      # 2 out - exactly the tile House Guard's widening pulls
+                                           # into "adjacent"
+
+# SP4 Task 5. The Eternity Hammer's on-hit gather is measured from the TARGET
+# (onhit_eternity_hammer.gd:160-164), not from the Primrose, so its own geometry needs its own tiles -
+# reusing PRIMROSE_NEAR here would sit only 1 tile from PRIMROSE_ADJACENT (the target below), which is
+# INSIDE the Hammer's own RADIUS 1 and would be a genuine bystander rather than the "widening would
+# have to reach this" case the ruling test needs.
+const HAMMER_FAR_HOSTILE_TILE := PRIMROSE_ADJACENT + Vector2i(2, 0)  # 2 out from the TARGET
+# HAMMER_FAR_ALLY_TILE lived here until SP4 Task 5's review. It served a Primrose-side liveness pair
+# that the review showed could not detect what it existed to detect (the widening the Hammer's gather
+# would have to consult is the TARGET's, not the Primrose's), and which duplicated
+# test_house_guard_still_widens_adjacency_with_our_unit_relation_extender_installed above tile for
+# tile. The liveness assertion now runs on the target and on a HOSTILE - see that test's header.
+
 var game:Gamemaster
 var myconid:Unit
 
@@ -60,6 +80,14 @@ var myconid:Unit
 func before_each() -> void:
 	game = MyconidFixture.create_game(self)
 	myconid = MyconidFixture.create_myconid(game, MYCONID_TILE)
+
+## The Eternity Hammer ruling test is the only test in this file that cheats dice, and
+## PrimroseFixture.cheat_a_hit queues a 40-entry buffer of sixes that one swing does not exhaust.
+## Dice.cheat_attack only APPENDS (dice.gd:13-17), so whatever GUT runs next would be handed a
+## leftover 6 in place of its own first roll - cheat_a_hit's own header records a real run
+## (test_knock_em_down.gd) lost to exactly that. Same after_each as test_eternity_hammer.gd:116-117.
+func after_each() -> void:
+	Dice.CHEAT_ROLL_QUEUE.clear()
 
 
 # ---------------------------------------------------------------- fixture helpers
@@ -291,3 +319,254 @@ func test_a_genuinely_adjacent_allied_mech_is_still_sheltered_with_the_widening_
 	for mod:AttackRoll.AccuracyMod in pre.accuracy_mods:
 		if mod.title_key == X.tr('gear.mt_gravity_well.name') and mod.mod == -1: lines += 1
 	assert_eq(lines, 1, 'A truly adjacent allied mech still takes the -1 with the widening active.')
+
+
+# ===================== THE THIRD EXTENDER OF unit_relation.gd COMPOSES =====================
+#
+# NEW AT THE PRIMROSE (SP1, 2026-09-19), and it is a claim about a THIRD-PARTY mod's code rather than
+# about a word on a card. res/engine/character/unit/service/unit_relation.gd_ext.gd makes this mod
+# the THIRD extender of that one vanilla file in a live install: gavstarb-talents_1st_party widens
+# adjacent_characters for House Guard, Reag-ThyHubris suppresses overwatch for Earthstep, and ours
+# waives the SUPERHEAVY refusal for Wormhole Grasp. All three call super, so ModLoader's chain
+# composes them in whatever order the player's modset happens to produce.
+#
+# THE TWO TESTS ARE ONE ASSERTION IN TWO DIRECTIONS, on ONE unit holding BOTH mechanisms. Either
+# alone would pass against a broken chain: if ours had dropped its super, the widening test would
+# still pass (nothing we do touches adjacent_characters) - and if THEIRS had, the waiver test would,
+# because ours sits below theirs in the chain and never asks. Only both, on one Primrose, say the
+# chain is whole.
+#
+# ASSERTED THROUGH get_weapons_that_can_overwatch, which is the deepest call in the chain
+# (action_overwatch.gd:21) and the one the SP1 probe measured at three depths: a call through the
+# autoload node dispatches to the most-derived override and so does ONE unqualified static call below
+# it, and no deeper - so this call reaches our waiver only if every link is intact.
+
+func test_house_guard_still_widens_adjacency_with_our_unit_relation_extender_installed() -> void:
+	if skipped_without_talents(): return
+
+	game = PrimroseFixture.create_game(self)
+	var primrose := PrimroseFixture.create_primrose(game, PRIMROSE_TILE)
+	# ALLIES, because House Guard's widening is only_to_allies - a hostile control would be outside the
+	# buff and the ruling would never be contested.
+	var near_ally := PrimroseFixture.create_ally(game, PRIMROSE_ADJACENT)
+	var far_ally := PrimroseFixture.create_ally(game, PRIMROSE_NEAR)
+
+	# CORRECTED AT IMPLEMENTATION (2026-09-19): the brief's draft placed these two CONTROL assertions
+	# BELOW the widen_adjacency_on() call they are the control for, which made the first of them
+	# self-contradictory - measured red, `[Failed]: CONTROL: two tiles out is not adjacent before the
+	# buff is consulted`, with `Applying buff ... buff_front_rank_adjacency_range` printed two lines
+	# above it in the same test. The brief's own trailing comment ("RE-applied…") shows the intended
+	# order, and it is the order this file's own test_house_guard_really_does_widen_adjacent_characters
+	# (:111-121) already uses: measure vanilla FIRST, then widen. No assertion was added, removed or
+	# weakened - only moved above the block that invalidated it.
+	assert_false(UnitRelation.adjacent_characters(primrose).has(far_ally),
+		'CONTROL: two tiles out is not adjacent before the buff is consulted... ')
+	assert_true(UnitRelation.adjacent_characters(primrose).has(near_ally),
+		'...while one tile out always is.')
+
+	# BOTH MECHANISMS ON ONE UNIT: House Guard's chip AND Wormhole Grasp's marker. The marker is what
+	# our own override reads, so with it held our extension is not merely installed, it is ACTIVE.
+	widen_adjacency_on(primrose)
+	SpecFactory.apply_buff(primrose, PrimroseFixture.WORMHOLE_GRASP)
+	assert_true(UnitCondition.has_buff(primrose, PrimroseFixture.WORMHOLE_GRASP),
+		'fixture: the Primrose holds the marker, so our override is live on this unit.')
+
+	# Re-applied so the assertion below cannot be read as "the widening was never on".
+	widen_adjacency_on(primrose)
+	assert_true(UnitRelation.adjacent_characters(primrose).has(far_ally),
+		'House Guard still pulls a unit two tiles out into adjacent_characters with our extender in '
+		+ 'the same chain - so the talents mod\'s override is still reached.')
+
+func test_the_superheavy_waiver_still_works_with_the_talents_mod_resident() -> void:
+	if skipped_without_talents(): return
+
+	game = PrimroseFixture.create_game(self)
+	var primrose := PrimroseFixture.create_primrose(game, PRIMROSE_TILE)
+	var mover := PrimroseFixture.create_hostile(game, PRIMROSE_ADJACENT)
+	PrimroseFixture.equip_superheavy_melee(primrose)
+	widen_adjacency_on(primrose)
+
+	var without := UnitRelation.get_weapons_that_can_overwatch(primrose, mover)
+	var offers_without := without.any(func(s:SpecificAction) -> bool:
+		return s.gear.kit.compcon_id == PrimroseFixture.SUPERHEAVY_MELEE)
+	assert_false(offers_without,
+		'CONTROL: with the talents mod resident and no marker, vanilla still refuses SUPERHEAVY.')
+
+	SpecFactory.apply_buff(primrose, PrimroseFixture.WORMHOLE_GRASP)
+	var with_marker := UnitRelation.get_weapons_that_can_overwatch(primrose, mover)
+	var offers_with := with_marker.any(func(s:SpecificAction) -> bool:
+		return s.gear.kit.compcon_id == PrimroseFixture.SUPERHEAVY_MELEE)
+	assert_true(offers_with,
+		'And the waiver still reaches the deepest call in the chain with two other mods extending the '
+		+ 'same file - so ours composes with theirs.')
+
+
+# ===================== RULING 18: DAZZLING WIND'S LEAP MEASURES ITS OWN RADIUS =====================
+#
+# RULING 18 (design, taken before the content existed - the frame's `Contested seams:` line).
+# "adjacent to you" on the Leap's card is a distance-1 RADIUS from the mech's own tiles
+# (action_leap.gd:59-62 - UnitRelation.get_characters_within(unit, 1, false, ...)), the Fungal
+# Network and Gravity Well shape exactly: House Guard overrides adjacent_characters() and NOTHING
+# ELSE, so its widening does not reach a radius query.
+#
+# THIS TEST IS THE RULING, NOT A DESCRIPTION OF IT. If a talents update ever moved the widening into
+# get_characters_within, this goes red and somebody decides again rather than the prose quietly
+# becoming false.
+func test_house_guard_does_not_widen_the_leaps_adjacent_pick() -> void:
+	if skipped_without_talents(): return
+	var pair:Array = PrimroseFixture.create_game_with_prompts(self)
+	var game:Gamemaster = pair[0]
+	var responder = pair[1]
+	var primrose:Unit = PrimroseFixture.create_primrose(game, PRIMROSE_TILE)
+	var wind:GearCore = PrimroseFixture.equip(primrose, PrimroseFixture.DAZZLING_WIND)
+	await PrimroseFixture.open_turn(game, primrose)
+
+	# A hostile two tiles from where each leap below will END: outside the card's own distance-1
+	# reach.
+	var far:Unit = PrimroseFixture.create_hostile(game, PRIMROSE_NEAR + Vector2i(1, 0))
+
+	# CONTROL, ABOVE THE BUFF (SP1 finding 25): with no widening in play, two tiles out is not
+	# offered. Landing at PRIMROSE_ADJACENT, one real tile away from where the Primrose starts, is
+	# what makes this a genuine leap - CORRECTED AT IMPLEMENTATION: the brief's draft aimed this
+	# activation at PRIMROSE_TILE, the Primrose's OWN starting tile, so nothing would have moved and
+	# "nobody offered" would have been true for the wrong reason (a no-op activation, not a correctly
+	# measured adjacency). The VACUITY assertion right below is what would have caught that.
+	await game.execute_event(&'event_gear_activate', {
+		unit = primrose, gear = wind, action = wind.kit.get_action(&'action_leap'),
+		target_tiles = [PRIMROSE_ADJACENT] as Array[Vector2i],
+	})
+	assert_eq(primrose.tile(), PRIMROSE_ADJACENT, 'VACUITY: the control leap actually moved the mech.')
+	assert_eq(responder.unit_prompts.size(), 0, 'CONTROL: two tiles out is not adjacent before the buff.')
+
+	# A fresh turn: Leap is capped at the engine's own per-turn soft limit like any non-free action
+	# (action.gd:161-163), so firing it twice in the same turn would be silently refused - the same
+	# "nothing happened" trap as above, one level up the call stack.
+	await SpecFactory.end_turn(game, primrose)
+	await PrimroseFixture.open_turn(game, primrose)
+
+	# Now with House Guard's widening live on the Primrose. THE only_to_allies TRAP: the resident
+	# rank-1 buff (buff_front_rank_adjacency_range.tres) sets only_to_allies = true, and the talents
+	# mod's own adjacent_characters() override (unit_relation.gd_ext.gd:40-44) filters its WIDENED
+	# half to Faction.is_ally(u.state.faction, values.category) - so a HOSTILE two tiles out can NEVER
+	# be pulled into adjacent_characters() by this buff, whatever Leap's own code does. Testing only a
+	# hostile far unit would therefore pass whether Leap reads the widened set or its own radius - a
+	# vacuous "green while testing nothing" of exactly the kind this file's header warns about.
+	# far_ally, at the same distance the compat-seams doc measures ("an enemy two tiles out still
+	# triggers nothing"), is what proves the widening is actually LIVE on this Primrose at the moment
+	# of the ruling check, rather than merely silent because nothing here could ever show it.
+	widen_adjacency_on(primrose)
+	var far_ally:Unit = PrimroseFixture.create_ally(game, PRIMROSE_ADJACENT + Vector2i(0, 2))
+	assert_true(UnitRelation.adjacent_characters(primrose).has(far_ally),
+		'fixture: the widening is live on this Primrose - two tiles out reads as adjacent for an ally.')
+
+	responder.unit_prompts.clear()
+	# A perpendicular hop, not back onto PRIMROSE_ADJACENT: the brief's draft aimed this second leap
+	# at the tile the Primrose already stood on after the first leap, which is the identical no-op
+	# trap one tile later. One tile south keeps far at exactly Chebyshev distance 2 (dx 2, dy 1 -> 2).
+	var second_landing := PRIMROSE_ADJACENT + Vector2i(0, 1)
+	await game.execute_event(&'event_gear_activate', {
+		unit = primrose, gear = wind, action = wind.kit.get_action(&'action_leap'),
+		target_tiles = [second_landing] as Array[Vector2i],
+	})
+	assert_eq(primrose.tile(), second_landing, 'VACUITY: the second leap also actually moved the mech.')
+	assert_eq(responder.unit_prompts.size(), 0,
+		'RULING 18: the widening does not reach a radius query, so the Leap still offers nobody.')
+	assert_true(Unit.is_valid(far), 'VACUITY: the hostile was there the whole time.')
+
+
+# ===================== RULING 18: THE ETERNITY HAMMER'S BYSTANDER GATHER MEASURES ITS OWN RADIUS =====================
+#
+# RULING 18 (design, taken before the content existed - the frame's `Contested seams:` line), the same
+# ruling the Leap test above pins, and the SAME UNDERLYING MECHANISM: "hostile characters adjacent to
+# the target" on the Hammer's on-hit clause is a distance-1 radius measured from the TARGET
+# (onhit_eternity_hammer.gd:160-164 - UnitRelation.get_characters_within(attacked_unit, RADIUS, false,
+# an are_enemies(attacker, ...) filter, attacker)), the Fungal Network / Gravity Well / Leap shape
+# exactly: House Guard overrides adjacent_characters() and NOTHING ELSE, so its widening never reaches
+# a get_characters_within query, whichever unit happens to hold the buff.
+#
+# WHICH UNIT THE BUFF HAS TO SIT ON, AND WHY THIS IS NOT THE LEAP'S ANSWER. Corrected at SP4 Task 5's
+# review: the first implementation put the buff on the PRIMROSE and read adjacent_characters(primrose),
+# which cannot detect what the test exists to detect. The talents mod's override widens from the buffs
+# held by THE UNIT BEING QUERIED and by nobody else - it builds Context.create({ unit = unit }) and
+# asks UnitCondition.get_buffs_to(unit, &'adjacency_range', context) (unit_relation.gd_ext.gd:31-48) -
+# so the hypothetical this ruling excludes, the Hammer's loop consulting the widened set, would be
+# adjacent_characters(attacked_unit): the TARGET. A chip on the Primrose is simply invisible to that
+# call, and a Primrose-side assertion would stay green under the very mutation it is meant to catch.
+# The Leap precedent does not transfer, because there the two units coincide: action_leap.gd asks
+# get_characters_within(unit, ...) about the PRIMROSE, so origin and buff-holder are one unit. Here
+# they are two, and the buff goes on the target.
+#
+# AND UNLIKE THE LEAP, THIS SEAM REALLY CAN FIRE - which is what gives the ruling assertion its teeth.
+# The note that sat here until 2026-09-19 said flatly that "a HOSTILE can never enter the widened set
+# via this buff". That is true only from the ATTACKER's side of the query, and false from the target's,
+# which is the side the Hammer measures from. buff_front_rank_adjacency_range.gd sets
+# category = context.unit.state.faction under only_to_allies, and Faction.is_ally short-circuits on
+# our_faction == check_faction (faction.gd:29-30), so is_ally(AI_ENEMY, AI_ENEMY) is TRUE: House Guard
+# on an AI_ENEMY target widens to the other AI_ENEMY units around it. Those are precisely the PLAYER
+# Primrose's hostiles, and they pass the Hammer's own are_enemies(attacker, other) filter unchanged. So
+# the far hostile below genuinely WOULD burn if the gather consulted adjacent_characters, and the
+# LIVENESS assertion is what proves that at the moment of the check rather than assuming it.
+# (rulings.md's 2026-09-19 Primrose row still holds for the LEAP, where the origin is the buff-holding
+# Primrose herself and only_to_allies really does keep every hostile out of the widened set.)
+func test_house_guard_does_not_widen_the_eternity_hammers_bystander_gather() -> void:
+	if skipped_without_talents(): return
+
+	game = PrimroseFixture.create_game(self)
+	var primrose := PrimroseFixture.create_primrose(game, PRIMROSE_TILE)
+	PrimroseFixture.equip(primrose, PrimroseFixture.ETERNITY_HAMMER)
+	# evasion -10: cheat_a_hit() alone already guarantees the swing lands (base_roll 19), but a
+	# negative evasion is this mod's own established belt-and-braces shape for a target that must never
+	# be the thing under test (test_eternity_hammer.gd:112 is the identical call). The health = 200 and
+	# full_repair() that used to follow this line were removed at review as dead setup:
+	# FitzgeraldFixture.create_dummy, which PrimroseFixture.create_dummy delegates to, already writes
+	# health 200, armor 0 and the repair (fitzgerald_fixture.gd:105-109).
+	var target := PrimroseFixture.create_dummy(game, PRIMROSE_ADJACENT, -10)
+
+	# TWO TILES FROM THE TARGET, hostile to the Primrose - outside the Hammer's own RADIUS 1, and inside
+	# House Guard's adjacency_range of 2, which together are exactly what make it the candidate a
+	# widened adjacent_characters(target) query would have to pull in.
+	var far_hostile := PrimroseFixture.create_hostile(game, HAMMER_FAR_HOSTILE_TILE)
+	# So that IF the gather ever reached it, the save would fail and the Burn would land - the same
+	# "would have happened" guard test_eternity_hammer.gd's own bystander tests use
+	# (Fixture.force_agility_save_to_fail). A far_hostile that could only ever PASS its save would leave
+	# the ruling assertion green whether or not the gather reached it.
+	PrimroseFixture.force_agility_save_to_fail(far_hostile)
+
+	# THE GEOMETRY IS ASSERTED, NOT DERIVED. HAMMER_FAR_HOSTILE_TILE is arithmetic on two constants, so
+	# if PRIMROSE_ADJACENT ever moves the ruling assertion at the bottom silently degrades into "a
+	# hostile five tiles away took no Burn" - green, and testing nothing. test_eternity_hammer.gd:345-348
+	# spells out both of its own distances for the same reason.
+	assert_eq(UnitRelation.distance_between(target, far_hostile), 2,
+		'fixture: two tiles from the TARGET - outside the Hammer\'s RADIUS 1, inside House Guard\'s 2.')
+
+	# 1. CONTROL, BEFORE THE BUFF - the same order test_house_guard_really_does_widen_adjacent_characters
+	# above uses, and for the same reason: measuring vanilla first is what makes the assertion after the
+	# buff a comparison rather than an assumption.
+	assert_false(UnitRelation.adjacent_characters(target).has(far_hostile),
+		'CONTROL: two tiles out is not adjacent to the target before the buff is consulted.')
+
+	# ON THE TARGET, because the target is the unit the hypothetical query would ask about - see the
+	# header. On the Primrose as well, so the ruling holds whichever of the two the gather measured from
+	# and so this test still covers the case the first implementation covered.
+	widen_adjacency_on(target)
+	widen_adjacency_on(primrose)
+
+	# 2. THE WIDENING IS LIVE ON THE TARGET, AND IT REACHES A HOSTILE, at the moment of the check below.
+	# This is the assertion the whole test rests on: it says the set the gather would consult really does
+	# contain far_hostile, so the ruling assertion at the bottom is a measurement rather than a green
+	# taken for want of anything that could ever have fired.
+	assert_true(UnitRelation.adjacent_characters(target).has(far_hostile),
+		'House Guard on the TARGET pulls a same-faction hostile two tiles out into adjacent_characters '
+		+ '- is_ally(AI_ENEMY, AI_ENEMY) is true, so only_to_allies does not keep it out from this side.')
+
+	PrimroseFixture.cheat_a_hit()
+	await PrimroseFixture.attack(game, primrose, PrimroseFixture.ETERNITY_HAMMER, target)
+	assert_gt(target.current_damage(), 0, 'VACUITY: the swing actually landed.')
+
+	# 3. RULING 18: the widening does not reach the bystander gather, however live it is on the TARGET
+	# itself - two tiles from the target is still outside RADIUS 1, because get_characters_within never
+	# consults adjacent_characters() at all.
+	assert_eq(far_hostile.state.burn, 0,
+		"RULING 18: a hostile two tiles from the target takes no Burn - the widening never reaches the "
+		+ "Hammer's own get_characters_within query.")
+	assert_eq(far_hostile.current_damage(), 0, 'and no HP loss either.')

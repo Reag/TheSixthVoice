@@ -1,0 +1,16 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_acrasial_falcata/action_biting_retort.gd" id="1_retort"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_biting_retort.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_retort")
+icon_override = ExtResource("2_icon")
+usage_group = &"action_biting_retort"
+require_unit_to_be = 2
+require_attacker_relation = 2
+require_attacker_to_be_in_los = true
+weapon_types = Array[int]([2])
+allow_basic = true
+triggers_on = Array[StringName]([&"attack"])
+trigger_timing = 0

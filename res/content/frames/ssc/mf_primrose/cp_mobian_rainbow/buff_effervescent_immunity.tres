@@ -1,0 +1,9 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_primrose/cp_mobian_rainbow/buff_effervescent_immunity.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/buff_effervescent_immunity.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_buff")
+icon = ExtResource("2_icon")
+to = &"statblock"

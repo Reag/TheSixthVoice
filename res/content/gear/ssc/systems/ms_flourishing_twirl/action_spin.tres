@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_flourishing_twirl/action_spin.gd" id="1_spin"]
+[ext_resource type="PackedScene" path="res://unpacked/Reag-TheSixthVoice/res/content/fx_groups/actions/fxg_spin.tscn" id="2_fxg_spin"]
+
+[resource]
+script = ExtResource("1_spin")
+action_type = 1
+usage_group = &"spin"
+fxg_use = ExtResource("2_fxg_spin")

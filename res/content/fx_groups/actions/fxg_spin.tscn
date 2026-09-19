@@ -1,0 +1,33 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://bivnhhagha82d" path="res://engine/gamemaster/effects_controller/fx_group/fx_group.gd" id="1_fxg"]
+[ext_resource type="Script" uid="uid://bmeufp6r8o534" path="res://engine/gamemaster/effects_controller/fx_group/bump_core.gd" id="2_bump_core"]
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/fx_groups/actions/spin_node.gd" id="3_spin_node"]
+
+; FLOURISHING TWIRL, SPIN - the use-FX (Primrose rank III, SP4 Task 4, ruling 20).
+;
+; THE MOD'S FIRST fx_groups FOLDER. The path mirrors vanilla's so ContentLibrary indexes it:
+; build_initial_content_library keys purely on the `fxg_` filename prefix plus `.tscn`, anywhere
+; under the content dir and mod-inclusive (content_library.gd:315-316). The folder is convention,
+; the PREFIX is the mechanism.
+;
+; THE REST OF THE RATIONALE LIVES IN spin_node.gd, NOT HERE. Godot re-serialises this scene from
+; the in-memory tree on every save - comments are not part of that tree, so the first inspector
+; edit (e.g. tuning preamble_duration below) silently deletes anything written in this file.
+; spin_node.gd's header covers: why preamble_mode is DURATION and not BASIC_CHILDREN_FINISHED, why
+; `core` on the BumpCore sub-resource below may not be null even though start() is overridden, why
+; there are no particles or SFX, the scene's root+BumpNode+BumpCore shape, and the
+; SPIN_DURATION / preamble_duration pairing - keep the two numbers in step.
+
+[sub_resource type="Resource" id="Resource_spin_core"]
+script = ExtResource("2_bump_core")
+distance = 0.0
+
+[node name="FxgSpin" type="Node3D"]
+script = ExtResource("1_fxg")
+preamble_mode = 2
+preamble_duration = 0.45
+
+[node name="SpinNode" type="Node" parent="."]
+script = ExtResource("3_spin_node")
+core = SubResource("Resource_spin_core")
