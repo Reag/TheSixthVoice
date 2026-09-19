@@ -167,6 +167,12 @@ func activate(context:Context, activation:EventCore) -> void:
 	var unit:Unit = context.unit
 	var gear:GearCore = context.gear
 	if not Unit.is_valid(unit) or not GearCore.is_valid(gear): return
+	# Captured HERE, once, as a plain StringName rather than read back off context.gear inside the
+	# per-victim loop below. A String is a value, not a reference: copying it out now, while the
+	# check above still guarantees it is real, means nothing later in this function - however many
+	# awaits and reactions it crosses - can turn the apply_status call at the bottom of a lap into a
+	# dangling deref. See the loop for what used to go wrong here (fix wave 2).
+	var gear_id:StringName = gear.persistent_id
 	var specific := SpecificAction.from_context(context)
 	if not SpecificAction.is_valid(specific): return
 
@@ -218,19 +224,22 @@ func activate(context:Context, activation:EventCore) -> void:
 
 	# ------------------------------------------------------- 7. what a failure costs
 	for victim:Unit in results.failed:
-		# BOTH GUARDS RE-RUN EVERY LAP, and the gear one deliberately so. Re-reading the gear is not
-		# trusting the top-of-function check: the saves above are a full event chain, and so is each
-		# damage event below, and a reaction inside any of them could destroy this system before the
-		# persistent_id deref at the bottom of the lap. A guard hoisted above the loop - the shape the
-		# first draft had, and the one action_leap.gd:73 can afford because it has ONE victim - would
-		# cover victim 1 and no other. onhit_eternity_hammer.gd:187-188 makes exactly this argument
-		# for its own per-lap SpecificAction re-check, and its comment is the one to read: checking at
-		# the TOP of the lap rather than after the damage is the difference that matters.
+		# BOTH GUARDS RE-RUN EVERY LAP, and the gear one deliberately so. Re-reading gear validity is
+		# not trusting the top-of-function check: the saves above are a full event chain, and so is
+		# each damage event below, and a reaction inside any of them could destroy this system before
+		# a LATER lap reaches its own event_unit_damage call, which still carries gear = context.gear
+		# three lines down (fix wave 2: this guard no longer stands in for a persistent_id re-check -
+		# that value is now read once into gear_id before the loop, at the top of this function, so it
+		# can no longer go stale mid-loop. What this guard still protects is the event dict below: a
+		# guard hoisted above the loop, the shape the first draft had, would cover victim 1's event and
+		# then hand every later victim's event a freed gear as its damage source). onhit_eternity_
+		# hammer.gd:187-188 makes the same argument for its own per-lap SpecificAction re-check, and
+		# its comment is the one to read: checking at the TOP of the lap rather than after the damage
+		# is the difference that matters.
 		#
-		# `return`, not `continue`, for the gear: the damage event itself carries gear = context.gear,
-		# so a Spin whose system no longer exists has nothing left to deal damage FROM or to source an
-		# Impaired TO, and no later lap could do better. The VICTIM check is a `continue` because the
-		# next victim is still perfectly reachable - see the header.
+		# `return`, not `continue`, for the gear: a Spin whose system no longer exists has nothing left
+		# to deal damage FROM, and no later lap could do better. The VICTIM check is a `continue`
+		# because the next victim is still perfectly reachable - see the header.
 		if not Unit.is_valid(victim): continue
 		if not GearCore.is_valid(context.gear): return
 		await activation.execute_event(&'event_unit_damage', {
@@ -244,10 +253,14 @@ func activate(context:Context, activation:EventCore) -> void:
 		})
 		# Killed by its own 4. `continue`, not abort_without_unit - see the header.
 		if not Unit.is_valid(victim): continue
+		# gear_id, not context.gear.persistent_id: this used to be the exact read that ran AFTER the
+		# await above with nothing re-guarding it - the gap fix wave 2 closed. See the top of this
+		# function for where it is captured and why a captured value closes the gap for good instead
+		# of just moving it one guard later.
 		UnitCondition.apply_status(
 			activation, victim,
 			Lancer.STATUS.IMPAIRED, Lancer.UNTIL.END_OF_NEXT_TURN,
-			context.gear.persistent_id
+			gear_id
 		)
 
 ## One dictionary per MOUNTED weapon profile that prints a threat: { reach, label }.
