@@ -220,3 +220,164 @@ func test_the_card_text_resolves() -> void:
 	for key:String in ['gear.ms_dazzling_wind.name', 'gear.ms_dazzling_wind.flavor',
 			'gear.ms_dazzling_wind.action_leap.name', 'gear.ms_dazzling_wind.action_leap.effect']:
 		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+
+# ================================================================ the knock-down (SP2 Task 4)
+#
+# "At the end of your movement, you may choose a hostile character adjacent to you; they must make a
+# Hull save or be knocked prone."
+#
+# ADJACENT IS DISTANCE 1 FROM THE MECH'S OWN TILES, AND THE TALENTS MOD'S WIDENING IS IGNORED
+# (ruling 18, the seams line). UnitRelation.get_characters_within measures a radius
+# (unit_relation.gd:34-43), and a measured radius is a place House Guard's adjacency widening never
+# arrives - the Fungal Network and Gravity Well precedent. spec/test_compat.gd pins that from the
+# other side, with the talents mod resident; this file pins the measure itself.
+#
+# THE PROMPT IS DECLINABLE AND DECLINING COSTS NOTHING EXTRA - but the CHARGE IS ALREADY GONE, and
+# that is not the Halo shape. Halo returns before spend_actions so a cancel is free; here the charge
+# and the Quick paid for the FLIGHT, which already happened, so the pick is the only thing declined.
+#
+# HOW "NOBODY WAS OFFERED" IS TOLD FROM "NOBODY WAS ASKED". testkit/mod_choice_responder.gd records
+# EVERY one_unit prompt, including the ones its queue does not answer, which is what lets
+# unit_prompts.size() == 0 mean "the gear raised no prompt" rather than "the gear raised one and the
+# base answered it". Without that the distance and faction mutations below would both pass green.
+
+const LANDING := FIVE_EAST                    # the same full leap Task 3 flies, named for what
+                                              # it means to THIS section; one tile, one value
+const BESIDE_LANDING := Vector2i(9, 5)        # distance 1 from LANDING
+const ALSO_BESIDE_LANDING := Vector2i(8, 6)   # distance 1 from LANDING, the other side
+const TWO_FROM_LANDING := Vector2i(10, 5)     # distance 2: outside, and exactly where House Guard's
+                                              # widening would reach if it reached at all
+const BESIDE_START := Vector2i(2, 5)          # distance 1 from START, distance 6 from LANDING
+
+## The units the ONE unit prompt offered, compared as OBJECTS rather than by id: every hostile this
+## fixture builds is a copy of the same dummy frame, so ids would not distinguish them at all.
+## Returns [] when no prompt was raised, which is why every test below asserts unit_prompts.size()
+## rather than reading this in isolation - "offered nobody" and "never asked" must not be confused.
+func offered_units() -> Array:
+	if responder.unit_prompts.is_empty(): return []
+	return responder.unit_prompts[0].units
+
+## Every test below leaps from START (3,5) to LANDING (8,5) - five tiles east, exactly Speed.
+func test_a_hostile_adjacent_to_the_landing_is_offered() -> void:
+	var victim := Fixture.create_hostile(game, BESIDE_LANDING)
+	Fixture.force_save_to_fail(victim)
+	responder.unit_queue.append(victim)
+	await leap_to(LANDING)
+	assert_eq(primrose.tile(), LANDING, 'VACUITY: the leap landed where the test aimed it.')
+	assert_eq(responder.unit_prompts.size(), 1, 'exactly one pick was offered.')
+	assert_true(victim.has_status(Lancer.STATUS.PRONE), 'and the failed save knocked it prone.')
+
+func test_a_passed_save_leaves_it_standing() -> void:
+	var victim := Fixture.create_hostile(game, BESIDE_LANDING)
+	Fixture.force_save_to_pass(victim)
+	responder.unit_queue.append(victim)
+	await leap_to(LANDING)
+	assert_eq(responder.unit_prompts.size(), 1, 'VACUITY: it was picked.')
+	assert_false(victim.has_status(Lancer.STATUS.PRONE), 'a passed Hull save keeps it upright.')
+
+func test_declining_the_pick_prones_nobody() -> void:
+	var victim := Fixture.create_hostile(game, BESIDE_LANDING)
+	Fixture.force_save_to_fail(victim)
+	responder.unit_queue.append(null)  # decline
+	await leap_to(LANDING)
+	assert_eq(responder.unit_prompts.size(), 1, 'VACUITY: the prompt was raised and then declined.')
+	assert_false(victim.has_status(Lancer.STATUS.PRONE), 'nobody is knocked down.')
+
+func test_declining_still_costs_the_charge_the_flight_already_paid() -> void:
+	# NOT the Halo shape. There, the cancel comes before spend_actions and is therefore free
+	# (action_halo.gd:125-131). Here the flight has already happened and already paid; the pick is a
+	# rider on a completed move, and a refund would give the player a free reposition.
+	var victim := Fixture.create_hostile(game, BESIDE_LANDING)
+	responder.unit_queue.append(null)
+	await leap_to(LANDING)
+	assert_eq(primrose.tile(), LANDING, 'VACUITY: it flew.')
+	assert_eq(responder.unit_prompts.size(), 1, 'VACUITY: and the declined prompt was the one raised.')
+	assert_eq(wind.charges_current, CHARGES - 1, 'the charge is still spent.')
+	assert_true(Unit.is_valid(victim), 'VACUITY: there was somebody to decline.')
+
+func test_every_adjacent_hostile_is_offered() -> void:
+	var first := Fixture.create_hostile(game, BESIDE_LANDING)
+	var second := Fixture.create_hostile(game, ALSO_BESIDE_LANDING)
+	responder.unit_queue.append(first)
+	await leap_to(LANDING)
+	assert_eq(offered_units().size(), 2, 'both adjacent hostiles are on the menu.')
+	# CORRECTED AT IMPLEMENTATION (the draft asserted only the SIZE, plus Unit.is_valid(second) as its
+	# vacuity guard). A size of 2 is also what a menu offering the same unit twice, or one hostile and
+	# some third character, would report - and is_valid(second) is true whether or not it was offered.
+	# Membership is the assertion the test name actually makes.
+	assert_true(offered_units().has(first), 'the one beside the landing is on it.')
+	assert_true(offered_units().has(second), 'and so is the one diagonally off it.')
+
+func test_a_hostile_two_tiles_from_the_landing_is_not_offered() -> void:
+	var far := Fixture.create_hostile(game, TWO_FROM_LANDING)
+	await leap_to(LANDING)
+	assert_eq(primrose.tile(), LANDING, 'VACUITY: it flew.')
+	assert_eq(responder.unit_prompts.size(), 0, 'nobody is adjacent, so no prompt is raised.')
+	assert_false(far.has_status(Lancer.STATUS.PRONE), 'and nobody is knocked down.')
+
+func test_a_hostile_adjacent_only_at_the_START_is_not_offered() -> void:
+	# "At the END of your movement". Measuring from the wrong tile would be invisible in every other
+	# test in this file, because every other test puts the hostile beside the landing.
+	var left_behind := Fixture.create_hostile(game, BESIDE_START)
+	await leap_to(LANDING)
+	# CORRECTED AT IMPLEMENTATION: the draft had no landing guard here, and this is the one test in
+	# the section whose hostile starts ADJACENT to the Primrose - so a leap that engagement or
+	# occupation stopped dead would leave the mech on START, raise no prompt, and pass this test for
+	# precisely the wrong reason.
+	assert_eq(primrose.tile(), LANDING, 'VACUITY: it really did fly away from it.')
+	assert_eq(responder.unit_prompts.size(), 0, 'the mech flew away from it; it is not offered.')
+	assert_false(left_behind.has_status(Lancer.STATUS.PRONE), 'and it is not knocked down.')
+
+func test_an_adjacent_ALLY_is_not_offered() -> void:
+	var friend := Fixture.create_ally(game, BESIDE_LANDING)
+	await leap_to(LANDING)
+	# CORRECTED AT IMPLEMENTATION: same missing guard as above - without it, a leap that never
+	# happened offers nobody either.
+	assert_eq(primrose.tile(), LANDING, 'VACUITY: it flew.')
+	assert_eq(responder.unit_prompts.size(), 0, 'a hostile character, says the card.')
+	assert_false(friend.has_status(Lancer.STATUS.PRONE), 'the ally stays up.')
+
+func test_a_leap_that_never_moved_offers_nothing() -> void:
+	# The cancelled flight from Task 3, now with a hostile standing beside the START tile: a cancelled
+	# Leap must not knock somebody down for free.
+	#
+	# CORRECTED AT IMPLEMENTATION. The draft said the unit.tile() == start_tile guard is what stops
+	# that, and that this test makes Task 3's inert line load-bearing. MEASURED, IT DOES NOT. Task 4's
+	# M3 neutered that guard and this file stayed 24/24; neutering the abort_without_unit line above it
+	# instead ALSO stayed 24/24; only neutering BOTH reddens this test. The reason is
+	# event_core.gd:26-32 - abort_when returns the already-aborted flag, and the movement picker's
+	# cancel aborted the activation inside super.activate - so the abort line returns first and the
+	# tile guard never runs on this path. Both lines stay (see action_leap.gd); what this test pins is
+	# the PAIR, and saying so is the difference between a guard that is redundant and one that is dead.
+	var neighbour := Fixture.create_hostile(game, BESIDE_START)
+	Fixture.force_save_to_fail(neighbour)
+	responder.chosen_move_tile = OFF_THE_MAP
+	await leap_to(LANDING)
+	assert_eq(primrose.tile(), START, 'VACUITY: the flight was cancelled.')
+	assert_eq(responder.unit_prompts.size(), 0, 'no pick is offered.')
+	assert_false(neighbour.has_status(Lancer.STATUS.PRONE), 'and nobody is knocked down.')
+
+func test_the_save_is_a_HULL_save() -> void:
+	# force_save_to_fail pins HULL to -30 and leaves the other three at 0, so a save of any other
+	# attribute would come up neutral and pass more often than not. Asserted as a pair with
+	# force_save_to_pass above: together they can only both hold if the save really reads Hull.
+	var victim := Fixture.create_hostile(game, BESIDE_LANDING)
+	victim.core.frame.hase = HaseBlock.create(-30, 30, 30, 30)  # hopeless Hull, excellent everything else
+	victim.core.full_repair()
+	responder.unit_queue.append(victim)
+	await leap_to(LANDING)
+	assert_true(victim.has_status(Lancer.STATUS.PRONE), 'a -30 HULL is what failed.')
+
+func test_the_prone_is_not_a_timed_status() -> void:
+	# Lancer.UNTIL.MANUAL: Prone is cleared by standing up, not by a clock. This mod's own
+	# action_full_speed_ahead.gd:70-72 applies it the same way, and a timed Prone would quietly
+	# expire at the end of the round in real play while every other test here stayed green.
+	var victim := Fixture.create_hostile(game, BESIDE_LANDING)
+	Fixture.force_save_to_fail(victim)
+	responder.unit_queue.append(victim)
+	await leap_to(LANDING)
+	assert_true(victim.has_status(Lancer.STATUS.PRONE), 'VACUITY: it is prone.')
+	await game.execute_event(&'event_turn_end', {unit = primrose})
+	await game.execute_event(&'event_turn_start', {unit = victim})
+	await game.execute_event(&'event_turn_end', {unit = victim})
+	assert_true(victim.has_status(Lancer.STATUS.PRONE), 'and still prone a full turn later.')

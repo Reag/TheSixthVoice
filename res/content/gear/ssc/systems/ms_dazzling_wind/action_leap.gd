@@ -19,9 +19,11 @@
 ## flavour's "easily clearing any terrain or hostile forces" needs no flag. Setting
 ## can_move_through_enemies as well would be an inert line that reads as load-bearing.
 ##
-## SP2 TASK 4 APPENDS THE END-OF-MOVEMENT CLAUSE BELOW. Until then activate() is super plus the two
-## guards every sibling in this mod carries, and that is deliberate - the flight gets its own red and
-## its own green before the pick is written.
+## THE KNOCK-DOWN IS A RIDER ON A COMPLETED MOVE, NOT A SECOND COST (SP2 Task 4). The Quick and the
+## charge both paid for the FLIGHT, and the flight has already happened by the time the pick is
+## offered - so declining the pick refunds nothing, and this file never calls spend_actions itself.
+## That is the opposite of this mod's action_halo.gd, which returns BEFORE spend_actions precisely so
+## that cancelling its prompt is free; there, the prompt IS the action.
 extends ActionSystemMovement
 
 func activate(context:Context, activation:EventCore) -> void:
@@ -29,7 +31,52 @@ func activate(context:Context, activation:EventCore) -> void:
 	var start_tile := unit.tile()
 
 	await super.activate(context, activation)
+	# THIS LINE, NOT THE ONE BELOW IT, IS WHAT CATCHES A CANCEL - measured at SP2 Task 4, correcting
+	# what Task 3 recorded here. EventCore.abort_when returns the ALREADY-aborted flag as well as the
+	# check it was handed ("if we aborted some other way, also return that it's time to pull the
+	# cord", event_core.gd:26-32), and super.activate has already aborted the activation on
+	# abort_without_movement_plan. So a Leap cancelled at the picker returns HERE, one line early.
 	if activation.abort_without_unit(unit): return
-	# Cancelled at the picker, or refused: nothing was entered, so there is nothing to follow up.
-	# action_full_speed_ahead.gd makes the identical pair of checks for the identical reason.
+	# The second net, for a move that was NOT aborted and still went nowhere - a plan the engine
+	# accepted whose execution was then prevented, which nothing in the suite can currently stage.
+	# Individually inert as a result (Task 3 M4 and Task 4 M3 both measured it so); the pair is what
+	# test_a_leap_that_never_moved_offers_nothing discriminates, and removing BOTH does redden it.
+	# Kept, not deleted: it is the only guard that survives a future engine change to abort_when, and
+	# action_full_speed_ahead.gd carries the identical pair.
 	if unit.tile() == start_tile: return
+
+	# ---------------------------------------------------------------- the end-of-movement pick
+	# "you MAY choose a hostile character adjacent to you" - so it is a prompt, and a declinable one.
+	#
+	# COLLECTED AFTER THE MOVE, FROM WHERE THE MECH NOW STANDS. get_characters_within measures from
+	# the unit's own tiles (unit_relation.gd:34-43), which is ruling 18's measure and is the reason
+	# the talents mod's adjacency widening never arrives here: it widens adjacent_characters, and a
+	# radius query never asks that question. spec/test_compat.gd pins that from the other side.
+	#
+	# require_los = false. The card says "adjacent", not "adjacent and visible", and at distance 1
+	# line of sight is very nearly always true anyway - which is exactly why leaving the default
+	# would be a difference nobody would ever see in a test and somebody would eventually see in play.
+	var hostiles:Array[Unit] = UnitRelation.get_characters_within(
+		unit, 1, false,
+		func(other:Unit) -> bool: return UnitRelation.are_enemies(unit, other)
+	)
+	if hostiles.is_empty(): return # a prompt about nobody is worse than no prompt
+
+	var specific := SpecificAction.from_context(context)
+	var chosen:Unit = await choice_bus.choose_unit(hostiles, true, specific)
+	# Declined. Nothing to refund - the charge and the Quick paid for the flight, which happened.
+	if not Unit.is_valid(chosen): return
+	if activation.abort_without_unit(unit): return
+	# Guarded like every sibling in this frame: context.gear is valid in any real gear-activate
+	# context, so this is consistency rather than a reachable crash - but the persistent_id read
+	# below is the one deref in this file that would take the whole activation down with it.
+	if not GearCore.is_valid(context.gear): return
+
+	var passed:bool = await UnitHasecheck.make_hull_save(
+		activation, chosen, specific, [Lancer.STATUS.PRONE]
+	)
+	if not Unit.is_valid(chosen): return
+	if passed: return
+	UnitCondition.apply_status(
+		activation, chosen, Lancer.STATUS.PRONE, Lancer.UNTIL.MANUAL, context.gear.persistent_id
+	)
