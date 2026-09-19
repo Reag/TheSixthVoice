@@ -69,6 +69,9 @@ const REND_AXE := &'mw_rend_axe'
 ## SP3 Task 1. The Primrose's own rank-II weapon, and the mod's first SUPERHEAVY.
 const FALCATA := &'mw_acrasial_falcata'
 
+## SP4 Task 1. The Primrose's own rank-III weapon.
+const ETERNITY_HAMMER := &'mw_eternity_hammer'
+
 ## SP3 Task 4. The Primrose's own rank-II weapon mod.
 const DDMR := &'wm_ddmr'
 

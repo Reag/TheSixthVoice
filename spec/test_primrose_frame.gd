@@ -274,6 +274,14 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	# EXACT LISTS, not "contains ours", and that is the original reasoning unchanged: the natural
 	# mistake when copying li_fitzgerald.tres is to carry over ITS granted_gear entries, and those
 	# are vanilla-shaped ids this mod really does ship, so a has-assertion would pass over them.
+	#
+	# UPDATED AGAIN, SP4 Task 1 (2026-09-19): the Eternity Hammer joined rank 3, the same pattern once
+	# more - MEASURED red first (a full-folder run after wiring li_primrose.tres's rank_3 turned up
+	# this test as a fourth failure alongside the three deliberate icon reds; the task brief's own
+	# prediction of "3 reds unchanged" did not anticipate this controller line, which is a finding
+	# worth recording, not a silent correction). Flourishing Twirl (the rank-3 system) is still to
+	# come from a later SP4 task, so rank 3 is not yet the whole of rank III the way rank 1 and rank 2
+	# above already are.
 	var license := _license()
 	assert_not_null(license, 'fixture: the licence loads.')
 	if license == null: return
@@ -288,7 +296,11 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	rank_2_ids.sort()
 	assert_eq(rank_2_ids, ['mw_acrasial_falcata', 'wm_ddmr'] as Array[String],
 		'Rank 2 grants exactly the Acrasial Falcata and the DDMR, once each - the whole of rank II.')
-	assert_eq(license.rank_3.granted_gear.size(), 0, 'Rank 3 grants no gear yet (SP4 fills it).')
+	var rank_3_ids:Array[String] = []
+	for kit:Kit in license.rank_3.granted_gear: rank_3_ids.append(String(kit.compcon_id))
+	rank_3_ids.sort()
+	assert_eq(rank_3_ids, ['mw_eternity_hammer'] as Array[String],
+		'Rank 3 grants exactly the Eternity Hammer so far (Flourishing Twirl is still to come).')
 
 func test_a_pilot_at_rank_one_can_take_the_rank_one_gear():
 	# THE PLAYER-FACING HALF OF THE GRANT LIST, the way test_a_pilot_with_the_licence_at_rank_two_can_
