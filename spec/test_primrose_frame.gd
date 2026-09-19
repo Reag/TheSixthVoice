@@ -184,6 +184,30 @@ func test_the_name_and_flavour_and_tagline_resolve():
 	assert_true(X.tr('frame.mf_primrose.flavor').ends_with('immaculately done.'),
 		'The flavour is the sheet paragraph, entire.')
 
+func test_the_frame_carries_its_three_traits_in_sheet_order():
+	# APPENDED ONCE PER TASK and pinned here at the close - Task 2 added Magnetic Weight
+	# Redistribution, Task 3 Artful Caress, Task 4 MÖBIAN RAINBOW, each a pure APPEND.
+	#
+	# THIS ASSERTS ORDER, DELIBERATELY, and must not be relaxed to membership. The array order is
+	# PLAYER-VISIBLE: catalog_license_focus_spread.gd:31 iterates core.frame.traits in array order to
+	# fill the catalog's trait slots (lifting the core power out into its own slot as it goes), and
+	# mech_section.gd:109 iterates loadout.get_frame_traits(), which preserves it. The order below is
+	# the sheet's (specs/sixth-voice/07-primrose.md: the two traits, then the core system) and design
+	# 1.1 names it explicitly. The Fitzgerald's whole-branch review found its array in
+	# task-completion order, which put the frame's drawback first in the catalog and buried the core
+	# system second; this is the pin that stops the same thing happening here.
+	#
+	# IT SHOULD NOT GROW. SP2, SP3 and SP4 add GEAR to li_primrose's ranks, not traits to the frame -
+	# a trait is something the mech always has, and every remaining Primrose ability is licensed
+	# equipment. A red here from a later sub-project means a piece of gear was wired as a trait.
+	var frame:Frame = _frame()
+	assert_not_null(frame, 'fixture: the frame loads.')
+	if frame == null: return
+	var carried:Array = frame.traits.map(func(kit:Kit) -> StringName: return kit.compcon_id)
+	assert_eq(carried,
+		[&'mt_magnetic_weight_redistribution', &'mt_artful_caress', &'cp_mobian_rainbow'],
+		'The frame carries exactly its three traits, in the order the sheet prints them.')
+
 # ---------------------------------------------------------------- the licence
 
 func test_the_licence_is_registered():

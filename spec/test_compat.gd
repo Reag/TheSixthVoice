@@ -18,6 +18,7 @@ extends GutTest
 const MyconidFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/myconid_fixture.gd')
 const MaidensBlushFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/maidens_blush_fixture.gd')
 const VaubanFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/vauban_fixture.gd')
+const PrimroseFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/primrose_fixture.gd')
 
 const TALENTS_MOD := 'gavstarb-talents_1st_party'
 ## House Guard rank 1. Hidden buff, adjacency_range = 2, only_to_allies - see the registry row.
@@ -52,6 +53,13 @@ const VAUBAN_ADJACENT := Vector2i(5, 4)  # 1 out - inside the range-1 aura eithe
 const VAUBAN_NEAR := Vector2i(6, 4)      # 2 out - OUTSIDE the aura, and exactly the tile House
                                          # Guard's widening pulls into "adjacent"
 const WELL_CHIP := &'buff_gravity_well'
+
+# The Primrose case builds its OWN game (see the tests below). The Primrose is SIZE 1, so adjacency
+# here is simply distance 1 from its one tile, and the mover starts inside the Drill's threat.
+const PRIMROSE_TILE := Vector2i(4, 4)
+const PRIMROSE_ADJACENT := Vector2i(5, 4)  # 1 out
+const PRIMROSE_NEAR := Vector2i(6, 4)      # 2 out - exactly the tile House Guard's widening pulls
+                                           # into "adjacent"
 
 var game:Gamemaster
 var myconid:Unit
@@ -291,3 +299,83 @@ func test_a_genuinely_adjacent_allied_mech_is_still_sheltered_with_the_widening_
 	for mod:AttackRoll.AccuracyMod in pre.accuracy_mods:
 		if mod.title_key == X.tr('gear.mt_gravity_well.name') and mod.mod == -1: lines += 1
 	assert_eq(lines, 1, 'A truly adjacent allied mech still takes the -1 with the widening active.')
+
+
+# ===================== THE THIRD EXTENDER OF unit_relation.gd COMPOSES =====================
+#
+# NEW AT THE PRIMROSE (SP1, 2026-09-19), and it is a claim about a THIRD-PARTY mod's code rather than
+# about a word on a card. res/engine/character/unit/service/unit_relation.gd_ext.gd makes this mod
+# the THIRD extender of that one vanilla file in a live install: gavstarb-talents_1st_party widens
+# adjacent_characters for House Guard, Reag-ThyHubris suppresses overwatch for Earthstep, and ours
+# waives the SUPERHEAVY refusal for Wormhole Grasp. All three call super, so ModLoader's chain
+# composes them in whatever order the player's modset happens to produce.
+#
+# THE TWO TESTS ARE ONE ASSERTION IN TWO DIRECTIONS, on ONE unit holding BOTH mechanisms. Either
+# alone would pass against a broken chain: if ours had dropped its super, the widening test would
+# still pass (nothing we do touches adjacent_characters) - and if THEIRS had, the waiver test would,
+# because ours sits below theirs in the chain and never asks. Only both, on one Primrose, say the
+# chain is whole.
+#
+# ASSERTED THROUGH get_weapons_that_can_overwatch, which is the deepest call in the chain
+# (action_overwatch.gd:21) and the one the SP1 probe measured at three depths: a call through the
+# autoload node dispatches to the most-derived override and so does ONE unqualified static call below
+# it, and no deeper - so this call reaches our waiver only if every link is intact.
+
+func test_house_guard_still_widens_adjacency_with_our_unit_relation_extender_installed() -> void:
+	if skipped_without_talents(): return
+
+	game = PrimroseFixture.create_game(self)
+	var primrose := PrimroseFixture.create_primrose(game, PRIMROSE_TILE)
+	# ALLIES, because House Guard's widening is only_to_allies - a hostile control would be outside the
+	# buff and the ruling would never be contested.
+	var near_ally := PrimroseFixture.create_ally(game, PRIMROSE_ADJACENT)
+	var far_ally := PrimroseFixture.create_ally(game, PRIMROSE_NEAR)
+
+	# CORRECTED AT IMPLEMENTATION (2026-09-19): the brief's draft placed these two CONTROL assertions
+	# BELOW the widen_adjacency_on() call they are the control for, which made the first of them
+	# self-contradictory - measured red, `[Failed]: CONTROL: two tiles out is not adjacent before the
+	# buff is consulted`, with `Applying buff ... buff_front_rank_adjacency_range` printed two lines
+	# above it in the same test. The brief's own trailing comment ("RE-applied…") shows the intended
+	# order, and it is the order this file's own test_house_guard_really_does_widen_adjacent_characters
+	# (:111-121) already uses: measure vanilla FIRST, then widen. No assertion was added, removed or
+	# weakened - only moved above the block that invalidated it.
+	assert_false(UnitRelation.adjacent_characters(primrose).has(far_ally),
+		'CONTROL: two tiles out is not adjacent before the buff is consulted... ')
+	assert_true(UnitRelation.adjacent_characters(primrose).has(near_ally),
+		'...while one tile out always is.')
+
+	# BOTH MECHANISMS ON ONE UNIT: House Guard's chip AND Wormhole Grasp's marker. The marker is what
+	# our own override reads, so with it held our extension is not merely installed, it is ACTIVE.
+	widen_adjacency_on(primrose)
+	SpecFactory.apply_buff(primrose, PrimroseFixture.WORMHOLE_GRASP)
+	assert_true(UnitCondition.has_buff(primrose, PrimroseFixture.WORMHOLE_GRASP),
+		'fixture: the Primrose holds the marker, so our override is live on this unit.')
+
+	# Re-applied so the assertion below cannot be read as "the widening was never on".
+	widen_adjacency_on(primrose)
+	assert_true(UnitRelation.adjacent_characters(primrose).has(far_ally),
+		'House Guard still pulls a unit two tiles out into adjacent_characters with our extender in '
+		+ 'the same chain - so the talents mod\'s override is still reached.')
+
+func test_the_superheavy_waiver_still_works_with_the_talents_mod_resident() -> void:
+	if skipped_without_talents(): return
+
+	game = PrimroseFixture.create_game(self)
+	var primrose := PrimroseFixture.create_primrose(game, PRIMROSE_TILE)
+	var mover := PrimroseFixture.create_hostile(game, PRIMROSE_ADJACENT)
+	PrimroseFixture.equip_superheavy_melee(primrose)
+	widen_adjacency_on(primrose)
+
+	var without := UnitRelation.get_weapons_that_can_overwatch(primrose, mover)
+	var offers_without := without.any(func(s:SpecificAction) -> bool:
+		return s.gear.kit.compcon_id == PrimroseFixture.SUPERHEAVY_MELEE)
+	assert_false(offers_without,
+		'CONTROL: with the talents mod resident and no marker, vanilla still refuses SUPERHEAVY.')
+
+	SpecFactory.apply_buff(primrose, PrimroseFixture.WORMHOLE_GRASP)
+	var with_marker := UnitRelation.get_weapons_that_can_overwatch(primrose, mover)
+	var offers_with := with_marker.any(func(s:SpecificAction) -> bool:
+		return s.gear.kit.compcon_id == PrimroseFixture.SUPERHEAVY_MELEE)
+	assert_true(offers_with,
+		'And the waiver still reaches the deepest call in the chain with two other mods extending the '
+		+ 'same file - so ours composes with theirs.')
