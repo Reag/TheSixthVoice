@@ -282,6 +282,11 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	# worth recording, not a silent correction). Flourishing Twirl (the rank-3 system) is still to
 	# come from a later SP4 task, so rank 3 is not yet the whole of rank III the way rank 1 and rank 2
 	# above already are.
+	#
+	# UPDATED AGAIN, SP4 Task 5 (2026-09-19): Flourishing Twirl joined the Eternity Hammer at rank 3,
+	# closing out rank III - Task 3 built the system but left this line red on purpose (its own task
+	# brief said so explicitly), and this is that promised close, the same red-then-fixed shape as
+	# every update above. Rank 3 is now the whole of rank III, the way rank 1 and rank 2 already were.
 	var license := _license()
 	assert_not_null(license, 'fixture: the licence loads.')
 	if license == null: return
@@ -299,8 +304,9 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	var rank_3_ids:Array[String] = []
 	for kit:Kit in license.rank_3.granted_gear: rank_3_ids.append(String(kit.compcon_id))
 	rank_3_ids.sort()
-	assert_eq(rank_3_ids, ['mw_eternity_hammer'] as Array[String],
-		'Rank 3 grants exactly the Eternity Hammer so far (Flourishing Twirl is still to come).')
+	assert_eq(rank_3_ids, ['ms_flourishing_twirl', 'mw_eternity_hammer'] as Array[String],
+		'Rank 3 grants exactly the Eternity Hammer and Flourishing Twirl, once each - the whole of '
+		+ 'rank III.')
 
 func test_a_pilot_at_rank_one_can_take_the_rank_one_gear():
 	# THE PLAYER-FACING HALF OF THE GRANT LIST, the way test_a_pilot_with_the_licence_at_rank_two_can_

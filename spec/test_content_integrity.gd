@@ -581,6 +581,22 @@ const ICON_TARGETS := {
 	# wm_ripper_mod shape (:343 above). The Kit's own icon is SP5's, so this row is what makes
 	# test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then.
 	&'wm_ddmr': {},
+	# SP4 Task 1 (Primrose). The Eternity Hammer, rank III. Its one attack profile is the only thing
+	# the gear bar draws for this Kit, so it needs a row - and it is a KIT row, not a named family,
+	# because design §5 (specs/2026-09-19-primrose-design.md:529) gives this weapon ONE glyph family,
+	# {mw_eternity_hammer} - the mw_rend_axe / mw_acrasial_falcata shape immediately above, not the
+	# ms_ramjet one (a bare Kit with the action carrying a NAMED icon of its own). icon-sharing.md
+	# section 5 - KIT is absence, not duplication - so the action carries NO icon_override and
+	# inherits through action.gd:324-326. The Kit's own icon is SP5's, which is what makes this row
+	# deliberately red until then, same as every other rank-III-or-earlier weapon row above it.
+	&'mw_eternity_hammer': {&'action_eternity_hammer': KIT},
+	# SP4 Task 3 (Primrose). Flourishing Twirl, rank III. Its one action (Spin) is a QUICK the player
+	# presses on the gear bar, so it needs a row - and it is a KIT row for the same reason Dazzling
+	# Wind's is: design §5 gives this system ONE glyph family, {ms_flourishing_twirl, action_spin}
+	# (specs/2026-09-19-primrose-design.md:529). vanilla's ms_ramjet is the other shape (Kit bare,
+	# action carrying the icon) and is deliberately NOT what this is - the ms_dazzling_wind precedent
+	# above is. The Kit's icon is SP5's, which is what makes this row deliberately red until then.
+	&'ms_flourishing_twirl': {&'action_spin': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

@@ -61,6 +61,17 @@ const PRIMROSE_ADJACENT := Vector2i(5, 4)  # 1 out
 const PRIMROSE_NEAR := Vector2i(6, 4)      # 2 out - exactly the tile House Guard's widening pulls
                                            # into "adjacent"
 
+# SP4 Task 5. The Eternity Hammer's on-hit gather is measured from the TARGET
+# (onhit_eternity_hammer.gd:160-164), not from the Primrose, so its own geometry needs its own tiles -
+# reusing PRIMROSE_NEAR here would sit only 1 tile from PRIMROSE_ADJACENT (the target below), which is
+# INSIDE the Hammer's own RADIUS 1 and would be a genuine bystander rather than the "widening would
+# have to reach this" case the ruling test needs.
+const HAMMER_FAR_HOSTILE_TILE := PRIMROSE_ADJACENT + Vector2i(2, 0)  # 2 out from the TARGET
+const HAMMER_FAR_ALLY_TILE := PRIMROSE_TILE + Vector2i(0, 2)         # 2 out from the PRIMROSE itself -
+                                                                     # PRIMROSE_NEAR's role, moved off
+                                                                     # the hostile's line so the two
+                                                                     # units cannot interact
+
 var game:Gamemaster
 var myconid:Unit
 
@@ -452,3 +463,73 @@ func test_house_guard_does_not_widen_the_leaps_adjacent_pick() -> void:
 	assert_eq(responder.unit_prompts.size(), 0,
 		'RULING 18: the widening does not reach a radius query, so the Leap still offers nobody.')
 	assert_true(Unit.is_valid(far), 'VACUITY: the hostile was there the whole time.')
+
+
+# ===================== RULING 18: THE ETERNITY HAMMER'S BYSTANDER GATHER MEASURES ITS OWN RADIUS =====================
+#
+# RULING 18 (design, taken before the content existed - the frame's `Contested seams:` line), the same
+# ruling the Leap test above pins, and the SAME UNDERLYING MECHANISM: "hostile characters adjacent to
+# the target" on the Hammer's on-hit clause is a distance-1 radius measured from the TARGET
+# (onhit_eternity_hammer.gd:160-164 - UnitRelation.get_characters_within(attacked_unit, RADIUS, false,
+# an are_enemies(attacker, ...) filter, attacker)), the Fungal Network / Gravity Well / Leap shape
+# exactly: House Guard overrides adjacent_characters() and NOTHING ELSE, so its widening never reaches
+# a get_characters_within query, whichever unit happens to hold the buff.
+#
+# THE SEAM CANNOT ACTUALLY FIRE TODAY, and that is a SEPARATE fact from the ruling above, not a
+# restatement of it - rulings.md's 2026-09-19 Primrose row records the SP2 finding for both cards at
+# once: buff_front_rank_adjacency_range.tres sets only_to_allies = true, and the talents mod's own
+# adjacent_characters() override filters its widened half through Faction.is_ally(...)
+# (unit_relation.gd_ext.gd:40-44) - so a HOSTILE can never enter the widened set via this buff, and the
+# Hammer's gather (like the Leap's) asks for hostiles exclusively. THAT is exactly why the paired ALLY
+# assertion below exists: without it, the hostile assertion at the end would read green because nothing
+# here could ever have fired, not because the ruling holds - the same vacuity this file's header warns
+# about, and the same shape the Leap test above and the Myconid/Vauban tests further up all use.
+func test_house_guard_does_not_widen_the_eternity_hammers_bystander_gather() -> void:
+	if skipped_without_talents(): return
+
+	game = PrimroseFixture.create_game(self)
+	var primrose := PrimroseFixture.create_primrose(game, PRIMROSE_TILE)
+	PrimroseFixture.equip(primrose, PrimroseFixture.ETERNITY_HAMMER)
+	# evasion -10: cheat_a_hit() alone already guarantees the swing lands (base_roll 19), but a
+	# negative evasion is this mod's own established belt-and-braces shape for a target that must never
+	# be the thing under test (test_eternity_hammer.gd:112 is the identical call).
+	var target := PrimroseFixture.create_dummy(game, PRIMROSE_ADJACENT, -10)
+	target.core.frame.stat.health = 200 # never dies to the Hammer's own damage mid-test
+	target.core.full_repair()
+
+	# TWO TILES FROM THE TARGET, hostile to the Primrose - outside the Hammer's own RADIUS 1, and
+	# exactly the candidate a widened get_characters_within query would have to pull in for the ruling
+	# below to be contestable at all.
+	var far_hostile := PrimroseFixture.create_hostile(game, HAMMER_FAR_HOSTILE_TILE)
+	# So that IF the gather ever reached it, the save would fail and the Burn would land - the same
+	# "would have happened" guard test_eternity_hammer.gd's own bystander tests use
+	# (Fixture.force_agility_save_to_fail). A far_hostile that could only ever PASS its save would leave
+	# the ruling assertion green whether or not the gather reached it.
+	PrimroseFixture.force_agility_save_to_fail(far_hostile)
+
+	var far_ally := PrimroseFixture.create_ally(game, HAMMER_FAR_ALLY_TILE)
+
+	# 1. CONTROL, BEFORE THE BUFF - the same order test_house_guard_really_does_widen_adjacent_characters
+	# above uses, and for the same reason: measuring vanilla first is what makes the assertion after the
+	# buff a comparison rather than an assumption.
+	assert_false(UnitRelation.adjacent_characters(primrose).has(far_ally),
+		'CONTROL: two tiles out is not adjacent to the Primrose before the buff is consulted.')
+
+	widen_adjacency_on(primrose)
+
+	# 2. THE WIDENING IS LIVE ON THIS PRIMROSE, at the moment of the check below - without this the
+	# hostile assertion at the bottom could be green for want of anything having happened at all.
+	assert_true(UnitRelation.adjacent_characters(primrose).has(far_ally),
+		'House Guard pulls an ally two tiles out into adjacent_characters on this Primrose.')
+
+	PrimroseFixture.cheat_a_hit()
+	await PrimroseFixture.attack(game, primrose, PrimroseFixture.ETERNITY_HAMMER, target)
+	assert_gt(target.current_damage(), 0, 'VACUITY: the swing actually landed.')
+
+	# 3. RULING 18: the widening does not reach the bystander gather, however live it is on the Primrose
+	# itself - two tiles from the TARGET is still outside RADIUS 1, hostile or not, because
+	# get_characters_within never consults adjacent_characters() at all.
+	assert_eq(far_hostile.state.burn, 0,
+		"RULING 18: a hostile two tiles from the target takes no Burn - the widening never reaches the "
+		+ "Hammer's own get_characters_within query.")
+	assert_eq(far_hostile.current_damage(), 0, 'and no HP loss either.')
