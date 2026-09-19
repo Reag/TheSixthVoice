@@ -135,6 +135,43 @@ func test_a_shorter_leap_is_allowed() -> void:
 	await leap_to(TWO_EAST)
 	assert_eq(primrose.tile(), TWO_EAST, 'a two-tile leap lands two tiles away.')
 
+## ADDED AT REVIEW (controller, 2026-09-19), AFTER TWO WRONG TESTS AND ONE CORRECTED ASSUMPTION.
+##
+## Task 3's M1 - straight_line = false - reddened ONLY the movement-type assertion above, which
+## looked like a gap: the card's "in a straight line" pinned by one resource field and by nothing the
+## mech does. Chasing it turned up the reason, and it is that THE ASSUMPTION WAS WRONG, not the
+## content.
+##
+## "STRAIGHT LINE" IN THIS ENGINE MEANS NO DOG-LEGS, AT ANY ANGLE - NOT ONE OF EIGHT RAYS.
+## pathfinder.gd:495-497 builds each candidate destination's path with calculate_step_path_for_line
+## instead of calculate_step_path, and that is an AoeCalculator.line to an ARBITRARY tile
+## (pathfinder.gd:721-726). So a flight from (3,5) to (6,7) - dx 3, dy 2, on no 8-directional ray -
+## is a straight line, and is correctly offered. Measured: reachable_tiles under this action is every
+## tile within Chebyshev distance 5, minus the origin. The Fitzgerald spec's
+## test_the_movement_type_carries_every_clause_of_the_card says deleting straight_line must turn "the
+## realized path" red; on an unobstructed map it does not, because a walked path and a drawn line
+## between the same two tiles end in the same place. Both frames' straight-line clause is pinned by
+## the movement-type assertion, and that is the honest state of it.
+##
+## WHAT IS BEHAVIOURALLY OBSERVABLE, AND IS PINNED HERE, is the OTHER half of ruling 15. With
+## must_move_max_possible ALSO set, is_tile_within_max_distance_of_straight_movement turns on
+## (pathfinder.gd:711-718) and the picker stops consulting the pathfinder at all - the player may
+## click anywhere inside the radius and the engine walks a "pathfinder-be-damned" straight path there
+## (target_action_util.gd:95-103, and the engine's own comment above that function says so). Leap
+## leaves must_move_max_possible false precisely so the endpoint stays the pathfinder's business,
+## which is what "the player picks the endpoint, up to Speed" means. The flag assertion above says
+## the field is false; this says what that buys.
+func test_the_picker_still_consults_the_pathfinder() -> void:
+	var leap := action()
+	if leap == null: return assert_true(false, 'no action to inspect.')
+	var pathfinder:Pathfinder = await leap.generate_action_pathfinder(Fixture.specific(primrose, KIT_ID))
+	assert_not_null(pathfinder, 'the action builds a pathfinder.')
+	if pathfinder == null: return
+	# VACUITY: the tile really is inside the budget, so a false below cannot be the distance test.
+	assert_lte(Tile.distance(FIVE_EAST, START), SPEED, 'VACUITY: the tile is within Speed.')
+	assert_false(pathfinder.is_tile_within_max_distance_of_straight_movement(FIVE_EAST, START),
+		"must_move_max_possible is off, so the endpoint stays the pathfinder's business.")
+
 func test_it_flies_over_a_hostile_in_the_ray() -> void:
 	# The engine's rule, not ours (movement_type.gd:99). A hostile standing in the middle of the ray
 	# neither blocks the leap nor changes where it lands.
