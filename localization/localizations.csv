@@ -237,3 +237,14 @@ gear.cp_mobian_rainbow.flavor,"The details and technological foundation of the M
 gear.cp_mobian_rainbow.effect,"Each time a hostile character fails an attack against you, gain +1 |EVASION| for the rest of the scene up to a maximum of +3."
 gear.buff_effervescent_immunity.name,Effervescent Immunity
 gear.buff_effervescent_immunity.effect,"+{bonus} |EVASION| for the rest of the scene, one for each hostile attack that has failed against you, up to a maximum of +3."
+,
+gear.cp_mobian_rainbow.action_glimmering_armaments.name,GLIMMERING ARMAMENTS
+gear.cp_mobian_rainbow.action_glimmering_armaments.effect,"For the rest of the scene you gain one of the following effects:
+Wormhole Grasp
+Your weapons gain +1 |threat| and you may |Overwatch| with |Superheavy| weapons. Attacks made this way deal half damage, |Heat|, and |Burn|. 1/round, when you damage a character with an |Overwatch|, they must succeed a |Hull save| or be |Slowed| until the end of their next turn.
+Shimmering Shield
+While you are in |cover|, melee attacks against you receive |+1 Difficulty|. Additionally, Effervescent Immunity can stack up to a maximum of +5. If it would increase past this point, you instead gain 1d3 |OVERSHIELD|."
+gear.buff_wormhole_grasp.name,Wormhole Grasp
+gear.buff_wormhole_grasp.effect,"Your weapons gain +1 |threat| and you may |Overwatch| with |Superheavy| weapons. Attacks made this way deal half damage, |Heat|, and |Burn|. 1/round, when you damage a character with an |Overwatch|, they must succeed a |Hull save| or be |Slowed| until the end of their next turn."
+gear.buff_shimmering_shield.name,Shimmering Shield
+gear.buff_shimmering_shield.effect,"While you are in |cover|, melee attacks against you receive |+1 Difficulty|. Additionally, Effervescent Immunity can stack up to a maximum of +5. If it would increase past this point, you instead gain 1d3 |OVERSHIELD|."

@@ -4,3 +4,4 @@
 
 [resource]
 script = ExtResource("1_buff")
+log_on_application = true

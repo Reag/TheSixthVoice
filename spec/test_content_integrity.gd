@@ -482,11 +482,15 @@ const ICON_TARGETS := {
 	# HIDDEN_BUFFS_NEEDING_ICONS either (unlike an ATTACK_ROLL_INCOMING chip, which
 	# attack_roll.gd:189 draws with its raw icon). The Kit's own icon is SP5's.
 	&'mt_artful_caress': {},
-	# SP1 Task 4 (Primrose). MÖBIAN RAINBOW, the core system. EMPTY FOR NOW rather than empty on
-	# principle: Task 5 appends GLIMMERING ARMAMENTS, a PROTOCOL the player presses on the gear bar,
-	# which earns its own icon as well as the Kit's - the cp_auxiliary_power_rerouter and
-	# cp_quietus_machines shape. The Kit's own icon is SP5's.
-	&'cp_mobian_rainbow': {},
+	# SP1 Task 4 and Task 5 (Primrose). MÖBIAN RAINBOW, the core system. GLIMMERING ARMAMENTS is a
+	# PROTOCOL the player presses on the gear bar, so it wears its own icon as well as the Kit's -
+	# cp_auxiliary_power_rerouter's and cp_quietus_machines' shape, not the ms_heaer one. Both icons
+	# are SP5's.
+	#
+	# A NAMED FAMILY rather than KIT, because the two glyphs are genuinely different pictures: the Kit
+	# is the coating and the protocol is the choice it offers. A KIT row would say they are the same
+	# drawing, which the icon pass would then have to honour.
+	&'cp_mobian_rainbow': {&'action_glimmering_armaments': &'action_glimmering_armaments'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -603,6 +607,12 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# "no icon yet" and nothing else from now on. Task 5 fills the buff's display fields; it is already
 	# a real standalone buff_*.tres and belongs in this list whoever wrote it.
 	&'buff_wormhole_grasp',
+	# SP1 Task 5 (Primrose). The other armament's marker, visible for the same reason its twin is: the
+	# chip is the only thing on the board that says which of the two the pilot chose, and both of them
+	# last the whole scene. Its hidden companion buff_shimmering_shield_cover (Task 6) is NOT listed
+	# here - the pair is one mechanic, and two chips for one effect would read as two effects; it goes
+	# in HIDDEN_BUFFS_NEEDING_ICONS instead, because the roll breakdown draws it.
+	&'buff_shimmering_shield',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

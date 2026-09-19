@@ -132,7 +132,12 @@ func test_the_core_kit_is_wired():
 	if not Kit.is_valid(kit): return
 	assert_true(kit.is_trait, 'A frame trait, not equippable gear: it costs no SP and cannot be '
 		+ 'unequipped. cp_broadside, cp_siege_engine and cp_quietus_machines are the same.')
-	assert_eq(kit.actions.size(), 0, 'No actions yet - Task 5 appends GLIMMERING ARMAMENTS.')
+	# UPDATED BY SP1 TASK 5, which is what this line's previous wording ("No actions yet - Task 5
+	# appends GLIMMERING ARMAMENTS", asserting 0) said would happen. The action's OWN wiring - its
+	# type, its core-power cost, its usage group - is pinned by test_glimmering_armaments.gd; all this
+	# file needs is that the passive half still shares the Kit with exactly one action and nothing has
+	# quietly appended a second.
+	assert_eq(kit.actions.size(), 1, 'Carrying GLIMMERING ARMAMENTS, and only it (SP1 Task 5).')
 	assert_eq(kit.passives.size(), 1, 'Exactly one passive.')
 	var applicator = kit.passives[0]
 	assert_true(applicator is PassiveBuffApplicator, 'Which is a PassiveBuffApplicator.')
