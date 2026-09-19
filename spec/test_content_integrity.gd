@@ -482,6 +482,11 @@ const ICON_TARGETS := {
 	# HIDDEN_BUFFS_NEEDING_ICONS either (unlike an ATTACK_ROLL_INCOMING chip, which
 	# attack_roll.gd:189 draws with its raw icon). The Kit's own icon is SP5's.
 	&'mt_artful_caress': {},
+	# SP1 Task 4 (Primrose). MÖBIAN RAINBOW, the core system. EMPTY FOR NOW rather than empty on
+	# principle: Task 5 appends GLIMMERING ARMAMENTS, a PROTOCOL the player presses on the gear bar,
+	# which earns its own icon as well as the Kit's - the cp_auxiliary_power_rerouter and
+	# cp_quietus_machines shape. The Kit's own icon is SP5's.
+	&'cp_mobian_rainbow': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -584,6 +589,20 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# the protocol is pressed, per design ruling 11 - the author chose to see it rather than hide it.
 	# It is the only on-board signal a hostile gets that its saves are worse. Icon is SP3's.
 	&'buff_grav_amped_saves',
+	# SP1 Task 4 (Primrose). The Effervescent Immunity chip, and visible because the NUMBER on it is
+	# the mechanic: one chip carrying a running count is legible where three stacked chips are not
+	# (ruling 6), and it is the only signal on the board that the Primrose is getting harder to hit.
+	# Its hidden sibling buff_effervescent_immunity_counter is deliberately ABSENT - the pair is one
+	# mechanic, and the observer is never a chip on the unit.
+	&'buff_effervescent_immunity',
+	# SP1 Task 0 (Primrose), ADOPTED HERE. The probe (spec/test_unit_relation_extension.gd) shipped
+	# buff_wormhole_grasp.tres as a BARE visible Buff so the extension had a marker to read, and left
+	# this row unwritten - which is why test_every_visible_buff_has_a_real_icon has been red since
+	# 62a44a9 for THREE reasons at once: the size count, the missing row, and the null icon. Adopting
+	# the row here takes the first two green and leaves exactly one failing assert, so the guard means
+	# "no icon yet" and nothing else from now on. Task 5 fills the buff's display fields; it is already
+	# a real standalone buff_*.tres and belongs in this list whoever wrote it.
+	&'buff_wormhole_grasp',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
