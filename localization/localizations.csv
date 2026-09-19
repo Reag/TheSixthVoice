@@ -254,3 +254,7 @@ gear.mw_rend_axe.flavor,"One of SSC's more experimental creations, the Rend Axe 
 gear.mw_rend_axe.action_rend_axe.effect,"You may attack with this weapon without expending or requiring charges, and this weapon can be destroyed (due to critical damage or other effects) even if it has no charges remaining. On a |critical hit|, until the start of their next turn, the target is |Shredded|."
 gear.mw_rend_axe.action_rend_axe_free.name,Rend Axe (Free)
 gear.mw_rend_axe.action_rend_axe_free.effect,"1/round, you may expend a charge to attack with this weapon as a |free action| during your turn."
+gear.ms_dazzling_wind.name,Dazzling Wind
+gear.ms_dazzling_wind.flavor,"While its name does not bely its true purpose, the Dazzling Wind suite of systems is nevertheless a core part of SSC's LIM-AMOK line. Powerful hydraulic mobility augments allow for a pilot to leap across a battlefield, easily clearing any terrain or hostile forces. Unfortunately for its users however, each time it is recharged, it must be manually put back together in a painstakingly long process to achieve maximum combat efficiency."
+gear.ms_dazzling_wind.action_leap.name,Leap
+gear.ms_dazzling_wind.action_leap.effect,"Expend a charge: fly your |Speed| in a straight line. At the end of your movement, you may choose a hostile character adjacent to you; they must make a |hull save| or be knocked |Prone|."

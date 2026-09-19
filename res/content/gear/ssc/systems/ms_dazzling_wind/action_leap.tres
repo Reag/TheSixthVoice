@@ -1,0 +1,14 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_dazzling_wind/action_leap.gd" id="1_leap"]
+[ext_resource type="Script" uid="uid://udxarj3kb6nm" path="res://engine/character/unit/movement_type.gd" id="2_movetype"]
+
+[sub_resource type="Resource" id="Resource_leap"]
+script = ExtResource("2_movetype")
+flying = true
+straight_line = true
+
+[resource]
+script = ExtResource("1_leap")
+action_type = 1
+movement_type = SubResource("Resource_leap")

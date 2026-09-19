@@ -235,8 +235,12 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	# exactly once, in the sub-project that fills that rank" - which it duly did the moment the Rend
 	# Axe landed. Rewriting it here rather than at the end of SP2 (where the plan first put it) keeps
 	# the suite at its three deliberate icon reds between tasks, so a genuinely new red is visible
-	# instead of hiding in a crowd; the property the old comment describes is preserved exactly, and
-	# rank 1 will go red once more when SP2 Task 3 adds Dazzling Wind.
+	# instead of hiding in a crowd; the property the old comment describes is preserved exactly.
+	#
+	# UPDATED AGAIN, SP2 Task 3 (2026-09-19): Dazzling Wind joined the Rend Axe at rank 1, exactly as
+	# the previous revision of this comment predicted. This is the SAME expected red-then-fixed
+	# pattern, not a regression - the task brief says so explicitly, and this update is that task's
+	# job.
 	#
 	# EXACT LISTS, not "contains ours", and that is the original reasoning unchanged: the natural
 	# mistake when copying li_fitzgerald.tres is to carry over ITS granted_gear entries, and those
@@ -250,8 +254,8 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	var rank_1_ids:Array[StringName] = []
 	for kit:Kit in license.rank_1.granted_gear: rank_1_ids.append(kit.compcon_id)
 	rank_1_ids.sort()
-	assert_eq(rank_1_ids, [&'mw_rend_axe'] as Array[StringName],
-		'Rank 1 grants exactly the Rend Axe, once (SP2 Task 3 adds Dazzling Wind).')
+	assert_eq(rank_1_ids, [&'ms_dazzling_wind', &'mw_rend_axe'] as Array[StringName],
+		'Rank 1 grants exactly the Rend Axe and Dazzling Wind, once each.')
 	assert_eq(license.rank_2.granted_gear.size(), 0, 'Rank 2 grants no gear yet (SP3 fills it).')
 	assert_eq(license.rank_3.granted_gear.size(), 0, 'Rank 3 grants no gear yet (SP4 fills it).')
 

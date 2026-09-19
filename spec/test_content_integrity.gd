@@ -265,6 +265,21 @@ func test_the_rend_axes_rows_resolve():
 	for key:String in REND_AXE_LOCALIZATION_ROWS:
 		assert_ne(tr(key), key, '%s resolves to real text.' % key)
 
+## Dazzling Wind's four rows (SP2 Task 3, Primrose). Same belt-and-braces reasoning as the Rend Axe's
+## list above - test_leap.gd's test_the_card_text_resolves reads the identical keys through the
+## global tr(), so this entry is consistency with the per-sub-project pattern this file keeps, not
+## the only guard on an otherwise-unreachable row.
+const DAZZLING_WIND_LOCALIZATION_ROWS:Array[String] = [
+	'gear.ms_dazzling_wind.name',
+	'gear.ms_dazzling_wind.flavor',
+	'gear.ms_dazzling_wind.action_leap.name',
+	'gear.ms_dazzling_wind.action_leap.effect',
+]
+
+func test_the_dazzling_winds_rows_resolve():
+	for key:String in DAZZLING_WIND_LOCALIZATION_ROWS:
+		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+
 ## Every kit this mod ships, and the actions on each kit that reach a player-facing surface, each
 ## naming the GLYPH FAMILY it belongs to. Filled in by each sub-project as it builds content; the
 ## icon pass is what makes it green.
@@ -530,6 +545,12 @@ const ICON_TARGETS := {
 	# shape, so _action_reaches_a_player_facing_surface deliberately has no clause for it and the row
 	# is required regardless (the same reasoning gear_bar.gd:141-156 gets in that helper's header).
 	&'mw_rend_axe': {&'action_rend_axe': KIT, &'action_rend_axe_free': KIT},
+	# SP2 Task 3 (Primrose). Dazzling Wind. Its one action is a QUICK the player presses on the gear
+	# bar, so it needs a row - and it is a KIT row for the same reason the Rend Axe's are: the design
+	# gives this system ONE glyph family, {the Kit, action_leap}. vanilla's ms_ramjet is the other
+	# shape (Kit bare, action carrying the icon) and is deliberately NOT what this is. The Kit's icon
+	# is SP5's, which is what makes this row deliberately red until then.
+	&'ms_dazzling_wind': {&'action_leap': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
