@@ -44,10 +44,11 @@ const WORMHOLE_BUNDLE:Array[StringName] = [
 	&'buff_wormhole_grasp_slow',
 ]
 
-## Shimmering Shield: the visible marker, which buff_effervescent_immunity.cap_for reads by id.
-## SP1 TASK 6 APPENDS &'buff_shimmering_shield_cover' HERE and to nothing else.
+## Shimmering Shield: the visible marker, which buff_effervescent_immunity.cap_for reads by id, and
+## the hidden cover chip that carries the +1 Difficulty.
 const SHIELD_BUNDLE:Array[StringName] = [
 	&'buff_shimmering_shield',
+	&'buff_shimmering_shield_cover',
 ]
 
 func activate(context:Context, activation:EventCore) -> void:

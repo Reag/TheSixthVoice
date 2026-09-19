@@ -31,6 +31,11 @@ const WORMHOLE_THREAT := &'buff_wormhole_grasp_threat'
 const WORMHOLE_HALF := &'buff_wormhole_grasp_half'
 const WORMHOLE_SLOW := &'buff_wormhole_grasp_slow'
 const SHIELD := &'buff_shimmering_shield'
+## SP1 TASK 6 appended this to SHIELD_BUNDLE. Task 5's report asked for these two assertions by name:
+## the bundle tests are what say the protocol applies the WHOLE armament and nothing of the other one,
+## so a bundle that grows and a test that does not is a mechanic shipped untested. Its own behaviour
+## lives in test_shimmering_shield.gd.
+const SHIELD_COVER := &'buff_shimmering_shield_cover'
 
 const PRIMROSE_TILE := Vector2i(4, 4)
 
@@ -137,12 +142,14 @@ func test_choosing_wormhole_grasp_spends_the_core_power_and_applies_the_whole_bu
 	assert_true(holds(WORMHOLE_HALF), 'And the half-damage observer.')
 	assert_true(holds(WORMHOLE_SLOW), 'And the on-hit Slow.')
 	assert_false(holds(SHIELD), 'And NOT the other armament.')
+	assert_false(holds(SHIELD_COVER), 'Nor its hidden cover chip (SP1 Task 6).')
 
 func test_choosing_shimmering_shield_spends_the_core_power_and_applies_its_marker():
 	await PrimroseFixture.press_protocol(game, primrose, responder, PrimroseFixture.SHIELD_INDEX)
 
 	assert_false(primrose.core.has_core_power, 'The core power is spent.')
 	assert_true(holds(SHIELD), 'The Shimmering Shield marker is held.')
+	assert_true(holds(SHIELD_COVER), 'And its hidden cover chip, the other half of the bundle (SP1 Task 6).')
 	assert_false(holds(WORMHOLE), 'And NOT the other armament.')
 	assert_false(holds(WORMHOLE_THREAT), 'Nor any of its companions.')
 	assert_false(holds(WORMHOLE_HALF), 'Nor the half-damage observer.')

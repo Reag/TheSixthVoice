@@ -769,7 +769,16 @@ func test_every_visible_buff_has_a_real_icon():
 ## normal case for trait plumbing (Hole Puncher ships three hidden buffs that draw nothing anywhere)
 ## and a count assertion here would demand a row for every one of them. The entries are therefore
 ## added by hand, by whoever builds a hidden buff that something draws. SP1 Task 2 is the first.
-const HIDDEN_BUFFS_NEEDING_ICONS:Array[StringName] = [&'buff_hybridized_shot']
+const HIDDEN_BUFFS_NEEDING_ICONS:Array[StringName] = [
+	&'buff_hybridized_shot',
+	# SP1 Task 6 (Primrose). Shimmering Shield's cover half is hidden - the marker is the chip the
+	# player reads, and two chips for one effect would read as two effects - but attack_roll.gd:189
+	# draws it anyway, passing buff_core.base.icon RAW into the roll breakdown rather than through
+	# Buff.get_icon(), so BuffBonus's difficulty-svg fallback never runs on that path and a null icon
+	# leaves a blank beside the -1. Its icon is SP5's, so this row is what makes this test deliberately
+	# red until then.
+	&'buff_shimmering_shield_cover',
+]
 
 func test_every_hidden_buff_that_is_still_drawn_has_a_real_icon():
 	# This list is hand-maintained and, unlike ICON_TARGETS and VISIBLE_BUFFS, NOT size-checked
