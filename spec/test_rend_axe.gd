@@ -263,3 +263,145 @@ func test_the_name_and_flavour_and_effect_resolve() -> void:
 	for key:String in ['gear.mw_rend_axe.name', 'gear.mw_rend_axe.flavor',
 			'gear.mw_rend_axe.action_rend_axe.effect']:
 		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+
+# ================================================================ the FREE attack (SP2 Task 2)
+#
+# "1/round, you may expend a charge to attack with this weapon as a free action during your turn."
+#
+# A SECOND ACTION, NOT A VARIANT (ruling 3). A VARIANT_ACTIONS sub-menu would have to change the
+# action's COST after the player picked, which no vanilla variant does - every one of them changes
+# the weapon profile and leaves the cost alone (action_attack_weapon.gd:349-372 is the shape). Two
+# actions also put two buttons on the gear bar, each saying what it costs, which is the point.
+
+const FREE_ID := &'action_rend_axe_free'
+
+func free_weapon() -> ActionAttackWeapon:
+	return gear.get_action(FREE_ID) as ActionAttackWeapon
+
+func free_specific() -> SpecificAction:
+	return SpecificAction.from_id(unit, KIT_ID, FREE_ID)
+
+## The free swing. SpecFactory.use names the action, unlike use_solo which always takes
+## kit.actions[0] (gear_core.gd:337-339).
+func free_swing() -> void:
+	await Fixture.open_turn(game, unit)
+	await SpecFactory.use(game, unit, KIT_ID, FREE_ID, target)
+
+func test_the_free_attack_is_a_free_action() -> void:
+	var free := free_weapon()
+	assert_not_null(free, 'the Kit carries action_rend_axe_free.')
+	if free == null: return
+	assert_eq(free.get_action_type(free_specific()), Lancer.ACTION.FREE, 'it is a FREE action.')
+	assert_eq(free.get_action_cost(free_specific()), Lancer.ACTION_COST_FREE, 'and it costs nothing.')
+
+func test_the_free_attack_spends_a_charge() -> void:
+	Fixture.cheat_a_hit()
+	await free_swing()
+	assert_gt(target.current_damage(), 0, 'VACUITY: the free swing actually landed.')
+	assert_eq(gear.charges_current, CHARGES - 1, 'one charge gone.')
+
+func test_the_free_attack_costs_no_action_points() -> void:
+	await Fixture.open_turn(game, unit)
+	var before:int = unit.state.actions
+	Fixture.cheat_a_hit()
+	await SpecFactory.use(game, unit, KIT_ID, FREE_ID, target)
+	assert_gt(target.current_damage(), 0, 'VACUITY: the free swing landed.')
+	assert_eq(unit.state.actions, before, 'and cost no action points.')
+
+func test_the_free_attack_is_refused_with_no_charges() -> void:
+	gear.charges_current = 0
+	assert_eq(UnitAction.get_gear_unavailable_reason(free_specific()), UnitAction.REASON.NO_CHARGES,
+		'the free attack needs a charge, and the engine names that reason.')
+
+func test_the_free_attack_is_hidden_rather_than_greyed_when_it_cannot_be_used() -> void:
+	# hide_if_disabled: the gear bar drops the button instead of drawing a dead one. Read off the
+	# resource - the gear bar's own filtering is per-instance runtime state this spec cannot reach.
+	var free := free_weapon()
+	if free == null: return assert_true(false, 'no free action to inspect.')
+	assert_true(free.hide_if_disabled, 'an empty axe hides the free button.')
+
+func test_a_second_free_attack_in_the_same_round_is_refused() -> void:
+	Fixture.cheat_a_hit()
+	await free_swing()
+	assert_eq(gear.charges_current, CHARGES - 1, 'VACUITY: the first free swing happened.')
+	assert_eq(UnitAction.get_gear_unavailable_reason(free_specific()), UnitAction.REASON.PER_ROUND,
+		'the second is refused for PER_ROUND, not for charges.')
+
+func test_the_engine_itself_caps_a_naturally_free_action_at_one_per_round() -> void:
+	# NOT a get_per_round_hard_limit override of ours, and this test is the reason there is none.
+	# action.gd:156-158 already returns 1 when get_action_cost <= Lancer.ACTION_COST_FREE, and
+	# Lancer.ACTION_COST[ACTION.FREE] is 0 (lancer.gd:31). Writing the override anyway would be an
+	# inert line that reads as load-bearing; asserting the engine's own answer instead means a future
+	# engine change to that default goes RED here rather than silently uncapping the axe.
+	var free := free_weapon()
+	if free == null: return assert_true(false, 'no free action to inspect.')
+	assert_eq(free.get_per_round_hard_limit(free_specific()), 1, 'the engine caps it at 1/round.')
+
+func test_the_free_attack_does_not_use_up_the_ordinary_attack() -> void:
+	# THE TEST THIS TASK EXISTS FOR. Two actions on one Kit share a usage group unless one declares
+	# its own (gear_core.gd:166-168 falls back to kit.compcon_id), and unit_action.gd:281 increments
+	# uses_this_turn for a player-pressed action. The ordinary attack's per-turn soft limit is 1
+	# (action.gd:161-163), so a shared group would make the free swing silently forbid the ordinary
+	# one for the rest of the turn - a refusal of the OTHER button, which is why nothing about the
+	# free attack's own behaviour would notice.
+	Fixture.cheat_a_hit()
+	await free_swing()
+	assert_eq(gear.charges_current, CHARGES - 1, 'VACUITY: the free swing happened.')
+	assert_true(UnitAction.can_activate_gear(Fixture.specific(unit, KIT_ID)),
+		'the ordinary attack is still available in the same turn.')
+	var before:int = target.current_damage()
+	Fixture.cheat_a_hit()
+	await SpecFactory.use(game, unit, KIT_ID, ATTACK_ID, target)
+	assert_eq(target.current_damage(), before + AXE_DAMAGE, 'and it really swings.')
+
+func test_the_ordinary_attack_does_not_use_up_the_free_one() -> void:
+	# The other direction, and it holds for a DIFFERENT engine reason than its sibling above, which is
+	# why the pair is not one assertion written twice: the free action has no per-turn soft limit at
+	# all (action.gd:161-163 returns 99 for a naturally free action), so the counter that would stop
+	# it is the per-ROUND one instead - get_per_round_hard_limit is 1, and is_under_per_round_limit
+	# (unit_action.gd:170-175) is checked inside get_gear_unavailable_reason at :148.
+	#
+	# CORRECTED AT IMPLEMENTATION (SP2 Task 2, 2026-09-19). The plan's draft said this test "would
+	# survive the usage_group being deleted". MEASURED: it does not. Mutation M1 - dropping
+	# usage_group from action_rend_axe_free.tres - reddened this test as well as its sibling, because
+	# a shared group means the ORDINARY swing above bumps uses_this_round for the group the free
+	# action reads, and 1 is already its whole round allowance. So the ordinary attack refuses the
+	# free one for PER_ROUND while the free one refuses the ordinary for the per-TURN soft limit: two
+	# different counters, two different gates, both broken by the same missing line. The conclusion
+	# the draft drew from that claim still stands - these are not duplicate assertions - but its
+	# evidence was wrong, and the corrected version is stronger: BOTH directions fail without the
+	# usage_group, so either test alone would catch it.
+	Fixture.cheat_a_hit()
+	await swing()
+	assert_gt(target.current_damage(), 0, 'VACUITY: the ordinary swing happened.')
+	assert_true(UnitAction.can_activate_gear(free_specific()),
+		'the free attack is still available in the same turn.')
+
+func test_the_two_profiles_are_the_same_weapon() -> void:
+	# The profile is written twice, in two .tres files, and nothing in the engine keeps them in step.
+	# A card that said "attack with this weapon" and then dealt different damage depending on which
+	# button was pressed would be a content bug no other test in this file could see.
+	var ordinary := weapon()
+	var free := free_weapon()
+	if ordinary == null or free == null: return assert_true(false, 'both profiles must exist.')
+	assert_eq(free.damage_dice, ordinary.damage_dice, 'same damage.')
+	assert_eq(free.damage_type, ordinary.damage_type, 'same damage type.')
+	assert_eq(free.weapon_size, ordinary.weapon_size, 'same size.')
+	assert_eq(free.weapon_type, ordinary.weapon_type, 'same type.')
+	assert_eq(free.threat, ordinary.threat, 'same threat.')
+	assert_eq(free.thrown, ordinary.thrown, 'same thrown range.')
+	assert_eq(free.tags, ordinary.tags, 'same tags.')
+	assert_eq(free.aim_range, ordinary.aim_range, 'same aim range.')
+	# The SAME OnHitEffect resource, not a second copy of it: one Shredded clause, one file.
+	assert_eq(free.on_hit_effects, ordinary.on_hit_effects, 'the same on-hit effect object.')
+
+func test_the_free_attack_also_offers_the_thrown_submenu() -> void:
+	var free := free_weapon()
+	if free == null: return assert_true(false, 'no free action to inspect.')
+	var keys:Array[StringName] = []
+	for group:VariantActionGroup in free.get_alternate_actions(free_specific()): keys.append(group.key)
+	assert_has(keys, &'thrown', 'a free throw is still a throw (ruling 14).')
+
+func test_the_free_attacks_card_text_resolves() -> void:
+	var key := 'gear.mw_rend_axe.action_rend_axe_free.effect'
+	assert_ne(tr(key), key, '%s resolves to real text.' % key)

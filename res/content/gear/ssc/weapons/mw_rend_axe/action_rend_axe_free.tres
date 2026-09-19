@@ -1,0 +1,19 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_rend_axe/action_rend_axe_free.gd" id="1_rendaxefree"]
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="2_onhiteffect"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_rend_axe/onhit_rend_axe.tres" id="3_onhit"]
+
+[resource]
+script = ExtResource("1_rendaxefree")
+damage_type = 0
+damage_dice = "2"
+weapon_size = 1
+weapon_type = 2
+aim_range = 0
+threat = 1
+tags = Array[StringName]([&"ap", &"thrown"])
+thrown = 3
+on_hit_effects = Array[ExtResource("2_onhiteffect")]([ExtResource("3_onhit")])
+usage_group = &"action_rend_axe_free"
+hide_if_disabled = true

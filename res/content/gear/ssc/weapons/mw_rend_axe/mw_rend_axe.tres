@@ -3,10 +3,11 @@
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_rend_axe/action_rend_axe.tres" id="3_rendaxe"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_rend_axe/action_rend_axe_free.tres" id="4_rendaxefree"]
 
 [resource]
 script = ExtResource("2_kit")
-actions = Array[ExtResource("1_action")]([ExtResource("3_rendaxe")])
+actions = Array[ExtResource("1_action")]([ExtResource("3_rendaxe"), ExtResource("4_rendaxefree")])
 sp_cost = 0
 system_tags = 1
 charges_max = 3

@@ -251,6 +251,14 @@ const REND_AXE_LOCALIZATION_ROWS:Array[String] = [
 	'gear.mw_rend_axe.name',
 	'gear.mw_rend_axe.flavor',
 	'gear.mw_rend_axe.action_rend_axe.effect',
+	# SP2 Task 2, the FREE profile's two rows. The .name row is NOT decoration and has no sibling on
+	# action_rend_axe: an action with no name row of its own falls through to the Kit's
+	# (translate.gd:73-76), which is right for the ordinary swing - one card, one name - and wrong the
+	# moment there are two buttons, because both would then read "Rend Axe". Vanilla-adjacent
+	# precedent in this same file: gear.mw_bizarre_cannon.action_more_black_powder.name is
+	# "Bizarre Cannon (More Black Powder)" for exactly this reason.
+	'gear.mw_rend_axe.action_rend_axe_free.name',
+	'gear.mw_rend_axe.action_rend_axe_free.effect',
 ]
 
 func test_the_rend_axes_rows_resolve():
@@ -513,7 +521,15 @@ const ICON_TARGETS := {
 	# absence, not duplication - so the action carries NO icon_override and inherits through
 	# action.gd:324-326. Task 2 adds the free profile to this same row, also KIT.
 	# The Kit's own icon is SP5's, which is what makes this row deliberately red until then.
-	&'mw_rend_axe': {&'action_rend_axe': KIT},
+	#
+	# SP2 Task 2 added action_rend_axe_free. It is a SECOND pressable button on the gear bar - the
+	# card's free swing - so it needs a row of its own, and it is KIT for the same reason its sibling
+	# is: the design's family for this weapon is {the Kit, both attack actions}, one axe glyph worn by
+	# every way of swinging it. Note the free profile carries hide_if_disabled, which removes the
+	# button at 0 charges rather than greying it - that is per-instance runtime state, not a fixed
+	# shape, so _action_reaches_a_player_facing_surface deliberately has no clause for it and the row
+	# is required regardless (the same reasoning gear_bar.gd:141-156 gets in that helper's header).
+	&'mw_rend_axe': {&'action_rend_axe': KIT, &'action_rend_axe_free': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
