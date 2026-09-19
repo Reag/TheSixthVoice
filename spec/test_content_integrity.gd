@@ -576,6 +576,11 @@ const ICON_TARGETS := {
 	# it is exactly the clause the Maiden's Blush's mt_uncertainty_field FAILS, which is why that Kit's
 	# row two hundred lines above is `{}` while this one is not.
 	&'mw_acrasial_falcata': {&'action_acrasial_falcata': KIT, &'action_biting_retort': &'action_biting_retort'},
+	# SP3 Task 4 (Primrose). A weapon mod: no actions at all, so nothing but the Kit's own icon is
+	# ever shown - it appears in the weapon-mod dropdown and on the modded weapon's card. The
+	# wm_ripper_mod shape (:343 above). The Kit's own icon is SP5's, so this row is what makes
+	# test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then.
+	&'wm_ddmr': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -698,6 +703,12 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# here - the pair is one mechanic, and two chips for one effect would read as two effects; it goes
 	# in HIDDEN_BUFFS_NEEDING_ICONS instead, because the roll breakdown draws it.
 	&'buff_shimmering_shield',
+	# SP3 Task 4 (Primrose). The DDMR's on-hit chip, and visible per ruling 24: named "DDMR" -
+	# the mod's own name off the card - and it is the only signal the wearer gets that its next
+	# incoming attack is worse. Its sibling buff_ddmr_threat is hidden and correctly absent here -
+	# a THREAT_RANGE bonus is read by ActionAttackWeapon.threat_distance and drawn nowhere, same as
+	# buff_artful_caress above, so it is not in HIDDEN_BUFFS_NEEDING_ICONS either.
+	&'buff_ddmr_aegis',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

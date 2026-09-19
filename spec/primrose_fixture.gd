@@ -69,6 +69,9 @@ const REND_AXE := &'mw_rend_axe'
 ## SP3 Task 1. The Primrose's own rank-II weapon, and the mod's first SUPERHEAVY.
 const FALCATA := &'mw_acrasial_falcata'
 
+## SP3 Task 4. The Primrose's own rank-II weapon mod.
+const DDMR := &'wm_ddmr'
+
 ## SP2 Task 3. The Primrose's own rank-I system.
 const DAZZLING_WIND := &'ms_dazzling_wind'
 
@@ -153,6 +156,14 @@ static func equip(unit:Unit, kit_id:StringName) -> GearCore:
 static func equip_superheavy_melee(unit:Unit) -> GearCore: return equip(unit, SUPERHEAVY_MELEE)
 static func equip_heavy_melee(unit:Unit) -> GearCore: return equip(unit, HEAVY_MELEE)
 static func equip_main_rifle(unit:Unit) -> GearCore: return equip(unit, MAIN_RIFLE)
+
+## Fit the DDMR to a weapon the unit already carries, and re-apply the passive buffs the way spawning
+## would. EQUIP EVERY WEAPON FIRST: equip_system calls full_repair(), which empties every equipped
+## gear's state dictionary (test_ripper_mod.gd's equip_modded records the same trap).
+static func fit_ddmr(unit:Unit, weapon:GearCore) -> GearCore:
+	unit.core.loadout.equip_weapon_mod(DDMR, weapon)
+	SpecFactory.apply_passive_buffs(unit)
+	return unit.get_gear(DDMR)
 
 ## The SpecificAction for a Kit's solo action on a unit that already carries it. Returns a
 ## SpecificAction whose .gear is null if the unit does not carry it, which SpecificAction.is_valid

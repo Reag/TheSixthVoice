@@ -1,0 +1,11 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://bqmx1sop25c44" path="res://engine/character/buff/archtypes/buff_weapon_type_bonus.gd" id="1_bonus"]
+
+[resource]
+script = ExtResource("1_bonus")
+bonus_subtype = &"threat_range"
+bonus_value = 1
+from_weapon_mod = true
+to = &"action_range"
+hide_from_player = true

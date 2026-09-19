@@ -265,3 +265,9 @@ gear.mw_acrasial_falcata.effect,"Gain the |Biting Retort=gear.mw_acrasial_falcat
 gear.mw_acrasial_falcata.action_biting_retort.name,Biting Retort
 gear.mw_acrasial_falcata.action_biting_retort.trigger,A hostile character within |line of sight| attempts to hit you with a melee attack.
 gear.mw_acrasial_falcata.action_biting_retort.effect,"The attack is made with |+1 Difficulty|. If the attack misses, the attacker takes 3 |AP| |Kinetic| damage and must succeed a |Hull save| or be knocked |prone|."
+,
+gear.wm_ddmr.name,DDMR
+gear.wm_ddmr.flavor,"A specialty modification for melee combatants, the DDMR, or Debris Detachment Magnetic Aegis, adds some additional heft and reach its attached weapon. Its primary function however lies in its ferrofluid core, upon impact with a target, any debris are pulled back towards the user and suspended in the air around them. The field of particles are able to absorb stray blows and offer the user some additional safety while up close and personal. [>//:why is it called DDMR if the last letter stands for Aegis? [>//:shut up //<]"
+gear.wm_ddmr.effect,"This weapon gains |+1 Threat|. 1/round, on a hit with the weapon this mod is applied to, the next attack against you has |+1 Difficulty| until the start of your next turn."
+gear.buff_ddmr_aegis.name,DDMR
+gear.buff_ddmr_aegis.effect,The next attack against you has |+1 Difficulty|.
