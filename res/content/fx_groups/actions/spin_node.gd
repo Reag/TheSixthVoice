@@ -44,6 +44,27 @@
 ## second - the engine's idiom for a mech whipping round, not a smooth 3D rotation. That is the
 ## intended look.
 ##
+## ================== ON THE PRIMROSE IT IS TWO FLIPS, NOT FOUR, AND IT SHOWS ==================
+##
+## REPORTED, TRACED AND LEFT AS IS (author, 2026-09-19: "the spin FX did not play, if it was even
+## created"). It was created, it is wired, and it runs - activate() calls run_system_fxgs and the
+## call is pinned by test_spin.gd's test 17. What the player sees is the problem, and the cause is
+## the frame's ART, not this file.
+##
+## "FOUR VIEW FLIPS" above is only true for a frame that HAS A BACK SPRITE. TokenBase.
+## create_for_sprite looks for one at a sibling file named `<sprite>_back.png` and sets sprite_back
+## to null when there is none (token_base.gd:48-53); TokenCore.get_sprite_back then falls back to the
+## FRONT texture (token_core.gd:172). The shader's four quadrants are front-normal, front-mirrored,
+## back-mirrored, back-normal (unit_token_facing_func.gdshaderinc) - so with front == back, two of
+## the four are duplicates and a full TAU collapses to ONE MIRROR OUT AND ONE BACK. In 0.45 s that
+## reads as a twitch, or as nothing at all.
+##
+## 74 vanilla frames ship a `_back.png`. `mf_primrose_back.png` does not exist, and neither does a
+## back sprite for any other frame in this mod except mf_mk2's bombard variant. The fix is art -
+## an 80x80 rear view beside mf_primrose.png - and it would improve every time the Primrose turns to
+## face a target, not just Spin. Deliberately NOT worked around here: a different FX that reads
+## without a back sprite would hide a gap that is real for the whole frame.
+##
 ## Nothing here touches the unit's TRUE facing: `state.current_facing` is never written, and the last
 ## thing the tween does is put the visual back exactly where it found it.
 ##
