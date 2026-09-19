@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="5_onhiteffect"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/wm_ddmr/buff_ddmr_threat.tres" id="6_threat"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/wm_ddmr/onhit_ddmr.tres" id="7_onhit"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/wm_ddmr.svg" id="8_icon"]
 
 [sub_resource type="Resource" id="Resource_ddmr"]
 script = ExtResource("3_weaponmod")
@@ -20,4 +21,5 @@ script = ExtResource("1_kit")
 passives = Array[ExtResource("2_passive")]([SubResource("Resource_ddmr")])
 sp_cost = 3
 system_tags = 1
+icon_override = ExtResource("8_icon")
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

@@ -8,6 +8,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_primrose/cp_mobian_rainbow/buff_effervescent_immunity_counter.tres" id="6_counter"]
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="7_action"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_primrose/cp_mobian_rainbow/action_glimmering_armaments.tres" id="8_protocol"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_mobian_rainbow.svg" id="9_icon"]
 
 [sub_resource type="Resource" id="Resource_applicator"]
 script = ExtResource("3_applicator")
@@ -18,3 +19,4 @@ script = ExtResource("4_kit")
 actions = Array[ExtResource("7_action")]([ExtResource("8_protocol")])
 passives = Array[ExtResource("1_passive")]([SubResource("Resource_applicator")])
 is_trait = true
+icon_override = ExtResource("9_icon")

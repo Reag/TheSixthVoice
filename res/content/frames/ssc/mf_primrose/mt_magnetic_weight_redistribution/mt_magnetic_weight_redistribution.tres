@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://dy4kg537rc55e" path="res://engine/character/gear_passive/passive_buff_applicator.gd" id="3_applicator"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="4_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_primrose/mt_magnetic_weight_redistribution/buff_magnetic_weight_redistribution.tres" id="5_mwr"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_magnetic_weight_redistribution.svg" id="6_icon"]
 
 [sub_resource type="Resource" id="Resource_applicator"]
 script = ExtResource("3_applicator")
@@ -15,3 +16,4 @@ reapply_at_the_start_of_each_turn = true
 script = ExtResource("4_kit")
 passives = Array[ExtResource("1_passive")]([SubResource("Resource_applicator")])
 is_trait = true
+icon_override = ExtResource("6_icon")

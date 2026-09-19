@@ -21,7 +21,6 @@ const PrimroseFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/primros
 
 const FRAME_ID := &'mf_primrose'
 const LICENSE_ID := &'li_primrose'
-const FITZGERALD_ID := &'mf_fitzgerald'
 
 ## Read THIS MOD'S OWN compiled artifact, not the global tr(), so a passing display-text test can be
 ## attributed to this mod rather than to a sibling Reag-* mod loaded in the same testkit run. Same
@@ -101,20 +100,22 @@ func test_the_role_is_striker_with_no_secondary():
 	assert_eq(frame.role_primary, Lancer.SQUAD_ROLE.STRIKER, 'Primary role STRIKER.')
 	assert_eq(frame.role_secondary, Lancer.SQUAD_ROLE.NONE, 'No secondary role.')
 
-func test_the_frame_wears_the_shared_placeholder_sprite():
+func test_the_frame_has_a_sprite_that_actually_loaded():
 	# A .tres pointing at an unimported PNG does not fail loudly: the ext_resource fails, the whole
 	# frame resource fails to parse, and the frame drops out of ContentLibrary with no error a player
 	# would ever see. This is the only thing in the suite that reads mf_primrose.sprites.
 	#
-	# ASSERTED AS *IS* THE PLACEHOLDER, NOT "is not", DELIBERATELY - the inverse of every other frame
-	# spec in this mod. The design (1.1) says the Primrose ships on the shared stand-in and SP5
-	# replaces it, so this assertion is the pin that makes that replacement a DELIBERATE edit in two
-	# places rather than a silent drift. SP5 flips both halves: the ext_resource path in the .tres and
-	# this line.
+	# SP5 FLIPS THIS FROM "is the placeholder" TO "is not" - the Vauban's own
+	# test_the_frame_has_a_sprite_that_actually_loaded shape, not the Maiden's Blush/Myconid one,
+	# because the art landed in one sub-project rather than being deferred past the frame's SP1.
 	#
 	# 80x80, not the 160x160 sibling: the mod ships mf_placeholder.png (80x80, size 1) and
 	# mf_placeholder_160.png (160x160, size 2), and pointing a size-1 frame at the larger one renders
 	# it at double scale on the board.
+	#
+	# CHECKING THE FRAME'S OWN FILENAME, not just "not placeholder" - matches
+	# test_vauban_frame.gd:172-179's reasoning: three of this mod's own frames are 80x80 with no
+	# "placeholder" in their paths, so a copy-paste from a SIBLING frame would pass the weaker check.
 	var frame:Frame = _frame()
 	assert_not_null(frame, 'fixture: the frame loads.')
 	if frame == null: return
@@ -124,46 +125,43 @@ func test_the_frame_wears_the_shared_placeholder_sprite():
 	assert_not_null(sprite, 'The sprite texture loaded.')
 	if sprite == null: return
 	assert_eq(sprite.get_size(), Vector2(80, 80), 'A size-1 frame uses an 80x80 sprite.')
-	assert_true(sprite.resource_path.ends_with('/mf_placeholder.png'),
-		'SP5 replaces this with the frame\'s own art and flips this assertion.')
+	assert_false(sprite.resource_path.contains('placeholder'),
+		'And it is the author\'s own art, not the shared stand-in.')
+	assert_true(sprite.resource_path.ends_with('/mf_primrose.png'),
+		'The frame wears its OWN sprite - not a sibling frame\'s, and not the stand-in.')
 
-func test_the_frame_has_the_fitzgeralds_neutral_colour_scheme():
-	# A NEUTRAL STAND-IN, and a decision rather than a default - see the NOTE in the plan. The icon
-	# directive derives a frame's ColorScheme FROM ITS SPRITE at the icon pass, and the sprite today is
-	# the shared placeholder, so any chosen palette now would be invented twice. The Fitzgerald's own
-	# scheme is the mod's one existing colourless block (no toneramp at all), which is exactly what
-	# "provisional" should look like on the board.
+func test_the_colour_scheme_is_derived_from_the_frames_own_art():
+	# LITERALS, NOT A RELATIONSHIP - the Vauban's own shape
+	# (test_vauban_frame.gd:181), not the Fitzgerald-comparison this test used to run while the frame
+	# still sat on the shared placeholder. mf_primrose.png (80x80, 2,696 opaque pixels) carries ZERO
+	# channel-encoded pixels against palette_index_r.png's seven red values (measured 2026-09-19, same
+	# test palette_swap_func.gdshaderinc runs), so this scheme is INERT on the token today exactly like
+	# the Vauban's - whatever it holds, nothing routes through it. Pinned anyway, because the day
+	# channel-encoded art replaces this sprite these become the frame's default paint, and an edit
+	# made between now and then would land unnoticed.
 	#
-	# PINNED AGAINST BOTH FRAMES, not against transcribed literals: reading the Fitzgerald's live
-	# scheme makes this a statement about the relationship, and it is also the guard on the palette
-	# SLOT - the Maiden's Blush sets palette_1 and the Iskander sets palette_2, so a copy from the
-	# wrong sibling would drop or add a toneramp silently.
-	#
-	# CORRECTED AT IMPLEMENTATION (2026-09-19): the brief's draft asserted assert_null on palette_1/2,
-	# on the claim that the Fitzgerald's block carries "no toneramp at all". That is not what the
-	# engine does: color_scheme.gd:60-61 declares `@export var palette_1/2:Texture2D = DEFAULT_TONERAMP`,
-	# so a .tres that never writes those keys - which is exactly what mf_fitzgerald.tres and this file
-	# both do - inherits the non-null default toneramp, not null. assert_null could never pass for ANY
-	# resource, including the Fitzgerald's own; confirmed by reading color_scheme.gd directly, not by
-	# guessing around the red. Asserting equality against the Fitzgerald (matching the base_0/1/2 lines
-	# just above) preserves the actual claim - neither frame carries a CUSTOM toneramp, both sit on the
-	# same script default - without asserting a nullness the engine never produces.
+	# The three are the sprite's own most-common literal fill colours (a plain colour census,
+	# excluding the linework's pure black), most-used first per the Iskander's own slot convention -
+	# see the .tres comment for the full count.
 	var frame:Frame = _frame()
-	var fitzgerald:Frame = ContentLibrary.get_mech_frame(FITZGERALD_ID)
 	assert_not_null(frame, 'fixture: the frame loads.')
-	assert_not_null(fitzgerald, 'fixture: the Fitzgerald loads, to compare against.')
-	if frame == null or fitzgerald == null: return
+	if frame == null: return
 	var ours:ColorScheme = frame.default_color_scheme
-	var theirs:ColorScheme = fitzgerald.default_color_scheme
 	assert_not_null(ours, 'The Primrose carries a default colour scheme.')
-	assert_not_null(theirs, 'And the Fitzgerald carries one to compare against.')
-	if ours == null or theirs == null: return
-	assert_eq(ours.base_0, theirs.base_0, 'base_0 matches the Fitzgerald.')
-	assert_eq(ours.base_1, theirs.base_1, 'base_1 matches the Fitzgerald.')
-	assert_eq(ours.base_2, theirs.base_2, 'base_2 matches the Fitzgerald.')
-	assert_eq(ours.palette_1, theirs.palette_1,
-		'palette_1 matches the Fitzgerald - both left at the script default toneramp, neither custom.')
-	assert_eq(ours.palette_2, theirs.palette_2, 'And palette_2 matches too.')
+	if ours == null: return
+	assert_eq(ours.base_0, Color(0.4627451, 0.5372549, 0.56078434, 1), 'base_0 is the sprite\'s teal-grey.')
+	assert_eq(ours.base_1, Color(0.654902, 0.7137255, 0.7294118, 1), 'base_1 is the sprite\'s pale grey.')
+	assert_eq(ours.base_2, Color(0.36078432, 0.28235295, 0.38039216, 1), 'base_2 is the sprite\'s muted violet.')
+
+	# AND IT IS DELIBERATELY NOT THE FITZGERALD'S ANY MORE, the frame this scheme used to be pinned
+	# against while the sprite was still the shared placeholder. Read off the live frame rather than
+	# transcribed, so this stays honest if a modkit update repaints the Fitzgerald.
+	var fitzgerald:Frame = ContentLibrary.get_mech_frame(&'mf_fitzgerald')
+	assert_not_null(fitzgerald, 'mf_fitzgerald loads.')
+	if fitzgerald == null or fitzgerald.default_color_scheme == null: return
+	var theirs:ColorScheme = fitzgerald.default_color_scheme
+	assert_true(ours.base_0 != theirs.base_0 or ours.base_1 != theirs.base_1 or ours.base_2 != theirs.base_2,
+		'And the two frames\' schemes no longer coincide.')
 
 func test_the_name_and_flavour_and_tagline_resolve():
 	# Through THIS MOD'S OWN artifact first, so a sibling Reag-* mod cannot hold this green, and then

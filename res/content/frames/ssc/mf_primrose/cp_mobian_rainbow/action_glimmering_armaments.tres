@@ -2,9 +2,11 @@
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_primrose/cp_mobian_rainbow/action_glimmering_armaments.gd" id="1_protocol"]
 [ext_resource type="PackedScene" uid="uid://bfq34dqe4ydxy" path="res://content/fx_groups/actions/fxg_super_activation.tscn" id="2_superfx"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_glimmering_armaments.svg" id="3_icon"]
 
 [resource]
 script = ExtResource("1_protocol")
+icon_override = ExtResource("3_icon")
 action_type = 4
 consumes_cp = true
 usage_group = &"glimmering_armaments"

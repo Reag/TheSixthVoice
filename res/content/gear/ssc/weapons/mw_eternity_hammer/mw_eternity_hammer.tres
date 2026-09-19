@@ -3,9 +3,11 @@
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_eternity_hammer/action_eternity_hammer.tres" id="3_hammer"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_eternity_hammer.svg" id="4_icon"]
 
 [resource]
 script = ExtResource("2_kit")
 actions = Array[ExtResource("1_action")]([ExtResource("3_hammer")])
 sp_cost = 0
+icon_override = ExtResource("4_icon")
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"
