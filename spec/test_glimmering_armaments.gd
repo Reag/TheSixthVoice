@@ -203,3 +203,47 @@ func test_a_second_press_is_refused_once_the_core_power_is_spent():
 		'A second press is refused for want of a core power.')
 	assert_false(UnitAction.is_gear_available(specific), 'So the button is not available at all.')
 	assert_false(holds(SHIELD), 'And the other armament was never gained.')
+
+# ================================================================ the use-FX, and its CALL SITE
+#
+# FIXED AT THE SP5 CLOSE (spec/test_spin.gd's tests 16-17 are the precedent this pair copies).
+# fxg_use = fxg_super_activation.tscn on the .tres was wired since SP1 and was INERT for three
+# sub-projects: nothing in the engine calls ActionSystem.run_system_fxgs automatically
+# (action_system.gd:70-105 is the only reader; every one of its ~60 callers invokes it from their
+# own activate), so the protocol's FX had never played. action_spin.gd's own header names this file
+# by path as the still-live case until now.
+
+## WIRING ALONE, AND THIS TEST CANNOT SEE THE HALF THAT MATTERS MOST - see the next test.
+func test_the_protocol_carries_its_own_use_fx():
+	var kit:Kit = ContentLibrary.get_kit(CORE_ID)
+	var action = kit.get_action(PROTOCOL_ID)
+	assert_not_null(action, '%s is on the kit.' % PROTOCOL_ID)
+	if action == null: return
+	assert_not_null(action.fxg_use, 'Glimmering Armaments carries a use-FX.')
+	if action.fxg_use == null: return
+	assert_true(action.fxg_use.resource_path.ends_with('fxg_super_activation.tscn'),
+		'The shared core-power flourish, not a bespoke one: %s' % action.fxg_use.resource_path)
+
+## RULING 20 IS NOT BREACHED - it forbids a spec on the ANIMATION, not on whether the call exists.
+## A SOURCE-LEVEL ASSERTION IS THIS MOD'S OWN PRECEDENT for a claim behaviour cannot reach: see
+## test_spin.gd's own test_activate_actually_calls_run_system_fxgs and its header for the full
+## reasoning (test_unit_relation_extension.gd and test_draw_fire.gd are the two earlier instances).
+func test_activate_actually_calls_run_system_fxgs():
+	# THE UNPACKED PATH, not the mirror path - raw FileAccess needs the on-disk location.
+	const SOURCE := 'res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_primrose/cp_mobian_rainbow/action_glimmering_armaments.gd'
+	var src := FileAccess.get_file_as_string(SOURCE)
+	assert_false(src.is_empty(), 'The action\'s source reads back.')
+	if src.is_empty(): return
+
+	# SCOPED TO activate'S BODY AND TO NON-COMMENT LINES - the call is named repeatedly in comments
+	# above and inside the function, so a bare src.contains() would stay green with the statement
+	# deleted or commented out.
+	var body:String = src.substr(src.find('func activate('))
+	assert_gt(body.length(), 0, 'func activate is in the file.')
+	var called := false
+	for line:String in body.split('\n'):
+		var code := line.strip_edges()
+		if code.begins_with('#'): continue
+		if code.contains('await run_system_fxgs('): called = true
+	assert_true(called,
+		'activate() really calls run_system_fxgs - without it fxg_super_activation.tscn never plays, however wired.')

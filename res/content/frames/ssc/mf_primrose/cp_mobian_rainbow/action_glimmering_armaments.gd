@@ -33,6 +33,14 @@
 ## THE usage_group ON THE .tres IS NOT DECORATION: a protocol and any later pressable on one Kit need
 ## a group EACH (gear_core.gd:166-171, the Subutai SP2 lesson). This Kit has one action today, and
 ## a Kit that grows a second would otherwise share the first's per-turn tally.
+##
+## FIXED AT THE SP5 CLOSE: fxg_use = fxg_super_activation.tscn on the .tres was inert for three
+## sub-projects because nothing called run_system_fxgs - the exact omission action_spin.gd's own
+## header (ms_flourishing_twirl) documents and cites this file by name as the still-live case.
+## ActionSystem.run_system_fxgs (action_system.gd:70-105) is read from NOWHERE automatically; every
+## one of its ~60 callers invokes it from their own activate. test_the_activation_plays_its_fx below
+## is the source-level pin the same header prescribes, since ruling 20 forbids a spec on the
+## animation itself but says nothing about the call site.
 extends ActionSystem
 
 ## Wormhole Grasp: the visible marker, the unfiltered +1 threat, the ATTACK_DECLARED PRE observer that
@@ -71,6 +79,11 @@ func activate(context:Context, activation:EventCore) -> void:
 	if activation.abort_without_unit(unit): return
 
 	spend_actions(activation)
+
+	# THE FX, NOT THE fxg_use WIRING - see the header. The await crosses real frames, so re-check
+	# before touching `unit` again, the same guard action_spin.gd's own call takes.
+	await run_system_fxgs(unit)
+	if activation.abort_without_unit(unit): return
 
 	var bundle:Array[StringName] = WORMHOLE_BUNDLE if chosen == 0 else SHIELD_BUNDLE
 	var buffs:Array[Buff] = []
