@@ -29,19 +29,33 @@
 ##   they confirmed the attack, which is the reading the card wants.
 ##
 ## INLINE, NOT QUEUED - MEASURED, NOT ASSUMED (this task's J decision).
-## SP3 ruling 27 established that queue_event/queue_events are depth-first and run only after the
-## activation returns (event_core.gd:83-96), while execute_events interrupts and runs now (:77-81).
+## SP3 ruling 27 established that queueing DEFERS: a queued block runs only after the activation
+## returns, while execute_events interrupts and runs now (event_core.gd:77-81). The deferral is the
+## load-bearing half; the two queue calls differ in ORDER, not in timing, and the engine's own doc
+## comments are explicit - queue_event is DEPTH-FIRST (:83), queue_events is BREADTH-FIRST (:90).
 ## BOTH SHAPES WERE BUILT AND RUN HERE, and the engine's own event trace is what separated them:
 ##
 ##   inline    [ event_unit_attack ] > [ event_unit_save ] > [ event_unit_damage 2 burn ] > FIN
 ##   queued    [ event_unit_attack ] > [ event_unit_save ] > FIN > [ event_unit_damage 2 burn ]
 ##
-## NEITHER REACHES THE TARGET'S OWN DAMAGE, which is the thing worth knowing and the reason this was
-## a real question: queueing from on_hit lands the block on the ATTACK ROLL's block, which drains
-## the moment that roll finishes and still long before :199. The Tachyon Lance's own comment - "a
-## little bit after the rest of it resolves" - holds for IT because on_targeted_tiles queues onto the
-## DECLARED attack's block instead. Queueing here would not buy that, and there is no ordering
-## hazard to avoid. Both shapes pass all of tests 9-15 identically, with the same 49 asserts.
+## NEITHER OF THE TWO MEASURED SHAPES REACHES THE TARGET'S OWN DAMAGE, which is the thing worth
+## knowing and the reason this was a real question: `activation` here IS the event_unit_attack, so
+## queueing from on_hit lands the block on the ATTACK ROLL's block, which drains the moment that roll
+## finishes and still long before :199. The Tachyon Lance's own comment - "a little bit after the
+## rest of it resolves" - holds for IT because on_targeted_tiles queues onto the DECLARED attack's
+## block instead. Queueing on the roll would not buy that, and there is no ordering hazard to avoid.
+## Both shapes pass all of tests 9-15 identically, with the same 49 asserts.
+##
+## A THIRD SHAPE EXISTS AND WOULD REACH PAST THE SWING - DO NOT READ THE ABOVE AS "on_hit CANNOT".
+## event_unit_attack_declared.gd:63 hands every event_unit_attack `event = core`, commented "so
+## things can opt into queueing to us instead of on the individual attack roll", and Context keeps it
+## as `context.event` (context.gd:35). So `activation.context.event.queue_events(...)` from here
+## queues onto the DECLARED block - the same block the Tachyon Lance reaches from its earlier stage -
+## and would land AFTER :199, with the target already hurt and possibly already dead. That is exactly
+## the state this clause does not want: the card's bystanders are the ones standing beside the target
+## when the hammer connects, not the ones still standing after it has resolved, and a burn landing
+## after the kill would also break "a bystander cannot be saved by the target dying" above. Named
+## here, not taken.
 ##
 ## INLINE is kept on two grounds that outlive the current tests:
 ##
@@ -75,7 +89,7 @@
 ##   the engine's own loop (unit_relation.gd:58). An `if other == attacked_unit: continue` here would
 ##   be an inert line that reads as load-bearing; deliberately absent.
 ##   test_the_target_itself_is_not_in_the_loop is what would notice the engine ever dropping it.
-## - require_los = false. The card says "adjacent", not "adjacent and visible". action_leap.gd:55-57
+## - require_los = false. The card says "adjacent", not "adjacent and visible". action_leap.gd:56-58
 ##   states the reasoning for its own copy of this argument and it is repeated here verbatim: at
 ##   distance 1 line of sight is very nearly always true anyway, which is exactly why leaving the
 ##   default would be a difference nobody would ever see in a test and somebody would eventually see
@@ -95,6 +109,12 @@
 ##   character filter, because get_units_within excludes markers at :59 unless asked for them; an
 ##   OBJECT like dep_jericho_cover passes :59 and is dropped at :42. The spec uses the OBJECT, which
 ##   is the harder of the two.)
+##   MEASURED, not merely argued (added at Task 2's review, which is when the mutation was finally
+##   run): replacing this call with the underlying get_units_within(attacked_unit, RADIUS, false,
+##   false, ...) - same arguments plus the include_markers default - reddens
+##   test_a_hostile_deployable_adjacent_to_the_target_is_untouched and NOTHING ELSE, 14/15, with the
+##   cover taking exactly the 2 Burn and 2 damage the auto-fail predicts. So the pin discriminates,
+##   and it is the only thing in the suite that does.
 ##
 ## ================================= THE ATTACKER, AND THE PROXY CASE =================================
 ##
@@ -111,10 +131,14 @@
 ## onhit_eternity_hammer.tres sets apply_on = STAGE.ON_HIT, which is the export default
 ## (on_hit_effect.gd:12) and is the honest declaration of intent - but it does NOT dispatch this
 ## override, and a reviewer should not read it as though it does. apply_on_hits calls
-## effect.on_hit(...) UNCONDITIONALLY for every effect in the array (on_hit_effect.gd:42-46); apply_on
-## is consulted only inside should_abort's consume-lock and save_to_avoid gates (:57-72) and inside
-## apply_statuses_and_buffs (:77), and this effect uses none of the three. MEASURED: setting
-## apply_on = 0 (ON_ATTACK) on the .tres reddens nothing at all.
+## effect.on_hit(...) for every effect in the array whatever its apply_on says (on_hit_effect.gd
+## :42-46); apply_on is consulted only inside should_abort's consume-lock and save_to_avoid gates
+## (:57-72) and inside apply_statuses_and_buffs (:77), and this effect uses none of the three.
+## MEASURED: setting apply_on = 0 (ON_ATTACK) on the .tres reddens nothing at all.
+## The one thing should_abort DOES do for us unconditionally is its own validity bail at :55 - it
+## returns true, skipping on_hit entirely, when the attacked unit or the attacker is already invalid.
+## That is a genuine gate, just not an apply_on one; the guard at the top of on_hit below is the
+## belt-and-braces copy, because nothing promises apply_on_hits stays the only caller.
 ## What actually confines the burn to a hit is the engine's own `if roll.hit:` at
 ## event_unit_attack.gd:83 - and THAT is what test_a_miss_burns_nobody pins.
 extends OnHitEffect
@@ -142,9 +166,26 @@ func on_hit(activation:EventCore, attacked_unit:Unit) -> void:
 	for bystander:Unit in hostiles:
 		# REAL GUARDS, NOT DECORATION, precisely because the burn is dealt inline: a bystander that
 		# dies to its own Burn is destroyed before the next iteration starts, and the array we are
-		# walking was gathered before any of it happened. UnitHasecheck.make_saves:66-70 re-checks
-		# validity in exactly these two places for exactly this reason.
+		# walking was gathered before any of it happened. BURN DEALS HP AS WELL AS A STACK -
+		# event_unit_damage.gd:119 calls damage() unconditionally and :121-122 adds unit.state.burn on
+		# top, the two are not alternatives (Task 1 measured the same thing on the Hammer's own flat
+		# 2) - so a death mid-loop is not hypothetical.
+		#
+		# ALL THREE OF UnitHasecheck.make_saves' OWN RE-CHECKS ARE MIRRORED, which is more than the
+		# obvious two: :66 re-runs Unit.is_valid(unit) AND SpecificAction.is_valid(forcing_action)
+		# every lap, and :68 re-runs the unit check after the save. (The engine `continue`s on the
+		# forcing action because it still has a results dictionary to finish; we have nothing left to
+		# do, and no later lap could succeed either, so this one returns.)
+		#
+		# THE FORCING-ACTION RE-CHECK IS ALSO THE ATTACKER RE-CHECK, which is why no separate one sits
+		# at the tail. SpecificAction.is_valid tests specific.unit - and from_context built it from
+		# context.unit, the attacker (specific_action.gd:16-22, :46-48) - along with its gear and
+		# action, so a Primrose killed by a mirrored or reflected burn on the previous lap stops the
+		# loop here. Checking at the TOP rather than after the damage is the difference that matters:
+		# a tail guard on the damage branch alone is skipped whenever a save PASSES, so the same death
+		# would go unnoticed for one extra lap.
 		if not Unit.is_valid(bystander): continue
+		if not SpecificAction.is_valid(specific): return
 		var passed:bool = await UnitHasecheck.make_agility_save(activation, bystander, specific)
 		if not Unit.is_valid(bystander): continue
 		if passed: continue
@@ -156,8 +197,3 @@ func on_hit(activation:EventCore, attacked_unit:Unit) -> void:
 			target_unit = attacker, # let the damage event know WHO has done this
 			flags = [EventService.DAMAGE_FLAG.SAVE_FAILED],
 		})])
-		# BURN DEALS HP AS WELL AS A STACK: event_unit_damage.gd:119 calls damage() unconditionally
-		# and :121-122 adds unit.state.burn on top, the two are not alternatives (Task 1 measured the
-		# same thing on the Hammer's own flat 2). So a bystander really can die here, and the attacker
-		# really can be gone by the next lap - a mirrored or reflected death is all it takes.
-		if not Unit.is_valid(attacker): return

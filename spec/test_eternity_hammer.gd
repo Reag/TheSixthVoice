@@ -88,7 +88,7 @@ const BYSTANDER_BURN := 2
 
 ## test_a_miss_burns_nobody has to raise the dummy's evasion, and that is not fussiness.
 ## This file's before_each gives the dummy evasion -10 so no test ever needs to think about whether a
-## swing connects - but hit is `total_roll >= pre.target_defense` (attack_roll.gd:73), with no
+## swing connects - but hit is `total_roll >= pre.target_defense` (attack_roll.gd:72), with no
 ## natural-1 auto-miss anywhere in the sequence, so a cheated base roll of 1 still HITS a defence of
 ## -10. cheat_a_miss() is only a guaranteed miss against the positive evasions the other Primrose
 ## specs hand out (test_rend_axe.gd:58 uses 5 for exactly this reason). 20 clears 1 plus the grit and
@@ -131,38 +131,32 @@ func swing(target_unit:Unit = null) -> void:
 
 # ------------------------------------------------- pinning an AGILITY save (SP4 Task 2)
 #
-# THE FROZEN FIXTURE HELPERS DO NOT FIT THIS CARD, AND THIS IS NOT A STYLE PREFERENCE.
-# PrimroseFixture.force_save_to_fail / force_save_to_pass write HaseBlock.create(-+30, 0, 0, 0)
-# (primrose_fixture.gd:237-243) - hull only, the other three left at 0 - because every previous
-# caller in this mod forces a HULL save (Dazzling Wind's leap, Magnetic Weight Redistribution,
-# Biting Retort, the Falcata). The Eternity Hammer's clause is an AGILITY save, so:
+# THE FROZEN HULL HELPERS DO NOT FIT THIS CARD, AND THIS IS NOT A STYLE PREFERENCE.
+# PrimroseFixture.force_save_to_fail / force_save_to_pass write HaseBlock.create(-+30, 0, 0, 0) -
+# hull only, the other three left at 0 - because every caller before this one forces a HULL save
+# (Dazzling Wind's leap, Magnetic Weight Redistribution, Biting Retort, the Falcata). The Eternity
+# Hammer's clause is an AGILITY save, so:
 #
 #   force_save_to_fail would leave agi at 0, and the save would fail for the WRONG reason - the d20
-#   pops a 6 out of cheat_a_hit()'s buffer (dice.gd:32-34, ONE global FIFO) and 6 + 0 < the target of
+#   pops a 6 out of cheat_a_hit()'s buffer (dice.gd:33-35, ONE global FIFO) and 6 + 0 < the target of
 #   10 (unit_hasecheck.gd:134). Green, and proving nothing about Agility.
 #   force_save_to_pass is worse: agi still 0, so 6 + 0 < 10 and the "passed" save FAILS. The test
 #   would be red for a reason that has nothing to do with the code under test.
 #
-# So the block is written here, inline, exactly as test_leap.gd:365 writes its own for
-# test_the_save_is_a_HULL_save. Nothing is added to the frozen fixture: this is one card's save type,
-# not a shared need.
+# SO THE MOD USES A SECOND, AGILITY PAIR - PrimroseFixture.force_agility_save_to_fail /
+# force_agility_save_to_pass. Those pin AGI against an opposite-signed HULL, SYS and ENG, which is
+# what makes them a PAIR rather than one helper: a hopeless Agility beside an excellent everything
+# else can only burn if the save really reads AGI, and an excellent Agility beside a hopeless
+# everything else can only escape if it does. Neither of tests 9 and 10 alone would notice the clause
+# quietly becoming a Hull save; together they cannot both hold unless it is Agility. That is the same
+# argument test_leap.gd's inline pair makes for its own HULL save, folded into tests 9 and 10 rather
+# than spent on a ninth test.
 #
-# THE PAIR ALSO PINS THE SAVE TYPE, WHICH IS WHY IT IS A PAIR AND WHY THE OTHER THREE ATTRIBUTES ARE
-# PUSHED THE OPPOSITE WAY. A hopeless Agility beside an excellent Hull/Sys/Eng can only burn if the
-# save really reads Agility; an excellent Agility beside a hopeless everything-else can only escape
-# if it does. Neither test alone would notice the clause quietly becoming a Hull save; together they
-# cannot both hold unless it is Agility. That is the same argument test_leap.gd's pair makes, folded
-# into tests 9 and 10 rather than spent on a ninth test.
-
-## Hopeless Agility, excellent everything else.
-func fail_the_agility_save(unit:Unit) -> void:
-	unit.core.frame.hase = HaseBlock.create(30, -30, 30, 30)
-	unit.core.full_repair()
-
-## Excellent Agility, hopeless everything else.
-func pass_the_agility_save(unit:Unit) -> void:
-	unit.core.frame.hase = HaseBlock.create(-30, 30, -30, -30)
-	unit.core.full_repair()
+# THEY LIVE IN THE FIXTURE, NOT HERE, and that was a Task 2 review correction: the first draft wrote
+# them inline on the grounds that this is "one card's save type, not a shared need", which is wrong
+# about the very next task. SP4 Task 3's Flourishing Twirl forces its whole radius through
+# UnitHasecheck.make_saves(..., Lancer.HASE.AGI, ...) and needs exactly this pair. The two hull
+# signatures already in the fixture are untouched and unrenamed; the Agility pair is additive.
 
 # ---------------------------------------------------------------- the weapon as data
 
@@ -276,7 +270,7 @@ func test_the_kit_is_a_superheavy_melee_weapon() -> void:
 
 func test_a_hostile_adjacent_to_the_target_saves_and_burns_on_failure() -> void:
 	var bystander := Fixture.create_hostile(game, BYSTANDER_TILE)
-	fail_the_agility_save(bystander)
+	Fixture.force_agility_save_to_fail(bystander)
 	# GEOMETRY GUARD, not decoration: if the bystander were also adjacent to the PRIMROSE this test
 	# would stay green with the radius measured from either unit, and the origin mutation would have
 	# nothing to say. See the ASCII block beside BYSTANDER_TILE.
@@ -298,7 +292,7 @@ func test_a_hostile_adjacent_to_the_target_saves_and_burns_on_failure() -> void:
 
 func test_a_passed_save_takes_no_burn() -> void:
 	var bystander := Fixture.create_hostile(game, BYSTANDER_TILE)
-	pass_the_agility_save(bystander)
+	Fixture.force_agility_save_to_pass(bystander)
 	Fixture.cheat_a_hit()
 	await swing()
 
@@ -319,7 +313,7 @@ func test_the_target_itself_is_not_in_the_loop() -> void:
 	# The exclusion itself is the ENGINE's (other_unit != unit, unit_relation.gd:58), not ours - there
 	# is deliberately no filter of our own in onhit_eternity_hammer.gd. This is the test that would
 	# notice if that ever changed.
-	fail_the_agility_save(dummy)
+	Fixture.force_agility_save_to_fail(dummy)
 	Fixture.cheat_a_hit()
 	await swing()
 
@@ -332,13 +326,14 @@ func test_an_ally_adjacent_to_the_target_is_untouched() -> void:
 	# The save is forced to FAIL, so the faction filter is the only thing standing between this ally
 	# and 2 Burn. Delete the are_enemies filter and this is the test that reddens.
 	var ally := Fixture.create_ally(game, ALLY_TILE)
-	fail_the_agility_save(ally)
+	Fixture.force_agility_save_to_fail(ally)
 	assert_eq(UnitRelation.distance_between(dummy, ally), 1,
 		'fixture: the ally really is adjacent to the target.')
 
 	Fixture.cheat_a_hit()
 	await swing()
 
+	assert_gt(dummy.current_damage(), 0, 'VACUITY: the swing landed.')
 	assert_eq(ally.state.burn, 0, 'the card says HOSTILE characters; an ally takes no Burn.')
 	assert_eq(ally.current_damage(), 0, 'and no damage.')
 
@@ -346,7 +341,7 @@ func test_a_hostile_two_tiles_from_the_target_is_untouched() -> void:
 	# Hostile, and its save forced to fail, so DISTANCE is the only thing saving it. Placed adjacent
 	# to the PRIMROSE on purpose: that is what makes this the test the origin-swap mutation reddens.
 	var far_hostile := Fixture.create_hostile(game, FAR_HOSTILE_TILE)
-	fail_the_agility_save(far_hostile)
+	Fixture.force_agility_save_to_fail(far_hostile)
 	assert_eq(UnitRelation.distance_between(dummy, far_hostile), 2,
 		'fixture: two tiles from the target, so outside the card\'s "adjacent".')
 	assert_eq(UnitRelation.distance_between(primrose, far_hostile), 1,
@@ -355,6 +350,7 @@ func test_a_hostile_two_tiles_from_the_target_is_untouched() -> void:
 	Fixture.cheat_a_hit()
 	await swing()
 
+	assert_gt(dummy.current_damage(), 0, 'VACUITY: the swing landed.')
 	assert_eq(far_hostile.state.burn, 0, 'distance 2 is not adjacent; no Burn.')
 	assert_eq(far_hostile.current_damage(), 0, 'and no damage.')
 
@@ -365,7 +361,7 @@ func test_a_miss_burns_nobody() -> void:
 	dummy.core.full_repair()
 
 	var bystander := Fixture.create_hostile(game, BYSTANDER_TILE)
-	fail_the_agility_save(bystander)
+	Fixture.force_agility_save_to_fail(bystander)
 	Fixture.cheat_a_miss()
 	await swing()
 

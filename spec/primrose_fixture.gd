@@ -242,6 +242,33 @@ static func force_save_to_pass(unit:Unit) -> void:
 	unit.core.frame.hase = HaseBlock.create(30, 0, 0, 0)
 	unit.core.full_repair()
 
+## The AGILITY pair. SEPARATE FUNCTIONS, NOT A PARAMETER ON THE TWO ABOVE: every signature already in
+## this file is frozen, and force_save_to_fail / force_save_to_pass have callers across the whole
+## suite that pin a HULL save (Dazzling Wind's leap, Magnetic Weight Redistribution, Biting Retort,
+## the Falcata). Those two write HaseBlock.create(-+30, 0, 0, 0) - hull only, the other three left at
+## 0 - which is useless here: a d20 popped out of the attack's leftover buffer plus an agi of 0 is
+## short of the target of 10 (unit_hasecheck.gd:134) whichever way the hull was pushed, so the
+## "passes" case would fail and the "fails" case would be green for the wrong reason.
+##
+## THEY PIN THE SAVE TYPE, WHICH IS WHY THEY ARE A PAIR AND WHY THE OTHER THREE ATTRIBUTES GO THE
+## OPPOSITE WAY. HaseBlock.create is (hull, agi, sys, eng) (hase_block.gd:14-20), so a hopeless
+## Agility beside an excellent Hull/Sys/Eng can only burn if the save really reads AGI, and an
+## excellent Agility beside a hopeless everything-else can only escape if it does. Neither call alone
+## would notice a clause quietly becoming a Hull save; together they cannot both hold unless it is
+## Agility. Same argument test_leap.gd's inline pair makes for its own HULL save.
+##
+## TWO CALLERS: SP4 Task 2's Eternity Hammer on-hit clause (test_eternity_hammer.gd, tests 9-15) and
+## SP4 Task 3's Flourishing Twirl, whose Spin forces its radius through
+## UnitHasecheck.make_saves(..., Lancer.HASE.AGI, ...). Promoted out of test_eternity_hammer.gd at
+## Task 2's review for exactly that second caller.
+static func force_agility_save_to_fail(unit:Unit) -> void:
+	unit.core.frame.hase = HaseBlock.create(30, -30, 30, 30)
+	unit.core.full_repair()
+
+static func force_agility_save_to_pass(unit:Unit) -> void:
+	unit.core.frame.hase = HaseBlock.create(-30, 30, -30, -30)
+	unit.core.full_repair()
+
 ## Press GLIMMERING ARMAMENTS and answer its prompt with `choice_index`.
 ##
 ## THE RESPONDER IS AN ARGUMENT because it has to be: it is created by create_game_with_prompts via
