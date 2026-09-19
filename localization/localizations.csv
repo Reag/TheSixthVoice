@@ -228,3 +228,6 @@ frame.mf_primrose.flavor,"The Primrose is the flagship model of SSC's LIM-AMOK l
 ,
 gear.mt_magnetic_weight_redistribution.name,Magnetic Weight Redistribution
 gear.mt_magnetic_weight_redistribution.effect,"1/round, when the Primrose critically hits with a |Heavy| or |Superheavy| melee weapon, the target must succeed a |Hull save| or be knocked |Prone|."
+,
+gear.mt_artful_caress.name,Artful Caress
+gear.mt_artful_caress.effect,|Heavy| and |Superheavy| melee weapons on the Primrose gain +1 |threat|.

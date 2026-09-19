@@ -475,6 +475,13 @@ const ICON_TARGETS := {
 	# test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then - it is the
 	# first new Kit of the sub-project.
 	&'mt_magnetic_weight_redistribution': {},
+	# SP1 Task 3 (Primrose). A pure passive trait with no script at all: no action of its own, so it
+	# wears the Kit's icon and lists none. Its buff_artful_caress sets hide_from_player and is
+	# correctly absent from VISIBLE_BUFFS - a THREAT_RANGE bonus is read by
+	# ActionAttackWeapon.threat_distance and drawn nowhere, so it is not in
+	# HIDDEN_BUFFS_NEEDING_ICONS either (unlike an ATTACK_ROLL_INCOMING chip, which
+	# attack_roll.gd:189 draws with its raw icon). The Kit's own icon is SP5's.
+	&'mt_artful_caress': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

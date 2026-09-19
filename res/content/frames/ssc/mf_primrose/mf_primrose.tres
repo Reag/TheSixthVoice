@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/placeholder/mf_placeholder.png" id="9_sprite"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_primrose/mt_magnetic_weight_redistribution/mt_magnetic_weight_redistribution.tres" id="10_mwr"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_primrose/mt_artful_caress/mt_artful_caress.tres" id="11_caress"]
 
 [sub_resource type="Resource" id="Resource_colorscheme"]
 script = ExtResource("3_colorscheme")
@@ -39,7 +40,7 @@ activations = 1
 script = ExtResource("1_frame")
 default_color_scheme = SubResource("Resource_colorscheme")
 sprites = Array[Texture2D]([ExtResource("9_sprite")])
-traits = Array[ExtResource("8_kit")]([ExtResource("10_mwr")])
+traits = Array[ExtResource("8_kit")]([ExtResource("10_mwr"), ExtResource("11_caress")])
 mount_types = Array[ExtResource("4_mounttype")]([ExtResource("5_mountmain"), ExtResource("5_mountmain"), ExtResource("6_mountheavy")])
 stat = SubResource("Resource_statblock")
 role_primary = 1
