@@ -1,6 +1,13 @@
-## THE ETERNITY HAMMER (Primrose rank III, SP4 Task 1). The weapon profile only - the on-hit clause
-## ("hostile characters adjacent to the target must make an Agility save or take 2 Burn") is Task 2's
-## job, per this plan's stated split (the same shape SP3 used for the Falcata/Biting Retort pair).
+## THE ETERNITY HAMMER (Primrose rank III, SP4 Tasks 1 and 2). Task 1 built the weapon profile; Task
+## 2 added the on-hit clause ("hostile characters adjacent to the target must make an Agility save or
+## take 2 Burn") and tests 9-15 below, per this plan's stated split (the same shape SP3 used for the
+## Falcata/Biting Retort pair).
+##
+## THE ON-HIT CLAUSE RUNS BEFORE THE SWING'S OWN DAMAGE, which is the ordering fact SP4 Task 2
+## measured and which onhit_eternity_hammer.gd's header states in full: apply_on_hits is reached from
+## event_unit_attack.gd:85-87, inside the attack-roll events that event_unit_attack_declared.gd:67
+## executes, while the target's damage is not rolled until :74-121 and not executed until :199. Every
+## bystander has saved and burned while the target is still at full health.
 ##
 ## "Superheavy Melee | SP 0 | Tags: HEAT SELF 1, OVERKILL | Damage: 1d6 Kinetic, 1d6 Explosive,
 ## 1d6 Energy, 2 Burn | Range: Threat 2"
@@ -37,6 +44,9 @@
 extends GutTest
 
 const Fixture := preload('res://unpacked/Reag-TheSixthVoice/spec/primrose_fixture.gd')
+## Only for create_deployable, which PrimroseFixture has no reason to re-expose - the same call
+## test_sap.gd:39, test_draw_fire.gd:41 and test_rapier_carronade.gd reach for directly.
+const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 
 const KIT_ID := &'mw_eternity_hammer'
 const ATTACK_ID := &'action_eternity_hammer'
@@ -57,6 +67,39 @@ const BURN := 2
 const PRIMROSE_TILE := Vector2i(4, 4)
 const TARGET_TILE := Vector2i(5, 4)    # threat 2 easily reaches adjacent
 const CONTROL_TILE := Vector2i(20, 20) # far from everything else in this spec's map
+
+## SP4 TASK 2 GEOMETRY, AND IT IS CHOSEN SO THE TWO CANDIDATE ORIGINS GENUINELY DISAGREE.
+## The gather measures its radius from the TARGET (onhit_eternity_hammer.gd); the obvious mistake is
+## to measure it from the ATTACKER. These two tiles are what make that mistake visible instead of
+## degenerate - each is inside exactly ONE of the two radii:
+##
+##            (3,4)        (4,4)         (5,4)        (6,4)
+##        FAR_HOSTILE    PRIMROSE       TARGET      BYSTANDER
+##        d(target)=2   d(target)=1                d(target)=1   <- the correct radius takes (6,4)
+##        d(prim)  =1                  d(prim)=1   d(prim)  =2   <- an attacker-origin radius would
+##                                                                  take (5,4) and (3,4) instead
+const BYSTANDER_TILE := Vector2i(6, 4)   # adjacent to the TARGET, two tiles from the Primrose
+const FAR_HOSTILE_TILE := Vector2i(3, 4) # two tiles from the TARGET, adjacent to the Primrose
+const ALLY_TILE := Vector2i(5, 5)        # adjacent to the target; the faction filter is the whole test
+
+## The on-hit clause's own number, kept separate from the swing's flat BURN above even though both
+## are 2: they are two different sentences on the card and a future errata could move one alone.
+const BYSTANDER_BURN := 2
+
+## test_a_miss_burns_nobody has to raise the dummy's evasion, and that is not fussiness.
+## This file's before_each gives the dummy evasion -10 so no test ever needs to think about whether a
+## swing connects - but hit is `total_roll >= pre.target_defense` (attack_roll.gd:73), with no
+## natural-1 auto-miss anywhere in the sequence, so a cheated base roll of 1 still HITS a defence of
+## -10. cheat_a_miss() is only a guaranteed miss against the positive evasions the other Primrose
+## specs hand out (test_rend_axe.gd:58 uses 5 for exactly this reason). 20 clears 1 plus the grit and
+## any stray accuracy die by a wide margin.
+const MISSABLE_EVASION := 20
+
+## The hostile deployable for test 15. Health and armor only have to be non-lethal and non-absorbing;
+## the evasion is never rolled against, since nothing ever attacks it.
+const DEPLOYABLE_HEALTH := 40
+const DEPLOYABLE_ARMOR := 0
+const DEPLOYABLE_EVASION := 10
 
 var game:Gamemaster
 var primrose:Unit
@@ -85,6 +128,41 @@ func specific() -> SpecificAction:
 ## specs' own swing().
 func swing(target_unit:Unit = null) -> void:
 	await Fixture.attack(game, primrose, KIT_ID, target_unit if target_unit else dummy)
+
+# ------------------------------------------------- pinning an AGILITY save (SP4 Task 2)
+#
+# THE FROZEN FIXTURE HELPERS DO NOT FIT THIS CARD, AND THIS IS NOT A STYLE PREFERENCE.
+# PrimroseFixture.force_save_to_fail / force_save_to_pass write HaseBlock.create(-+30, 0, 0, 0)
+# (primrose_fixture.gd:237-243) - hull only, the other three left at 0 - because every previous
+# caller in this mod forces a HULL save (Dazzling Wind's leap, Magnetic Weight Redistribution,
+# Biting Retort, the Falcata). The Eternity Hammer's clause is an AGILITY save, so:
+#
+#   force_save_to_fail would leave agi at 0, and the save would fail for the WRONG reason - the d20
+#   pops a 6 out of cheat_a_hit()'s buffer (dice.gd:32-34, ONE global FIFO) and 6 + 0 < the target of
+#   10 (unit_hasecheck.gd:134). Green, and proving nothing about Agility.
+#   force_save_to_pass is worse: agi still 0, so 6 + 0 < 10 and the "passed" save FAILS. The test
+#   would be red for a reason that has nothing to do with the code under test.
+#
+# So the block is written here, inline, exactly as test_leap.gd:365 writes its own for
+# test_the_save_is_a_HULL_save. Nothing is added to the frozen fixture: this is one card's save type,
+# not a shared need.
+#
+# THE PAIR ALSO PINS THE SAVE TYPE, WHICH IS WHY IT IS A PAIR AND WHY THE OTHER THREE ATTRIBUTES ARE
+# PUSHED THE OPPOSITE WAY. A hopeless Agility beside an excellent Hull/Sys/Eng can only burn if the
+# save really reads Agility; an excellent Agility beside a hopeless everything-else can only escape
+# if it does. Neither test alone would notice the clause quietly becoming a Hull save; together they
+# cannot both hold unless it is Agility. That is the same argument test_leap.gd's pair makes, folded
+# into tests 9 and 10 rather than spent on a ninth test.
+
+## Hopeless Agility, excellent everything else.
+func fail_the_agility_save(unit:Unit) -> void:
+	unit.core.frame.hase = HaseBlock.create(30, -30, 30, 30)
+	unit.core.full_repair()
+
+## Excellent Agility, hopeless everything else.
+func pass_the_agility_save(unit:Unit) -> void:
+	unit.core.frame.hase = HaseBlock.create(-30, 30, -30, -30)
+	unit.core.full_repair()
 
 # ---------------------------------------------------------------- the weapon as data
 
@@ -193,3 +271,133 @@ func test_the_kit_is_a_superheavy_melee_weapon() -> void:
 	# alone, is what that extension actually reads.
 	assert_true(gear.kit.has_weapon_superheavy(),
 		'has_weapon_superheavy() is true, which is what the SP1 Overwatch waiver keys on.')
+
+# ------------------------------------------------- the bystander burn (SP4 Task 2)
+
+func test_a_hostile_adjacent_to_the_target_saves_and_burns_on_failure() -> void:
+	var bystander := Fixture.create_hostile(game, BYSTANDER_TILE)
+	fail_the_agility_save(bystander)
+	# GEOMETRY GUARD, not decoration: if the bystander were also adjacent to the PRIMROSE this test
+	# would stay green with the radius measured from either unit, and the origin mutation would have
+	# nothing to say. See the ASCII block beside BYSTANDER_TILE.
+	assert_eq(UnitRelation.distance_between(dummy, bystander), 1,
+		'fixture: the bystander is adjacent to the TARGET.')
+	assert_eq(UnitRelation.distance_between(primrose, bystander), 2,
+		'fixture: and two tiles from the Primrose, so only a target-origin radius reaches it.')
+
+	Fixture.cheat_a_hit()
+	await swing()
+
+	assert_gt(dummy.current_damage(), 0, 'VACUITY: the swing landed.')
+	# BOTH HALVES OF BURN, DELIBERATELY. event_unit_damage.gd:119 calls damage() unconditionally for
+	# every non-HEAT type and :121-122 adds unit.state.burn on top - they are not alternatives (Task 1
+	# measured the same thing on the Hammer's own flat 2). Asserting the stack alone would miss a
+	# damage regression; asserting the damage alone would miss a stack regression.
+	assert_eq(bystander.state.burn, BYSTANDER_BURN, 'a failed Agility save takes 2 Burn as a stack.')
+	assert_eq(bystander.current_damage(), BYSTANDER_BURN, 'and the same 2 as immediate HP damage.')
+
+func test_a_passed_save_takes_no_burn() -> void:
+	var bystander := Fixture.create_hostile(game, BYSTANDER_TILE)
+	pass_the_agility_save(bystander)
+	Fixture.cheat_a_hit()
+	await swing()
+
+	assert_gt(dummy.current_damage(), 0, 'VACUITY: the swing landed.')
+	assert_eq(bystander.state.burn, 0, 'a passed Agility save takes no Burn stack.')
+	assert_eq(bystander.current_damage(), 0, 'and no damage either - the save avoids the whole clause.')
+
+func test_the_target_itself_is_not_in_the_loop() -> void:
+	# THIS ONLY DISCRIMINATES BECAUSE THE SWING ITSELF DEALS BURN. The printed profile's fourth damage
+	# value is a flat 2 Burn, so the target is already carrying exactly the number this clause would
+	# add. If the target were in its own radius it would burn TWICE - 4 stacked and 22 damage instead
+	# of 2 and 20 - and that difference is the only evidence a missing self-exclusion would leave.
+	#
+	# THE FORCED FAILURE IS WHAT MAKES IT AN ASSERTION RATHER THAN A COIN FLIP: without it the dummy
+	# might simply pass the save it should never have been asked to make, and the test would go green
+	# with the exclusion broken.
+	#
+	# The exclusion itself is the ENGINE's (other_unit != unit, unit_relation.gd:58), not ours - there
+	# is deliberately no filter of our own in onhit_eternity_hammer.gd. This is the test that would
+	# notice if that ever changed.
+	fail_the_agility_save(dummy)
+	Fixture.cheat_a_hit()
+	await swing()
+
+	assert_eq(dummy.state.burn, BURN,
+		'the target carries the swing\'s own 2 Burn and NOT a second 2 from its own on-hit clause.')
+	assert_eq(dummy.current_damage(), TOTAL_DAMAGE,
+		'and 20 damage, not 22: the target is not a bystander to itself.')
+
+func test_an_ally_adjacent_to_the_target_is_untouched() -> void:
+	# The save is forced to FAIL, so the faction filter is the only thing standing between this ally
+	# and 2 Burn. Delete the are_enemies filter and this is the test that reddens.
+	var ally := Fixture.create_ally(game, ALLY_TILE)
+	fail_the_agility_save(ally)
+	assert_eq(UnitRelation.distance_between(dummy, ally), 1,
+		'fixture: the ally really is adjacent to the target.')
+
+	Fixture.cheat_a_hit()
+	await swing()
+
+	assert_eq(ally.state.burn, 0, 'the card says HOSTILE characters; an ally takes no Burn.')
+	assert_eq(ally.current_damage(), 0, 'and no damage.')
+
+func test_a_hostile_two_tiles_from_the_target_is_untouched() -> void:
+	# Hostile, and its save forced to fail, so DISTANCE is the only thing saving it. Placed adjacent
+	# to the PRIMROSE on purpose: that is what makes this the test the origin-swap mutation reddens.
+	var far_hostile := Fixture.create_hostile(game, FAR_HOSTILE_TILE)
+	fail_the_agility_save(far_hostile)
+	assert_eq(UnitRelation.distance_between(dummy, far_hostile), 2,
+		'fixture: two tiles from the target, so outside the card\'s "adjacent".')
+	assert_eq(UnitRelation.distance_between(primrose, far_hostile), 1,
+		'fixture: but adjacent to the PRIMROSE, so a radius measured from the attacker would take it.')
+
+	Fixture.cheat_a_hit()
+	await swing()
+
+	assert_eq(far_hostile.state.burn, 0, 'distance 2 is not adjacent; no Burn.')
+	assert_eq(far_hostile.current_damage(), 0, 'and no damage.')
+
+func test_a_miss_burns_nobody() -> void:
+	# THE EVASION RAISE IS LOAD-BEARING - see MISSABLE_EVASION. This file's dummy sits at -10 so that
+	# no other test has to think about connecting, and a cheated base roll of 1 beats -10.
+	dummy.core.frame.stat.evasion = MISSABLE_EVASION
+	dummy.core.full_repair()
+
+	var bystander := Fixture.create_hostile(game, BYSTANDER_TILE)
+	fail_the_agility_save(bystander)
+	Fixture.cheat_a_miss()
+	await swing()
+
+	assert_eq(dummy.current_damage(), 0, 'fixture: the swing MISSED (this is what the evasion raise buys).')
+	# WHAT THIS ACTUALLY PINS is event_unit_attack.gd:83's `if roll.hit:` - the engine never reaches
+	# apply_on_hits on a miss. It does NOT pin onhit_eternity_hammer.tres's apply_on: apply_on_hits
+	# calls effect.on_hit() unconditionally (on_hit_effect.gd:42-46) and apply_on is read only by the
+	# should_abort gates this effect does not use. Measured: apply_on = 0 reddens nothing.
+	assert_eq(bystander.state.burn, 0, 'a miss burns nobody: the clause is "on hit".')
+	assert_eq(bystander.current_damage(), 0, 'and damages nobody.')
+
+func test_a_hostile_deployable_adjacent_to_the_target_is_untouched() -> void:
+	# THE AUTO-FAIL EDGE, and without this test it is unmeasured. UnitHasecheck.make_agility_save
+	# short-circuits a non-character to FALSE - the FAILURE branch - without rolling anything
+	# (unit_hasecheck.gd:47-48, "noncharacters always fail; doesn't even count as a force"). So the
+	# only thing between a hostile crate and an unsaveable 2 Burn is get_characters_within's
+	# is_character() filter (unit_relation.gd:42). SP3's Biting Retort ruling records the same engine
+	# edge from the other side.
+	#
+	# dep_jericho_cover is the HARDER of the two non-characters on purpose: it is entity OBJECT, so it
+	# passes get_units_within's marker exclusion at :59 and is dropped by the character filter at :42.
+	# A MARKER would never reach :42 at all and would prove the weaker claim.
+	var dep := FitzgeraldFixture.create_deployable(
+		game, BYSTANDER_TILE, DEPLOYABLE_HEALTH, DEPLOYABLE_ARMOR, DEPLOYABLE_EVASION)
+	assert_false(dep.is_character(), 'fixture: the Jericho cover is not a character.')
+	assert_false(dep.is_marker(), 'fixture: and not a marker either - it is an OBJECT.')
+	assert_true(dep.is_deployable(), 'fixture: a real deployable, the thing the card would meet in play.')
+	assert_eq(UnitRelation.distance_between(dummy, dep), 1, 'fixture: adjacent to the target.')
+
+	Fixture.cheat_a_hit()
+	await swing()
+
+	assert_gt(dummy.current_damage(), 0, 'VACUITY: the swing landed.')
+	assert_eq(dep.state.burn, 0, 'a hostile deployable is not a hostile CHARACTER: no Burn.')
+	assert_eq(dep.current_damage(), 0, 'and it takes no damage from a save it was never asked to make.')
