@@ -466,6 +466,15 @@ const ICON_TARGETS := {
 	# mech. It carries one terrain zone and no actions at all, so there is nothing here to illustrate
 	# beyond the Kit's own icon, which is SP3's - the mt_gravity_well shape.
 	&'mt_maar_terrain': {},
+	# SP1 Task 2 (Primrose). A pure passive trait: no action of its own, so it wears the Kit's icon
+	# and lists none - the mt_knock_em_down shape it is copied from. Its
+	# buff_magnetic_weight_redistribution sets hide_from_player and is correctly absent from
+	# VISIBLE_BUFFS; it is trait plumbing, never a chip on the unit, and nothing draws it.
+	#
+	# The Kit's own icon is SP5's, so THIS ROW is what makes
+	# test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then - it is the
+	# first new Kit of the sub-project.
+	&'mt_magnetic_weight_redistribution': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
