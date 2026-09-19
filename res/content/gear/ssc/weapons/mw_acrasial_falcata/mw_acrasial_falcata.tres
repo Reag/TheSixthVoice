@@ -3,9 +3,10 @@
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_acrasial_falcata/action_acrasial_falcata.tres" id="3_falcata"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_acrasial_falcata/action_biting_retort.tres" id="4_retort"]
 
 [resource]
 script = ExtResource("2_kit")
-actions = Array[ExtResource("1_action")]([ExtResource("3_falcata")])
+actions = Array[ExtResource("1_action")]([ExtResource("3_falcata"), ExtResource("4_retort")])
 sp_cost = 1
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

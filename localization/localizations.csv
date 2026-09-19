@@ -262,3 +262,6 @@ gear.ms_dazzling_wind.action_leap.effect,"Expend a charge: fly your |Speed| in a
 gear.mw_acrasial_falcata.name,Acrasial Falcata
 gear.mw_acrasial_falcata.flavor,"SSC does not acknowledge the common term for weapons such as the Acrasial Falcata. It is uncouth, a violent misrepresentation of the mastery of its design. A long elegant blade, fashioned in the style of ancient Cradle. A flash-printer ammunition feed contained within the handle. The small cannon in the cross-guard, the perfect response to a would-be assailant. The Falcata is no mere ""gunsword"", it is far too sharp, too clever, and too wonderous to be contained by such a term."
 gear.mw_acrasial_falcata.effect,"Gain the |Biting Retort=gear.mw_acrasial_falcata.action_biting_retort| |reaction|."
+gear.mw_acrasial_falcata.action_biting_retort.name,Biting Retort
+gear.mw_acrasial_falcata.action_biting_retort.trigger,A hostile character within |line of sight| attempts to hit you with a melee attack.
+gear.mw_acrasial_falcata.action_biting_retort.effect,"The attack is made with |+1 Difficulty|. If the attack misses, the attacker takes 3 |AP| |Kinetic| damage and must succeed a |Hull save| or be knocked |prone|."

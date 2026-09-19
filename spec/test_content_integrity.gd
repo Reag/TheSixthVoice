@@ -561,7 +561,21 @@ const ICON_TARGETS := {
 	# row. Citing it here would have pointed a later reader at the wrong precedent for what this row
 	# actually does. The Kit's own icon is SP5's, which is what makes this row deliberately red until
 	# then, same as its two rank-I siblings. action_biting_retort earns its own family in Task 2.
-	&'mw_acrasial_falcata': {&'action_acrasial_falcata': KIT},
+	#
+	# SP3 Task 2 added action_biting_retort, and it takes a NAMED family rather than a KIT row - the
+	# cp_mobian_rainbow shape, not the mw_rend_axe one. The two glyphs are different pictures: the Kit
+	# is the sword, the reaction is the cross-guard cannon answering a swing. A KIT row would say they
+	# are the same drawing, which the SP5 icon pass would then have to honour.
+	#
+	# IT NEEDS A ROW AT ALL BECAUSE Action.show_in_tooltip(kit) ANSWERS TRUE FOR IT, which is the third
+	# clause of _action_reaches_a_player_facing_surface below (a reaction never reaches the gear bar,
+	# and this one is not the Kit's first weapon action, so that clause is the only one that can list
+	# it). MEASURED, not assumed: spec/test_biting_retort.gd's
+	# test_the_reaction_is_drawn_on_the_weapons_card calls the same function. The deciding clause is
+	# action.gd:350-353 - the reaction has an `effect` row of its own, different from the Kit's - and
+	# it is exactly the clause the Maiden's Blush's mt_uncertainty_field FAILS, which is why that Kit's
+	# row two hundred lines above is `{}` while this one is not.
+	&'mw_acrasial_falcata': {&'action_acrasial_falcata': KIT, &'action_biting_retort': &'action_biting_retort'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -849,6 +863,15 @@ const HIDDEN_BUFFS_NEEDING_ICONS:Array[StringName] = [
 	# leaves a blank beside the -1. Its icon is SP5's, so this row is what makes this test deliberately
 	# red until then.
 	&'buff_shimmering_shield_cover',
+	# SP3 Task 2 (Primrose). Biting Retort's +1 Difficulty chip, and the same case one card over: it
+	# is hidden because it lives only between the PRE reaction and event_unit_attack.gd:114's
+	# consume_buffs - a chip for it would be a flicker on the token, not information - while
+	# attack_roll.gd:189 draws it in the roll breakdown regardless, from buff_core.base.icon RAW rather
+	# than through Buff.get_icon(), so BuffBonus's difficulty-svg fallback never runs there and a null
+	# leaves a blank beside the -1. It diverges from vanilla's own buff_warp_shield.tres, which is
+	# visible; the reasoning is in action_biting_retort.gd's DIFFICULTY_BUFF docstring. Its icon is
+	# SP5's, so this row is what makes this test deliberately red until then.
+	&'buff_biting_retort_difficulty',
 ]
 
 func test_every_hidden_buff_that_is_still_drawn_has_a_real_icon():
