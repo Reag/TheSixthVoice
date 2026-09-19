@@ -1,7 +1,8 @@
 ## THE ETERNITY HAMMER (Primrose rank III, SP4 Tasks 1 and 2). Task 1 built the weapon profile; Task
-## 2 added the on-hit clause ("hostile characters adjacent to the target must make an Agility save or
-## take 2 Burn") and tests 9-15 below, per this plan's stated split (the same shape SP3 used for the
-## Falcata/Biting Retort pair).
+## 2 added the on-hit clause ("Hostile characters adjacent to the target must make an Agility save or
+## take 2 BURN") and tests 10-16 below, per this plan's stated split (the same shape SP3 used for the
+## Falcata/Biting Retort pair). The clause is quoted here with the SHEET'S casing, which the shipped
+## row and this file both got wrong until the SP4 whole-branch review - see the card-text test.
 ##
 ## THE ON-HIT CLAUSE RUNS BEFORE THE SWING'S OWN DAMAGE, which is the ordering fact SP4 Task 2
 ## measured and which onhit_eternity_hammer.gd's header states in full: apply_on_hits is reached from
@@ -160,6 +161,26 @@ func swing(target_unit:Unit = null) -> void:
 
 # ---------------------------------------------------------------- the weapon as data
 
+## ADDED AT THE SP4 WHOLE-BRANCH REVIEW, and it is the only test in this file that reads the Kit out
+## of the INDEX rather than off the equipped GearCore. Everything else here goes through
+## PrimroseFixture.equip, which is handed the id and would keep working with the resource filed
+## under the wrong ContentLibrary index entirely - the filename-prefix trap
+## (testkit/mod_content_audit.gd, global constraints "Content conventions"). test_spin.gd and
+## test_acrasial_falcata.gd carry this guard inside their own data tests and Task 5 added it to
+## test_rend_axe.gd; this file was the one that never got it. Shaped after test_rend_axe.gd:81-91.
+func test_the_kit_is_registered() -> void:
+	# assert_not_null ALONE IS VACUOUS - content_library.gd:231-236 falls back to the shared
+	# Kit.UNKNOWN_ID placeholder for an unregistered id rather than returning null, and compcon_id is
+	# lazily derived from the resource's OWN path (kit.gd:11-14), so the placeholder answers its own
+	# id and not ours. That is what tells the two apart.
+	var kit:Kit = ContentLibrary.get_kit(KIT_ID)
+	assert_eq(kit.compcon_id, KIT_ID, 'the id asked for, not the Kit.UNKNOWN_ID placeholder.')
+	# SP 0 IS THE CARD'S NUMBER AND ALSO GODOT'S int DEFAULT, which is exactly why it needs pinning
+	# here rather than being left to the eye: delete `sp_cost = 0` from the .tres and nothing else in
+	# this suite would notice. The guard above is what stops it being vacuous - without it this line
+	# would also read 0 off the placeholder.
+	assert_eq(kit.sp_cost, SP_COST, 'SP 0, per the card.')
+
 func test_the_licence_grants_the_hammer_at_rank_three() -> void:
 	var license:UnlockTree = ContentLibrary.get_license_tree(Fixture.LICENSE_ID)
 	assert_not_null(license, 'li_primrose is registered.')
@@ -250,9 +271,19 @@ func test_the_name_and_flavour_and_effect_resolve() -> void:
 	# THE ON-HIT CLAUSE, WRITTEN NOW BUT NOT YET TRUE (Task 2 makes it true). Checked for its exact
 	# glossary markup surviving the CSV round-trip, the same way test_acrasial_falcata.gd checks its
 	# doubled-quote escaping.
+	#
+	# THE CASING INSIDE THE MARKUP IS THE CARD'S, AND THIS ASSERTION PINNED THE WRONG ONE UNTIL THE
+	# SP4 WHOLE-BRANCH REVIEW. The sheet reads "Hostile characters ... or take 2 BURN"
+	# (specs/sixth-voice/07-primrose.md:93); the shipped row had downcased "hostile" and title-cased
+	# "|Burn|", and this line held that in place. There is NO house rule flattening glossary terms to
+	# Title Case - this same branch ships Spin's "take 4 |kinetic| damage" beside Biting Retort's
+	# "3 |AP| |Kinetic| damage" because that is how each of those two cards reads. The LCP's words
+	# ship verbatim; an improvement is a defect.
 	var effect := String(translation.get_message('gear.mw_eternity_hammer.effect'))
-	assert_true(effect.contains('|Agility save|') and effect.contains('|Burn|'),
-		'the glossary markup for the not-yet-implemented on-hit clause landed intact.')
+	assert_true(effect.contains('|Agility save|') and effect.contains('|BURN|'),
+		'the glossary markup landed intact, with the card\'s own casing.')
+	assert_true(effect.begins_with('On hit: Hostile characters'),
+		'and the sentence opens the way the sheet writes it - capital H on Hostile.')
 
 func test_the_kit_is_a_superheavy_melee_weapon() -> void:
 	var attack := weapon()

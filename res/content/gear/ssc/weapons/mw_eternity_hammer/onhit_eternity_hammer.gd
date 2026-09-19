@@ -190,6 +190,30 @@ func on_hit(activation:EventCore, attacked_unit:Unit) -> void:
 		if not Unit.is_valid(bystander): continue
 		if passed: continue
 
+		# NEITHER `gear` NOR `action` IS PASSED, AND THAT IS A DECISION, NOT AN OMISSION (settled at
+		# the SP4 whole-branch review, which asked why action_spin.gd:270-278 passes both and this
+		# does not). The two are different events and the asymmetry is correct:
+		#
+		#   - `action` MUST NOT BE PASSED. context.action here is action_eternity_hammer, an
+		#     ActionAttackWeapon, and buff_resist_damage.gd:47-54 branches on exactly that:
+		#     `if context.action and context.action is ActionAttackWeapon` then matches
+		#     weapon_sizes / weapon_types. Passing it would let a bystander's "resist SUPERHEAVY" or
+		#     "resist melee" buff reduce a splash Burn that is not an attack on that bystander at
+		#     all - it has no roll, no cover and no accuracy, only the save the card gives it. Spin
+		#     can pass its action safely because a Spin's action is an ActionSystem, so that branch
+		#     never opens.
+		#   - `gear` WITHOUT `action` REACHES NOTHING. buff_damage.gd:19 refuses any context whose
+		#     SpecificAction.from_context is not fully valid, which needs unit + gear + action
+		#     together; event_unit_damage.gd names gear only once, at :36, in the optional-prop list
+		#     ("for reactions to inspect"), and reads it nowhere in its body. So the half of the
+		#     review's finding about BATTLE-LOG ATTRIBUTION is not true of this engine: the log
+		#     lines at event_unit_damage.gd:112 and :159-169 are built from the unit and the damage
+		#     numbers and never touch context.gear. A gear passed here would be the inert line this
+		#     mod treats as a defect.
+		#
+		# VANILLA'S OWN STRUCTURAL TWIN AGREES. onhit_tachyon_lance.gd:35-48 is the same shape - an
+		# on-hit, save-or-Burn splash on units the weapon never attacked - and passes unit, number,
+		# category, target_unit and flags, exactly these five and no more.
 		await activation.execute_events([EventCore.create(&'event_unit_damage', {
 			unit = bystander,
 			number = BURN,

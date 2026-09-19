@@ -8,7 +8,7 @@
 ## THE ORDER OF activate'S FIRST FOUR STEPS IS WHAT THIS FILE MOSTLY TESTS. Rulings 4 and 19 say the
 ## prompt comes before the cost and that a Spin with nothing to measure costs nothing, and
 ## spend_actions is the only route to gear.spend_charge() (unit_action.gd:274) - so three of the
-## fifteen tests below (11, 12 and the charge half of 10) exist purely to hold that order in place.
+## seventeen tests below (11, 12 and the charge half of 10) exist purely to hold that order in place.
 ## Read res/content/gear/ssc/systems/ms_flourishing_twirl/action_spin.gd's header first.
 ##
 ## A FOURTH ORDER IS PINNED BY TEST 14, and it is a different one: the damage is executed INLINE and
@@ -201,7 +201,7 @@ func is_impaired(unit:Unit) -> bool:
 
 ## How many StatusConditions of this type are on a unit, read straight off its state.
 ##
-## FOR THE CORPSE IN TEST 15, where has_status is the wrong question: the unit is no longer valid, so
+## FOR THE CORPSE IN TEST 14, where has_status is the wrong question: the unit is no longer valid, so
 ## a helper declining to find anything would read the same whether the status was never applied or
 ## applied and then torn off with the unit. This says "no Impaired was ever appended".
 ## test_solfataric_breach.gd:155-159 reads its own kill case exactly this way.
@@ -212,7 +212,7 @@ func listed(unit:Unit, status:StringName) -> int:
 	return held
 
 ## 1 HP and 1 structure, so the card's flat 4 is lethal. Every other hostile in this file is
-## create_dummy's 200 HP punching bag, which is the point - see test 15.
+## create_dummy's 200 HP punching bag, which is the point - see test 14.
 ## test_solfataric_breach.gd:228-231's helper, and for the same one test.
 func make_fragile(unit:Unit) -> void:
 	unit.core.frame.stat.health = 1
@@ -560,10 +560,37 @@ func test_a_victim_the_spin_kills_is_never_impaired() -> void:
 
 # ================================================================ 15. the card text
 
+## RAISED TO test_eternity_hammer.gd:228-262's STANDARD AT THE SP4 WHOLE-BRANCH REVIEW. The first
+## draft asserted assert_ne(X.tr(key), key), which is a weaker claim than it looks: X.tr goes through
+## the GLOBAL translation server, so it answers green if ANY loaded mod carries the key. A testkit run
+## on 1.4.x loads every res://unpacked/ checkout, so a sibling Reag-* mod - or a future one - shipping
+## the same id would hold this test up with our own rows deleted. get_message on THIS mod's compiled
+## artifact returns an EMPTY StringName for a key the artifact does not carry, which is the only
+## lookup that attributes a row to us.
 func test_the_name_and_flavour_and_effect_resolve() -> void:
+	const OUR_TRANSLATION := 'res://unpacked/Reag-TheSixthVoice/localization/localizations.en.translation'
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation,
+		'This mod has a compiled translation (run the headless --import if this is a fresh clone).')
+	if translation == null: return
 	for key:String in ['gear.ms_flourishing_twirl.name', 'gear.ms_flourishing_twirl.flavor',
 			'gear.ms_flourishing_twirl.action_spin.name', 'gear.ms_flourishing_twirl.action_spin.effect']:
-		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
+		assert_ne(translation.get_message(key), StringName(''),
+			'%s resolves to something other than the raw key - carried by THIS mod.' % key)
+
+	# THE GLOSSARY MARKUP, CHECKED FOR SURVIVING THE CSV ROUND-TRIP - the same check the Hammer's row
+	# gets. The CSV is an imported asset and the artifact beside it is what tr() actually reads
+	# (translate.gd:200 globs the folder for *.translation), so a row edited and not re-scanned is
+	# invisible here in exactly the way a mistyped pipe would be.
+	#
+	# AND THE CASING IS THE CARD'S, NOT A HOUSE RULE. "take 4 |kinetic| damage" is lowercase because
+	# specs/sixth-voice/07-primrose.md:100 writes it lowercase, while the same branch's Biting Retort
+	# ships "3 |AP| |Kinetic| damage" capitalised because ITS card does. Whichever way a later reader
+	# thinks these should be made consistent, they already are: each follows its own card.
+	var effect := String(translation.get_message('gear.ms_flourishing_twirl.action_spin.effect'))
+	for markup:String in ['|Agility save|', '|kinetic|', '|line of sight|', '|Impaired|']:
+		assert_true(effect.contains(markup),
+			'%s survived the CSV round-trip intact, with the card\'s own casing.' % markup)
 
 # ================================================================ 16. the use-FX
 
@@ -576,8 +603,7 @@ func test_the_name_and_flavour_and_effect_resolve() -> void:
 ## AND THIS TEST CANNOT SEE THE HALF THAT MATTERS MOST. Wiring fxg_use is inert on its own: nothing
 ## in the engine calls ActionSystem.run_system_fxgs, so action_spin.activate has to call it itself
 ## (action_system.gd:70-105; the header of action_spin.gd has the full finding). Delete that call and
-## this test stays green while the screen stays still. Recorded rather than papered over with a
-## spec that would have to instantiate an FxGroup to say anything real.
+## THIS test stays green while the screen stays still - which is why test 17 below exists.
 func test_the_spin_action_carries_its_own_use_fx() -> void:
 	var kit:Kit = ContentLibrary.get_kit(KIT_ID)
 	var action = kit.get_action(ACTION_ID)
@@ -589,3 +615,45 @@ func test_the_spin_action_carries_its_own_use_fx() -> void:
 	if action.fxg_use == null: return
 	assert_true(action.fxg_use.resource_path.ends_with('fxg_spin.tscn'),
 		'And it is fxg_spin.tscn, not the engine default: %s' % action.fxg_use.resource_path)
+
+# ================================================================ 17. the use-FX's CALL SITE
+
+## THE ONE LINE GUARANTEED TO REGRESS SILENTLY, ADDED AT THE SP4 WHOLE-BRANCH REVIEW. Test 16 above
+## and action_spin.gd's own header both record honestly that deleting `await run_system_fxgs(unit)`
+## leaves this file green - and that is not hypothetical: cp_mobian_rainbow/
+## action_glimmering_armaments.gd has been in exactly that state since SP1, three sub-projects with
+## an FX nobody has ever seen. Nothing in the engine calls run_system_fxgs for an ActionSystem
+## subclass that overrides activate (action_system.gd:70-105 is the only reader of fxg_use; Action.
+## activate is a bare assert, action.gd:102-103), so the call site IS the feature.
+##
+## RULING 20 IS NOT BREACHED. It forbids a spec on the ANIMATION - the duration, the quadrant flips,
+## whether it reads as a whip - and this test asserts nothing about any of that. It asserts that one
+## call exists, which is a claim about the source and not about the screen.
+##
+## A SOURCE-LEVEL ASSERTION IS THIS MOD'S OWN PRECEDENT for a claim behaviour cannot reach:
+## test_unit_relation_extension.gd:101-107 reads EXTENDED_AUTOLOADS off mod_main.gd's constant map
+## rather than off the live autoload, for the same reason - global state cannot say WHICH mod
+## satisfied it. A constant map is no use here (the call is a statement, not a constant), so this
+## one reads the text, the way test_draw_fire.gd:1138-1153 already does for its own ordering pin.
+func test_activate_actually_calls_run_system_fxgs() -> void:
+	# THE UNPACKED PATH, not the mirror path. The overlay maps res/ onto res:// for RESOURCES (via
+	# take_over_path); raw file access still has to name the file where it sits on disk, and
+	# FileAccess on the mirror path comes back empty (test_draw_fire.gd:1140-1141's measurement).
+	const SOURCE := 'res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_flourishing_twirl/action_spin.gd'
+	var src := FileAccess.get_file_as_string(SOURCE)
+	assert_false(src.is_empty(), 'The action\'s source reads back.')
+	if src.is_empty(): return
+
+	# SCOPED TO activate'S BODY AND TO NON-COMMENT LINES, and both halves are load-bearing. The call
+	# is named eight times in this file's header and twice more in the comment sitting directly above
+	# it, so a bare src.contains() would stay green with the statement deleted or commented out -
+	# and commenting it out is exactly what Task 4 measured doing.
+	var body:String = src.substr(src.find('func activate('))
+	assert_gt(body.length(), 0, 'func activate is in the file.')
+	var called := false
+	for line:String in body.split('\n'):
+		var code := line.strip_edges()
+		if code.begins_with('#'): continue
+		if code.contains('await run_system_fxgs('): called = true
+	assert_true(called,
+		'activate() really calls run_system_fxgs - without it fxg_spin.tscn never plays, however wired.')

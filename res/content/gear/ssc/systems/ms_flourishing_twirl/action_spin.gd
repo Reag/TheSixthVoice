@@ -156,9 +156,15 @@
 ## archtypes/action_system_apply_buff.gd:127, and so on). An ActionSystem subclass that overrides
 ## activate and does not call it is SILENT, however its fxg_use is wired.
 ##
-## SO THE CALL IS WHAT NO SPEC CAN SEE. test_spin.gd asserts the wiring - action.fxg_use is the
-## scene - and that assertion stays green with the call deleted. The FX tester and the author's eye
-## are the acceptance (ruling 20):
+## NO BEHAVIOURAL SPEC CAN SEE THE CALL, SO A SOURCE-LEVEL ONE PINS IT (SP4 whole-branch review).
+## test_spin.gd's wiring assertion - action.fxg_use is the scene - stays green with the call
+## deleted, and that is the state action_glimmering_armaments.gd has been in for three sub-projects
+## without anyone noticing. Ruling 20 forbids a spec on the ANIMATION; it says nothing about the
+## CALL SITE, and this mod already has house precedent for reading a claim off the source rather
+## than off behaviour (test_unit_relation_extension.gd:101-107 reads EXTENDED_AUTOLOADS off
+## mod_main.gd's constant map, test_draw_fire.gd:1138-1153 reads this very file's sibling with
+## FileAccess). test_spin.gd's test 17 is that pin. Everything about how the spin LOOKS is still the
+## FX tester and the author's eye (ruling 20):
 ##
 ##   "D:/DEV/Godot_v4.7.2-stable_win64_console.exe" --path D:/DEV/lancer-tactics-modkit res://ui/page/fx_group_tester/fx_group_tester.tscn
 ##
@@ -249,24 +255,40 @@ func activate(context:Context, activation:EventCore) -> void:
 
 	# ------------------------------------------------------- 7. what a failure costs
 	for victim:Unit in results.failed:
-		# BOTH GUARDS RE-RUN EVERY LAP, and the gear one deliberately so. Re-reading gear validity is
-		# not trusting the top-of-function check: the saves above are a full event chain, and so is
-		# each damage event below, and a reaction inside any of them could destroy this system before
-		# a LATER lap reaches its own event_unit_damage call, which still carries gear = context.gear
-		# three lines down (fix wave 2: this guard no longer stands in for a persistent_id re-check -
-		# that value is now read once into gear_id before the loop, at the top of this function, so it
-		# can no longer go stale mid-loop. What this guard still protects is the event dict below: a
-		# guard hoisted above the loop, the shape the first draft had, would cover victim 1's event and
-		# then hand every later victim's event a freed gear as its damage source). onhit_eternity_
-		# hammer.gd:187-188 makes the same argument for its own per-lap SpecificAction re-check, and
-		# its comment is the one to read: checking at the TOP of the lap rather than after the damage
-		# is the difference that matters.
+		# BOTH GUARDS RE-RUN EVERY LAP, and the second one deliberately so. Re-checking is not
+		# distrust of the top-of-function check: the saves above are a full event chain, and so is
+		# each damage event below, and a reaction inside any of them could destroy this system - or
+		# kill the PRIMROSE - before a LATER lap reaches its own event_unit_damage call, which still
+		# carries gear = context.gear and target_unit = unit three lines down. A guard hoisted above
+		# the loop, the shape the first draft had, would cover victim 1's event and then hand every
+		# later victim's event a freed gear and a dead attacker.
 		#
-		# `return`, not `continue`, for the gear: a Spin whose system no longer exists has nothing left
-		# to deal damage FROM, and no later lap could do better. The VICTIM check is a `continue`
-		# because the next victim is still perfectly reachable - see the header.
+		# THE SECOND GUARD IS SpecificAction.is_valid, NOT GearCore.is_valid, AND THAT IS THE SP4
+		# WHOLE-BRANCH REVIEW'S CORRECTION. This comment already claimed onhit_eternity_hammer.gd
+		# :187-188 makes the same argument, and it did not: the Hammer's pair is
+		# Unit.is_valid(bystander) + SpecificAction.is_valid(specific), and its header explains at
+		# length that the forcing-action check IS the attacker re-check. This loop's pair checked the
+		# victim and the GEAR and never re-validated the Primrose itself - which is passed as
+		# target_unit = unit into every lap's event_unit_damage and dereferenced there as the
+		# damaging unit. A Primrose killed by a victim's damage-triggered reaction on lap 1 handed
+		# lap 2 a dead attacker; the Hammer stopped there. The two loops are now structurally
+		# identical, which is what this comment always said they were.
+		#
+		# AND THE GearCore CHECK IS GONE RATHER THAN KEPT BESIDE IT, because it is now subsumed
+		# exactly, not merely usually. `specific` is built by SpecificAction.from_context(context) at
+		# the top of this function (:183), so specific.gear IS context.gear - the same object,
+		# assigned once and never reassigned - and SpecificAction.is_valid re-runs
+		# GearCore.is_valid(specific.gear) as one of its four tests (specific_action.gd:16-23, which
+		# also covers Unit.is_valid(specific.unit) and Action.is_valid(specific.action)). Keeping
+		# both would leave an inert line reading as load-bearing, which this mod treats as a defect.
+		#
+		# `return`, not `continue`, for the second guard: a Spin whose system or whose pilot no longer
+		# exists has nothing left to deal damage FROM, and no later lap could do better. The VICTIM
+		# check is a `continue` because the next victim is still perfectly reachable - see the header.
+		# Checking at the TOP of the lap rather than after the damage is the difference that matters:
+		# a tail guard alone is skipped whenever a lap deals no damage.
 		if not Unit.is_valid(victim): continue
-		if not GearCore.is_valid(context.gear): return
+		if not SpecificAction.is_valid(specific): return
 		await activation.execute_event(&'event_unit_damage', {
 			unit = victim,
 			number = DAMAGE,
