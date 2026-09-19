@@ -32,12 +32,25 @@ func get_required_triggering_context() -> Array[Context.PROP]:
 func triggers_on_event(core:BuffCore, unit:Unit, triggering_event:EventCore) -> bool:
 	var context:Context = triggering_event.context
 	if not Unit.is_valid(context.unit): return false
-	# get_attacker, not context.unit: a relayed attack (Buff.TO.SET_ATTACK_RELAY, the Ghast's nexus)
-	# puts the relay there, and the card is about the MECH's overwatch (unit.gd:276-282).
+	# THE ATTACKER GATE IS LOAD-BEARING FOR EVERY ATTACK IN THE SCENE, not a rare-case guard. This
+	# buff is polled for EVERY unit's declared attack: ReactionBus.trigger_occurred walks
+	# map.get_all_units() and every buff each one carries against every ATTACK_DECLARED event
+	# (reaction_bus.gd:61-67), and the only other gates here are Unit.is_valid and IS_OVERWATCH -
+	# which a HOSTILE'S overwatch satisfies just as well as ours. Only the marker holder's OWN
+	# overwatch qualifies; delete this line and the Primrose's marker halves the damage coming AT it.
+	# test_a_hostiles_overwatch_is_not_halved_by_our_marker is what measures that.
+	#
+	# get_attacker rather than context.unit so the holder's DEPLOYABLES still count as the holder: a
+	# marker or drone blames get_owner_unit_or_self unless it carries Buff.TO.SET_ATTACK_ROOT, the
+	# engineer-turret channel unit.gd:281 branches on.
 	if context.unit.get_attacker(context) != unit: return false
 	if not context.flags.has(Action.FLAG.IS_OVERWATCH): return false
-	# Idempotent: the bus may poll this buff more than once for one declaration, and appending the flag
-	# twice would be harmless but untidy - `has` is what execute reads, not a count.
+	# Idempotent, and mildly live rather than dead: HALF_DAMAGE can already be on a declaration this
+	# buff never stamped, because action_attack_weapon.gd:74 copies it into a followup aux attack's
+	# freshly built followup_flags. So this line can only ever suppress a stamp that is ALREADY
+	# present - it can never change a damage number, and `has` is what execute reads, not a count.
+	# (Those followup_flags carry no IS_OVERWATCH, so in that particular case the gate above has
+	# already refused; what is left is the bus polling this buff twice for one declaration.)
 	return not context.flags.has(Action.FLAG.HALF_DAMAGE)
 
 func activate(core:BuffCore, activation:EventCore) -> void:

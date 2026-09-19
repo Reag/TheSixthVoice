@@ -40,11 +40,18 @@ const USAGE_KEY := &'wormhole_slow'
 
 ## The Combat Drill cheated to all sixes: 3d6 kinetic = 18, plus 1d6 energy = 6. Armour 0 on every
 ## dummy here and the weapon is AP anyway, so an unhalved hit is exactly 24 and a halved one is
-## ceil(18/2) + ceil(6/2) = 9 + 3 = 12. Util.half is ceili (util.gd:14-15) and the flag is applied
-## PER DAMAGE TYPE (event_unit_attack_declared.gd:150-163), which is why 12 and not ceil(24/2).
+## ceil(18/2) + ceil(6/2) = 9 + 3 = 12.
+##
+## THIS PAIR DISCRIMINATES HALVED FROM UNHALVED AND NOTHING ELSE. Both components are EVEN, and
+## ceil(24/2) is also 12 - so no assertion on these two numbers can tell ceil from floor, nor
+## per-damage-type halving from per-total. The Burn pair below is the one that can: 3 -> 2 is
+## produced only by ceil (Util.half is ceili, util.gd:14-15), and reaching Burn at all is what shows
+## the flag is applied per damage type (event_unit_attack_declared.gd:150-163 calls get_damage_flags
+## once per entry of damage_and_types).
 const DRILL_FULL := 24
 const DRILL_HALVED := 12
-## The Torch's flat 3 BURN, and its half. No dice, so this number cannot drift.
+## The Torch's flat 3 BURN, and its half. No dice, so this number cannot drift - and being ODD it is
+## the only number in this file that exercises the rounding.
 const TORCH_BURN := 3
 const TORCH_BURN_HALVED := 2
 
@@ -290,6 +297,44 @@ func test_a_normal_attacks_burn_is_not_halved():
 	await attack_with(PrimroseFixture.BURN_MELEE)
 
 	assert_eq(mover.state.burn, TORCH_BURN, 'The same weapon off overwatch burns for three.')
+
+func test_a_hostiles_overwatch_is_not_halved_by_our_marker():
+	# THE ATTACKER GATE, and the only case in this suite that can see it. buff_wormhole_grasp_half is
+	# not consulted only about the Primrose's shots: ReactionBus.trigger_occurred walks
+	# map.get_all_units() and polls EVERY buff every unit carries against EVERY ATTACK_DECLARED event
+	# (reaction_bus.gd:61-67). So the Primrose's own hidden observer is handed the HOSTILE'S
+	# declaration too, and IS_OVERWATCH is satisfied by that declaration just as well as by ours.
+	# Without `context.unit.get_attacker(context) != unit` the marker would halve the damage coming
+	# AT the Primrose - a straight defensive buff the card never grants. Every other test in this
+	# file would stay green through that, which is what makes this one the discriminator.
+	#
+	# THE TORCH AND NOT THE DRILL, for the only time in this file. The target here is a REAL FRAME
+	# (health 8, armour 1), not one of the 200 HP dummies, so the Drill's 24 would take structure and
+	# drag a structure-damage roll into the measurement. The Torch's flat 3 BURN is the cleanest
+	# number available: it involves no dice, armour does not touch Burn, and 3 against 2 is exactly
+	# the pair test_an_overwatch_attacks_burn_is_halved_too reads in the other direction.
+	PrimroseFixture.equip(mover, PrimroseFixture.BURN_MELEE)
+	await mark()
+
+	# THE ONE HAND-ROLLED CHEAT IN THIS FILE, and it is not a preference. PrimroseFixture.cheat_a_hit
+	# fills the damage buffer with SIXES, and against a real frame 6 energy (5 after the Primrose's
+	# armour 1) plus the flat 3 Burn is EXACTLY its 8 HP: measured, the shot structures the Primrose,
+	# which resets current_damage() to 0 across the boundary and drags a structure-table roll and an
+	# Impaired into the measurement. Twos keep the identical guaranteed hit - the d20 is still 19
+	# against evasion 8 - and land 1 + 3 on 8 HP instead. Twos and not ones because the Torch carries
+	# OVERKILL, which rerolls a 1 and would put the dice back out of reach.
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	var small_damage:Array[int] = []
+	for i:int in 40: small_damage.append(2)
+	Dice.cheat_attack([19], small_damage)
+
+	await SpecFactory.use_solo(game, mover, PrimroseFixture.BURN_MELEE, primrose,
+		[Action.FLAG.IS_OVERWATCH])
+
+	assert_gt(primrose.current_damage(), 0, 'fixture: the hostile\'s overwatch actually landed.')
+	assert_eq(primrose.state.burn, TORCH_BURN,
+		'Three Burn, not two: the marker halves the HOLDER\'s overwatches, not every overwatch in '
+		+ 'the scene.')
 
 # ---------------------------------------------------------------- the Slowed
 

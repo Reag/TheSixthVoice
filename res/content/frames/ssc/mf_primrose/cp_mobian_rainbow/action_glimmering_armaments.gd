@@ -75,5 +75,15 @@ func activate(context:Context, activation:EventCore) -> void:
 	var buffs:Array[Buff] = []
 	for buff_id:StringName in bundle:
 		var buff:Buff = ContentLibrary.get_buff(buff_id)
-		if buff != null: buffs.append(buff)
+		if buff != null:
+			buffs.append(buff)
+		else:
+			# A TYPO IN A BUNDLE ID IS OTHERWISE SILENT, and silent in the worst way: the visible
+			# marker still lands, so the waiver and the cap still read it, and every spec that checks
+			# the marker stays green while the mechanic is simply absent. Task 6 appends to
+			# SHIELD_BUNDLE, which is exactly when this would first matter. push_warning and not
+			# push_error deliberately - GUT fails a test on push_error (gut_config.gd:57) and a
+			# missing buff should not red a suite that is not about this Kit.
+			push_warning('%s: bundle buff %s is not in the buffs index - the armament applies WITHOUT it.'
+				% [gear.kit.compcon_id, buff_id])
 	UnitCondition.apply_buffs(activation, unit, buffs, gear)
