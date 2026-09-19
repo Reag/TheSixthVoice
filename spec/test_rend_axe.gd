@@ -255,14 +255,33 @@ func test_the_licence_grants_the_axe_at_rank_one() -> void:
 	for kit:Kit in license.rank_1.granted_gear: ids.append(kit.compcon_id)
 	assert_has(ids, KIT_ID, 'rank 1 grants the Rend Axe.')
 
+## THIS MOD'S OWN compiled artifact, not the global tr().
+##
+## CORRECTED AT REVIEW (controller, SP2 Task 2, 2026-09-19). The original read
+## `var ours := TranslationServer.get_translation_object('en')` and then never used it - every
+## assertion went through the global `tr()`, so the comment's promise (that a green here is THIS
+## mod's doing and not a sibling Reag-* mod's) was not kept, and the unused local was the only sign.
+## `load(OUR_TRANSLATION).get_message(key)` is the shape test_content_integrity.gd:145-156 already
+## uses, and it is the only lookup that can attribute the row.
+##
+## get_message returns an EMPTY StringName for a key the artifact does not carry - not the key
+## itself, which is what the global tr() falls back to - so the assertion below is against '' and
+## not against the key.
+const OUR_TRANSLATION := 'res://unpacked/Reag-TheSixthVoice/localization/localizations.en.translation'
+
 func test_the_name_and_flavour_and_effect_resolve() -> void:
-	# Read THIS MOD'S OWN compiled artifact rather than the global tr(), so a passing display-text
-	# test can be attributed to this mod and not to a sibling Reag-* mod loaded in the same run.
-	# Same pattern as test_content_integrity.gd and test_primrose_frame.gd.
-	var ours := TranslationServer.get_translation_object('en')
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation,
+		'This mod has a compiled translation (run the headless --import if this is a fresh clone).')
+	if translation == null: return
+	# All five of the weapon's rows, both profiles: one test, so a row added without its sibling
+	# cannot hide behind a test that only looks at the other profile.
 	for key:String in ['gear.mw_rend_axe.name', 'gear.mw_rend_axe.flavor',
-			'gear.mw_rend_axe.action_rend_axe.effect']:
-		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+			'gear.mw_rend_axe.action_rend_axe.effect',
+			'gear.mw_rend_axe.action_rend_axe_free.name',
+			'gear.mw_rend_axe.action_rend_axe_free.effect']:
+		assert_ne(translation.get_message(key), StringName(''),
+			'%s is carried by THIS mod, not by a sibling.' % key)
 
 # ================================================================ the FREE attack (SP2 Task 2)
 #
@@ -402,6 +421,11 @@ func test_the_free_attack_also_offers_the_thrown_submenu() -> void:
 	for group:VariantActionGroup in free.get_alternate_actions(free_specific()): keys.append(group.key)
 	assert_has(keys, &'thrown', 'a free throw is still a throw (ruling 14).')
 
-func test_the_free_attacks_card_text_resolves() -> void:
+func test_the_free_attacks_card_text_reaches_the_player() -> void:
+	# The artifact test above proves the ROW EXISTS in this mod. This one proves the engine's own
+	# lookup finds it, which is a different question: a row present in the artifact but shadowed or
+	# mis-keyed would still hand the player the raw key. Kept as a pair for that reason, not as a
+	# duplicate. CORRECTED AT REVIEW: it used to be the only check of the free profile's text, and
+	# tr() alone cannot say WHICH mod answered.
 	var key := 'gear.mw_rend_axe.action_rend_axe_free.effect'
-	assert_ne(tr(key), key, '%s resolves to real text.' % key)
+	assert_ne(tr(key), key, '%s resolves to real text through the engine lookup.' % key)
