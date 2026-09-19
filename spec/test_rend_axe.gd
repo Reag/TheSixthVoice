@@ -88,7 +88,6 @@ func test_the_kit_is_registered() -> void:
 	# (test_acrasial_falcata.gd's and test_ddmr.gd's identical finding). compcon_id is what tells the
 	# two apart. SWEPT HERE, SP4 Task 5, closing the deferred item SP3 left in the icon-glyph plan.
 	assert_eq(kit.compcon_id, KIT_ID, 'the id asked for, not the Kit.UNKNOWN_ID placeholder.')
-	if kit == null: return
 	assert_eq(kit.sp_cost, SP_COST, 'SP cost is 0.')
 	assert_eq(kit.charges_max, CHARGES, 'Limited 3 is charges_max 3.')
 	assert_eq(kit.system_tags & Kit.SYSTEM_TAGS.UNIQUE, int(Kit.SYSTEM_TAGS.UNIQUE),
