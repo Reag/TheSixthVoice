@@ -258,3 +258,7 @@ gear.ms_dazzling_wind.name,Dazzling Wind
 gear.ms_dazzling_wind.flavor,"While its name does not bely its true purpose, the Dazzling Wind suite of systems is nevertheless a core part of SSC's LIM-AMOK line. Powerful hydraulic mobility augments allow for a pilot to leap across a battlefield, easily clearing any terrain or hostile forces. Unfortunately for its users however, each time it is recharged, it must be manually put back together in a painstakingly long process to achieve maximum combat efficiency."
 gear.ms_dazzling_wind.action_leap.name,Leap
 gear.ms_dazzling_wind.action_leap.effect,"Expend a charge: fly your |Speed| in a straight line. At the end of your movement, you may choose a hostile character adjacent to you; they must make a |hull save| or be knocked |Prone|."
+,
+gear.mw_acrasial_falcata.name,Acrasial Falcata
+gear.mw_acrasial_falcata.flavor,"SSC does not acknowledge the common term for weapons such as the Acrasial Falcata. It is uncouth, a violent misrepresentation of the mastery of its design. A long elegant blade, fashioned in the style of ancient Cradle. A flash-printer ammunition feed contained within the handle. The small cannon in the cross-guard, the perfect response to a would-be assailant. The Falcata is no mere ""gunsword"", it is far too sharp, too clever, and too wonderous to be contained by such a term."
+gear.mw_acrasial_falcata.effect,"Gain the |Biting Retort=gear.mw_acrasial_falcata.action_biting_retort| |reaction|."

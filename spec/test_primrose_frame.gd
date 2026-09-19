@@ -242,11 +242,15 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	# pattern, not a regression - the task brief says so explicitly, and this update is that task's
 	# job.
 	#
+	# UPDATED AGAIN, SP3 Task 1 (2026-09-19): the Acrasial Falcata joined rank 2, same pattern again -
+	# MEASURED red first (this test was part of the regression sweep that task ran against every spec
+	# touching li_primrose.tres, not something the task's own scoped run would have caught on its
+	# own), then fixed here. SP3 Task 4 (the DDMR) will touch this same line next; SP4 fills rank 3
+	# (the Eternity Hammer and Flourishing Twirl).
+	#
 	# EXACT LISTS, not "contains ours", and that is the original reasoning unchanged: the natural
 	# mistake when copying li_fitzgerald.tres is to carry over ITS granted_gear entries, and those
 	# are vanilla-shaped ids this mod really does ship, so a has-assertion would pass over them.
-	# SP3 fills rank 2 (the Acrasial Falcata and the DDMR), SP4 rank 3 (the Eternity Hammer and
-	# Flourishing Twirl).
 	var license := _license()
 	assert_not_null(license, 'fixture: the licence loads.')
 	if license == null: return
@@ -256,7 +260,10 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	rank_1_ids.sort()
 	assert_eq(rank_1_ids, [&'ms_dazzling_wind', &'mw_rend_axe'] as Array[StringName],
 		'Rank 1 grants exactly the Rend Axe and Dazzling Wind, once each.')
-	assert_eq(license.rank_2.granted_gear.size(), 0, 'Rank 2 grants no gear yet (SP3 fills it).')
+	var rank_2_ids:Array[StringName] = []
+	for kit:Kit in license.rank_2.granted_gear: rank_2_ids.append(kit.compcon_id)
+	assert_eq(rank_2_ids, [&'mw_acrasial_falcata'] as Array[StringName],
+		'Rank 2 grants exactly the Acrasial Falcata so far (SP3 Task 4 adds the DDMR).')
 	assert_eq(license.rank_3.granted_gear.size(), 0, 'Rank 3 grants no gear yet (SP4 fills it).')
 
 func test_a_pilot_at_rank_one_can_take_the_rank_one_gear():

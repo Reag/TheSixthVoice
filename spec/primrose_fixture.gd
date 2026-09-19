@@ -66,6 +66,9 @@ const TECH_ID := &'ms_fragment_signal'
 ## SP2 Task 1. The Primrose's own rank-I weapon.
 const REND_AXE := &'mw_rend_axe'
 
+## SP3 Task 1. The Primrose's own rank-II weapon, and the mod's first SUPERHEAVY.
+const FALCATA := &'mw_acrasial_falcata'
+
 ## SP2 Task 3. The Primrose's own rank-I system.
 const DAZZLING_WIND := &'ms_dazzling_wind'
 

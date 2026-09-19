@@ -551,6 +551,17 @@ const ICON_TARGETS := {
 	# shape (Kit bare, action carrying the icon) and is deliberately NOT what this is. The Kit's icon
 	# is SP5's, which is what makes this row deliberately red until then.
 	&'ms_dazzling_wind': {&'action_leap': KIT},
+	# SP3 Task 1 (Primrose). The Falcata's one attack profile is the only thing the gear bar draws
+	# for this Kit, so it inherits the Kit's glyph and carries no icon_override of its own - the same
+	# mw_rend_axe / ms_dazzling_wind KIT shape immediately above.
+	#
+	# CORRECTED FROM THE PLAN'S DRAFT, which cited "the ms_ramjet shape" for this row. ms_ramjet is
+	# the OPPOSITE pattern, documented at :337-339 above: "its Kit carries no icon_override at all
+	# and its single action carries one" - a bare Kit plus a NAMED family on the action, not a KIT
+	# row. Citing it here would have pointed a later reader at the wrong precedent for what this row
+	# actually does. The Kit's own icon is SP5's, which is what makes this row deliberately red until
+	# then, same as its two rank-I siblings. action_biting_retort earns its own family in Task 2.
+	&'mw_acrasial_falcata': {&'action_acrasial_falcata': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
