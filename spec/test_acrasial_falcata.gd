@@ -243,3 +243,16 @@ func test_the_card_text_reaches_the_player() -> void:
 			'gear.mw_acrasial_falcata.effect']:
 		assert_ne(translation.get_message(key), StringName(''),
 			'%s is carried by THIS mod, not by a sibling.' % key)
+
+	# THE CSV ESCAPING, CHECKED DIRECTLY. The LCP's flavour text quotes "gunsword" verbatim, which the
+	# CSV needs doubled (""gunsword"") per RFC4180 so the csv_translation importer treats it as a
+	# literal embedded quote rather than closing the field early - the same escaping this mod's own
+	# frame.mf_fitzgerald.flavor and gear.mw_psychopomp_fold_pike.name rows already use successfully.
+	# Checked here rather than assumed from that precedent: a single stray quote would either truncate
+	# the field (breaking the CSV importer's later rows, not just this one) or leave the doubled quotes
+	# in the compiled text verbatim, and neither failure mode would be caught by the mere non-emptiness
+	# check above.
+	var flavor := String(translation.get_message('gear.mw_acrasial_falcata.flavor'))
+	assert_true(flavor.contains('no mere "gunsword", it is far too sharp'),
+		'the doubled CSV quotes compiled down to a single literal pair, not zero and not four.')
+	assert_false(flavor.contains('""'), 'no doubled quotes survived into the compiled text.')
