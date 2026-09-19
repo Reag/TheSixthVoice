@@ -260,9 +260,7 @@ func test_the_licence_grants_flourishing_twirl_at_rank_three() -> void:
 	# (gear_core.gd:166-171, the Subutai SP2 lesson). One action today; a second would otherwise
 	# inherit this one's per-turn tally.
 	assert_eq(action.usage_group, &'spin', 'With its own usage group.')
-	# Task 4 wires fxg_use to fxg_spin.tscn (ruling 20). Asserted absent so that task's own spec has
-	# a red to turn green, and so a half-finished wiring here cannot pass unnoticed.
-	assert_null(action.fxg_use, 'fxg_use is Task 4\'s, and is not wired yet.')
+	# fxg_use moved out to test 16 at Task 4; this test's job is the licence and the printed card.
 
 # ================================================================ 2. one weapon, no prompt
 
@@ -566,3 +564,28 @@ func test_the_name_and_flavour_and_effect_resolve() -> void:
 	for key:String in ['gear.ms_flourishing_twirl.name', 'gear.ms_flourishing_twirl.flavor',
 			'gear.ms_flourishing_twirl.action_spin.name', 'gear.ms_flourishing_twirl.action_spin.effect']:
 		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
+
+# ================================================================ 16. the use-FX
+
+## RULING 20 PUTS EXACTLY ONE THING IN A TEST HERE: that the action carries fxg_spin.tscn. Everything
+## about how the spin LOOKS - the duration, the four quadrant flips, whether it reads as a whip or a
+## stutter - is judged by the author through the FX tester, which hot-reloads:
+##
+##   "D:/DEV/Godot_v4.7.2-stable_win64_console.exe" --path D:/DEV/lancer-tactics-modkit res://ui/page/fx_group_tester/fx_group_tester.tscn
+##
+## AND THIS TEST CANNOT SEE THE HALF THAT MATTERS MOST. Wiring fxg_use is inert on its own: nothing
+## in the engine calls ActionSystem.run_system_fxgs, so action_spin.activate has to call it itself
+## (action_system.gd:70-105; the header of action_spin.gd has the full finding). Delete that call and
+## this test stays green while the screen stays still. Recorded rather than papered over with a
+## spec that would have to instantiate an FxGroup to say anything real.
+func test_the_spin_action_carries_its_own_use_fx() -> void:
+	var kit:Kit = ContentLibrary.get_kit(KIT_ID)
+	var action = kit.get_action(ACTION_ID)
+	assert_not_null(action, '%s is on the kit.' % ACTION_ID)
+	if action == null: return
+	# ActionSystem.fxg_use is a PackedScene, not an id (action_system.gd:16) - so the assertion is on
+	# the scene itself, and on its path, rather than on a ContentLibrary lookup.
+	assert_not_null(action.fxg_use, 'Spin carries a use-FX.')
+	if action.fxg_use == null: return
+	assert_true(action.fxg_use.resource_path.ends_with('fxg_spin.tscn'),
+		'And it is fxg_spin.tscn, not the engine default: %s' % action.fxg_use.resource_path)

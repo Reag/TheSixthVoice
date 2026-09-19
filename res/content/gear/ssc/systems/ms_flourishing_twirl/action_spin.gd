@@ -142,22 +142,29 @@
 ## with `await activation.execute_event(...)` below swapped for `activation.queue_event(...)`,
 ## test_spin.gd goes 14/15 and that test is the only red.
 ##
-## ================== SPIN PLAYS NO ACTIVATION FX AT ALL TODAY ==================
+## ================== WIRING fxg_use IS NOT ENOUGH; THE CALL IS THE FX ==================
 ##
-## fxg_use IS WIRED IN TASK 4, NOT HERE (ruling 20) - AND SO IS THE CALL THAT WOULD PLAY IT. An
-## earlier draft of this header said Spin falls back to the ActionSystem default fxg_base_activation
-## in the meantime. IT DOES NOT, and a reader who believes it will wire fxg_use in Task 4 and watch
-## nothing happen. `fxg_use` and the DEFAULT_ACTIVATE_FXG fallback are read ONLY inside
+## SETTLED AT TASK 4 (ruling 20): `fxg_use = fxg_spin.tscn` on action_spin.tres AND
+## `await run_system_fxgs(unit)` in activate below, because the wiring alone is inert. An earlier
+## draft of this header said Spin falls back to the ActionSystem default fxg_base_activation in the
+## meantime. IT DOES NOT, and a reader who believed it would have wired fxg_use and watched nothing
+## happen. `fxg_use` and the DEFAULT_ACTIVATE_FXG fallback are read ONLY inside
 ## ActionSystem.run_system_fxgs (action_system.gd:70-105, the fallback at :95-97), and NOTHING calls
 ## that automatically: Action.activate is a bare assert (action.gd:102-103) and all ~60 call sites
 ## under engine/ and content/ are actions invoking it from their own activate
 ## (archtypes/action_system_movement.gd:108, archtypes/action_system_deploy.gd:71,
-## archtypes/action_system_apply_buff.gd:127, and so on). This file overrides activate and never
-## calls it, so a Spin is silent.
+## archtypes/action_system_apply_buff.gd:127, and so on). An ActionSystem subclass that overrides
+## activate and does not call it is SILENT, however its fxg_use is wired.
 ##
-## TASK 4 MUST ADD `await run_system_fxgs(unit)` AFTER THE SPEND, beside wiring the scene. Wiring
-## fxg_use alone is inert - the same trap this frame's own cp_mobian_rainbow/action_glimmering_
-## armaments.gd already fell into, where fxg_super_activation is wired and never played.
+## SO THE CALL IS WHAT NO SPEC CAN SEE. test_spin.gd asserts the wiring - action.fxg_use is the
+## scene - and that assertion stays green with the call deleted. The FX tester and the author's eye
+## are the acceptance (ruling 20):
+##
+##   "D:/DEV/Godot_v4.7.2-stable_win64_console.exe" --path D:/DEV/lancer-tactics-modkit res://ui/page/fx_group_tester/fx_group_tester.tscn
+##
+## THE SAME OMISSION IS STILL LIVE ON THIS FRAME. cp_mobian_rainbow/action_glimmering_armaments.gd
+## sets fxg_use = fxg_super_activation.tscn and never calls run_system_fxgs, so that protocol's FX
+## has never played. Out of SP4's scope; recorded here and at the frame close, not fixed at Task 4.
 extends ActionSystem
 
 ## The card's numbers.
@@ -204,6 +211,24 @@ func activate(context:Context, activation:EventCore) -> void:
 
 	# ------------------------------------------------------- 4. the cost
 	spend_actions(activation)
+
+	# ------------------------------------------------------- 4b. the spin itself
+	# AFTER THE SPEND, ON PURPOSE. Every return above this line is a Spin that never happened - no
+	# mounted weapon, or a prompt the player backed out of - and a mech that whips round for a cancel
+	# is a lie about what it just cost. Before the radius, because the FX's own preamble is the beat
+	# the saves land on (fxg_spin.tscn sets preamble_mode DURATION 0.45, matching spin_node.gd's
+	# SPIN_DURATION), and run_system_fxgs awaits exactly that preamble and no longer
+	# (common_action_util.gd:867-869).
+	#
+	# THIS LINE IS THE FX, NOT THE fxg_use WIRING. Nothing in the engine calls run_system_fxgs
+	# automatically - see the "WIRING fxg_use IS NOT ENOUGH" header section for the finding.
+	# MEASURED at Task 4: commented out, test_spin.gd stays 16/16 on the identical 105 asserts. The
+	# screen is the only thing that goes still, which is why the FX tester is the acceptance.
+	await run_system_fxgs(unit)
+	# The await crosses real frames, so re-check before measuring the board off `unit`. Vanilla guards
+	# its own FX awaits the same way ("guard against quitting the game mid-activation",
+	# common_action_util.gd:869, :886).
+	if activation.abort_without_unit(unit): return
 
 	# ------------------------------------------------------- 5. the radius
 	var reach:int = chosen.reach

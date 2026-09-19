@@ -1,0 +1,55 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://bivnhhagha82d" path="res://engine/gamemaster/effects_controller/fx_group/fx_group.gd" id="1_fxg"]
+[ext_resource type="Script" uid="uid://bmeufp6r8o534" path="res://engine/gamemaster/effects_controller/fx_group/bump_core.gd" id="2_bump_core"]
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/fx_groups/actions/spin_node.gd" id="3_spin_node"]
+
+; FLOURISHING TWIRL, SPIN - the use-FX (Primrose rank III, SP4 Task 4, ruling 20).
+;
+; THE MOD'S FIRST fx_groups FOLDER. The path mirrors vanilla's so ContentLibrary indexes it:
+; build_initial_content_library keys purely on the `fxg_` filename prefix plus `.tscn`, anywhere
+; under the content dir and mod-inclusive (content_library.gd:315-316). The folder is convention,
+; the PREFIX is the mechanism.
+;
+; Structurally the smallest thing that can reach the acting unit's own token: one FxGroup root, one
+; BumpNode child. fxg_lock_on.tscn is vanilla's example of the same two-node shape.
+;
+; NO PARTICLES, NO SFX, DELIBERATELY. The card is a mech whipping round on the spot; the sprite IS
+; the effect (see spin_node.gd's header for what four quadrant flips in under half a second look
+; like). Anything added here would be decorating a motion nobody has judged yet - the author's eye
+; through the FX tester is this task's acceptance, not a spec.
+;
+; --------------------------------------------------------------------------------------------
+; THE ROOT's preamble: DURATION, matching spin_node.gd's SPIN_DURATION - so the saves land as the
+; mech comes back round rather than while it is still turning. This is the vanilla idiom for a
+; system activation: fxg_base_activation.tscn, the DEFAULT_ACTIVATE_FXG this scene displaces, is
+; preamble_mode 2 with preamble_duration 0.5.
+;
+; NOT BASIC_CHILDREN_FINISHED (1), which would also wait for the bump and would read as the more
+; honest wiring. A timer cannot hang: spin_node.start() bails without emitting `finished` when it
+; cannot find a token, exactly as vanilla's own BumpNode bails (bump_node.gd:45, :54), and under
+; mode 1 that stalls the preamble - and therefore the whole activation - until MAX_EFFECT_TIME
+; fires at 10 s (fx_group.gd:25).
+;
+; KEEP THE TWO NUMBERS IN STEP. Changing one and not the other is not a crash, just a beat that
+; lands early or late.
+; --------------------------------------------------------------------------------------------
+;
+; distance = 0 IS THE WHOLE POINT OF THE BumpCore BELOW. spin_node.gd overrides start() and never
+; reads `core`, so every field in it is inert to US - but `core` may not be NULL: FxGroup.scale_bumps
+; calls `bumpnode.core.duplicate()` unguarded on every BumpNode child (fx_group.gd:189-191), and
+; vanilla's own BumpNode.start dereferences it at bump_node.gd:45. distance = 0 states the intent
+; for a reader who deletes the override: the fallback behaviour is "no positional bump", not a lurch.
+
+[sub_resource type="Resource" id="Resource_spin_core"]
+script = ExtResource("2_bump_core")
+distance = 0.0
+
+[node name="FxgSpin" type="Node3D"]
+script = ExtResource("1_fxg")
+preamble_mode = 2
+preamble_duration = 0.45
+
+[node name="SpinNode" type="Node" parent="."]
+script = ExtResource("3_spin_node")
+core = SubResource("Resource_spin_core")
