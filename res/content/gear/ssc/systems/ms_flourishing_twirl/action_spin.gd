@@ -20,7 +20,7 @@
 ##   3. pick                     - auto with one entry, prompt with more, RETURN on a cancel
 ##   4. spend_actions            - and ONLY here
 ##
-## spend_actions is the ONLY route to gear.spend_charge() (unit_action.gd:275, reached through
+## spend_actions is the ONLY route to gear.spend_charge() (unit_action.gd:274, reached through
 ## UnitAction.spend_actions_gain_heat from Action.spend_actions, action.gd:144-147). So every early
 ## return above it is free, and that is the point rather than an accident: a Spin with no mounted
 ## weapon, and a Spin whose prompt the player backs out of, are the two ways a player could lose one
@@ -106,7 +106,8 @@
 ## ================== THE SAVES ARE BATCHED, AND THAT IS WHY THE LOOP IS SAFE ==================
 ##
 ## UnitHasecheck.make_saves(..., Lancer.HASE.AGI, ...) rolls every unit's save and returns
-## { passed:[], failed:[] } (unit_hasecheck.gd:60-70). It re-validates on the way in (:66), re-checks
+## { passed:[], failed:[] } (unit_hasecheck.gd:62 is the doc comment saying so, :63-73 the body). It
+## re-validates on the way in (:66), re-checks
 ## the unit after its own save (:68) and runs Util.filter(..., Unit.is_valid) over BOTH arrays before
 ## returning (:71-72) - so the `failed` array handed back cannot contain a corpse, which is more than
 ## a hand-rolled loop would give.
@@ -128,14 +129,35 @@
 ## form because each has exactly one victim.
 ##
 ## THE DAMAGE IS EXECUTED INLINE, NOT QUEUED, and the Impaired follows it. Queued, the 4 kinetic would
-## land only after activate() returned (event_core.gd:77-81 against :84-91), which would put the
+## land only after activate() returned (event_core.gd:71-75 against :84-88), which would put the
 ## Impaired on a unit that is about to die - the card's "take 4 kinetic damage AND become Impaired"
-## reads as one beat in that order. action_solfataric_breach.gd:208 records the identical decision,
-## and the identical measurement: the ordering is observable ONLY in a test whose victim the damage
-## actually kills.
+## reads as one beat in that order. action_solfataric_breach.gd:196-207 records the identical
+## decision.
 ##
-## fxg_use IS WIRED IN TASK 4, NOT HERE (ruling 20). Until then Spin plays the ActionSystem default
-## fxg_base_activation (action_system.gd:96-98).
+## IT ALSO RECORDS THE HAZARD, AND THIS FILE FELL INTO IT ONCE. The ordering is observable ONLY in a
+## test whose victim the damage actually KILLS: the Breach's first draft kept all 18 of its tests
+## green with queue_event in place, because every one of them had a surviving target. Every hostile
+## in test_spin.gd was a 200 HP punching bag at Task 3, so the same hole was open here; the review
+## found it and test_a_victim_the_spin_kills_is_never_impaired closes it. MEASURED at the fix wave:
+## with `await activation.execute_event(...)` below swapped for `activation.queue_event(...)`,
+## test_spin.gd goes 14/15 and that test is the only red.
+##
+## ================== SPIN PLAYS NO ACTIVATION FX AT ALL TODAY ==================
+##
+## fxg_use IS WIRED IN TASK 4, NOT HERE (ruling 20) - AND SO IS THE CALL THAT WOULD PLAY IT. An
+## earlier draft of this header said Spin falls back to the ActionSystem default fxg_base_activation
+## in the meantime. IT DOES NOT, and a reader who believes it will wire fxg_use in Task 4 and watch
+## nothing happen. `fxg_use` and the DEFAULT_ACTIVATE_FXG fallback are read ONLY inside
+## ActionSystem.run_system_fxgs (action_system.gd:70-105, the fallback at :95-97), and NOTHING calls
+## that automatically: Action.activate is a bare assert (action.gd:102-103) and all ~60 call sites
+## under engine/ and content/ are actions invoking it from their own activate
+## (archtypes/action_system_movement.gd:108, archtypes/action_system_deploy.gd:71,
+## archtypes/action_system_apply_buff.gd:127, and so on). This file overrides activate and never
+## calls it, so a Spin is silent.
+##
+## TASK 4 MUST ADD `await run_system_fxgs(unit)` AFTER THE SPEND, beside wiring the scene. Wiring
+## fxg_use alone is inert - the same trap this frame's own cp_mobian_rainbow/action_glimmering_
+## armaments.gd already fell into, where fxg_super_activation is wired and never played.
 extends ActionSystem
 
 ## The card's numbers.
@@ -193,14 +215,24 @@ func activate(context:Context, activation:EventCore) -> void:
 		activation, hostiles, specific, Lancer.HASE.AGI, [Lancer.STATUS.IMPAIRED]
 	)
 	if activation.abort_without_unit(unit): return
-	# Re-read rather than trusting the top-of-function check: the saves above are a full event chain
-	# and a reaction inside one of them could have destroyed this system before we read its
-	# persistent_id below. action_leap.gd:73 guards the same single deref.
-	if not GearCore.is_valid(context.gear): return
 
 	# ------------------------------------------------------- 7. what a failure costs
 	for victim:Unit in results.failed:
+		# BOTH GUARDS RE-RUN EVERY LAP, and the gear one deliberately so. Re-reading the gear is not
+		# trusting the top-of-function check: the saves above are a full event chain, and so is each
+		# damage event below, and a reaction inside any of them could destroy this system before the
+		# persistent_id deref at the bottom of the lap. A guard hoisted above the loop - the shape the
+		# first draft had, and the one action_leap.gd:73 can afford because it has ONE victim - would
+		# cover victim 1 and no other. onhit_eternity_hammer.gd:187-188 makes exactly this argument
+		# for its own per-lap SpecificAction re-check, and its comment is the one to read: checking at
+		# the TOP of the lap rather than after the damage is the difference that matters.
+		#
+		# `return`, not `continue`, for the gear: the damage event itself carries gear = context.gear,
+		# so a Spin whose system no longer exists has nothing left to deal damage FROM or to source an
+		# Impaired TO, and no later lap could do better. The VICTIM check is a `continue` because the
+		# next victim is still perfectly reachable - see the header.
 		if not Unit.is_valid(victim): continue
+		if not GearCore.is_valid(context.gear): return
 		await activation.execute_event(&'event_unit_damage', {
 			unit = victim,
 			number = DAMAGE,

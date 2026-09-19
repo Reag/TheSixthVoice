@@ -279,4 +279,4 @@ gear.mw_eternity_hammer.effect,"On hit: hostile characters adjacent to the targe
 gear.ms_flourishing_twirl.name,Flourishing Twirl
 gear.ms_flourishing_twirl.flavor,"Unlike some of its sister parts, the Flourishing Twirl subsystems are a very concise description of their function. By rapidly spinning a frame around its Y axis, any substantially sized weapon held can decimate nearby foes. However, those function are only half of the systems, the other half consist of gyroscopic balancers to keep the pilot inside from getting violently dizzy."
 gear.ms_flourishing_twirl.action_spin.name,Spin
-gear.ms_flourishing_twirl.action_spin.effect,"Choose a weapon you have mounted, all hostile characters within its threat and line of sight must succeed an |Agility save| or take 4 |kinetic| damage and become |Impaired| until the end of their next turn."
+gear.ms_flourishing_twirl.action_spin.effect,"Choose a weapon you have mounted, all hostile characters within its threat and |line of sight| must succeed an |Agility save| or take 4 |kinetic| damage and become |Impaired| until the end of their next turn."

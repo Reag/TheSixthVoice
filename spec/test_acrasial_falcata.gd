@@ -101,9 +101,9 @@ var gear:GearCore
 
 ## SP3 Task 5 CHANGED THE FIXTURE FROM create_game TO create_game_with_prompts, and the difference is
 ## exactly one object: which ChoiceBusResponder is in the tree. setup_gamemaster's add_responder
-## argument goes false and testkit/mod_choice_responder.gd is added instead (primrose_fixture.gd:119-124);
+## argument goes false and testkit/mod_choice_responder.gd is added instead (primrose_fixture.gd:121-126);
 ## everything else - the combat, the landscape, the forbidden_interiors_enabled flag - is identical
-## between the two helpers (fitzgerald_fixture.gd:69-73 against primrose_fixture.gd:120-123). The
+## between the two helpers (fitzgerald_fixture.gd:69-73 against primrose_fixture.gd:122-125). The
 ## testkit responder inherits choose_gear untouched and falls back to the stock `chosen_yesnos` /
 ## `chosen_multiple_choice_index` whenever its own queues are empty (mod_choice_responder.gd:82-83,
 ## :172), so the eight tests written under the stock responder see the same answers they always did -

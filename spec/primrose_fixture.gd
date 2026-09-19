@@ -78,8 +78,10 @@ const DDMR := &'wm_ddmr'
 ## SP2 Task 3. The Primrose's own rank-I system.
 const DAZZLING_WIND := &'ms_dazzling_wind'
 
-## SP4 Task 3. The Primrose's own rank-III system.
+## SP4 Task 3. The Primrose's own rank-III system, and its one action - named here for the same
+## reason CORE_ID and PROTOCOL_ID are, so a rename cannot miss spin()'s SpecFactory.use call below.
 const FLOURISHING_TWIRL := &'ms_flourishing_twirl'
+const SPIN_ID := &'action_spin'
 
 ## Vanilla IPS-N War Pike: MAIN MELEE (weapon_size unset, so the archetype default MAIN), 1d6,
 ## Knockback, Thrown 3, and PRINTED THREAT 3 - the one vanilla weapon in that shape.
@@ -313,7 +315,7 @@ static func press_protocol(game:Gamemaster, primrose:Unit, responder, choice_ind
 ##
 ## CALL THIS LAST - see equip()'s header. Spin needs the same equip-first discipline as the protocol,
 ## for a reason of its own on top of the core-power one: UnitPrinter.equip_system calls full_repair,
-## which regenerates the mounts (loadout_core.gd:195-214) and refills every charge, so equipping
+## which regenerates the mounts (loadout_core.gd:196-214) and refills every charge, so equipping
 ## anything after a Spin would silently hand the system its charge back.
 ##
 ## THE TURN IS OPENED even though Spin is a QUICK and not a protocol, because spend_actions has to
@@ -341,4 +343,4 @@ static func press_protocol(game:Gamemaster, primrose:Unit, responder, choice_ind
 static func spin(game:Gamemaster, primrose:Unit, responder, choice_index:int = 0, flags:Array = []) -> void:
 	responder.multiple_choice_queue.append(choice_index)
 	await open_turn(game, primrose)
-	await SpecFactory.use(game, primrose, FLOURISHING_TWIRL, &'action_spin', [], flags)
+	await SpecFactory.use(game, primrose, FLOURISHING_TWIRL, SPIN_ID, [], flags)

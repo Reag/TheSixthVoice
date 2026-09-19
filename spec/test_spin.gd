@@ -7,9 +7,14 @@
 ##
 ## THE ORDER OF activate'S FIRST FOUR STEPS IS WHAT THIS FILE MOSTLY TESTS. Rulings 4 and 19 say the
 ## prompt comes before the cost and that a Spin with nothing to measure costs nothing, and
-## spend_actions is the only route to gear.spend_charge() (unit_action.gd:275) - so three of the
-## fourteen tests below (11, 12 and the charge half of 10) exist purely to hold that order in place.
+## spend_actions is the only route to gear.spend_charge() (unit_action.gd:274) - so three of the
+## fifteen tests below (11, 12 and the charge half of 10) exist purely to hold that order in place.
 ## Read res/content/gear/ssc/systems/ms_flourishing_twirl/action_spin.gd's header first.
+##
+## A FOURTH ORDER IS PINNED BY TEST 14, and it is a different one: the damage is executed INLINE and
+## the Impaired follows it, which only a victim the 4 actually KILLS can see. Added at this task's
+## review, which spotted that every hostile here is a 200 HP punching bag - the same blind spot
+## action_solfataric_breach.gd already shipped once.
 ##
 ## ============================ "MOUNTED" IS NOT "EQUIPPED" ON THIS FRAME ============================
 ##
@@ -24,10 +29,10 @@
 ## THIS FILE THEREFORE EQUIPS AN INTEGRATED WEAPON IN before_each AND NEVER MOUNTS IT. It is a
 ## permanent negative control: every "the menu listed exactly these" and every "no prompt appeared"
 ## assertion below is also an assertion that the integrated Anti-Materiel Rifle stayed out of the
-## menu. MEASURED: deleting the get_mount_for_gear filter takes this file to 5/14 - tests 2, 3, 4, 5,
-## 7, 8, 10, 12 and 13 all go red. The plan predicted it would redden test 3 alone, on the
-## assumption the integrated weapon would be staged in that one test; putting it in before_each
-## instead is what turned a single pin into nine.
+## menu. MEASURED (on the 14-test file, before test 14 was added at the review): deleting the
+## get_mount_for_gear filter takes it to 5/14 - tests 2, 3, 4, 5, 7, 8, 10, 12 and 13 all go red.
+## The plan predicted it would redden test 3 alone, on the assumption the integrated weapon would be
+## staged in that one test; putting it in before_each instead is what turned a single pin into nine.
 ##
 ## ============================ THE THREE WEAPONS, AND WHY THESE THREE ============================
 ##
@@ -143,7 +148,7 @@ func before_each() -> void:
 	responder = pair[1]
 	primrose = Fixture.create_primrose(game, PRIMROSE_TILE)
 	# EQUIPPED FIRST, MOUNTED SECOND, ALWAYS. equip() runs full_repair, which regenerates the mount
-	# array from the frame (loadout_core.gd:195-214) and refills every charge - so a weapon mounted
+	# array from the frame (loadout_core.gd:196-214) and refills every charge - so a weapon mounted
 	# before an equip is at the mercy of the inherit-and-legality pass, and a charge spent before one
 	# would be silently refunded. Every test below mounts AFTER this line and equips nothing further.
 	Fixture.equip(primrose, Fixture.HEAVY_RIFLE) # the integrated negative control - see the header
@@ -180,7 +185,7 @@ func install_damage_recorder(on:Unit) -> DamageRecorder:
 
 ## A hostile that CANNOT pass the Agility save, wherever the shared dice FIFO happens to be.
 ## force_agility_save_to_fail, not force_save_to_fail: the frozen hull pair leaves agi at 0 and would
-## be green for the wrong reason (primrose_fixture.gd:259-277 records the whole argument).
+## be green for the wrong reason (primrose_fixture.gd:261-279 records the whole argument).
 func doomed_hostile(tile:Vector2i) -> Unit:
 	var hostile := Fixture.create_hostile(game, tile)
 	Fixture.force_agility_save_to_fail(hostile)
@@ -193,6 +198,26 @@ func lucky_hostile(tile:Vector2i) -> Unit:
 
 func is_impaired(unit:Unit) -> bool:
 	return unit.has_status(Lancer.STATUS.IMPAIRED)
+
+## How many StatusConditions of this type are on a unit, read straight off its state.
+##
+## FOR THE CORPSE IN TEST 15, where has_status is the wrong question: the unit is no longer valid, so
+## a helper declining to find anything would read the same whether the status was never applied or
+## applied and then torn off with the unit. This says "no Impaired was ever appended".
+## test_solfataric_breach.gd:155-159 reads its own kill case exactly this way.
+func listed(unit:Unit, status:StringName) -> int:
+	var held := 0
+	for condition:StatusCondition in unit.state.statuses:
+		if condition.type == status: held += 1
+	return held
+
+## 1 HP and 1 structure, so the card's flat 4 is lethal. Every other hostile in this file is
+## create_dummy's 200 HP punching bag, which is the point - see test 15.
+## test_solfataric_breach.gd:228-231's helper, and for the same one test.
+func make_fragile(unit:Unit) -> void:
+	unit.core.frame.stat.health = 1
+	unit.core.frame.stat.structure = 1
+	unit.core.full_repair()
 
 ## Everything action_spin's own gather would collect at `reach`. Used as a VACUITY GUARD: it is the
 ## engine's own radius computation, so "this unit was in the set and still took nothing" is a claim
@@ -319,7 +344,7 @@ func test_the_picked_weapons_threat_is_the_one_used() -> void:
 	# reached. Measured at this task - the first draft pressed twice unflagged and the second press
 	# vanished with a bare "specific: invalid" abort and no "[ Gear not available ]" line, because
 	# the unavailable REASON is NONE and it is the affordability half that refuses. AS_FREEBIE
-	# short-circuits that (:114) and still spends the charge (:275).
+	# short-circuits that (:114) and still spends the charge (:274).
 	await spin(1, [Action.FLAG.AS_FREEBIE])
 	assert_eq(prompts().size(), 2, 'fixture: and a second menu for the second press.')
 	assert_true(is_impaired(hostile), 'Picking the threat-3 pike does.')
@@ -435,7 +460,7 @@ func test_a_charge_is_spent() -> void:
 func test_cancelling_the_prompt_spends_nothing() -> void:
 	# RULING 4 + THE RULING-1 ORDERING. choose_from_multiple_choice returns -1 on a cancel
 	# (choice_bus.gd:138-141) and activate returns BEFORE spend_actions, which is the only route to
-	# gear.spend_charge() (unit_action.gd:275). Moving spend_actions above the prompt reddens this
+	# gear.spend_charge() (unit_action.gd:274). Moving spend_actions above the prompt reddens this
 	# test and, by the plan's prediction and this run's measurement, only this test.
 	mount(MAIN_A, Fixture.MAIN_RIFLE)
 	mount(MAIN_B, Fixture.LONG_MELEE)
@@ -495,7 +520,47 @@ func test_under_artful_caress_the_falcatas_spin_reaches_one_tile_further() -> vo
 	assert_false(is_impaired(beyond), 'One further out is not: the buff widens by one, not by two.')
 	assert_eq(beyond.current_damage(), 0, 'And took nothing.')
 
-# ================================================================ 14. the card text
+# ================================================================ 14. the ordering
+
+func test_a_victim_the_spin_kills_is_never_impaired() -> void:
+	# THE ONE CASE IN WHICH "INLINE, NOT QUEUED" IS OBSERVABLE, and it has to be built on purpose.
+	# activate awaits the 4 kinetic INLINE and then `continue`s on a victim that did not survive it,
+	# so a hostile the 4 finishes is gone before the Impaired is reached and never gets one. Swap that
+	# await for activation.queue_event and the damage runs only after activate() has returned
+	# (event_core.gd:71-75 against :84-88) - at which point the victim is still standing, takes the
+	# Impaired, and dies afterwards.
+	#
+	# EVERY OTHER HOSTILE IN THIS FILE HAS 200 HP, which is create_dummy's punching bag and exactly
+	# the hole action_solfataric_breach.gd:201-207 records this mod falling into once already: that
+	# trait's first draft kept all 18 of its tests green under the same mutation, because none of them
+	# killed anything. This task's review said the same hole was open here. It was.
+	#
+	# MEASURED at the fix wave, mutation in place: 14/15, and this is the only red.
+	mount(MAIN_B, Fixture.LONG_MELEE)
+	var doomed := doomed_hostile(AT_ONE)
+	make_fragile(doomed)
+	var sturdy := doomed_hostile(AT_THREE)
+
+	# THE STAGING IS ASSERTED BEFORE IT IS USED. Both are really in the set the Spin gathers, so
+	# neither half below can be green because somebody was quietly out of range.
+	assert_has(gathered_at(PIKE_THREAT), doomed, 'fixture: the fragile hostile is inside the pike\'s threat.')
+	assert_has(gathered_at(PIKE_THREAT), sturdy, 'fixture: and so is the one that will survive its 4.')
+
+	await spin()
+
+	assert_false(Unit.is_valid(doomed), 'The card\'s flat 4 finished a 1 HP, 1 structure hostile.')
+	# listed(), NOT is_impaired(): see the helper - on a corpse the two questions are different.
+	assert_eq(listed(doomed, Lancer.STATUS.IMPAIRED), 0,
+		'And no Impaired was ever appended to it: the damage ran inline, so the loop saw the death '
+		+ 'before it reached the status.')
+	# THE SPIN DID NOT STOP THERE. This is the `continue`-rather-than-abort_without_unit choice in
+	# action_spin's loop, though only weakly: results.failed is walked in gather order, so a mutation
+	# to the abort form would redden this line only when the corpse happens to come first.
+	assert_true(is_impaired(sturdy), 'While the hostile that survived its 4 is Impaired as usual.')
+	assert_eq(sturdy.current_damage(), DAMAGE, 'For the card\'s 4.')
+	assert_eq(twirl.charges_current, CHARGES - 1, 'And the Spin cost its charge either way.')
+
+# ================================================================ 15. the card text
 
 func test_the_name_and_flavour_and_effect_resolve() -> void:
 	for key:String in ['gear.ms_flourishing_twirl.name', 'gear.ms_flourishing_twirl.flavor',

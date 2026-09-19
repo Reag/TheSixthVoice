@@ -49,7 +49,7 @@ var responder
 ## movement picker that runs ahead of it in the same activation - and the testkit responder inherits
 ## every stock behaviour, including chosen_move_tile, so Task 3's tests read identically through it.
 ## Building the stock game here and a prompted one in Task 4 would leave a test with TWO live
-## responders BOTH answering every request (primrose_fixture.gd:103 records why that is fatal), so the
+## responders BOTH answering every request (primrose_fixture.gd:119-120 records why that is fatal), so the
 ## choice is made once, here.
 func before_each() -> void:
 	var pair:Array = Fixture.create_game_with_prompts(self)
