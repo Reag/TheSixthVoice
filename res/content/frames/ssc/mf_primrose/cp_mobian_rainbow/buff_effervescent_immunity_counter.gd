@@ -85,6 +85,9 @@ func activate(core:BuffCore, activation:EventCore) -> void:
 		return
 
 	# At the cap. Under Shimmering Shield the overflow becomes Overshield (ruling 7); at the base cap
-	# of 3 the card says nothing happens, and nothing does.
-	if cap == Immunity.SHIELDED_CAP:
+	# of 3 the card says nothing happens, and nothing does. Gated on "the cap was RAISED", not on
+	# the raised value itself (Task 4 review): a later effect that lifts the cap to 4 or 6 would
+	# otherwise silently stop the overflow firing, and the chip's cap_for already owns the predicate
+	# that decides what raised it.
+	if cap > Immunity.BASE_CAP:
 		await Overshield.grant(activation, unit, Dice.roll_d3())
