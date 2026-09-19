@@ -63,6 +63,9 @@ const BLAST_LAUNCHER := &'mw_rocket_propelled_grenade'
 ## ActionAttackTech.
 const TECH_ID := &'ms_fragment_signal'
 
+## SP2 Task 1. The Primrose's own rank-I weapon.
+const REND_AXE := &'mw_rend_axe'
+
 ## The two markers GLIMMERING ARMAMENTS chooses between, and the prompt indices that pick them.
 ## buff_wormhole_grasp already exists as a bare file (SP1 Task 0, the probe); Task 5 fills it.
 const WORMHOLE_GRASP := &'buff_wormhole_grasp'

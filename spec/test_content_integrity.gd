@@ -242,6 +242,21 @@ func test_the_vaubans_unguarded_rows_resolve():
 	for key:String in VAUBAN_LOCALIZATION_ROWS:
 		assert_ne(tr(key), key, '%s resolves to real text.' % key)
 
+## The Rend Axe's three rows (SP2 Task 1, Primrose). Unlike the three lists above, these ARE also
+## guarded where they are used - test_rend_axe.gd's test_the_name_and_flavour_and_effect_resolve
+## reads the same keys off this mod's own compiled artifact - so this entry is belt-and-braces
+## consistency with the per-sub-project pattern this file keeps, not the last line of defence for an
+## unreachable row the way the Vauban pair above is.
+const REND_AXE_LOCALIZATION_ROWS:Array[String] = [
+	'gear.mw_rend_axe.name',
+	'gear.mw_rend_axe.flavor',
+	'gear.mw_rend_axe.action_rend_axe.effect',
+]
+
+func test_the_rend_axes_rows_resolve():
+	for key:String in REND_AXE_LOCALIZATION_ROWS:
+		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+
 ## Every kit this mod ships, and the actions on each kit that reach a player-facing surface, each
 ## naming the GLYPH FAMILY it belongs to. Filled in by each sub-project as it builds content; the
 ## icon pass is what makes it green.
@@ -491,6 +506,14 @@ const ICON_TARGETS := {
 	# is the coating and the protocol is the choice it offers. A KIT row would say they are the same
 	# drawing, which the icon pass would then have to honour.
 	&'cp_mobian_rainbow': {&'action_glimmering_armaments': &'action_glimmering_armaments'},
+	# SP2 Task 1 (Primrose). The Rend Axe. Its attack profile is a separately pressable button on the
+	# gear bar, so it needs a row - but it takes a KIT row rather than a named family, because the
+	# family the design gives this weapon (design §5) is {the Kit, both attack actions}: one glyph, an
+	# axe, worn by the weapon and by every way of swinging it. icon-sharing.md section 5 - KIT is
+	# absence, not duplication - so the action carries NO icon_override and inherits through
+	# action.gd:324-326. Task 2 adds the free profile to this same row, also KIT.
+	# The Kit's own icon is SP5's, which is what makes this row deliberately red until then.
+	&'mw_rend_axe': {&'action_rend_axe': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

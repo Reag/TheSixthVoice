@@ -248,3 +248,7 @@ gear.buff_wormhole_grasp.name,Wormhole Grasp
 gear.buff_wormhole_grasp.effect,"Your weapons gain +1 |threat| and you may |Overwatch| with |Superheavy| weapons. Attacks made this way deal half damage, |Heat|, and |Burn|. 1/round, when you damage a character with an |Overwatch|, they must succeed a |Hull save| or be |Slowed| until the end of their next turn."
 gear.buff_shimmering_shield.name,Shimmering Shield
 gear.buff_shimmering_shield.effect,"While you are in |cover|, melee attacks against you receive |+1 Difficulty|. Additionally, Effervescent Immunity can stack up to a maximum of +5. If it would increase past this point, you instead gain 1d3 |OVERSHIELD|."
+,
+gear.mw_rend_axe.name,Rend Axe
+gear.mw_rend_axe.flavor,"One of SSC's more experimental creations, the Rend Axe is a masterwork of design. Consisting of a ferromagnetic blade and a focused propulsion system, it allows for quick strikes that can puncture through armor and peel it away."
+gear.mw_rend_axe.action_rend_axe.effect,"You may attack with this weapon without expending or requiring charges, and this weapon can be destroyed (due to critical damage or other effects) even if it has no charges remaining. On a |critical hit|, until the start of their next turn, the target is |Shredded|."
