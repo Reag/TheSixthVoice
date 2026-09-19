@@ -6,9 +6,9 @@
 #             Kinetic damage and must succeed a Hull save or be knocked prone."
 #   (specs/sixth-voice/07-primrose.md, Rank II, "Weapon: Acrasial Falcata")
 #
-# THIS FILE COVERS THE FIRST SENTENCE AND THE TRIGGER. The riposte - the second sentence - is Task 3's
-# and lands in this same file, against the self-clearing POST observer Task 0's probe settled on
-# (ruling 25). Nothing here anticipates it.
+# THIS FILE COVERS THE WHOLE CARD. Task 2 built the first sentence and the trigger; Task 3 added the
+# riposte - the second sentence - against the self-clearing POST observer Task 0's probe settled on
+# (ruling 25). The two halves are separate mechanisms and the "THE RIPOSTE" section below says why.
 #
 # WHY THE CARD IS SPLIT ACROSS THE ATTACK PIPELINE. The +1 Difficulty has to land BEFORE the roll is
 # built - event_unit_attack.gd awaits the PRE reactions at :31-32 and only calls AttackRoll.create at
@@ -86,6 +86,33 @@
 #     row in test_content_integrity.gd is set to match, and that file's own
 #     _action_reaches_a_player_facing_surface calls the identical function, so the two cannot drift.
 #
+# ---------------------------------------------------------------------------------------------
+# AND FOUR MORE THAT TASK 3 OWNED, for the riposte. The reasoning that belongs with the content is in
+# buff_biting_retort_riposte.gd's own header; what follows is only what the TESTS had to be shaped
+# around.
+#
+#  4. THE RIPOSTE'S DAMAGE IS EXECUTED INLINE, NOT QUEUED, so the two halves land in the card's own
+#     order - "takes 3 AP Kinetic damage AND must succeed a Hull save". Measured, not assumed, by
+#     test_the_damage_lands_before_the_save_is_forced: SaveWitness below reads the ATTACKER's
+#     current_damage() from inside the save's own buff pass, and it is already 3 there.
+#     queue_event is DEPTH-FIRST and runs after activate() returns (event_core.gd:83-88) while
+#     UnitHasecheck.run_save_event executes its event IMMEDIATELY (unit_hasecheck.gd:74-89 ->
+#     execute_events), so queueing would put the save first and the damage second. This mod's own
+#     action_solfataric_breach.gd:195-208 records the identical call, for the identical reason.
+#  5. WHICH MAKES THE KILL CASE OBSERVABLE, and it is pinned:
+#     test_a_riposte_that_kills_the_attacker_forces_no_save. A 3 AP riposte that finishes the
+#     attacker returns before the save rather than rolling one on a corpse.
+#  6. A NON-CHARACTER ATTACKER IS GUARDED, and only characterised here, not pinned - see
+#     test_the_engine_auto_fails_a_noncharacters_hull_save's own header for why that distinction is
+#     stated out loud rather than papered over.
+#  7. THE OBSERVER'S PRESENCE IS WITNESSED, NOT INFERRED. It is applied at ATTACK PRE and clears
+#     itself at ATTACK POST, both inside one use_solo await, so no assertion in a test body can ever
+#     see it on the unit. "It is gone afterwards" would therefore be true of a buff that was never
+#     applied at all - vacuous exactly on the hit path, where the riposte does nothing else. PostWitness
+#     below reads unit.state.buffs from inside the POST poll (reaction_bus.gd:46-67 collects EVERY
+#     triggering buff before executing ANY of them, so a witness polled in the same pass sees the
+#     observer still there) and is what makes both halves real.
+#
 #   godot --resolution 800x600 --position -2400,-2400 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_biting_retort.gd
 extends GutTest
 
@@ -95,6 +122,13 @@ const FALCATA := &'mw_acrasial_falcata'
 const ATTACK := &'action_acrasial_falcata'
 const RETORT := &'action_biting_retort'
 const DIFFICULTY_BUFF := &'buff_biting_retort_difficulty'
+## SP3 Task 3. The POST observer (ruling 25). Hidden, self-clearing, until = END_OF_THIS_TURN.
+const RIPOSTE_BUFF := &'buff_biting_retort_riposte'
+## "the attacker takes 3 AP Kinetic damage" - a flat number, so no die is drawn for it and the
+## CHEAT_ROLL_QUEUE arithmetic in this file's header is unaffected by the riposte.
+const RIPOSTE_DAMAGE := 3
+## Enough armor to eat a non-AP 3 whole but one, which is what makes the AP flag measurable.
+const BRAWLER_ARMOR := 2
 
 const NAME_KEY := 'gear.mw_acrasial_falcata.action_biting_retort.name'
 const TRIGGER_KEY := 'gear.mw_acrasial_falcata.action_biting_retort.trigger'
@@ -187,6 +221,91 @@ class PreWitness extends Buff:
 		raw_threat.append(context.action.threat)
 		buffed_threat.append(context.action.threat_distance(specific) if SpecificAction.is_valid(specific) else -1)
 		return false ## never activates
+
+
+## A buff that never fires and only records whether ANOTHER buff - the riposte observer - was still
+## on the holder at the moment ReactionBus polled it at ATTACK **POST**. PreWitness one timing over,
+## and Task 0's PostWitness verbatim except for watching by CONTENT ID rather than by instance.
+##
+## WHY A WITNESS IS THE ONLY WAY TO SEE THE OBSERVER AT ALL. It is applied inside the PRE reaction and
+## clears itself inside its own POST activation, and both of those happen inside the single
+## SpecFactory.use_solo await that every test here makes - so no test body can ever catch it on the
+## unit. Without this class, "the observer is gone afterwards" is equally true of an observer that was
+## never applied, which on the HIT path (where the riposte does nothing else at all) is the whole
+## assertion.
+##
+## IT REALLY DOES SEE IT. ReactionBus.trigger_occurred walks every unit's gear AND every unit's buffs
+## and appends an EventBlock per trigger into one array (reaction_bus.gd:46-67) BEFORE returning any
+## of them to be executed, so the poll is a complete pass. Whichever order the two buffs sit in on
+## unit.state.buffs, the witness is asked while the observer is still there. Returning false means it
+## never activates, so it never clears itself and never perturbs what it measures.
+class PostWitness extends Buff:
+	var watched_id:StringName = &''
+	var polls := 0
+	var watched_present_at_poll:Array = []
+
+	func _init() -> void:
+		hide_from_player = true
+		triggers_on.append(ReactionBus.TRIGGER.ATTACK)
+		trigger_timing = ReactionBus.TIMING.POST
+
+	func get_required_triggering_context() -> Array[Context.PROP]:
+		return []
+
+	func triggers_on_event(_core:BuffCore, unit:Unit, triggering_event:EventCore) -> bool:
+		var context:Context = triggering_event.context
+		if context.target_unit != unit: return false
+		if not AttackRoll.is_valid(context.object): return false
+		polls += 1
+		watched_present_at_poll.append(UnitCondition.has_buff(unit, watched_id))
+		return false ## never activates
+
+
+## A Buff.TO.SAVE passive on the SAVER that never applies and only records what the forced save looked
+## like from inside. RollRecorder's trick one system over: UnitCondition.does_buff_apply calls
+## check_if_passive_applies (unit_condition.gd:845-851), the recorder takes what it was shown and
+## returns false, so it is never collected into `hase_buffs` and never consumed.
+##
+## THIS IS THE CHANNEL THAT SEES ALL FOUR FACETS OF THE FORCER, and Task 3's mutation step measured
+## why that matters. UnitHasecheck.run_save_event copies forcing_action.unit / .gear / .action onto the
+## save EVENT unconditionally (:78-85), so the event's own context.unit is set even when the
+## SpecificAction it was handed was a bare one - which is why event_unit_save.gd:41-43 still computes
+## the same save target (measured: "against 10" either way) and why a test written on the save target,
+## or on the event's raw context.unit, would stay GREEN under that mutation. The saver's side is where
+## the gate is: unit_hasecheck.gd:176-184 builds this context from target_unit / category / array /
+## flags and only then, at :180, copies unit AND gear AND action onto it as ONE BLOCK gated on
+## SpecificAction.is_valid. Measured under the bare-unit mutation, all four assertions below go red
+## together - including forcer_unit, which is exactly the one a reading of run_save_event alone
+## predicts would survive.
+##
+## It also carries the damage-ordering measurement (judgment call 4): roll_check builds this context
+## AFTER the riposte's damage call has returned, so context.target_unit.current_damage() read here is
+## "how hurt was the attacker when the save was rolled".
+class SaveWitness extends Buff:
+	var polls := 0
+	var forcer_valid:Array = []   ## SpecificAction.is_valid(SpecificAction.from_context(context))
+	var forcer_unit:Array = []    ## context.unit - who forced it
+	var forcer_gear:Array = []    ## the forcing GearCore's compcon id, or &'' if there is none
+	var forcer_action:Array = []  ## the forcing Action's id, or &''
+	var hase:Array = []           ## context.category_int - which HASE was rolled
+	var against:Array = []        ## context.array - the statuses the save is pushing against
+	var saver_damage:Array = []   ## the SAVER's current_damage() at the moment the save was rolled
+
+	func _init() -> void:
+		to = Buff.TO.SAVE
+		hide_from_player = true
+
+	func check_if_passive_applies(_core:BuffCore, context:Context) -> bool:
+		polls += 1
+		forcer_valid.append(SpecificAction.is_valid(SpecificAction.from_context(context)))
+		forcer_unit.append(context.unit)
+		forcer_gear.append(context.gear.kit.compcon_id if GearCore.is_valid(context.gear) else &'')
+		forcer_action.append(context.action.get_id() if Action.is_valid(context.action) else &'')
+		hase.append(context.category_int)
+		against.append((context.array as Array).duplicate())
+		var saver:Unit = context.target_unit
+		saver_damage.append(saver.current_damage() if Unit.is_valid(saver) else -1)
+		return false ## never actually a save modifier, so never collected and never consumed
 
 
 # ============================== FIXTURE ==============================
@@ -319,6 +438,45 @@ func watch_pre() -> PreWitness:
 	var witness := PreWitness.new()
 	UnitCondition.apply_buff(SpecFactory.dummy_event(), primrose, witness)
 	return witness
+
+## Hang a PostWitness on the Primrose, watching the riposte observer. See the class header.
+func watch_post() -> PostWitness:
+	var witness := PostWitness.new()
+	witness.watched_id = RIPOSTE_BUFF
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), primrose, witness)
+	return witness
+
+## Hang a SaveWitness on the BRAWLER - the unit that will be made to save. See the class header.
+func watch_save() -> SaveWitness:
+	var witness := SaveWitness.new()
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), brawler, witness)
+	return witness
+
+func has_riposte_buff() -> bool:
+	return UnitCondition.has_buff(primrose, RIPOSTE_BUFF)
+
+## What the riposte has done to the attacker, read through the corpse guard so a kill test can call it.
+func brawler_damage() -> int:
+	return brawler.current_damage() if Unit.is_valid(brawler) else -1
+
+func brawler_is_prone() -> bool:
+	return Unit.is_valid(brawler) and brawler.has_status(Lancer.STATUS.PRONE)
+
+## Give the brawler armor, which create_dummy deliberately zeroes so damage numbers are the weapon's
+## (fitzgerald_fixture.gd:107). CALLED FROM A TEST BODY, i.e. after before_each's equip calls: every
+## PrimroseFixture.equip* runs full_repair(), which rebuilds core.current from the frame stats and
+## would undo a write made before it.
+func armor_the_brawler(amount:int) -> void:
+	brawler.core.frame.stat.armor = amount
+	brawler.core.full_repair()
+
+## health 1 AND structure 1, so ANY damage destroys the unit outright rather than decrementing
+## structure and restoring health to full (event_unit_structure.gd:41-46).
+## test_blasting_powder.gd:179-185 and test_solfataric_breach.gd:228-231 are the same two lines.
+func make_brawler_fragile() -> void:
+	brawler.core.frame.stat.health = 1
+	brawler.core.frame.stat.structure = 1
+	brawler.core.full_repair()
 
 
 # ============================== THE OFFER ==============================
@@ -609,6 +767,220 @@ func test_both_threat_readings_are_available_at_pre_and_they_disagree_about_a_th
 	assert_eq(witness.buffed_threat, [2, 1],
 		'threat_distance() does NOT: Artful Caress widens the throw too, so it reads 1 where the '
 		+ 'printed threat is 0. A gate written on it would call this throw a melee attack.')
+
+
+# ============================== THE RIPOSTE ==============================
+#
+# "If the attack misses, the attacker takes 3 AP Kinetic damage and must succeed a Hull save or be
+# knocked Prone."
+#
+# WHY IT IS A SEPARATE MECHANISM AND NOT MORE LINES IN action_biting_retort.activate(): the reaction
+# runs at ATTACK **PRE**, one line before AttackRoll.create (event_unit_attack.gd:31-32, then :53), so
+# when it returns there is no roll to read. Something has to be listening at POST instead, and Task 0's
+# probe measured that the design's chosen listener - a buff with until = FINISH_ATTACK_ROLL - fires
+# ZERO times, because :120 clears it and :123 queues the POST reactions on the next line. Ruling 25's
+# replacement is a hidden, self-clearing END_OF_THIS_TURN buff, and buff_biting_retort_riposte.gd
+# carries the whole argument.
+
+func test_a_missed_attack_deals_three_ap_to_the_attacker() -> void:
+	responder.yesno_queue.append(true)
+	await swing(MISS_D20)
+	assert_eq(offers(), 1, 'fixture: the reaction was offered and accepted.')
+	assert_false(recorder.last_roll.hit, 'fixture: and the swing missed, which is the riposte case.')
+	assert_eq(brawler_damage(), RIPOSTE_DAMAGE,
+		'The attacker took exactly 3. Exactly, not at least: an observer that fired twice off one '
+		+ 'accepted reaction would read 6 here, which is the failure Task 0 measured (probe P3e).')
+
+func test_the_riposte_ignores_armor() -> void:
+	# WITHOUT THIS TEST THE AP FLAG IS UNFALSIFIABLE. create_dummy zeroes the brawler's armor, so 3
+	# damage against armor 0 is 3 whether or not EventService.DAMAGE_FLAG.AP is on the event.
+	armor_the_brawler(BRAWLER_ARMOR)
+	responder.yesno_queue.append(true)
+	await swing(MISS_D20)
+	assert_eq(brawler_damage(), RIPOSTE_DAMAGE, 'Armor 2 took nothing off the 3 - the AP flag.')
+
+	# THE CONTROL, in the same test so the two cannot drift: the identical 3 Kinetic WITHOUT the flag,
+	# against the identical armor, lands 1. Without it "armor 2" is a stat this test set and never
+	# proved was live.
+	#
+	# IT RAISES NO BRACE PROMPT, which is why it can be fired bare like this: action_brace.gd's
+	# get_required_triggering_context demands Context.PROP.action and its triggers_on_event demands
+	# `action is ActionAttack`, and this event carries neither. (Nor does the riposte's own damage,
+	# for the same reason - see buff_biting_retort_riposte.gd.)
+	await game.execute_event(&'event_unit_damage', {
+		unit = brawler,
+		number = RIPOSTE_DAMAGE,
+		category = Lancer.DAMAGE_TYPE.KINETIC,
+	})
+	assert_eq(brawler_damage(), RIPOSTE_DAMAGE + 1,
+		'CONTROL: the same 3 without the AP flag is reduced to 1 by the same armor.')
+
+func test_a_missed_attack_forces_a_hull_save_the_saver_can_attribute() -> void:
+	# THE FORCER-READABILITY ASSERTION, and it is measured from the one place that can see it. See
+	# SaveWitness's header: the save EVENT carries the forcing unit whether or not the SpecificAction
+	# handed to make_hull_save was a full one, so only the saver's own buff context - gated at
+	# unit_hasecheck.gd:180 - discriminates.
+	var witness := watch_save()
+	responder.yesno_queue.append(true)
+	await swing(MISS_D20)
+
+	assert_eq(offers(), 1, 'fixture: the reaction was offered and accepted.')
+	assert_eq(witness.polls, 1,
+		'Exactly one save was forced on the attacker, and its buff pass ran exactly once.')
+	if witness.polls != 1: return
+	assert_eq(witness.hase, [Lancer.HASE.HULL], 'It is a HULL save, as the card says.')
+	assert_true(witness.against[0].has(Lancer.STATUS.PRONE),
+		'Pushing against PRONE - which is what lets a Prone-immunity effect see what it is resisting '
+		+ '(unit_hasecheck.gd:258-267 splits the statuses out of flags_and_statuses).')
+	assert_eq(witness.forcer_valid, [true],
+		'THE MEASUREMENT: the saver is shown a VALID forcer. make_hull_save is called with the full '
+		+ 'SpecificAction.create(unit, gear, action) trifecta, so unit_hasecheck.gd:180 copies unit, '
+		+ 'gear and action onto the context its SAVE buffs are queried with.')
+	assert_eq(witness.forcer_unit, [primrose],
+		'And the forcer is the Primrose. THIS ONE IS NOT REDUNDANT WITH THE LINE ABOVE and it is not '
+		+ 'free either: unit_hasecheck.gd:180 copies unit, gear and action as ONE gated block, so a '
+		+ 'bare-unit call loses the forcing UNIT here too - even though the save event itself still '
+		+ 'carries it and still computes the Primrose\'s save target from it.')
+	assert_eq(witness.forcer_gear, [FALCATA], 'Holding the Falcata -')
+	assert_eq(witness.forcer_action, [RETORT], '- and it is the REACTION that forced it, not the swing.')
+
+func test_the_damage_lands_before_the_save_is_forced() -> void:
+	# JUDGMENT CALL 4, measured rather than reasoned. The card reads "takes 3 AP Kinetic damage AND
+	# must succeed a Hull save", and that order is a choice of one engine call over another:
+	# activation.queue_event is DEPTH-FIRST and runs after activate() returns (event_core.gd:83-88),
+	# while UnitHasecheck.run_save_event executes its event IMMEDIATELY (unit_hasecheck.gd:74-89), so
+	# queueing the damage would put the save first. SaveWitness reads the attacker's own damage total
+	# from inside the save's buff pass, which is the only vantage point where "which came first" is a
+	# number rather than a log line.
+	var witness := watch_save()
+	responder.yesno_queue.append(true)
+	await swing(MISS_D20)
+
+	assert_eq(witness.polls, 1, 'fixture: one save was forced.')
+	if witness.polls != 1: return
+	assert_eq(witness.saver_damage, [RIPOSTE_DAMAGE],
+		'The attacker was ALREADY at 3 damage when the save was rolled: the riposte awaits its damage '
+		+ 'event inline before forcing the save, so the two halves land in the card\'s order.')
+
+func test_failing_the_save_knocks_the_attacker_prone() -> void:
+	PrimroseFixture.force_save_to_fail(brawler)
+	responder.yesno_queue.append(true)
+	await swing(MISS_D20)
+	assert_eq(brawler_damage(), RIPOSTE_DAMAGE, 'fixture: the riposte landed.')
+	assert_true(brawler_is_prone(), 'And a failed Hull save knocks the attacker Prone.')
+
+func test_passing_the_save_leaves_the_attacker_standing() -> void:
+	# THE CONTROL FOR THE TEST ABOVE, and it also pins that the DAMAGE is unconditional: the card
+	# hangs only the Prone on the save, so 3 lands either way.
+	PrimroseFixture.force_save_to_pass(brawler)
+	responder.yesno_queue.append(true)
+	await swing(MISS_D20)
+	assert_eq(brawler_damage(), RIPOSTE_DAMAGE, 'The 3 AP is not conditional on the save.')
+	assert_false(brawler_is_prone(), 'But a passed Hull save leaves the attacker on its feet.')
+
+func test_a_landed_attack_ripostes_nothing() -> void:
+	var witness := watch_save()
+	responder.yesno_queue.append(true)
+	await swing(HIT_D20)
+	assert_eq(offers(), 1, 'fixture: the reaction was offered and accepted.')
+	assert_true(recorder.last_roll.hit, 'fixture: and the swing landed even at -1.')
+	assert_eq(brawler_damage(), 0, '"If the attack MISSES" - a hit costs the attacker nothing.')
+	assert_false(brawler_is_prone(), 'And prones nobody.')
+	assert_eq(witness.polls, 0, 'No save was forced at all - the observer returned on roll.hit.')
+
+func test_declining_riposts_nothing() -> void:
+	var witness := watch_save()
+	responder.yesno_queue.append(false)
+	await swing(MISS_D20)
+	assert_eq(offers(), 1, 'fixture: the reaction was offered and declined.')
+	assert_false(recorder.last_roll.hit,
+		'fixture: and the swing still missed - so this is the riposte case, refused.')
+	assert_eq(brawler_damage(), 0, 'A declined reaction never arms the observer, so nothing ripostes.')
+	assert_false(brawler_is_prone(), 'And nothing is proned.')
+	assert_eq(witness.polls, 0, 'And no save is forced.')
+
+func test_the_observer_is_gone_after_a_missed_roll() -> void:
+	var witness := watch_post()
+	responder.yesno_queue.append(true)
+	await swing(MISS_D20)
+	assert_eq(witness.watched_present_at_poll, [true],
+		'fixture: the PRE reaction really armed the observer, and it was still on the Primrose when '
+		+ 'ReactionBus polled ATTACK POST - which is what the design\'s FINISH_ATTACK_ROLL buff could '
+		+ 'not manage (Task 0, P2).')
+	assert_eq(brawler_damage(), RIPOSTE_DAMAGE, 'fixture: and it fired.')
+	assert_false(has_riposte_buff(),
+		'THE SELF-CLEAR: it took itself off the unit inside its own activation. Nothing else would - '
+		+ 'until = END_OF_THIS_TURN survives the whole attack (Task 0, P3e measured a leaked observer '
+		+ 'firing a second time off ONE accepted reaction).')
+
+func test_the_observer_is_gone_after_a_landed_roll() -> void:
+	# THE HIT PATH IS THE HARDER HALF, and it is why triggers_on_event deliberately does NOT gate on
+	# roll.hit: a hit still has to give the observer an activation to clean itself up in. Without the
+	# witness this test would be vacuous - on a hit the riposte does nothing at all, so "no buff
+	# afterwards" would be equally true of a buff that was never applied.
+	var witness := watch_post()
+	responder.yesno_queue.append(true)
+	await swing(HIT_D20)
+	assert_eq(witness.watched_present_at_poll, [true],
+		'fixture: the observer was armed and present at the POST poll on the hit path too.')
+	assert_eq(brawler_damage(), 0, 'fixture: and it did nothing but clean up.')
+	assert_false(has_riposte_buff(), 'Which it did: nothing is left armed after a hit either.')
+
+func test_a_second_swing_in_the_same_turn_is_not_riposted() -> void:
+	# THE CONSEQUENCE OF THE TEST ABOVE, stated as behaviour. Task 0's P3e is the failure this guards:
+	# an observer that survives its own roll ripostes EVERY further attack in the turn off one
+	# accepted reaction, and the END_OF_THIS_TURN sweep is no help because the leak fires WITHIN the
+	# turn (unit_condition.gd:33-42 runs only at a turn end).
+	responder.yesno_queue.append(true)
+	await swing(MISS_D20)
+	assert_eq(brawler_damage(), RIPOSTE_DAMAGE, 'fixture: the armed swing was riposted, once.')
+
+	var reads_before:int = recorder.reads
+	await swing_again(MISS_D20)
+	assert_gt(recorder.reads, reads_before, 'VACUITY GUARD: the second swing really rolled.')
+	assert_eq(offers(), 1,
+		'fixture: and nothing re-armed it - the reaction point is spent, so the PRE half was not even '
+		+ 'offered a second time.')
+	assert_eq(brawler_damage(), RIPOSTE_DAMAGE, 'And the second miss cost the attacker nothing more.')
+
+func test_a_riposte_that_kills_the_attacker_forces_no_save() -> void:
+	# THE ONE CASE IN WHICH THE DAMAGE/SAVE ORDER IS OBSERVABLE AS BEHAVIOUR rather than as a witness
+	# reading (judgment call 5). Because the damage is awaited inline, an attacker the 3 AP finishes is
+	# already gone when the Unit.is_valid guard below it runs, and no save is rolled on the corpse.
+	# Queue the damage instead and the save happens first, on a unit that is about to die - which is
+	# this mod's action_solfataric_breach.gd:614-637 one card over.
+	make_brawler_fragile()
+	var witness := watch_save()
+	responder.yesno_queue.append(true)
+	await swing(MISS_D20)
+
+	assert_false(Unit.is_valid(brawler), 'The 3 AP finished a 1 HP, 1 structure attacker outright.')
+	assert_eq(witness.polls, 0,
+		'And no Hull save was forced on it: the riposte returned on the corpse guard before reaching '
+		+ 'make_hull_save.')
+
+func test_the_engine_auto_fails_a_noncharacters_hull_save() -> void:
+	# ENGINE CHARACTERISATION, NOT A PIN ON OUR CONTENT - stated plainly because it would stay GREEN
+	# with buff_biting_retort_riposte.gd's is_character() guard deleted, and a reader who assumed
+	# otherwise would delete that guard on the strength of this file being green.
+	#
+	# WHAT IT RECORDS is why the guard exists at all. unit_hasecheck.gd:52-53 short-circuits a save by
+	# a non-character to FALSE - "noncharacters always fail; doesn't even count as a force" - WITHOUT
+	# rolling anything, and false is the failure branch. So a riposte that forced the save
+	# unconditionally would silently knock every hostile deployable, drone-object or turret Prone the
+	# instant it swung and missed. ActionReactionAttacked gates the DEFENDER on is_character
+	# (require_defender_to_be_character, action_reaction_attacked.gd:95) and never the ATTACKER, so
+	# that state is reachable in play; it is not reachable from this fixture, which is exactly why this
+	# test calls the engine directly instead of pretending to stage it.
+	#
+	# The dummy event is never touched: the short-circuit is the first line of the function.
+	brawler.core.frame.entity_type = Frame.ENTITY.OBJECT
+	assert_false(brawler.is_character(), 'fixture: the attacker is no longer a character.')
+	var passed:bool = await UnitHasecheck.make_hull_save(
+		SpecFactory.dummy_event(), brawler, retort_specific(), [Lancer.STATUS.PRONE])
+	assert_false(passed,
+		'A non-character "fails" a Hull save it never rolled - so forcing one on it would be an '
+		+ 'automatic Prone, which is what the riposte\'s is_character() guard refuses.')
 
 
 # ============================== THE CARD ==============================

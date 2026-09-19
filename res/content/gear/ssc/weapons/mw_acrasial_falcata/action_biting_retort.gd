@@ -25,8 +25,9 @@
 ## until = FINISH_ATTACK_ROLL and trigger_timing = POST fires ZERO times, because
 ## event_unit_attack.gd:120 clears every FINISH_ATTACK_ROLL buff off the unit and :123 queues the POST
 ## reactions on the very next line - so the observer is gone before anything asks it. Ruling 25 is the
-## replacement (a hidden, self-clearing END_OF_THIS_TURN observer); Task 3 builds it and applies it
-## beside the difficulty buff below.
+## replacement - a hidden, self-clearing END_OF_THIS_TURN observer - and it is applied beside the
+## difficulty buff at the bottom of this file. buff_biting_retort_riposte.gd is where it lives and
+## where the reasoning for every one of its properties is recorded.
 ##
 ## ============================ THE 1/ROUND IS THE ENGINE'S ============================
 ##
@@ -97,6 +98,20 @@ extends ActionReactionAttacked
 ## "Acrasial Falcata", naming the weapon rather than the reaction that was just accepted.
 const DIFFICULTY_BUFF:StringName = &'buff_biting_retort_difficulty'
 
+## THE RIPOSTE, armed here and decided at ATTACK POST. SP3 Task 3 built it as ruling 25 specifies:
+## a hidden, self-clearing buff with until = END_OF_THIS_TURN, NOT the design's FINISH_ATTACK_ROLL,
+## which Task 0's probe measured firing zero times. buff_biting_retort_riposte.gd carries the whole
+## argument and every citation; the short version is event_unit_attack.gd:120 clearing one line before
+## :123 queues.
+##
+## APPLIED TO THE DEFENDER - us - not to the attacker, because it is OUR observer: it watches the roll
+## that is about to be made against us and then hits back. The attacker never carries anything.
+##
+## THROUGH apply_buff_id AND NOT apply_buff, so `from_gear` is stamped with this activation's own gear
+## (action.gd:375-376). The riposte needs that: core.get_owner_gear(map) is where it gets the Falcata
+## back, which is both the save's forcing gear and the Prone's source id.
+const RIPOSTE_BUFF:StringName = &'buff_biting_retort_riposte'
+
 ## OVERRIDE BUT CALL SUPER. The archetype does every other gate declaratively from the .tres -
 ## require_unit_to_be, require_attacker_relation, require_attacker_to_be_in_los, weapon_types,
 ## allow_basic - and refuses anything that is not an ActionAttackWeapon or ActionAttackTech outright
@@ -127,4 +142,4 @@ func activate(context:Context, activation:EventCore) -> void:
 	spend_actions(activation)
 
 	apply_buff_id(activation, defender, DIFFICULTY_BUFF)
-	# Task 3 applies the riposte observer here, on the same defender, from the same activation.
+	apply_buff_id(activation, defender, RIPOSTE_BUFF)
