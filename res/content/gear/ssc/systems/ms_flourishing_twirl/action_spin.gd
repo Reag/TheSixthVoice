@@ -227,7 +227,7 @@ func activate(context:Context, activation:EventCore) -> void:
 	await run_system_fxgs(unit)
 	# The await crosses real frames, so re-check before measuring the board off `unit`. Vanilla guards
 	# its own FX awaits the same way ("guard against quitting the game mid-activation",
-	# common_action_util.gd:869, :886).
+	# common_action_util.gd:870, :886).
 	if activation.abort_without_unit(unit): return
 
 	# ------------------------------------------------------- 5. the radius

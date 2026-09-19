@@ -11,35 +11,13 @@
 ; under the content dir and mod-inclusive (content_library.gd:315-316). The folder is convention,
 ; the PREFIX is the mechanism.
 ;
-; Structurally the smallest thing that can reach the acting unit's own token: one FxGroup root, one
-; BumpNode child. fxg_lock_on.tscn is vanilla's example of the same two-node shape.
-;
-; NO PARTICLES, NO SFX, DELIBERATELY. The card is a mech whipping round on the spot; the sprite IS
-; the effect (see spin_node.gd's header for what four quadrant flips in under half a second look
-; like). Anything added here would be decorating a motion nobody has judged yet - the author's eye
-; through the FX tester is this task's acceptance, not a spec.
-;
-; --------------------------------------------------------------------------------------------
-; THE ROOT's preamble: DURATION, matching spin_node.gd's SPIN_DURATION - so the saves land as the
-; mech comes back round rather than while it is still turning. This is the vanilla idiom for a
-; system activation: fxg_base_activation.tscn, the DEFAULT_ACTIVATE_FXG this scene displaces, is
-; preamble_mode 2 with preamble_duration 0.5.
-;
-; NOT BASIC_CHILDREN_FINISHED (1), which would also wait for the bump and would read as the more
-; honest wiring. A timer cannot hang: spin_node.start() bails without emitting `finished` when it
-; cannot find a token, exactly as vanilla's own BumpNode bails (bump_node.gd:45, :54), and under
-; mode 1 that stalls the preamble - and therefore the whole activation - until MAX_EFFECT_TIME
-; fires at 10 s (fx_group.gd:25).
-;
-; KEEP THE TWO NUMBERS IN STEP. Changing one and not the other is not a crash, just a beat that
-; lands early or late.
-; --------------------------------------------------------------------------------------------
-;
-; distance = 0 IS THE WHOLE POINT OF THE BumpCore BELOW. spin_node.gd overrides start() and never
-; reads `core`, so every field in it is inert to US - but `core` may not be NULL: FxGroup.scale_bumps
-; calls `bumpnode.core.duplicate()` unguarded on every BumpNode child (fx_group.gd:189-191), and
-; vanilla's own BumpNode.start dereferences it at bump_node.gd:45. distance = 0 states the intent
-; for a reader who deletes the override: the fallback behaviour is "no positional bump", not a lurch.
+; THE REST OF THE RATIONALE LIVES IN spin_node.gd, NOT HERE. Godot re-serialises this scene from
+; the in-memory tree on every save - comments are not part of that tree, so the first inspector
+; edit (e.g. tuning preamble_duration below) silently deletes anything written in this file.
+; spin_node.gd's header covers: why preamble_mode is DURATION and not BASIC_CHILDREN_FINISHED, why
+; `core` on the BumpCore sub-resource below may not be null even though start() is overridden, why
+; there are no particles or SFX, the scene's root+BumpNode+BumpCore shape, and the
+; SPIN_DURATION / preamble_duration pairing - keep the two numbers in step.
 
 [sub_resource type="Resource" id="Resource_spin_core"]
 script = ExtResource("2_bump_core")

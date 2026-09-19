@@ -13,9 +13,10 @@
 ## A BumpNode is the only child type FxGroup hands the TOKEN to. `FxGroup.initialize` walks its
 ## children and calls `child.set_target_node(bumping_node, bump_angle)` for every `child is BumpNode`
 ## (fx_group.gd:158), where `bumping_node` is `user.token.Bumper` - the caller passes it in from
-## `CommonActionUtil.run_attack_and_target_fx` (common_action_util.gd:839, :842). Nothing else in the
-## census reaches the acting unit's own token. So subclassing BumpNode is not a convenience here; it
-## is the seam.
+## `CommonActionUtil.run_attack_and_target_fx`'s single-target branch, the one Spin actually takes
+## since it calls `run_system_fxgs(unit)` with empty `primary_targets` (common_action_util.gd:862).
+## Nothing else in the census reaches the acting unit's own token. So subclassing BumpNode is not a
+## convenience here; it is the seam.
 ##
 ## ================== target_node IS THE Bumper, NOT THE TOKEN ==================
 ##
@@ -30,7 +31,7 @@
 ## ================== THE FACING IS READ BACK, NOT ASSUMED ==================
 ##
 ## There is no getter for the current facing on UnitToken, so read_facing mirrors the SETTER's own
-## branch (unit_token.gd:329-332): a 2D sprite keeps its facing in the `facing_angle` shader uniform,
+## branch (unit_token.gd:329-333): a 2D sprite keeps its facing in the `facing_angle` shader uniform,
 ## a 3D mesh in TokenMesh.rotation.y. Reading `state.current_facing` instead would be wrong in the
 ## one place a human will actually watch this - the FX tester sets the target token's facing with
 ## `set_facing_angle(PI)` and never touches its state (tester_world.gd:34-35), so the two disagree
@@ -45,16 +46,69 @@
 ##
 ## Nothing here touches the unit's TRUE facing: `state.current_facing` is never written, and the last
 ## thing the tween does is put the visual back exactly where it found it.
+##
+## ================== WHY THE SCENE IS SHAPED THE WAY IT IS (fxg_spin.tscn) ==================
+##
+## Relocated here from fxg_spin.tscn's own comments (SP4 Task 4 fix wave): Godot re-serialises a
+## scene from the in-memory tree on save, and comments are not part of that tree, so the first
+## inspector edit on the scene - e.g. tuning preamble_duration - silently deletes anything written
+## there. This is the durable copy.
+##
+## -- preamble_mode is DURATION (2), not BASIC_CHILDREN_FINISHED (1) --
+## The root's preamble_duration (0.45) matches SPIN_DURATION below, so the saves land as the mech
+## comes back round rather than while it is still turning. This is the vanilla idiom for a system
+## activation: fxg_base_activation.tscn, the DEFAULT_ACTIVATE_FXG this scene displaces, is also
+## preamble_mode 2, with preamble_duration 0.5.
+##
+## NOT BASIC_CHILDREN_FINISHED, which would also wait for the bump and would read as the more honest
+## wiring. A timer cannot hang on a bail: start() below returns without emitting `finished` when it
+## cannot find a token, exactly as vanilla's own BumpNode bails (bump_node.gd:45, :54), and under
+## mode 1 that would stall the preamble - and therefore the whole activation - until MAX_EFFECT_TIME
+## fires at 10 s (fx_group.gd:25).
+##
+## THAT ONLY EXPLAINS THE BAIL CASE, THOUGH - DURATION mode does not avoid MAX_EFFECT_TIME either.
+## Traced further: fx_group.gd's DURATION timer connects its timeout to
+## `emit_signal.bind(&'preamble_finished')` rather than to `emit_finished_preamble()`
+## (fx_group.gd:260), so `is_preamble_finished` is never set to true, and `check_if_finished`'s
+## DURATION clause (`preamble_mode != PREAMBLE_MODE.DURATION or is_preamble_finished`,
+## fx_group.gd:439) is therefore never satisfied. So EVERY fxg_spin instance - bail or no bail -
+## is freed only by the MAX_EFFECT_TIME timer, ten seconds later. This is vanilla-wide, not a defect
+## introduced here: fxg_base_activation.tscn has the identical preamble_mode/preamble_duration shape
+## and the same fate. Recorded so DURATION mode is not mistaken for a fix specific to the bail case.
+##
+## -- why `core` on the BumpCore sub-resource may not be null, even though start() is overridden --
+## fxg_spin.tscn's BumpCore sub-resource sets distance = 0. This script overrides start() and never
+## reads `core`, so every field on it is inert to us here - but `core` may not be NULL: FxGroup.
+## scale_bumps calls `bumpnode.core.duplicate()` unguarded on every BumpNode child
+## (fx_group.gd:189-191), and vanilla's own BumpNode.start dereferences it at bump_node.gd:45.
+## distance = 0 states the intent for a reader who deletes this override: the fallback behaviour is
+## "no positional bump", not a lurch.
+##
+## -- why there are no particles or SFX --
+## The card is a mech whipping round on the spot; the sprite IS the effect (see "WHAT IT LOOKS LIKE"
+## above for what four quadrant flips in under half a second look like). Anything added would be
+## decorating a motion nobody has judged yet - the author's eye through the FX tester is this task's
+## acceptance, not a spec (ruling 20).
+##
+## -- the scene's shape --
+## Structurally the smallest thing that can reach the acting unit's own token: one FxGroup root, one
+## BumpNode child holding the BumpCore above. fxg_lock_on.tscn is vanilla's precedent for that same
+## root + BumpNode + BumpCore skeleton - it is not itself a two-node scene (it also carries an
+## SfxEmitter and a GPUParticles3D), but the FxGroup/BumpNode/BumpCore shape is the same one.
 extends BumpNode
 
 ## One full turn. Short enough to read as a whip rather than a pirouette; the four quadrant flips
 ## above mean anything much longer reads as a stutter. Tuned by eye in the FX tester, which
 ## hot-reloads - edit, save, alt-tab back.
+##
+## KEPT IN STEP BY HAND with fxg_spin.tscn's `preamble_duration` (currently 0.45) - nothing in code
+## enforces the pairing. A mismatch is not a crash, just a beat (the saves resolving) landing early
+## or late relative to the spin; cosmetic, not correctness.
 const SPIN_DURATION:float = 0.45
 
 func start() -> void:
 	# FIRST LINE, EXACTLY AS VANILLA'S BumpNode.start (bump_node.gd:43). This is not a leak: in
-	# TEST_MODE `FxGroup.run` calls `finish()` outright before the child census (fx_group.gd:207-209),
+	# TEST_MODE `FxGroup.run` calls `finish()` outright before the child census (fx_group.gd:209-211),
 	# which emits `all_effects_finished` and sets `is_finished`, so the `live_bump_count` this bump
 	# would otherwise decrement no longer gates anything. Deliberately does NOT emit `finished` in
 	# TEST_MODE - vanilla does not either, and matching vanilla is the point (ruling 20).
@@ -108,7 +162,7 @@ func find_facing_node(from:Node3D) -> Node3D:
 		node = node.get_parent()
 	return null
 
-## The current VISUAL facing, mirroring set_facing_angle's own branch (unit_token.gd:329-332).
+## The current VISUAL facing, mirroring set_facing_angle's own branch (unit_token.gd:329-333).
 ## Returns 0.0 when the token is shaped in some way this does not recognise, which costs a wrong
 ## starting quadrant and nothing else - the spin still turns a full TAU and still restores.
 func read_facing(token:Node3D) -> float:
