@@ -313,3 +313,5 @@ gear.ms_o_trickery.name,O' Trickery
 gear.ms_o_trickery.flavor,"""And this HORUS system forces its way in, hijacking the targeting array, forcing focus onto the user's location and overriding decision points."" ""Fantastic."" ""Oh and this one brings them right next to the user."" ""Ah, surely nothing could go wrong with this."""
 gear.ms_o_trickery.action_grey_birds.name,The Flight of the Crescent of Grey Birds
 gear.ms_o_trickery.action_grey_birds.effect,"Until the end of the next round, if your target takes an action that could target you, they must target you with that action."
+gear.ms_o_trickery.action_hunt_of_the_vagrant_sowche.name,Hunt of the Vagrant Sowche
+gear.ms_o_trickery.action_hunt_of_the_vagrant_sowche.effect,"Your target must succeed a |Systems save| or be teleported to a free space adjacent to the closest character. If there are multiple characters tied for closest, you choose. This can only be used 1/scene on each character."

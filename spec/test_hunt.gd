@@ -45,8 +45,8 @@ extends GutTest
 const SluaghFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/sluagh_fixture.gd')
 const MaidensBlushFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/maidens_blush_fixture.gd')
 
-## Declared here and unused until Task 9's card-text case, which is where this file's sibling specs
-## (test_rend_nexus.gd, test_grey_birds.gd) read their rows from.
+## Read by Task 9's card-text case, test_the_hunt_rows_resolve, the same way this file's sibling
+## specs (test_rend_nexus.gd, test_grey_birds.gd) read their own rows.
 const OUR_TRANSLATION := 'res://unpacked/Reag-TheSixthVoice/localization/localizations.en.translation'
 
 const MAP_SIZE := Vector2i(30, 14)
@@ -370,3 +370,22 @@ func test_a_maidens_blush_uncertainty_field_vetoes_the_shove():
 	assert_true(blush.has_status(Lancer.STATUS.INVISIBLE),
 		'And it faded instead, which is what says the trait fired rather than the shove failing.')
 	assert_true(stamped(blush), 'And the character is still spent - the invade hit.')
+
+func test_the_hunt_rows_resolve():
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation, 'This mod has a compiled translation.')
+	if translation == null: return
+	for key:String in [
+		'gear.ms_o_trickery.action_hunt_of_the_vagrant_sowche.name',
+		'gear.ms_o_trickery.action_hunt_of_the_vagrant_sowche.effect',
+	]:
+		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
+		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
+	assert_eq(X.tr('gear.ms_o_trickery.action_hunt_of_the_vagrant_sowche.name'),
+		'Hunt of the Vagrant Sowche', 'The card\'s own name, without the LCP\'s trailing space.')
+	# X.tr keeps the glossary pipes, so this pins the one pipe on the row too.
+	assert_true(X.tr('gear.ms_o_trickery.action_hunt_of_the_vagrant_sowche.effect')
+		.begins_with('Your target must succeed a |Systems save| or be teleported'),
+		'And the effect row is the LCP\'s sentence, with |Systems save| piped and "teleported" bare.')
+	assert_true(X.tr('gear.ms_o_trickery.action_hunt_of_the_vagrant_sowche.effect')
+		.ends_with('1/scene on each character.'), 'Entire, to the last clause.')
