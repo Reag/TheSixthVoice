@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="UnlockTree" format=3]
+
+[ext_resource type="Script" uid="uid://dq0jowvw37x6i" path="res://engine/character/unit_core/unlock_tree.gd" id="1_unlocktree"]
+[ext_resource type="Script" uid="uid://ctb1pfqlfgmni" path="res://engine/character/unit_core/unlock_rank.gd" id="2_unlockrank"]
+[ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="3_frame"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="4_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/mf_sluagh.tres" id="5_mf_sluagh"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/placeholder/mf_placeholder.png" id="6_icon"]
+
+[sub_resource type="Resource" id="Resource_rank1"]
+script = ExtResource("2_unlockrank")
+granted_gear = Array[ExtResource("4_kit")]([])
+
+[sub_resource type="Resource" id="Resource_rank2"]
+script = ExtResource("2_unlockrank")
+granted_frames = Array[ExtResource("3_frame")]([ExtResource("5_mf_sluagh")])
+granted_gear = Array[ExtResource("4_kit")]([])
+
+[sub_resource type="Resource" id="Resource_rank3"]
+script = ExtResource("2_unlockrank")
+granted_gear = Array[ExtResource("4_kit")]([])
+
+[resource]
+script = ExtResource("1_unlocktree")
+icon = ExtResource("6_icon")
+rank_1 = SubResource("Resource_rank1")
+rank_2 = SubResource("Resource_rank2")
+rank_3 = SubResource("Resource_rank3")

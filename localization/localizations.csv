@@ -280,3 +280,7 @@ gear.ms_flourishing_twirl.name,Flourishing Twirl
 gear.ms_flourishing_twirl.flavor,"Unlike some of its sister parts, the Flourishing Twirl subsystems are a very concise description of their function. By rapidly spinning a frame around its Y axis, any substantially sized weapon held can decimate nearby foes. However, those function are only half of the systems, the other half consist of gyroscopic balancers to keep the pilot inside from getting violently dizzy."
 gear.ms_flourishing_twirl.action_spin.name,Spin
 gear.ms_flourishing_twirl.action_spin.effect,"Choose a weapon you have mounted, all hostile characters within its threat and |line of sight| must succeed an |Agility save| or take 4 |kinetic| damage and become |Impaired| until the end of their next turn."
+,
+frame.mf_sluagh.name,Sluagh
+frame.mf_sluagh.flavor.short,Obsessive Support
+frame.mf_sluagh.flavor,"""Here I am my beloved I was brave once and I shall be brave once more I was strong once and I shall be strong once more I was a savior once and I shall be a savior once more I died once and I shall die once more Here I am my beloved You are grand You are bleak Together we have no use for death"" (not operational) \\\\ - RA"
