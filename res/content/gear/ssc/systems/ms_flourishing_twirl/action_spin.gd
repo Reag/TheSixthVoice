@@ -176,6 +176,11 @@ extends ActionSystem
 ## The card's numbers.
 const DAMAGE:int = 4
 
+## The shockwave's scene, by path. A PackedScene const would be a preload, and a preload in a mod
+## file that the engine may parse before the mod's own resources are mounted is a parse-time risk
+## this file has no need to take.
+const SHOCKWAVE_SCENE := 'res://unpacked/Reag-TheSixthVoice/res/content/fx_groups/actions/fxg_shockwave.tscn'
+
 func activate(context:Context, activation:EventCore) -> void:
 	var unit:Unit = context.unit
 	var gear:GearCore = context.gear
@@ -218,11 +223,21 @@ func activate(context:Context, activation:EventCore) -> void:
 	# ------------------------------------------------------- 4. the cost
 	spend_actions(activation)
 
+	# ------------------------------------------------------- 5. the radius (MOVED ABOVE THE FX)
+	# HOISTED FROM BELOW THE FX BLOCK so the wave can be told how far to travel. Both lines are pure
+	# reads - `chosen.reach` is a dictionary lookup, get_characters_within is a query - so nothing
+	# about the activation depends on where they sit. Only the FX does.
+	var reach:int = chosen.reach
+	var hostiles:Array[Unit] = UnitRelation.get_characters_within(
+		unit, reach, true,
+		func(other:Unit) -> bool: return UnitRelation.are_enemies(unit, other)
+	)
+
 	# ------------------------------------------------------- 4b. the spin itself
 	# AFTER THE SPEND, ON PURPOSE. Every return above this line is a Spin that never happened - no
 	# mounted weapon, or a prompt the player backed out of - and a mech that whips round for a cancel
 	# is a lie about what it just cost. Before the radius, because the FX's own preamble is the beat
-	# the saves land on (fxg_spin.tscn sets preamble_mode DURATION 0.45, matching spin_node.gd's
+	# the saves land on (fxg_spin.tscn sets preamble_mode DURATION 0.8, matching spin_node.gd's
 	# SPIN_DURATION), and run_system_fxgs awaits exactly that preamble and no longer
 	# (common_action_util.gd:867-869).
 	#
@@ -230,18 +245,29 @@ func activate(context:Context, activation:EventCore) -> void:
 	# automatically - see the "WIRING fxg_use IS NOT ENOUGH" header section for the finding.
 	# MEASURED at Task 4: commented out, test_spin.gd stays 16/16 on the identical 105 asserts. The
 	# screen is the only thing that goes still, which is why the FX tester is the acceptance.
-	await run_system_fxgs(unit)
+	#
+	# THE SHOCKWAVE GOES FIRST AND IS NOT AWAITED. run_system_fxgs below awaits the spin's 0.8 s
+	# preamble; the ring should still be travelling when the impact pops land, so awaiting it here
+	# would defeat the whole point. fire_shockwave returns as soon as the group is running.
+	fire_shockwave(unit, reach)
+	# `hostiles`, not nothing: the engine's `if fxg_target:` block loops target_units unconditionally
+	# (common_action_util.gd:872-877), so handing it the units caught in the area is the entire
+	# mechanism behind the per-unit impact pops. NOT RUN_FX_FLAGS.multiple_attack_fxgs, which makes N
+	# copies of fxg_ATTACK - for an ActionSystem that is fxg_use, the spin itself, so passing it would
+	# stack N facing tweens on this unit's own token (common_action_util.gd:836-842).
+	#
+	# IT ALSO CHANGES THE CAMERA, deliberately. run_system_fxgs branches on whether primary_targets is
+	# empty (action_system.gd:79-91): empty centres on the acting unit, non-empty frames all of them.
+	# A shockwave whose point is the area it covers wants the area on screen.
+	await run_system_fxgs(unit, hostiles)
 	# The await crosses real frames, so re-check before measuring the board off `unit`. Vanilla guards
 	# its own FX awaits the same way ("guard against quitting the game mid-activation",
 	# common_action_util.gd:870, :886).
 	if activation.abort_without_unit(unit): return
 
-	# ------------------------------------------------------- 5. the radius
-	var reach:int = chosen.reach
-	var hostiles:Array[Unit] = UnitRelation.get_characters_within(
-		unit, reach, true,
-		func(other:Unit) -> bool: return UnitRelation.are_enemies(unit, other)
-	)
+	# NOW the empty check, BELOW the FX rather than above it. A Spin that catches nobody still whips
+	# round and still throws its wave: it cost an action either way, and an activation that spends a
+	# charge and leaves the screen still reads as a bug. Moved here from step 5 with the query.
 	if hostiles.is_empty(): return
 
 	# ------------------------------------------------------- 6. the saves
@@ -309,6 +335,80 @@ func activate(context:Context, activation:EventCore) -> void:
 			Lancer.STATUS.IMPAIRED, Lancer.UNTIL.END_OF_NEXT_TURN,
 			gear_id
 		)
+
+## Throw the shockwave ring, sized to the chosen weapon's reach. Returns the FxGroup it created (or
+## null on any early return), purely so a spec can inspect what actually got built and run -
+## action_spin.gd's own caller ignores the value (SP4 whole-branch review, Finding 4).
+##
+## create -> configure -> run, which is the engine's own seam for an FX that needs a runtime value:
+## FxGroup.create_from_scene calls initialize and RETURNS (fx_group.gd:101-113), leaving run() to the
+## caller, and event_unit_damage.gd:225-233 is vanilla doing exactly this with scale_bumps.
+##
+## NOT AWAITED BY ITS CALLER, and it has no await of its own - see the call site.
+##
+## Every failure here is silent and harmless: an FX that cannot be built is not a reason to abort an
+## action the player has already paid for.
+func fire_shockwave(unit:Unit, reach:int) -> FxGroup:
+	if not Unit.is_valid(unit): return null
+	if reach <= 0: return null
+	var scene:PackedScene = load(SHOCKWAVE_SCENE)
+	if scene == null or not scene.can_instantiate(): return null
+
+	var fxg:FxGroup = FxGroup.create_from_scene(scene, UnitTile.position_center(unit), Vector3.ZERO, unit.token.Bumper)
+	if fxg == null: return null
+	var ring:Node = fxg.get_node_or_null('Ring')
+	if ring != null: ring.set_radius_in_tiles(reach)
+	fxg.run()
+	return fxg
+
+## THE CAMERA STAYS ON THE PRIMROSE (author, 2026-09-20: "lets have the camera center on the primrose
+## when the ability is triggered").
+##
+## Overridden rather than worked around at the call site, because the camera decision happens at the
+## TOP of the vanilla body, before any FX is created (action_system.gd:79-91) - there is no moment
+## after `await run_system_fxgs(...)` returns at which framing it differently would still be framing
+## it for this animation. vanilla's own action_strafe_ace.gd is the precedent for an ActionSystem
+## subclass wrapping this method.
+##
+## WHAT VANILLA WOULD DO, AND WHY IT IS WRONG HERE. Passing a non-empty `primary_targets` takes the
+## all-units branch, `camera_bus.show_all_tiles(collect_all_occupied_tiles(target_units), true)`
+## (action_system.gd:83-85). That tile set is ONLY the hostiles: the acting unit - the point the wave
+## emanates FROM - is never in it. With one hostile the camera slides to centre on the VICTIM
+## (camera_pivot.gd's single-position branch) and the Primrose sits up to `reach` tiles off-centre,
+## so the ring's own origin can be off-screen entirely; with two adjacent hostiles it zooms hard to a
+## two-tile box and a radius-4 ring is mostly outside it. An earlier design note accepted that branch
+## on the reasoning that "an area effect wants its area on screen" - that reasoning was wrong about
+## what show_all_tiles is actually handed, and this override is the correction.
+##
+## `focus_on_unit(unit, false, false)`, not ensure_unit_onscreen: ensure_unit_onscreen only moves the
+## camera when the unit has drifted outside the viewport's centre rect (camera_bus.gd:135-139), so a
+## Primrose already loosely on screen would not be centred at all. The two `false`s are deliberate -
+## no zoom reset, and NO ROTATION. `focus_on_unit` rotates by default (camera_bus.gd:125-127), and a
+## camera rotating through the same half-second the mech is spinning is the one thing guaranteed to
+## make a facing-based animation unreadable.
+##
+## The `primary_targets` argument is still passed straight through to the FX, untouched: it is what
+## draws the per-unit impact pops (common_action_util.gd:872-877). Only the camera changes.
+func run_system_fxgs(
+	unit:Unit,
+	primary_targets:Array = [],
+	aoe_tiles:Array[Vector2i] = [],
+	run_fx_flags:Array = [],
+) -> void:
+	if not play_fxg_on_activate: return
+	if not Unit.is_valid(unit): return
+	camera_bus.focus_on_unit(unit, false, false)
+
+	var fxg_activate:PackedScene = fxg_use
+	if fxg_activate == null: fxg_activate = load(ContentLibrary.get_fxgroup_path(DEFAULT_ACTIVATE_FXG))
+	if not (fxg_activate and fxg_activate.can_instantiate()) and not (fxg_target and fxg_target.can_instantiate()): return
+
+	await CommonActionUtil.run_attack_and_target_fx(
+		fxg_activate, unit,
+		fxg_target, primary_targets,
+		fxg_aoe, aoe_tiles,
+		run_fx_flags
+	)
 
 ## One dictionary per MOUNTED weapon profile that prints a threat: { reach, label }.
 ##
