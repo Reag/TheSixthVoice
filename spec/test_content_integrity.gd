@@ -629,7 +629,12 @@ const ICON_TARGETS := {
 	#    action_draw_fire / action_uffish_gyre shape.
 	# Every icon here is SP5's, so this row is part of what keeps
 	# test_every_player_facing_kit_and_action_has_a_real_icon red until then.
-	&'cp_cry_of_the_hosted_dead': {&'action_mark_of_the_dead': &'action_mark_of_the_dead'},
+	# TWO FAMILIES ON ONE KIT, so SP5 must give them genuinely different drawings or collapse them
+	# into one family name here: the guard refuses two families on a Kit wearing the same texture
+	# (the claimed/texture_by_family loop below), because the gear bar would draw them as one button.
+	# Design section 5 currently groups the Mark, its chip, the soft-cover chip and the retort as ONE
+	# glyph family, so that is a decision SP5 owes - flagged here rather than pre-empted.
+	&'cp_cry_of_the_hosted_dead': {&'action_mark_of_the_dead': &'action_mark_of_the_dead', &'action_mark_retort': &'action_mark_retort'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

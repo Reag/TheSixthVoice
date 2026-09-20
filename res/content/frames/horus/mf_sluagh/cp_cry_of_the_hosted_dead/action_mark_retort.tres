@@ -1,0 +1,31 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/cp_cry_of_the_hosted_dead/action_mark_retort.gd" id="1_retort"]
+
+[resource]
+script = ExtResource("1_retort")
+; A usage_group PER ACTION on a Kit that carries three (unit_action.gd:167-168, the Subutai SP2
+; lesson): without it the Mark, Astral Guardian and this would share the Kit's id as one group and
+; lock each other out.
+usage_group = &"action_mark_retort"
+triggers_on = Array[StringName]([&"attack"])
+; POST (ReactionBus.TIMING.POST == 1). The roll block that applies require_miss is behind
+; `if trigger_timing == POST` (action_reaction_attacked.gd:101-107), so at PRE it is SKIPPED rather
+; than refusing and this would fire on every attack - measured one card over, in Task 6's mutation 6.
+trigger_timing = 1
+require_miss = true
+; RELATION is { ANY, ALLIES, ENEMIES } (action_reaction_attacked.gd:12), so 2 is ENEMIES and 1 is
+; ALLIES. A hostile attacker, against us or an ally - and are_allies is true of a unit and itself
+; (unit_relation.gd:363-364), which is what lets one filter cover "misses YOU" as well.
+require_attacker_relation = 2
+require_defender_relation = 1
+; Both default FALSE and both are needed: the card says "an attack", unqualified, and without them a
+; hostile invade is refused at action_reaction_attacked.gd:126-127 and a hostile basic attack at
+; :113. Every vanilla require_miss reaction sets both - action_defense_net_aegis_miss.tres,
+; action_feedback_priest.tres, action_metastatic_paralysis.tres, action_scorpion_attacked.tres.
+allow_tech = true
+allow_basic = true
+; consumes_rxn IS DELIBERATELY ABSENT. It defaults to TRUE (action_reaction.gd:12), which is what
+; "as a reaction" means, and that same default is what gives the card its 1/round without an override
+; (action_reaction.gd:69 returns 1 for a point-spending reaction and 99 for a point-free one). This
+; is the one reaction in SP1 that does not set it false, and the only real reaction on this frame.
