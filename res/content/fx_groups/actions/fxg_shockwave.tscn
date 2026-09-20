@@ -1,0 +1,74 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://bivnhhagha82d" path="res://engine/gamemaster/effects_controller/fx_group/fx_group.gd" id="1_fxg"]
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/fx_groups/actions/shockwave_node.gd" id="2_ring"]
+[ext_resource type="Shader" uid="uid://brbiv3ko43b0i" path="res://assets/fx/shaders/explosion_ring.gdshader" id="3_ring_shader"]
+[ext_resource type="Texture2D" uid="uid://jj2m330b0ti1" path="res://assets/fx/noise/seamless_noise_512_cellular.png" id="4_noise"]
+
+[sub_resource type="Gradient" id="Gradient_ring"]
+offsets = PackedFloat32Array(0, 0.82, 1)
+colors = PackedColorArray(0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_ring"]
+gradient = SubResource("Gradient_ring")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ring"]
+shader = ExtResource("3_ring_shader")
+shader_parameter/ring_texture = SubResource("GradientTexture2D_ring")
+shader_parameter/noise_texture = ExtResource("4_noise")
+shader_parameter/primary_color = Color(1, 1, 1, 1)
+shader_parameter/emission_strength = 2.5
+shader_parameter/alpha_mode = 2
+
+[sub_resource type="Curve" id="Curve_scale"]
+_data = [Vector2(0, 0.05), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_scale"]
+curve = SubResource("Curve_scale")
+
+[sub_resource type="Curve" id="Curve_alpha"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.7, 0.8), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_alpha"]
+curve = SubResource("Curve_alpha")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_ring"]
+angle_min = 1.07288e-05
+angle_max = 1.07288e-05
+direction = Vector3(0, 1, 0)
+spread = 0.0
+initial_velocity_min = 0.0
+initial_velocity_max = 0.0
+gravity = Vector3(0, 0, 0)
+scale_min = 1.0
+scale_max = 1.0
+scale_curve = SubResource("CurveTexture_scale")
+alpha_curve = SubResource("CurveTexture_alpha")
+
+[sub_resource type="QuadMesh" id="QuadMesh_ring"]
+size = Vector2(2, 2)
+orientation = 1
+
+[node name="FxgShockwave" type="Node3D"]
+script = ExtResource("1_fxg")
+emitter_duration = 0.1
+preamble_mode = 2
+preamble_duration = 0.45
+
+[node name="Ring" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+material_override = SubResource("ShaderMaterial_ring")
+emitting = false
+amount = 1
+lifetime = 0.5
+one_shot = true
+explosiveness = 1.0
+local_coords = true
+process_material = SubResource("ParticleProcessMaterial_ring")
+draw_pass_1 = SubResource("QuadMesh_ring")
+script = ExtResource("2_ring")
