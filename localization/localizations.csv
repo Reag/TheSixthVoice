@@ -293,3 +293,7 @@ gear.mt_the_stealing_of_the_souls_of_the_dead.effect,"Whenever a hostile charact
 ,
 gear.mt_inexorable_formation.name,Inexorable Formation
 gear.mt_inexorable_formation.effect,The Sluagh increases its |Sensors| equal to its |OVERSHIELD|.
+,
+gear.cp_cry_of_the_hosted_dead.name,Cry of the Hosted Dead
+gear.cp_cry_of_the_hosted_dead.effect,"1/round, when an adjacent allied character is hit by an attack made by a hostile character, they gain +1d6 |OVERSHIELD|. The |OVERSHIELD| is granted before damage is dealt."
+gear.cp_cry_of_the_hosted_dead.action_astral_guardian.name,Astral Guardian

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/cp_cry_of_the_hosted_dead/action_astral_guardian.gd" id="1_guardian"]
+
+[resource]
+script = ExtResource("1_guardian")
+; A usage_group PER ACTION on a Kit that carries three (unit_action.gd:167-168, the Subutai SP2
+; lesson): without it the Mark, the retort and this would share the Kit's id as one group and lock
+; each other out.
+usage_group = &"action_astral_guardian"
+triggers_on = Array[StringName]([&"attack"])
+trigger_timing = 1
+consumes_rxn = false
+require_hit = true
+; RELATION is { ANY, ALLIES, ENEMIES } (action_reaction_attacked.gd:12), so 2 is ENEMIES and 1 is
+; ALLIES. The Sluagh's relation to the attacker, and to the defender.
+require_attacker_relation = 2
+require_defender_relation = 1
+; Both default FALSE and both are needed: the card says "an attack", unqualified, and without them a
+; hostile invade is refused at action_reaction_attacked.gd:126-127 and a hostile basic attack at :113.
+allow_tech = true
+allow_basic = true

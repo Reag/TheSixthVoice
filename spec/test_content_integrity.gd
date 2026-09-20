@@ -617,6 +617,19 @@ const ICON_TARGETS := {
 	# update_cached_values asks it for get_values() and never for an icon
 	# (unit_battle_state.gd:231-234). The Kit's own icon is SP5's.
 	&'mt_inexorable_formation': {},
+	# SP1 Tasks 6, 7 and 8 (Sluagh). CRY OF THE HOSTED DEAD, the core system. THREE actions by the
+	# end of SP1 and only SOME of them belong in the value map:
+	#  - action_astral_guardian (Task 6) is a reaction with show_in_tooltip false, so it reaches no
+	#    player-facing surface and is correctly ABSENT - the mt_halo / ms_heaer shape. This retires
+	#    design section 5's {Kit, action_astral_guardian} glyph family: the Kit's glyph is the whole
+	#    of it.
+	#  - action_mark_of_the_dead (Task 7) is a QUICK action on the gear bar and gets its own glyph.
+	#  - action_mark_retort (Task 8) is a reaction that DOES reach the trait card, because it has its
+	#    own effect row and show_in_tooltip is not overridden (action.gd:350-353) - the
+	#    action_draw_fire / action_uffish_gyre shape.
+	# Every icon here is SP5's, so this row is part of what keeps
+	# test_every_player_facing_kit_and_action_has_a_real_icon red until then.
+	&'cp_cry_of_the_hosted_dead': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
