@@ -269,3 +269,46 @@ func test_the_two_chips_land_on_one_roll():
 	assert_false(wicked_host_after.has(first_wicked_host_chip),
 		'...and so was Wicked Host\'s, by the same roll - the chip on the Sluagh now is the fresh one '
 		+ 'that same HIT armed, not the one that was live for the roll.')
+
+# ---------------------------------------------------------------- the card and the licence
+
+func test_the_card_rows_resolve():
+	# Through THIS MOD'S OWN compiled artifact first, so a sibling Reag-* mod loaded in the same
+	# testkit run cannot hold this green - the same pattern test_wicked_host.gd and
+	# test_sluagh_frame.gd use.
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation, 'This mod has a compiled translation.')
+	if translation == null: return
+	for key:String in ['gear.mw_rend_nexus.name', 'gear.mw_rend_nexus.flavor', 'gear.mw_rend_nexus.on_crit']:
+		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
+		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
+	assert_eq(X.tr('gear.mw_rend_nexus.name'), 'Rend Nexus', 'The card\'s own name.')
+	# X.tr KEEPS THE GLOSSARY PIPES (SP1 Task 7's finding), so this pins the pipe too - which is the
+	# only thing that would catch |Difficulty| being written unpiped or piped on a label that does not
+	# resolve.
+	assert_eq(X.tr('gear.mw_rend_nexus.on_crit'),
+		'Until the end of your next turn, the next attack against you has +2 |Difficulty|.',
+		'RULING 2: the crit row ships "against YOU". The LCP doubles the word, and '
+		+ 'tools/check_content.py carries that as a recorded exemption rather than a silent edit.')
+	# THE ENGINE REALLY READS THIS KEY - it is not decoration. Translate.action falls through from
+	# gear.<kit>.<action>.on_crit to gear.<kit>.on_crit (translate.gd:26-29, :44-45), and both
+	# surfaces that draw a weapon card read 'on_crit' through it: the character sheet at kit.gd:256
+	# and the action tooltip at tooltip_organ_action.gd:188.
+	var kit:Kit = ContentLibrary.get_kit(SluaghFixture.REND_NEXUS)
+	if kit == null or kit.actions.is_empty(): return assert_true(false, 'fixture: the Kit loaded.')
+	assert_eq(Translate.action(kit, kit.actions[0], 'on_crit', false),
+		X.tr('gear.mw_rend_nexus.on_crit'),
+		'And Translate.action finds it from the ACTION, through the Kit-level fallback.')
+
+func test_the_licence_grants_it_at_rank_one():
+	var licence:UnlockTree = ContentLibrary.get_license_tree(SluaghFixture.LICENSE_ID)
+	assert_not_null(licence, 'li_sluagh loads as an UnlockTree.')
+	if licence == null: return
+	var rank_1_ids:Array[StringName] = []
+	for kit:Kit in licence.rank_1.granted_gear: rank_1_ids.append(kit.compcon_id)
+	assert_true(rank_1_ids.has(SluaghFixture.REND_NEXUS), 'Rank 1 grants the Rend Nexus.')
+	# The frame is still rank 2's and nothing else moved - the assertion test_sluagh_frame.gd makes
+	# about rank 2 is not repeated here, only the one this task could have broken.
+	assert_true(licence.rank_2.granted_gear.is_empty(),
+		'Rank 2 still grants no GEAR - only the frame, until SP3.')
+	assert_true(licence.rank_3.granted_gear.is_empty(), 'And rank 3 is still empty, until SP4.')

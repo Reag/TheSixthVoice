@@ -306,3 +306,6 @@ gear.buff_mark_of_the_dead.name,Mark of the Dead and the Damned and the Lost
 gear.buff_mark_of_the_dead.effect,"You and adjacent allied characters gain |soft cover|. As a |reaction|, when an attack misses you or an adjacent allied character, you may deal |energy| damage to the attacker equal to your |OVERSHIELD|."
 gear.cp_cry_of_the_hosted_dead.action_mark_retort.name,Mark of the Dead and the Damned and the Lost
 gear.cp_cry_of_the_hosted_dead.action_mark_retort.effect,"As a |reaction|, when an attack misses you or an adjacent allied character, you may deal |energy| damage to the attacker equal to your |OVERSHIELD|."
+gear.mw_rend_nexus.name,Rend Nexus
+gear.mw_rend_nexus.flavor,"""I call to you, O damned souls, sit and speak to me of the all the horrors we have wrought!"""
+gear.mw_rend_nexus.on_crit,"Until the end of your next turn, the next attack against you has +2 |Difficulty|."
