@@ -661,6 +661,12 @@ const ICON_TARGETS := {
 	# before the assert_ne at :845 is reached. The three-assert arithmetic above is the KIT-row shape
 	# and does not repeat here.
 	&'ms_o_trickery': {&'action_grey_birds': KIT, &'action_hunt_of_the_vagrant_sowche': &'action_hunt_of_the_vagrant_sowche'},
+	# SP3 Task 1 (Sluagh). The rank-II Auxiliary weapon. mw_rend_nexus's shape exactly: its single
+	# action IS the Kit's first weapon action, so it is drawn unconditionally by the character
+	# sheet's integrated-weapon box, and design section 5 gives the weapon ONE family -
+	# {mw_nightfare_nexus, buff_nightfare_soft_cover} - so the action inherits the Kit's drawing and
+	# this is a KIT row. THREE failing asserts until SP5, per the arithmetic above.
+	&'mw_nightfare_nexus': {&'action_nightfare_nexus': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -815,6 +821,18 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# ATTACK_DECLARED listener with no passive channel at all), so without this the player has no way
 	# to see which enemy is bound - or that the invade landed. Its icon is SP5's.
 	&'buff_grey_birds',
+	# SP3 Task 1 (Sluagh). The Nightfare Nexus's soft-cover chip, and a DELIBERATE DIVERGENCE from
+	# buff_mark_soft_cover above, which is hidden. The author ruled it visible on 2026-09-21: that
+	# one is hidden because buff_mark_of_the_dead stands beside it as the signal the dome is up,
+	# and this weapon leaves no companion chip at all - so without a visible one the player has no
+	# marker that the shot did anything until they next aim at that unit.
+	#
+	# WHICH ICON IT NEEDS IS THE STATUS BAR'S, NOT THE ROLL BREAKDOWN'S. A Buff.TO.COVER buff's own
+	# icon is never drawn by a roll - attack_roll.gd:169 adds the cover modifier with
+	# Icon.cover(preattack.cover) - which is why buff_mark_soft_cover belongs in neither icon table
+	# and this one belongs in THIS table rather than in HIDDEN_BUFFS_NEEDING_ICONS. Its icon is
+	# SP5's, shared with the weapon as one family.
+	&'buff_nightfare_soft_cover',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

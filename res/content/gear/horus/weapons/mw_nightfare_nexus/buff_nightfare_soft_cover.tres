@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="BuffCover" format=3]
+
+[ext_resource type="Script" uid="uid://d0l6p3u6jopti" path="res://engine/character/buff/archtypes/buff_cover.gd" id="1_cover"]
+
+; THE NIGHTFARE NEXUS'S SOFT COVER (SP3 Task 1, ruling 19). Hung on the TARGET by
+; onhit_nightfare_nexus.tres, not on the Sluagh.
+;
+; cover = 1 is Lancer.COVER.SOFT (lancer.gd:151, enum COVER { NONE, SOFT, HARD }). buff_mark_soft_cover
+; two folders over is the same archetype at the same value; vanilla's buff_hive_frenzy_cover_aura.tres
+; is this file with an icon.
+[resource]
+script = ExtResource("1_cover")
+cover = 1
+; THE ONLY CHANNEL THE COVER PIPELINE READS. CoverCalculator.determine_cover asks
+; UnitCondition.get_buffs_to(..., Buff.TO.COVER, ...) of the defender and of the attacker
+; (cover_calculator.gd:56-62) and of nobody else - which is also why this card can only shelter the
+; unit it is applied to, and why it is applied to the target rather than sitting on the Sluagh.
+to = &"cover"
+; until = 6 is Lancer.UNTIL.START_OF_OWNERS_TURN (lancer.gd:46-57), whose own comment is "hangs out
+; until the start of the turn of the unit who placed this".
+;
+; "THE UNIT WHO PLACED THIS" IS THE SLUAGH, AND IT IS THE GEAR THAT DECIDES IT.
+; BuffCore.get_owner_unit (buff_core.gd:102-105) resolves the buff's from_gear through
+; map.get_unit_from_source_id, and OnHitEffect.apply_statuses_and_buffs hands context.gear to
+; UnitCondition.apply_buffs (on_hit_effect.gd:86-88) - so the owner is whoever is holding the weapon,
+; however far away the wearer is standing. UnitCondition.clear_owners_turn_statuses, called for the
+; STARTING unit at event_turn_start.gd:77, then walks every unit on the map and clears the buffs that
+; answer is_unit_owner(starter). That is exactly the card's "until the start of YOUR next turn", and
+; test_the_chip_clears_at_the_start_of_the_sluaghs_next_turn pins both halves of it - the target's own
+; turn start must NOT take it.
+;
+; A from_gear THAT WENT EMPTY WOULD MAKE THIS BUFF PERMANENT rather than broken-looking: a null owner
+; matches no starter, so nothing would ever clear it. There is no engine warning for that.
+until = 6
+; VISIBLE (author's ruling, 2026-09-21), which is a DIVERGENCE from buff_mark_soft_cover.tres beside
+; it and is deliberate. That chip is hidden because buff_mark_of_the_dead stands next to it as the
+; player's signal that the dome is up, and two chips for one effect read as two effects. This weapon
+; leaves no companion chip at all, so without a visible one the shot's whole after-effect would be
+; invisible until the player next aimed at that unit.
+;
+; IT THEREFORE OWES AN ICON, AND SP5 OWES IT. Note that a Buff.TO.COVER buff's own icon is never drawn
+; by the ROLL BREAKDOWN - that adds the cover modifier with Icon.cover(preattack.cover)
+; (attack_roll.gd:169), not with buff_core.base.icon - so the icon this needs is the STATUS BAR'S, and
+; it belongs in VISIBLE_BUFFS rather than in HIDDEN_BUFFS_NEEDING_ICONS. Design 5 gives it the
+; weapon's own glyph family, {mw_nightfare_nexus, this chip}.

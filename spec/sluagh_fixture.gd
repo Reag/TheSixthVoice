@@ -413,3 +413,35 @@ static func hunt(game:Gamemaster, sluagh:Unit, target:Unit) -> void:
 	if sluagh.state.is_taking_turn: await SpecFactory.end_turn(game, sluagh)
 	await SpecFactory.start_turn(game, sluagh)
 	await SpecFactory.use(game, sluagh, TRICKERY, HUNT_ID, target)
+
+## SP3 Task 1. The rank-II Auxiliary weapon and the soft-cover chip it hangs on its TARGET.
+##
+## THE CHIP GOES ON THE TARGET, not on the Sluagh - the opposite of REND_NEXUS_CHIP one card over,
+## which onhit_rend_nexus.tres sends to the attacker with apply_buffs_to_self. It is VISIBLE (author,
+## 2026-09-21), unlike SOFT_COVER_CHIP above, which is hidden because buff_mark_of_the_dead stands
+## beside it as the signal; this weapon leaves no companion chip, so its own is the only marker.
+const NIGHTFARE_NEXUS := &'mw_nightfare_nexus'
+const NIGHTFARE_CHIP := &'buff_nightfare_soft_cover'
+
+## SP3 Task 1. Equip the rank-II weapon. arm_rend_nexus's shape, on the other Nexus.
+static func arm_nightfare_nexus(unit:Unit) -> GearCore: return equip(unit, NIGHTFARE_NEXUS)
+
+## Fire the Nightfare Nexus at a target, opening a turn for the shooter first.
+##
+## IT POPS EXACTLY ONE ENTRY OFF Dice.CHEAT_ROLL_QUEUE - the d20 (attack_roll.gd:67) - AND THAT IS
+## THE DIFFERENCE FROM nexus_shot, which pops THREE. This weapon's damage is the flat string '3', so
+## Dice.process_dice_string returns count 0 and roll_dice's loop body never runs (dice.gd:22-35), the
+## same reason a tech attack's flat '2' costs no entry; and it sets no attack_accuracy, so
+## roll_d6_accuracy(0) returns 0 without rolling (dice.gd:87-88). Do not copy nexus_shot's
+## three-entry comment onto this helper - a queue written for three would hand the wrong number to
+## the next roll, and queue()'s tail of 1s makes that silent.
+##
+## THE TURN CYCLE IS NOT DECORATION, for the reason shoot()'s own header (:184-197) gives:
+## Action.get_per_turn_soft_limit caps any non-free action at one use per turn (action.gd:161-163),
+## and a second use_solo in one turn aborts at event_gear_activate's check_specific_context with NO
+## "Gear not available" line - so the shot silently never happens and a "nothing changed" assertion
+## passes for the boring reason.
+static func nightfare_shot(game:Gamemaster, sluagh:Unit, target:Unit) -> void:
+	if sluagh.state.is_taking_turn: await SpecFactory.end_turn(game, sluagh)
+	await SpecFactory.start_turn(game, sluagh)
+	await SpecFactory.use_solo(game, sluagh, NIGHTFARE_NEXUS, target)
