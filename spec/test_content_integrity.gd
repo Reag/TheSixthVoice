@@ -629,7 +629,7 @@ const ICON_TARGETS := {
 	#    action_draw_fire / action_uffish_gyre shape.
 	# Every icon here is SP5's, so this row is part of what keeps
 	# test_every_player_facing_kit_and_action_has_a_real_icon red until then.
-	&'cp_cry_of_the_hosted_dead': {},
+	&'cp_cry_of_the_hosted_dead': {&'action_mark_of_the_dead': &'action_mark_of_the_dead'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -767,6 +767,12 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# buff_wicked_host_watch is deliberately ABSENT - the pair is one mechanic, and the observer is
 	# never a chip on the unit.
 	&'buff_wicked_host',
+	# SP1 Task 7 (Sluagh). The Mark's chip, and visible per ruling 14: it is the only thing on the
+	# board that says the dome is up, and the dome lasts the whole scene. Its hidden companion
+	# buff_mark_soft_cover is deliberately ABSENT from both tables - the pair is one mechanic, and
+	# nothing draws a Buff.TO.COVER buff's own icon anyway: the roll breakdown adds the cover mod
+	# with Icon.cover(preattack.cover) (attack_roll.gd:169), never with buff_core.base.icon.
+	&'buff_mark_of_the_dead',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+; IT SETS NOTHING AT ALL, AND THAT IS COMPLETE. A pure marker: the aura reads it through
+; requires_buff (passive_aura.gd:40-42) and Task 8's reaction reads it through
+; UnitCondition.has_buff, and neither wants a channel, a trigger or a lifetime other than MANUAL.
+; buff_shimmering_shield.tres and buff_gather_round.tres in this mod are the same file.
+;
+; NO `until` LINE: "until the end of the scene" is Lancer.UNTIL.MANUAL, which is the enum's own zero,
+; so writing it would be writing the default.
+;
+; VISIBLE, per ruling 14 - it is the only thing on the board that says the dome is up. Its `icon` is
+; SP5's, which is why test_every_visible_buff_has_a_real_icon carries a second failing assert from
+; this task on.

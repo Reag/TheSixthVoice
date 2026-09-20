@@ -297,3 +297,10 @@ gear.mt_inexorable_formation.effect,The Sluagh increases its |Sensors| equal to 
 gear.cp_cry_of_the_hosted_dead.name,Cry of the Hosted Dead
 gear.cp_cry_of_the_hosted_dead.effect,"1/round, when an adjacent allied character is hit by an attack made by a hostile character, they gain +1d6 |OVERSHIELD|. The |OVERSHIELD| is granted before damage is dealt."
 gear.cp_cry_of_the_hosted_dead.action_astral_guardian.name,Astral Guardian
+,
+gear.cp_cry_of_the_hosted_dead.action_mark_of_the_dead.name,Mark of the Dead and the Damned and the Lost
+gear.cp_cry_of_the_hosted_dead.action_mark_of_the_dead.effect,"A dome of bleak darkness envelops you, causing the following effects until the end of the scene:
+You and adjacent allied characters gain |soft cover|.
+As a |reaction|, when an attack misses you or an adjacent allied character, you may deal |energy| damage to the attacker equal to your |OVERSHIELD|."
+gear.buff_mark_of_the_dead.name,Mark of the Dead and the Damned and the Lost
+gear.buff_mark_of_the_dead.effect,"You and adjacent allied characters gain |soft cover|. As a |reaction|, when an attack misses you or an adjacent allied character, you may deal |energy| damage to the attacker equal to your |OVERSHIELD|."

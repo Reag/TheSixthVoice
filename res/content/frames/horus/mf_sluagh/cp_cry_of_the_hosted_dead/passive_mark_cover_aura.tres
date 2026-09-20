@@ -1,0 +1,28 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/cp_cry_of_the_hosted_dead/passive_mark_cover_aura.gd" id="1_aura"]
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="2_buff"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/cp_cry_of_the_hosted_dead/buff_mark_soft_cover.tres" id="3_softcover"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/cp_cry_of_the_hosted_dead/buff_mark_of_the_dead.tres" id="4_chip"]
+
+[resource]
+script = ExtResource("1_aura")
+buffs = Array[ExtResource("2_buff")]([ExtResource("3_softcover")])
+; THE GATE. PassiveAura.update_unit turns the whole aura off unless the AURA UNIT holds this buff
+; (passive_aura.gd:40-42), which is what makes the dome a button rather than a permanent trait.
+requires_buff = ExtResource("4_chip")
+; "You and adjacent allied characters" - so self and allies, never enemies. applies_to_self and
+; applies_to_allies are already true by default (passive_aura.gd:8-9) and are written out because
+; this card names both of them.
+applies_to_self = true
+applies_to_allies = true
+applies_to_enemies = false
+; aura_range is DELIBERATELY NOT WRITTEN: is_within_range is overridden and never reads it. See the
+; script's header - if that override is ever removed, the default of 1 silently becomes a radius,
+; which is a different card (ruling 6).
+;
+; applies_only_to_characters is left at its true default (passive_aura.gd:11) and the script narrows
+; it to is_actor(); starts_active is left at its true default (:18) because the gate is
+; requires_buff, not the gear toggle - SpecFactory.apply_passive_buffs sets is_aura_active = true on
+; every gear (unit_condition.gd:878-880), which is what the Fungal Network's starts_active = false
+; exists to defeat and this card does not want.
