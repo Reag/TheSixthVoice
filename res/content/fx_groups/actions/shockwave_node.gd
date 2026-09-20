@@ -55,8 +55,15 @@
 ## mode would buy this scene literally nothing while still parking a dead FxGroup node with a live
 ## _process for ten seconds - and Spin fires one ring plus one fxg_spin_impact per hostile caught, so
 ## a Spin catching several hostiles would stack that many. IMMEDIATE reaches the
-## `else: emit_finished_preamble()` branch in run() and finishes the group as soon as its emitters are
-## kicked off, which is the correct lifetime for an FX nothing waits on.
+## `else: emit_finished_preamble()` branch in run(), which sets `is_preamble_finished` for real and so
+## UNBLOCKS check_if_finished - the group then frees itself once its emitters naturally complete.
+##
+## NOT "as soon as the emitters are kicked off", which is what this paragraph claimed until the
+## re-review caught it: check_if_finished's outer guard still requires `live_emitter_count <= 0`
+## (fx_group.gd:420-425), so the group waits for on_emitter_finish, driven by the Ring's own
+## emitter_duration and lifetime. That is well under a second here rather than the ten seconds
+## MAX_EFFECT_TIME would impose - which is the whole point - but it is not instant, and a reader
+## tuning those two numbers is tuning how long this node lives.
 extends GPUParticles3D
 
 ## Has the shared process material been replaced with this instance's own copy yet? See the header.
