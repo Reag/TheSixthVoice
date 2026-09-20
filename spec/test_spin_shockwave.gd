@@ -231,3 +231,24 @@ func test_the_shockwave_is_thrown_after_the_spend_and_before_the_await() -> void
 	assert_gt(spend_at, -1, 'spend_actions is in activate().')
 	assert_gt(fire_at, spend_at, 'the wave is thrown AFTER the action is paid for.')
 	assert_gt(await_at, fire_at, 'and before the FX await, so the ring is already travelling.')
+
+# ================================================================ the camera
+
+## THE CAMERA STAYS ON THE PRIMROSE (author, 2026-09-20). Pinned because deleting the override is a
+## SILENT regression of exactly the kind this file exists for: with no override, ActionSystem's own
+## run_system_fxgs takes over, the non-empty-targets branch frames only the HOSTILES
+## (action_system.gd:83-85), and nothing anywhere goes red - the ability still works, the pops still
+## draw, and the wave is simply thrown from somewhere off the edge of the screen.
+##
+## Read off the source for the reason test 17 in test_spin.gd is: the camera is not observable from a
+## spec, and this is a claim about which code runs, not about what the screen shows. Ruling 20 is
+## untouched - nothing here asserts how anything LOOKS.
+func test_the_action_overrides_run_system_fxgs_to_hold_the_camera() -> void:
+	var src := FileAccess.get_file_as_string(SPIN_SOURCE)
+	assert_false(src.is_empty(), 'The action\'s source reads back.')
+	if src.is_empty(): return
+
+	assert_true(src.contains('func run_system_fxgs('),
+		'action_spin overrides run_system_fxgs rather than taking ActionSystem\'s camera branch.')
+	assert_true(src.contains('camera_bus.focus_on_unit(unit'),
+		'and the override centres the camera on the Primrose itself.')

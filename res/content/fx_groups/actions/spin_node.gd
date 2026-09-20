@@ -91,7 +91,7 @@
 ## to null when there is none (token_base.gd:48-53); TokenCore.get_sprite_back then falls back to the
 ## FRONT texture (token_core.gd:172). The shader's four quadrants are front-normal, front-mirrored,
 ## back-mirrored, back-normal (unit_token_facing_func.gdshaderinc) - so with front == back, two of
-## the four are duplicates and a full TAU collapses to ONE MIRROR OUT AND ONE BACK. In 0.45 s that
+## the four are duplicates and a full TAU collapses to ONE MIRROR OUT AND ONE BACK. Even at 0.8 s that
 ## reads as a twitch, or as nothing at all.
 ##
 ## 74 vanilla frames ship a `_back.png`. `mf_primrose_back.png` does not exist, and neither does a
@@ -111,7 +111,7 @@
 ## there. This is the durable copy.
 ##
 ## -- preamble_mode is DURATION (2), not BASIC_CHILDREN_FINISHED (1) --
-## The root's preamble_duration (0.45) matches SPIN_DURATION below, so the saves land as the mech
+## The root's preamble_duration (0.8) matches SPIN_DURATION below, so the saves land as the mech
 ## comes back round rather than while it is still turning. This is the vanilla idiom for a system
 ## activation: fxg_base_activation.tscn, the DEFAULT_ACTIVATE_FXG this scene displaces, is also
 ## preamble_mode 2, with preamble_duration 0.5.
@@ -142,7 +142,7 @@
 ##
 ## -- why there are no particles or SFX --
 ## The card is a mech whipping round on the spot; the sprite IS the effect (see "WHAT IT LOOKS LIKE"
-## above for what four quadrant flips in under half a second look like). Anything added would be
+## above for what four quadrant flips over SPIN_DURATION look like). Anything added would be
 ## decorating a motion nobody has judged yet - the author's eye through the FX tester is this task's
 ## acceptance, not a spec (ruling 20).
 ##
@@ -157,10 +157,10 @@ extends BumpNode
 ## above mean anything much longer reads as a stutter. Tuned by eye in the FX tester, which
 ## hot-reloads - edit, save, alt-tab back.
 ##
-## KEPT IN STEP BY HAND with fxg_spin.tscn's `preamble_duration` (currently 0.45) - nothing in code
+## KEPT IN STEP BY HAND with fxg_spin.tscn's `preamble_duration` (currently 0.8) - nothing in code
 ## enforces the pairing. A mismatch is not a crash, just a beat (the saves resolving) landing early
 ## or late relative to the spin; cosmetic, not correctness.
-const SPIN_DURATION:float = 0.45
+const SPIN_DURATION:float = 0.8
 
 func start() -> void:
 	# FIRST LINE, EXACTLY AS VANILLA'S BumpNode.start (bump_node.gd:43). This is not a leak: in

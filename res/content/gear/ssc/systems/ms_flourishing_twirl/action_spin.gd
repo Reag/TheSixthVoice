@@ -237,7 +237,7 @@ func activate(context:Context, activation:EventCore) -> void:
 	# AFTER THE SPEND, ON PURPOSE. Every return above this line is a Spin that never happened - no
 	# mounted weapon, or a prompt the player backed out of - and a mech that whips round for a cancel
 	# is a lie about what it just cost. Before the radius, because the FX's own preamble is the beat
-	# the saves land on (fxg_spin.tscn sets preamble_mode DURATION 0.45, matching spin_node.gd's
+	# the saves land on (fxg_spin.tscn sets preamble_mode DURATION 0.8, matching spin_node.gd's
 	# SPIN_DURATION), and run_system_fxgs awaits exactly that preamble and no longer
 	# (common_action_util.gd:867-869).
 	#
@@ -246,7 +246,7 @@ func activate(context:Context, activation:EventCore) -> void:
 	# MEASURED at Task 4: commented out, test_spin.gd stays 16/16 on the identical 105 asserts. The
 	# screen is the only thing that goes still, which is why the FX tester is the acceptance.
 	#
-	# THE SHOCKWAVE GOES FIRST AND IS NOT AWAITED. run_system_fxgs below awaits the spin's 0.45 s
+	# THE SHOCKWAVE GOES FIRST AND IS NOT AWAITED. run_system_fxgs below awaits the spin's 0.8 s
 	# preamble; the ring should still be travelling when the impact pops land, so awaiting it here
 	# would defeat the whole point. fire_shockwave returns as soon as the group is running.
 	fire_shockwave(unit, reach)
@@ -360,6 +360,55 @@ func fire_shockwave(unit:Unit, reach:int) -> FxGroup:
 	if ring != null: ring.set_radius_in_tiles(reach)
 	fxg.run()
 	return fxg
+
+## THE CAMERA STAYS ON THE PRIMROSE (author, 2026-09-20: "lets have the camera center on the primrose
+## when the ability is triggered").
+##
+## Overridden rather than worked around at the call site, because the camera decision happens at the
+## TOP of the vanilla body, before any FX is created (action_system.gd:79-91) - there is no moment
+## after `await run_system_fxgs(...)` returns at which framing it differently would still be framing
+## it for this animation. vanilla's own action_strafe_ace.gd is the precedent for an ActionSystem
+## subclass wrapping this method.
+##
+## WHAT VANILLA WOULD DO, AND WHY IT IS WRONG HERE. Passing a non-empty `primary_targets` takes the
+## all-units branch, `camera_bus.show_all_tiles(collect_all_occupied_tiles(target_units), true)`
+## (action_system.gd:83-85). That tile set is ONLY the hostiles: the acting unit - the point the wave
+## emanates FROM - is never in it. With one hostile the camera slides to centre on the VICTIM
+## (camera_pivot.gd's single-position branch) and the Primrose sits up to `reach` tiles off-centre,
+## so the ring's own origin can be off-screen entirely; with two adjacent hostiles it zooms hard to a
+## two-tile box and a radius-4 ring is mostly outside it. An earlier design note accepted that branch
+## on the reasoning that "an area effect wants its area on screen" - that reasoning was wrong about
+## what show_all_tiles is actually handed, and this override is the correction.
+##
+## `focus_on_unit(unit, false, false)`, not ensure_unit_onscreen: ensure_unit_onscreen only moves the
+## camera when the unit has drifted outside the viewport's centre rect (camera_bus.gd:135-139), so a
+## Primrose already loosely on screen would not be centred at all. The two `false`s are deliberate -
+## no zoom reset, and NO ROTATION. `focus_on_unit` rotates by default (camera_bus.gd:125-127), and a
+## camera rotating through the same half-second the mech is spinning is the one thing guaranteed to
+## make a facing-based animation unreadable.
+##
+## The `primary_targets` argument is still passed straight through to the FX, untouched: it is what
+## draws the per-unit impact pops (common_action_util.gd:872-877). Only the camera changes.
+func run_system_fxgs(
+	unit:Unit,
+	primary_targets:Array = [],
+	aoe_tiles:Array[Vector2i] = [],
+	run_fx_flags:Array = [],
+) -> void:
+	if not play_fxg_on_activate: return
+	if not Unit.is_valid(unit): return
+	camera_bus.focus_on_unit(unit, false, false)
+
+	var fxg_activate:PackedScene = fxg_use
+	if fxg_activate == null: fxg_activate = load(ContentLibrary.get_fxgroup_path(DEFAULT_ACTIVATE_FXG))
+	if not (fxg_activate and fxg_activate.can_instantiate()) and not (fxg_target and fxg_target.can_instantiate()): return
+
+	await CommonActionUtil.run_attack_and_target_fx(
+		fxg_activate, unit,
+		fxg_target, primary_targets,
+		fxg_aoe, aoe_tiles,
+		run_fx_flags
+	)
 
 ## One dictionary per MOUNTED weapon profile that prints a threat: { reach, label }.
 ##

@@ -7,11 +7,11 @@
 
 [sub_resource type="Resource" id="Resource_impact_core"]
 script = ExtResource("3_bump_core")
-distance = 0.08
-duration_in = 0.05
-duration_out = 0.12
-camshake = 0.15
-camshake_duration = 0.3
+distance = 0.22
+duration_in = 0.08
+duration_out = 0.22
+camshake = 0.3
+camshake_duration = 0.4
 
 [sub_resource type="Curve" id="Curve_alpha"]
 _data = [Vector2(0.1, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
@@ -34,17 +34,17 @@ angle_min = -180.0
 angle_max = 180.0
 direction = Vector3(1, 0.2, 1)
 spread = 180.0
-initial_velocity_min = 1.5
-initial_velocity_max = 2.5
+initial_velocity_min = 2.5
+initial_velocity_max = 4.0
 gravity = Vector3(0, 0, 0)
-scale_min = 0.1
-scale_max = 0.3
+scale_min = 0.25
+scale_max = 0.6
 scale_curve = SubResource("CurveTexture_scale")
 alpha_curve = SubResource("CurveTexture_alpha")
 
 [node name="FxgSpinImpact" type="Node3D"]
 script = ExtResource("1_fxg")
-emitter_duration = 0.2
+emitter_duration = 0.3
 preamble_mode = 0
 
 [node name="BumpNode" type="Node" parent="."]
@@ -55,8 +55,8 @@ core = SubResource("Resource_impact_core")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
 sorting_offset = -1.0
 emitting = false
-amount = 8
-lifetime = 0.35
+amount = 20
+lifetime = 0.6
 one_shot = true
 explosiveness = 1.0
 fixed_fps = 60

@@ -4,6 +4,8 @@
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/fx_groups/actions/shockwave_node.gd" id="2_ring"]
 [ext_resource type="Shader" uid="uid://brbiv3ko43b0i" path="res://assets/fx/shaders/explosion_ring.gdshader" id="3_ring_shader"]
 [ext_resource type="Texture2D" uid="uid://jj2m330b0ti1" path="res://assets/fx/noise/seamless_noise_512_cellular.png" id="4_noise"]
+[ext_resource type="Script" uid="uid://dhpk84klr4yme" path="res://engine/gamemaster/effects_controller/fx_group/bump_node.gd" id="5_bump"]
+[ext_resource type="Script" uid="uid://bmeufp6r8o534" path="res://engine/gamemaster/effects_controller/fx_group/bump_core.gd" id="6_bump_core"]
 
 [sub_resource type="Gradient" id="Gradient_ring"]
 offsets = PackedFloat32Array(0, 0.82, 1)
@@ -24,8 +26,8 @@ shader_parameter/emission_strength = 2.5
 shader_parameter/alpha_mode = 2
 
 [sub_resource type="Curve" id="Curve_scale"]
-_data = [Vector2(0, 0.05), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
-point_count = 2
+_data = [Vector2(0, 0.05), 0.0, 0.0, 0, 0, Vector2(0.45, 0.72), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="CurveTexture" id="CurveTexture_scale"]
 curve = SubResource("Curve_scale")
@@ -50,21 +52,33 @@ scale_max = 1.0
 scale_curve = SubResource("CurveTexture_scale")
 alpha_curve = SubResource("CurveTexture_alpha")
 
+[sub_resource type="Resource" id="Resource_wave_core"]
+script = ExtResource("6_bump_core")
+distance = 0.12
+duration_in = 0.1
+duration_out = 0.35
+camshake = 0.5
+camshake_duration = 0.7
+
 [sub_resource type="QuadMesh" id="QuadMesh_ring"]
 size = Vector2(2, 2)
 orientation = 1
 
 [node name="FxgShockwave" type="Node3D"]
 script = ExtResource("1_fxg")
-emitter_duration = 0.1
+emitter_duration = 0.15
 preamble_mode = 0
+
+[node name="BumpNode" type="Node" parent="."]
+script = ExtResource("5_bump")
+core = SubResource("Resource_wave_core")
 
 [node name="Ring" type="GPUParticles3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
 material_override = SubResource("ShaderMaterial_ring")
 emitting = false
 amount = 1
-lifetime = 0.5
+lifetime = 1.0
 one_shot = true
 explosiveness = 1.0
 local_coords = true
