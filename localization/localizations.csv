@@ -287,3 +287,6 @@ frame.mf_sluagh.flavor,"""Here I am my beloved I was brave once and I shall be b
 ,
 gear.mt_wicked_host.name,Wicked Host
 gear.mt_wicked_host.effect,"Whenever the Sluagh is hit by an attack made by a hostile character, the next attack against it has +1 |difficulty|. This effect lasts until the end of the scene."
+,
+gear.mt_the_stealing_of_the_souls_of_the_dead.name,The Stealing of the Souls of the Dead
+gear.mt_the_stealing_of_the_souls_of_the_dead.effect,"Whenever a hostile character is destroyed within |Sensors|, the Sluagh gains |OVERSHIELD| equal to |GRIT|."

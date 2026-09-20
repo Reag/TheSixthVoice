@@ -606,6 +606,11 @@ const ICON_TARGETS := {
 	# test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then - it is the
 	# first new Kit of the sub-project.
 	&'mt_wicked_host': {},
+	# SP1 Task 3 (Sluagh). One action, and it is a HIDDEN reaction: show_in_tooltip is overridden to
+	# false and reactions never reach the gear bar (gear_bar.gd:145), so nothing the player sees ever
+	# wears an icon for it and it correctly gets no row inside this dictionary - the mt_blasting_powder
+	# / mt_halo / mt_sap shape. The Kit's own icon is SP5's.
+	&'mt_the_stealing_of_the_souls_of_the_dead': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd" id="1_stealing"]
+
+[resource]
+script = ExtResource("1_stealing")
+usage_group = &"action_stealing_of_the_souls"
+triggers_on = Array[StringName]([&"death"])
+trigger_timing = 1
+consumes_rxn = false
