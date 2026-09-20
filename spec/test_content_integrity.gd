@@ -635,6 +635,19 @@ const ICON_TARGETS := {
 	# Design section 5 currently groups the Mark, its chip, the soft-cover chip and the retort as ONE
 	# glyph family, so that is a decision SP5 owes - flagged here rather than pre-empted.
 	&'cp_cry_of_the_hosted_dead': {&'action_mark_of_the_dead': &'action_mark_of_the_dead', &'action_mark_retort': &'action_mark_retort'},
+	# SP2 Task 2 (Sluagh). The rank-I weapon. Its single action IS the Kit's first weapon action, so
+	# _action_reaches_a_player_facing_surface returns true for it unconditionally (:909) - the
+	# character sheet's integrated-weapon box draws it with no show_in_tooltip check at all - and it
+	# therefore MUST be listed. It is a KIT row, not a named family: design section 5 gives this
+	# weapon ONE glyph family, {mw_rend_nexus, its +2 chip}, so the action inherits the Kit's drawing
+	# and carries no icon_override of its own (icon-sharing.md section 5: KIT is absence, not
+	# duplication). ms_flourishing_twirl above is the same shape.
+	#
+	# A KIT ROW ON AN ICON-LESS KIT COSTS THREE FAILING ASSERTS, NOT ONE, until SP5: the Kit's own
+	# _assert_real_icon (:819), the assert_not_null(kit.icon_override) this branch makes (:833), and
+	# the assert_eq(action.get_icon(kit), kit.icon_override) at :839. That is the plan's arithmetic and
+	# it is expected.
+	&'mw_rend_nexus': {&'action_rend_nexus': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -778,6 +791,12 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# nothing draws a Buff.TO.COVER buff's own icon anyway: the roll breakdown adds the cover mod
 	# with Icon.cover(preattack.cover) (attack_roll.gd:169), never with buff_core.base.icon.
 	&'buff_mark_of_the_dead',
+	# SP2 Task 2 (Sluagh). The Rend Nexus crit chip, and visible for the same two independent reasons
+	# buff_wicked_host is (ruling 10). attack_roll.gd:189 passes buff_core.base.icon RAW into the roll
+	# breakdown - NOT through Buff.get_icon() - so BuffBonus's difficulty-svg fallback never runs on
+	# that path and a null icon draws a blank beside the -2; and it is the attacker's only warning
+	# that this particular shot is harder.
+	&'buff_rend_nexus',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

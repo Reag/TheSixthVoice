@@ -59,6 +59,11 @@ const FORMATION_CHIP := &'buff_inexorable_formation'
 const MARK_CHIP := &'buff_mark_of_the_dead'
 const SOFT_COVER_CHIP := &'buff_mark_soft_cover'
 
+## SP2 Task 2. The rank-I weapon and its crit chip. NOT in the frame's traits array - licence gear
+## lives under res/content/gear/horus/ and reaches a unit only through equip().
+const REND_NEXUS := &'mw_rend_nexus'
+const REND_NEXUS_CHIP := &'buff_rend_nexus'
+
 ## The plain vanilla rifle every Fitzgerald spec uses: MAIN, weapon_type unset so it is the archetype
 ## default RIFLE (3), 1d6, RELIABLE 2, aim_range 10, threat 1. It carries NO accuracy modifier, so an
 ## attack with it pops a d20 and nothing else off Dice.CHEAT_ROLL_QUEUE - which is what makes the
@@ -327,3 +332,23 @@ static func kill(game:Gamemaster, unit:Unit) -> void:
 ## this is the only way to ask.
 static func meltdown(game:Gamemaster, unit:Unit) -> void:
 	await game.execute_event(&'event_unit_meltdown', {unit = unit})
+
+## SP2 Task 2. Equip the rank-I weapon. arm_rifle's shape, on the mod's own gear.
+static func arm_rend_nexus(unit:Unit) -> GearCore: return equip(unit, REND_NEXUS)
+
+## Fire the Rend Nexus at a target, opening a turn for the shooter first.
+##
+## THE TURN CYCLE IS NOT DECORATION, for the reason shoot()'s own header (:184-197) gives:
+## Action.get_per_turn_soft_limit caps any non-free action at one use per turn (action.gd:161-163),
+## and a second use_solo in one turn aborts at event_gear_activate's check_specific_context with NO
+## "Gear not available" line - so the shot silently never happens and a "nothing changed" assertion
+## passes for the boring reason.
+##
+## IT POPS THREE ENTRIES OFF Dice.CHEAT_ROLL_QUEUE: the d20, then the damage dice TWICE
+## (attack_util.gd:250-251 rolls hit_rolls and crit_rolls separately, on a miss as much as on a crit),
+## and NO accuracy die, because the weapon sets no attack_accuracy and roll_d6_accuracy(0) returns 0
+## without rolling (dice.gd:87-88). queue() tails with 1s, so [d20] alone is a legal queue here.
+static func nexus_shot(game:Gamemaster, sluagh:Unit, target:Unit) -> void:
+	if sluagh.state.is_taking_turn: await SpecFactory.end_turn(game, sluagh)
+	await SpecFactory.start_turn(game, sluagh)
+	await SpecFactory.use_solo(game, sluagh, REND_NEXUS, target)
