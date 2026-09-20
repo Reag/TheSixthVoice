@@ -379,3 +379,37 @@ static func grey_birds(game:Gamemaster, sluagh:Unit, target:Unit) -> void:
 	if sluagh.state.is_taking_turn: await SpecFactory.end_turn(game, sluagh)
 	await SpecFactory.start_turn(game, sluagh)
 	await SpecFactory.use(game, sluagh, TRICKERY, GREY_BIRDS_ID, target)
+
+## SP2 Task 8. A game whose responder can answer a SEQUENCE of prompts and hand back the one it
+## installed - maidens_blush_fixture.create_game_with_sequenced_prompts (:97-102), verbatim except
+## for the map size default.
+##
+## WHY THE STOCK RESPONDER IS NOT ENOUGH FOR HUNT. SpecFactory.ChoiceBusResponder answers a unit
+## pick with chosen_unit or units[0] and RECORDS NOTHING (spec_factory.gd:397-405), so "a single
+## closest character raised no prompt at all" is unassertable through it - and that is the whole of
+## the difference between ruling 5's tie case and its auto-pick case. testkit/mod_choice_responder.gd
+## records every unit prompt in unit_prompts and answers from unit_queue, and records every targeting
+## prompt in plan_prompts, which is the only way to read back WHICH TILES the card offered.
+##
+## add_responder = false is what stops TWO responders answering the same request.
+static func create_game_with_prompt_queues(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> Array:
+	var game := SpecFactory.setup_gamemaster(test, false,
+		SpecFactory.create_combat(Landscape.create_default(map_size)), {}, false)
+	game.map.shape.forbidden_interiors_enabled = true
+	var responder = test.add_child_autoqfree(load('res://testkit/mod_choice_responder.gd').new())
+	return [game, responder]
+
+## Invade with HUNT OF THE VAGRANT SOWCHE.
+##
+## POPS TWO ENTRIES off Dice.CHEAT_ROLL_QUEUE: the invade's d20 (attack_roll.gd:67), then the forced
+## Systems save's. Neither pops an accuracy die without a modifier (dice.gd:87-88), and a tech
+## attack's flat '2' damage rolls nothing. queue() tails with 1s, so queue([19]) is a hit AND a
+## failed save; a PASS must be queued explicitly.
+##
+## AN AUTOHIT POPS NOTHING AT ALL, which is the one case that breaks that arithmetic:
+## EventUnitAttack.execute_attack_roll_sequence returns at its autohit branch (:148-154) before
+## AttackRoll.roll_attack is reached, so on an ALLIED target the FIRST queued entry is the save's.
+static func hunt(game:Gamemaster, sluagh:Unit, target:Unit) -> void:
+	if sluagh.state.is_taking_turn: await SpecFactory.end_turn(game, sluagh)
+	await SpecFactory.start_turn(game, sluagh)
+	await SpecFactory.use(game, sluagh, TRICKERY, HUNT_ID, target)

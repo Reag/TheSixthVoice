@@ -1,0 +1,11 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_o_trickery/action_hunt_of_the_vagrant_sowche.gd" id="1_hunt"]
+
+; is_invade defaults TRUE (action_attack_tech.gd:10) and is written anyway, for the same reason
+; action_grey_birds.tres writes it: it is what the card's activation line says, and it is what makes
+; an ALLIED target auto-hit (:71-73) - which, on this card, means an ally is hunted rather than
+; skipped (the PROPOSED Puppet System parity ruling).
+[resource]
+script = ExtResource("1_hunt")
+is_invade = true

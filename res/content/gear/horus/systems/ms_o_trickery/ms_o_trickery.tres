@@ -3,17 +3,19 @@
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_o_trickery/action_grey_birds.tres" id="3_greybirds"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_o_trickery/action_hunt_of_the_vagrant_sowche.tres" id="4_hunt"]
 
 ; O' TRICKERY, the Sluagh's rank-I Unique tech system (SP2 Task 5). system_tags = 1 is
 ; Kit.SYSTEM_TAGS.UNIQUE (kit.gd:30-31).
 ;
-; ONE ACTION AT THIS TASK; SP2 Task 8 appends action_hunt_of_the_vagrant_sowche in the card's order.
-; Vanilla's ms_aggressive_system_sync is the two-tech-actions-on-one-system shape this copies: both
-; are plain entries in the Kit's `actions` array, no variant group and no sub-menu, and each gets its
-; localisation rows from its own file stem under the Kit's id.
+; BOTH INVADES SINCE SP2 Task 8, in the CARD'S ORDER (specs/sixth-voice/08-sluagh.md:60-63) - which
+; is the order the gear bar draws, so it is player-visible. Vanilla's ms_aggressive_system_sync is
+; the two-tech-actions-on-one-system shape this copies: both are plain entries in the Kit's `actions`
+; array, no variant group and no sub-menu, and each gets its localisation rows from its own file stem
+; under the Kit's id.
 [resource]
 script = ExtResource("2_kit")
-actions = Array[ExtResource("1_action")]([ExtResource("3_greybirds")])
+actions = Array[ExtResource("1_action")]([ExtResource("3_greybirds"), ExtResource("4_hunt")])
 sp_cost = 3
 system_tags = 1
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

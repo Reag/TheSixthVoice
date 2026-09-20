@@ -652,10 +652,15 @@ const ICON_TARGETS := {
 	# INVADES - not reactions, not situationally activated - so the gear bar draws both and
 	# _action_reaches_a_player_facing_surface returns true for each (:910). Design section 5 gives the
 	# system ONE family covering the Kit, action_grey_birds and the Grey Birds chips, and a SEPARATE
-	# one for Hunt - so Grey Birds is a KIT row and Hunt is a named family. Task 8 adds the second
-	# entry; a Kit with one listed action and two carried ones fails the :876 pairing assertion, so
-	# the two must land together with their actions.
-	&'ms_o_trickery': {&'action_grey_birds': KIT},
+	# one for Hunt - so Grey Birds is a KIT row and Hunt is a named family. Task 8 added the second
+	# entry alongside the action itself; a Kit with one listed action and two carried ones fails the
+	# :876 pairing assertion, so the two had to land together.
+	#
+	# HUNT COSTS ONE MORE FAILING ASSERT UNTIL SP5, not three: a NAMED family on an icon-less action
+	# fails only _assert_real_icon(action.icon_override) at :843, because :844 continues on null
+	# before the assert_ne at :845 is reached. The three-assert arithmetic above is the KIT-row shape
+	# and does not repeat here.
+	&'ms_o_trickery': {&'action_grey_birds': KIT, &'action_hunt_of_the_vagrant_sowche': &'action_hunt_of_the_vagrant_sowche'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
