@@ -445,3 +445,49 @@ static func nightfare_shot(game:Gamemaster, sluagh:Unit, target:Unit) -> void:
 	if sluagh.state.is_taking_turn: await SpecFactory.end_turn(game, sluagh)
 	await SpecFactory.start_turn(game, sluagh)
 	await SpecFactory.use_solo(game, sluagh, NIGHTFARE_NEXUS, target)
+
+## SP3 Tasks 3 and 4. The rank-II LIMITED 3 shield system and its two actions.
+##
+## IT SHIPS NO BUFFS. Both actions write state.overshield through the shared helper and the Crown
+## adds one damage event; there is no chip, which is why no *_CHIP constant sits beside these.
+const TWILIGHT_SWARM := &'ms_twilight_swarm'
+const DAMNATION_ID := &'action_damnation_of_the_host'
+const CROWN_ID := &'action_crown_of_restless_dead'
+
+## SP3 Task 3. Equip the rank-II system. equip_trickery's shape.
+static func equip_twilight_swarm(unit:Unit) -> GearCore: return equip(unit, TWILIGHT_SWARM)
+
+## Press DAMNATION OF THE HOST, opening a turn for the Sluagh if it has none.
+##
+## SpecFactory.use rather than use_solo: the Kit carries TWO actions by Task 4 and use_solo fires
+## whichever is first.
+##
+## IT DOES NOT CYCLE THE TURN, and that is the opposite choice from nightfare_shot() and shoot().
+## A QUICK TECH action on a PLAYER mech has no per-turn soft limit at all - ActionSystem's override
+## returns 99 for it (the repeat-action rule explicitly exempts quick tech) - so three Damnations
+## inside one turn is legal, and the only thing that stops a fourth is the charge. Cycling here
+## would hide that, and it would also hand the Sluagh's own per-round counters back, which the
+## Crown's tests depend on NOT happening.
+##
+## IT POPS ONE ENTRY off Dice.CHEAT_ROLL_QUEUE: the d6 (dice.gd:90). Nothing else - it is not an
+## attack, so no d20 and no accuracy die.
+static func damnation(game:Gamemaster, sluagh:Unit) -> void:
+	if not sluagh.state.is_taking_turn: await open_turn(game, sluagh)
+	await SpecFactory.use(game, sluagh, TWILIGHT_SWARM, DAMNATION_ID)
+
+## Press CROWN OF RESTLESS DEAD at an ally, opening a turn for the Sluagh if it has none.
+##
+## ITS 1/ROUND IS THE ENGINE'S: Action.get_per_round_hard_limit returns 1 for any FREE action
+## (action.gd:156-158), and gear.uses_this_round is cleared by UnitAction.new_turn_refresh ->
+## reset_per_round_usage, which runs only at the turn start of the unit whose turn it is
+## (event_turn_start.gd:79, unit_action.gd:78, :87-88). So a second Crown inside one Sluagh turn is
+## refused, and cycling the SLUAGH'S OWN turn is what clears it - unlike shoot(), which cycles the
+## SHOOTER'S turn and is therefore useless for this.
+##
+## THE TALLY IS PER USAGE GROUP, AND THE CROWN CARRIES ITS OWN. GearCore.get_usage_group_for_action
+## falls back to the KIT id when an action names no group (gear_core.gd:166-168), so without
+## usage_group = &"crown_of_restless_dead" on the .tres a single Damnation would fill the Crown's
+## one slot for the round. test_a_damnation_does_not_consume_crowns_one_per_round is the pin.
+static func crown(game:Gamemaster, sluagh:Unit, ally:Unit) -> void:
+	if not sluagh.state.is_taking_turn: await open_turn(game, sluagh)
+	await SpecFactory.use(game, sluagh, TWILIGHT_SWARM, CROWN_ID, ally)

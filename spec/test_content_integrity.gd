@@ -667,6 +667,17 @@ const ICON_TARGETS := {
 	# {mw_nightfare_nexus, buff_nightfare_soft_cover} - so the action inherits the Kit's drawing and
 	# this is a KIT row. THREE failing asserts until SP5, per the arithmetic above.
 	&'mw_nightfare_nexus': {&'action_nightfare_nexus': KIT},
+	# SP3 Tasks 3 and 4 (Sluagh). TWILIGHT SWARM, the rank-II Unique shield system. Both of its
+	# actions are ordinary pressables - not reactions, not situationally activated - so the gear bar
+	# draws both and _action_reaches_a_player_facing_surface returns true for each (:910). Design
+	# section 5 splits them: the Kit and Damnation are ONE family, so Damnation is a KIT row, and the
+	# Crown gets a family of its own, so it is a NAMED one. Task 4 added the second entry alongside
+	# the action itself; a Kit with one listed action and two carried ones fails the :876 pairing
+	# assertion, so the two had to land together.
+	#
+	# THE CROWN COSTS ONE MORE FAILING ASSERT UNTIL SP5, not three - a NAMED family on an icon-less
+	# action fails only _assert_real_icon(action.icon_override) at :843, the Hunt row's arithmetic.
+	&'ms_twilight_swarm': {&'action_damnation_of_the_host': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
