@@ -245,3 +245,48 @@ func test_the_chip_clears_at_the_start_of_the_sluaghs_next_turn():
 	await SluaghFixture.open_turn(game, sluagh)
 	assert_false(chipped(target), 'And the SLUAGH\'S next turn start is what clears it.')
 	assert_eq(cover_from_the_sluagh(target), Lancer.COVER.NONE, 'The cover goes with it.')
+
+# ---------------------------------------------------------------- the card and the licence
+
+func test_the_card_rows_resolve():
+	# Through THIS MOD'S OWN compiled artifact first, so a sibling Reag-* mod loaded in the same
+	# testkit run cannot hold this green - test_rend_nexus.gd's pattern, and the mod's habit.
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation, 'This mod has a compiled translation.')
+	if translation == null: return
+	for key:String in ['gear.mw_nightfare_nexus.name', 'gear.mw_nightfare_nexus.flavor',
+			'gear.mw_nightfare_nexus.on_hit']:
+		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
+		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
+	assert_eq(X.tr('gear.mw_nightfare_nexus.name'), 'Nightfare Nexus', 'The card\'s own name.')
+	# X.tr KEEPS THE GLOSSARY PIPES (SP1 Task 7's finding), so this pins the pipe too - the only
+	# thing that would catch |soft cover| being written unpiped, or piped on a label that does not
+	# resolve. lancer.cover.SOFT is what it resolves to, and the mod already pipes that exact
+	# spelling at gear.buff_mark_of_the_dead.effect.
+	assert_eq(X.tr('gear.mw_nightfare_nexus.on_hit'),
+		'The target gains |soft cover| until the start of your next turn.',
+		'The LCP verbatim, pipes added. No divergence is recorded for this card and none is wanted.')
+	# THE ENGINE REALLY READS THIS KEY - it is not decoration. Translate.action falls through from
+	# gear.<kit>.<action>.on_hit to gear.<kit>.on_hit (translate.gd:26-29, :44-45), and both surfaces
+	# that draw a weapon card read it through that fallback: the character sheet at kit.gd:256 and
+	# the action tooltip at tooltip_organ_action.gd:188.
+	var kit:Kit = ContentLibrary.get_kit(SluaghFixture.NIGHTFARE_NEXUS)
+	if kit == null or kit.actions.is_empty(): return assert_true(false, 'fixture: the Kit loaded.')
+	assert_eq(Translate.action(kit, kit.actions[0], 'on_hit', false),
+		X.tr('gear.mw_nightfare_nexus.on_hit'),
+		'And Translate.action finds it from the ACTION, through the Kit-level fallback.')
+
+func test_the_licence_grants_it_at_rank_two():
+	var licence:UnlockTree = ContentLibrary.get_license_tree(SluaghFixture.LICENSE_ID)
+	assert_not_null(licence, 'li_sluagh loads as an UnlockTree.')
+	if licence == null: return
+	var rank_2_ids:Array[StringName] = []
+	for kit:Kit in licence.rank_2.granted_gear: rank_2_ids.append(kit.compcon_id)
+	assert_true(rank_2_ids.has(SluaghFixture.NIGHTFARE_NEXUS), 'Rank 2 grants the Nightfare Nexus.')
+	# RANK 2 ALSO STILL GRANTS THE FRAME, and that is worth one line here: UnlockTree.license_name
+	# reads rank_2.granted_frames.front() (unlock_tree.gd:28-32), so a granted_gear edit that
+	# clobbered granted_frames would rename the whole licence "???" - which test_sluagh_frame.gd
+	# catches by its own route, but this task is the one that could cause it.
+	assert_eq(licence.rank_2.granted_frames.size(), 1, 'And rank 2 still grants the frame itself.')
+	# Only the claims THIS task could have broken; the exact sorted lists are test_sluagh_frame.gd's.
+	assert_true(licence.rank_3.granted_gear.is_empty(), 'Rank 3 is still empty, until SP4.')

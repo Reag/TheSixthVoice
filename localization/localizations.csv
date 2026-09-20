@@ -315,3 +315,6 @@ gear.ms_o_trickery.action_grey_birds.name,The Flight of the Crescent of Grey Bir
 gear.ms_o_trickery.action_grey_birds.effect,"Until the end of the next round, if your target takes an action that could target you, they must target you with that action."
 gear.ms_o_trickery.action_hunt_of_the_vagrant_sowche.name,Hunt of the Vagrant Sowche
 gear.ms_o_trickery.action_hunt_of_the_vagrant_sowche.effect,"Your target must succeed a |Systems save| or be teleported to a free space adjacent to the closest character. If there are multiple characters tied for closest, you choose. This can only be used 1/scene on each character."
+gear.mw_nightfare_nexus.name,Nightfare Nexus
+gear.mw_nightfare_nexus.flavor,"The Nightfare nexus commands a small swarm of hypercharged magnetic drones that can tear through metal or flesh in seconds. The sheer force of their frenzy leaves thick black clouds of debris in their wake. To those in this cloud, it seems as though all light has vanished, leaving them in endless night."
+gear.mw_nightfare_nexus.on_hit,The target gains |soft cover| until the start of your next turn.

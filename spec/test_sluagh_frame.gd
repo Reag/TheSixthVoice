@@ -273,7 +273,13 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	rank_1_ids.sort()
 	assert_eq(rank_1_ids, ['ms_o_trickery', 'mw_rend_nexus'] as Array[String],
 		'Rank 1 grants exactly O\' Trickery and the Rend Nexus, sorted.')
-	assert_eq(license.rank_2.granted_gear.size(), 0, 'Rank 2 grants no gear yet (SP3 fills it).')
+	var rank_2_ids:Array[String] = []
+	for kit:Kit in license.rank_2.granted_gear: rank_2_ids.append(String(kit.compcon_id))
+	rank_2_ids.sort()
+	assert_eq(rank_2_ids, ['mw_nightfare_nexus'] as Array[String],
+		'Rank 2 grants exactly the Nightfare Nexus. Twilight Swarm joins it in SP3 Task 5, and '
+		+ 'when it does this line grows to two ids, sorted - which is '
+		+ '[\'ms_twilight_swarm\', \'mw_nightfare_nexus\'], not the order they were built in.')
 	assert_eq(license.rank_3.granted_gear.size(), 0, 'Rank 3 grants no gear yet (SP4 fills it).')
 
 func test_the_licence_names_itself_after_the_frame():

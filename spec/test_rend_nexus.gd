@@ -309,6 +309,12 @@ func test_the_licence_grants_it_at_rank_one():
 	assert_true(rank_1_ids.has(SluaghFixture.REND_NEXUS), 'Rank 1 grants the Rend Nexus.')
 	# The frame is still rank 2's and nothing else moved - the assertion test_sluagh_frame.gd makes
 	# about rank 2 is not repeated here, only the one this task could have broken.
-	assert_true(licence.rank_2.granted_gear.is_empty(),
-		'Rank 2 still grants no GEAR - only the frame, until SP3.')
+	# UPDATED, SP3 Task 2 (2026-09-21): rank 2 now grants the Nightfare Nexus, exactly as the line
+	# this replaces predicted ("until SP3"). The claim kept here is only the one THIS card could
+	# break - that the Rend Nexus did not wander out of rank 1 into rank 2 - so it stays a
+	# not-has assertion rather than growing into a second copy of test_sluagh_frame.gd's exact list.
+	var rank_2_ids:Array[StringName] = []
+	for kit:Kit in licence.rank_2.granted_gear: rank_2_ids.append(kit.compcon_id)
+	assert_false(rank_2_ids.has(SluaghFixture.REND_NEXUS),
+		'And rank 2 does NOT also grant it - this weapon is rank 1\'s alone.')
 	assert_true(licence.rank_3.granted_gear.is_empty(), 'And rank 3 is still empty, until SP4.')

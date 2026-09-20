@@ -8,6 +8,7 @@
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/placeholder/mf_placeholder.png" id="6_icon"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_rend_nexus/mw_rend_nexus.tres" id="7_mw_rend_nexus"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_o_trickery/ms_o_trickery.tres" id="8_ms_o_trickery"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_nightfare_nexus/mw_nightfare_nexus.tres" id="9_mw_nightfare_nexus"]
 
 [sub_resource type="Resource" id="Resource_rank1"]
 script = ExtResource("2_unlockrank")
@@ -16,7 +17,7 @@ granted_gear = Array[ExtResource("4_kit")]([ExtResource("7_mw_rend_nexus"), ExtR
 [sub_resource type="Resource" id="Resource_rank2"]
 script = ExtResource("2_unlockrank")
 granted_frames = Array[ExtResource("3_frame")]([ExtResource("5_mf_sluagh")])
-granted_gear = Array[ExtResource("4_kit")]([])
+granted_gear = Array[ExtResource("4_kit")]([ExtResource("9_mw_nightfare_nexus")])
 
 [sub_resource type="Resource" id="Resource_rank3"]
 script = ExtResource("2_unlockrank")
