@@ -63,6 +63,31 @@ const FROZEN_SIGNATURES := {
 	},
 }
 
+## A STATBLOCK buff that reports its holder's CURRENT Overshield as a sensor-range bonus - the shape
+## the Sluagh's Inexorable Formation ships in SP1 Task 5, reduced to the one property this file is
+## about.
+##
+## IN-FILE AND NOT THE REAL BUFF, deliberately. This file's subject is the SHARED helper, which four
+## frames consume; giving it a dependency on any one of them would make a Sluagh change able to
+## redden the Myconid's helper spec. It is also the only way to write this test before that content
+## exists, which is the order the plan builds in.
+##
+## get_values IS CALLED WITH A BARE CONTEXT. unit_battle_state.gd:232 calls buff.get_values() with no
+## argument at all, so BuffCore.get_values builds Context.create({}) and context.map falls back to
+## X.map() (context.gd:76-80). get_holder_unit(context.map) therefore resolves through the live map -
+## get_owner_unit would not, because a hand-applied buff has an empty from_gear (buff_core.gd:104).
+class OvershieldSensors extends Buff:
+	func get_values(core:BuffCore, context:Context) -> Context:
+		var block := Statblock.new()
+		block.sensor_range = Overshield.current(core.get_holder_unit(context.map))
+		return Context.create({ object = block })
+
+	static func hang_on(target:Unit) -> void:
+		var probe := OvershieldSensors.new()
+		probe.to = Buff.TO.STATBLOCK
+		probe.hide_from_player = true
+		UnitCondition.apply_buff(SpecFactory.dummy_event({unit = target}), target, probe)
+
 var game:Gamemaster
 var unit:Unit
 
@@ -271,3 +296,42 @@ func test_the_fixture_helper_and_the_helper_agree_about_grit():
 	# against each other - test_halo.gd leans on set_grit for every positive case.
 	MyconidFixture.set_grit(unit, 2)
 	assert_eq(Overshield.grit(unit), 2, 'set_grit(2) really is Grit 2.')
+
+# ---------------------------------------------------------------- the cache refresh
+
+func test_grant_refreshes_the_targets_cached_stats_immediately():
+	# ADDED FOR THE SLUAGH (SP1 Task 4, ruling 12), and it is an ADDITION to the frozen interface's
+	# behaviour rather than a change to its shape: no name, argument or return type moved, which
+	# test_the_frozen_interface_pins_these_five_signatures above is what guarantees.
+	#
+	# THE PROBLEM IT SOLVES. state.stat_bonus is rebuilt ONLY by UnitBattleState.update_cached_values
+	# (unit_battle_state.gd:229-234), and event_unit_overshield does not call it - its entire body is
+	# state.overshield = maxi(0, maxi(old, amount)) plus a popcorn and a log line
+	# (event_unit_overshield.gd:10-22). So a STATBLOCK buff that reads Overshield reported a stale
+	# number until something unrelated refreshed the cache. The reaction bus has no overshield
+	# trigger to listen on (reaction_bus.gd:9-42), which is why this lives in the helper.
+	#
+	# WITHOUT THE REFRESH this reads `base`, not `base + 3`. That is the whole test.
+	OvershieldSensors.hang_on(unit)
+	var base:int = unit.get_sensor_range()
+	await Overshield.grant(dummy(), unit, 3)
+	assert_eq(Overshield.current(unit), 3, 'fixture: the grant landed.')
+	assert_eq(unit.get_sensor_range(), base + 3,
+		'And a STATBLOCK buff reading Overshield reports the new value IMMEDIATELY - '
+		+ 'Unit.get_sensor_range is core + state.stat_bonus.sensor_range (unit.gd:305).')
+
+func test_increase_refreshes_the_cache_too_by_inheriting_grants():
+	# increase() IS BUILT ON grant() (overshield.gd:62), so the refresh is inherited rather than
+	# written twice - and the arithmetic is what makes that safe: increase's own amount <= 0 guard
+	# (:61) means the number it hands grant is always positive, so grant can never take its early
+	# return (:47) from this path and can never skip the refresh.
+	#
+	# PINNED SEPARATELY ANYWAY. If a later session decides to write the line into increase() as well,
+	# nothing here changes; if someone moves it OUT of grant() and into increase() only, the test
+	# above catches it. Between them the two say where the line has to be.
+	OvershieldSensors.hang_on(unit)
+	var base:int = unit.get_sensor_range()
+	await Overshield.grant(dummy(), unit, 2)
+	await Overshield.increase(dummy(), unit, 3)
+	assert_eq(Overshield.current(unit), 5, 'fixture: 2 + 3, not max(2, 3).')
+	assert_eq(unit.get_sensor_range(), base + 5, 'And the cache followed the additive gain too.')
