@@ -123,7 +123,11 @@ func test_the_system_is_unique_and_carries_grey_birds_as_an_invade():
 func test_the_three_buffs_land_on_a_hostile_target():
 	SluaghFixture.cheat_a_hit()
 	await SluaghFixture.grey_birds(game, sluagh, hostile)
-	for buff_id:StringName in [SluaghFixture.GREY_BIRDS_BAN, SluaghFixture.GREY_BIRDS_CHIP]:
+	# ALL THREE, which the name has claimed since Task 5 and only now can be asked: the recentre is
+	# created in Task 6, and until it existed action_grey_birds logged an X.error and applied two.
+	for buff_id:StringName in [
+		SluaghFixture.GREY_BIRDS_BAN, SluaghFixture.GREY_BIRDS_RECENTRE, SluaghFixture.GREY_BIRDS_CHIP
+	]:
 		assert_true(UnitCondition.has_buff(hostile, buff_id), '%s is on the target.' % buff_id)
 	# OWNED BY THE SLUAGH'S GEAR, which is the whole of how the ban knows who to spare:
 	# BuffCore.get_owner_unit resolves from from_gear (buff_core.gd:102-105), and from_gear is set
@@ -285,5 +289,198 @@ func test_the_buffs_clear_as_the_second_round_after_application_begins():
 	assert_false(bound(), 'The ban cleared itself...')
 	assert_false(UnitCondition.has_buff(hostile, SluaghFixture.GREY_BIRDS_CHIP),
 		'...and so did the chip, on its own NEW_ROUND trigger rather than through a keeper.')
+	# THE THIRD LIFETIME, added in Task 6 and the only thing in the suite that can see it. The
+	# recentre is hidden and draws nothing, so without this assertion a recentre that outlived the
+	# other two would be invisible - which is exactly the half-expired set three independent
+	# lifetimes exist to make impossible. Task 6's mutations 3 and 4 both land here.
+	assert_false(UnitCondition.has_buff(hostile, SluaghFixture.GREY_BIRDS_RECENTRE),
+		'...and so did the AoE recentre, which nothing else in this file would notice.')
 	assert_true(can_target(rifle_of(hostile), ally), 'And the ally is targetable again.')
+
+# ================================================================================================
+# THE AoE RECENTRE (SP2 Task 6). Everything above is the ban, which a tile-targeted AoE never asks.
+# ================================================================================================
+
+## THE THREE VANILLA SHAPES, EACH MEASURED OFF ITS OWN .tres RATHER THAN OFF THE PLAN, which named
+## mw_thermal_pistol as the Burst and is wrong: its range_pattern is `pattern = 2` (LINE), value 5
+## (content/gear/gms/weapons/mw_thermal_pistol.tres). test_draw_fire.gd:94 says the same in prose.
+## The vanilla Burst that suite uses is the Bristlecrown, and that is what is used here.
+##
+## Blast 1, Range 15, Arcing, Inaccurate, 1d6+1 explosive. `pattern = 1` (BLAST). Its weapon_type is
+## 1 = CANNON, NOT a launcher, so the "ordnance cannot hit adjacent" clause
+## (action_attack_weapon.gd:232-237) is doubly irrelevant here - it also needs BOTH units ENGAGED.
+const MORTAR := &'mw_mortar'
+## Line 10 heavy cannon, 1d6+3 energy, self-heat 2. `pattern = 2` (LINE), value 10.
+const THERMAL_LANCE := &'mw_thermal_lance'
+## IPS-N Burst 1 aux CQB, 1 kinetic, aim_range 1, threat 0. `pattern = 4` (BURST), value 1.
+const BRISTLECROWN := &'mw_bristlecrown_flechette_launcher'
+
+## Records the FINAL target set of every declared attack. ATTACK_DECLARED / POST, so it reads the
+## summary AFTER any PRE rewrite - which is the thing under test. A reaction that never fires: it
+## reads the triggering context and returns false, so it costs no reaction point and opens no
+## prompt. test_draw_fire.gd's TerrainRecorder is the shape.
+class DeclarationRecorder extends ActionReaction:
+	var declared:Array[Array] = []
+
+	func _init() -> void:
+		triggers_on = [ReactionBus.TRIGGER.ATTACK_DECLARED]
+		trigger_timing = ReactionBus.TIMING.POST
+		consumes_rxn = false
+
+	func get_required_triggering_context() -> Array[Context.PROP]:
+		return [Context.PROP.resource]
+
+	func triggers_on_event(_unit:Unit, _gear:GearCore, triggering_event:EventCore) -> bool:
+		var summary:DeclaredAttackSummary = triggering_event.context.resource
+		if DeclaredAttackSummary.is_valid(summary):
+			declared.append(summary.all_attacked_units.duplicate())
+		return false
+
+var recorder:DeclarationRecorder
+
+## Hang the recorder on a unit through a throwaway trait Kit. test_draw_fire.gd:242-250, verbatim.
+func install_recorder(on:Unit) -> void:
+	recorder = DeclarationRecorder.new()
+	var kit := Kit.new()
+	kit.compcon_id = &'grey_birds_spec_recorder_kit'
+	kit.is_trait = true
+	kit.actions.append(recorder)
+	on.core.loadout.equipped_kits.append(kit)
+	on.core.full_repair()
+	UnitTile.update_tracking_and_statuses(game.map)
+
+## Fire a weapon at a TILE - a Blast aims at ground, a Line or Cone along a ray - and hand back the
+## summary the attack resolved through. Built by hand rather than through game.execute_event because
+## the summary lives on the activation event's OWN context, which execute_event does not return
+## (test_draw_fire.gd:296-305).
+##
+## THE TAIL IS 1s, NOT test_draw_fire's 6s, and it is this frame that decides it: the Sluagh has 8 HP
+## and 0 armor, and ms_brace raises its own yes/no once incoming damage clears half the health max
+## (action_brace.gd:44-51) - above 4 here. A cheated tail of sixes would put a mortar's 1d6+1 at 7 and
+## open a prompt the stock responder would have to answer. SluaghFixture.queue's header records the
+## same reasoning for the same reason.
+func fire_at_tile(shooter:Unit, weapon:GearCore, tile:Vector2i, d20:int) -> DeclaredAttackSummary:
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	var buffer:Array[int] = []
+	for i:int in 60: buffer.append(1)
+	Dice.cheat_attack([d20], buffer)
+	var tiles:Array[Vector2i] = [tile]
+	var core := EventCore.create(&'event_gear_activate', {
+		action = weapon.get_solo_action(), gear = weapon, unit = shooter, target_tiles = tiles,
+	})
+	var cores:Array[EventCore] = [core]
+	await game.execute_event_block(EventBlock.create_multiple(cores))
+	return core.context.resource as DeclaredAttackSummary
+
+func arm(unit:Unit, weapon_id:StringName) -> GearCore:
+	var weapon:GearCore = unit.core.equip_system(weapon_id)
+	SpecFactory.apply_passive_buffs(unit)
+	return weapon
+
+func test_a_blast_declared_on_the_ally_lands_centred_on_the_sluagh():
+	# THE HALF THE BAN CANNOT REACH. A tile-targeted AoE never calls can_target_unit on the tiles it
+	# aims at, so ACTION_BANNED_UNITS is never asked and the ally is hit through the ban. The recentre
+	# rewrites the declared summary in place at ATTACK_DECLARED PRE, before execute() reads
+	# directly_attacked_tiles (event_unit_attack_declared.gd:35-36) or duplicates all_attacked_units
+	# for the per-target rolls (:54).
+	var mortar := arm(hostile, MORTAR)
+	SluaghFixture.cheat_a_hit()
+	await SluaghFixture.grey_birds(game, sluagh, hostile)
+	assert_true(bound(), 'fixture: the invade landed.')
+
+	var summary:DeclaredAttackSummary = await fire_at_tile(hostile, mortar, ALLY_TILE, 19)
+	assert_not_null(summary, 'fixture: the shot resolved and produced a summary.')
+	if summary == null: return
+	assert_true(summary.directly_attacked_tiles.has(sluagh.tile()),
+		'THE CARD: the blast is re-aimed onto the Sluagh...')
+	assert_eq(summary.directly_attacked_tiles.size(), 1,
+		'...and onto ONE tile - every direct target collapses to the aim tile, deduped.')
+	assert_true(summary.all_attacked_units.has(sluagh), 'The Sluagh is in the rebuilt area.')
+
+func test_a_burst_is_refused_and_the_attack_is_left_alone():
+	# RULING 17's own exception, and the engine's reason for it: a BURST is centred on the ACTOR -
+	# RangePattern.get_aoe_tiles takes occupied_tiles[0] and ignores target_tiles entirely
+	# (range_pattern.gd:45-46) - so there is nothing to re-aim. Refused outright rather than
+	# half-applied.
+	#
+	# THE ALLY IS WALKED IN ADJACENT, because the Bristlecrown is Burst 1 and its area is drawn round
+	# the HOSTILE: at ALLY_TILE the ally is three tiles out and nothing would be declared at all, so
+	# "the attack still happened" would be vacuous. test_draw_fire.gd:578-583 stands its brawler
+	# adjacent for exactly this.
+	#
+	# AND THE BAN IS DORMANT HERE, measured rather than incidental: the Bristlecrown's aim_range is 1
+	# and the Sluagh is two tiles away, so owner_is_a_legal_target's get_tiles_in_range clause is
+	# false and the ban never applies - which is what leaves the ally inside the declared area
+	# (action_attack.gd:172 filters all_attacked_units through can_target_unit at DECLARE time). This
+	# test is about the RECENTRE refusing a Burst; the ban has its own eight cases above.
+	SluaghFixture.step(ally, ADJACENT_TO_HOSTILE)
+	SluaghFixture.track(game)
+	var burst := arm(hostile, BRISTLECROWN)
+	SluaghFixture.cheat_a_hit()
+	await SluaghFixture.grey_birds(game, sluagh, hostile)
+
+	var before := ally.current_damage()
+	var summary:DeclaredAttackSummary = await fire_at_tile(hostile, burst, ADJACENT_TO_HOSTILE, 19)
+	if summary == null: return
+	assert_false(summary.directly_attacked_tiles.has(sluagh.tile()),
+		'A Burst is not re-aimed, whatever it catches.')
+	assert_gt(ally.current_damage(), before, 'And the attack it did declare still happened.')
+
+func test_a_line_that_cannot_reach_the_sluagh_is_left_alone():
+	# RULING 17: a Line or Cone whose rebuilt area would not contain the owner is refused by the same
+	# `new_units.has(owner)` check that lets a reachable one through - the rebuild is the gate, run
+	# DRY in triggers_on_event and LIVE in activate.
+	#
+	# THE INVADE COMES FIRST AND THE WALK SECOND, which is a correction to the plan's own ordering:
+	# at FAR_FROM_THE_HOSTILE the Sluagh is 22 tiles from its victim and the invade would be pressed
+	# from out of range. test_the_ally_is_targetable_again_when_the_sluagh_is_out_of_the_attackers_
+	# range does it in this order for the same reason.
+	var line := arm(hostile, THERMAL_LANCE)
+	SluaghFixture.cheat_a_hit()
+	await SluaghFixture.grey_birds(game, sluagh, hostile)
+	SluaghFixture.step(sluagh, FAR_FROM_THE_HOSTILE)
+	SluaghFixture.track(game)
+
+	var summary:DeclaredAttackSummary = await fire_at_tile(hostile, line, ALLY_TILE, 19)
+	if summary == null: return
+	# ASSERTED ON THE AIM TILE, not only on the unit list, and that is a correction to the plan: the
+	# rebuilt Line 10 east contains the ally and NOT the Sluagh either way, so
+	# `all_attacked_units.has(sluagh)` is false whether the reach check refuses the rewrite or waves
+	# it through - it would stay green under this task's own mutation 2. directly_attacked_tiles is
+	# what actually moves: [ALLY_TILE] when refused, [FAR_FROM_THE_HOSTILE] when not.
+	assert_true(summary.directly_attacked_tiles.has(ALLY_TILE),
+		'The Sluagh is out of reach, so the Line keeps the aim the attacker gave it.')
+	assert_false(summary.directly_attacked_tiles.has(sluagh.tile()),
+		'And is not dragged onto the Sluagh.')
+	assert_false(summary.all_attacked_units.has(sluagh), 'The Sluagh is not in the area either.')
+
+func test_without_the_ban_the_hostile_can_target_the_ally():
+	# THE CONTROL FOR THE AI CASE BELOW, and it is what makes that one mean anything: an AI that
+	# would have shot the Sluagh anyway proves nothing. This is the same board, unbound.
+	assert_true(can_target(rifle_of(hostile), ally),
+		'Unbound, the ally is a legal target for the hostile.')
+	assert_true(can_target(rifle_of(hostile), sluagh), 'And so is the Sluagh.')
+
+func test_the_ai_declares_its_shot_at_the_sluagh():
+	# THE POINT OF THE WHOLE MECHANISM: the AI's candidate lists pass through can_target_unit, so the
+	# ban steers an opponent rather than only answering a query. Asserted on what was DECLARED, plus
+	# a shot really happening - "the ally is untouched" alone would be green for an AI that did
+	# nothing at all.
+	install_recorder(sluagh)
+	SluaghFixture.cheat_a_hit()
+	await SluaghFixture.grey_birds(game, sluagh, hostile)
+	assert_true(bound(), 'fixture: bound.')
+	assert_false(can_target(rifle_of(hostile), ally), 'fixture: and the ally is refused.')
+
+	var before_sluagh := sluagh.current_damage()
+	var before_ally := ally.current_damage()
+	SluaghFixture.queue([19])
+	await SpecFactory.start_turn(game, hostile)
+	await SpecFactory.execute_ai_action(game, hostile)
+
+	assert_false(recorder.declared.is_empty(), 'The AI declared an attack at all.')
+	if recorder.declared.is_empty(): return
+	assert_true(recorder.declared.back().has(sluagh), 'And it declared it AT THE SLUAGH.')
+	assert_gt(sluagh.current_damage(), before_sluagh, 'A shot really landed on the Sluagh...')
+	assert_eq(ally.current_damage(), before_ally, '...and none on the ally.')
 
