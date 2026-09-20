@@ -11,6 +11,11 @@
 # method, and neither half needs to know about the other. Its own block header, further down, carries
 # the measurement that corrected the design's account of how an unpreventable teleport is issued.
 #
+# ADDITIONS ARE ALLOWED AND TWO MORE HAVE LANDED (SP2, the SLUAGH's Hunt of the Vagrant Sowche,
+# design ruling 18): forced_movement_type() and shove(), the "somebody else's shove" half of is_own's
+# question, which nothing built until a card needed to move a unit that is not the caller. THIRTEEN
+# functions now, and not one of the eleven moved. See each one's own header.
+#
 # No class_name (res/content/gear/shared/README.md): global class names are registered from
 # project.godot's class list, which is built at startup, so one declared in a script a mod loads at
 # runtime is never registered and cannot be referenced by that name at all. Callers preload this
@@ -363,6 +368,80 @@ static func move_along(activation:EventCore, unit:Unit, pathfinder:Pathfinder, p
 	for core:EventCore in cores:
 		if core.context.unit == unit: return core
 	return cores.front()
+
+
+## SOMEBODY ELSE'S SHOVE - the third movement-type shape, and the one is_own's docstring above names
+## as the other half of its question (SP2, the Sluagh's Hunt of the Vagrant Sowche, design ruling 18).
+##
+## INVOLUNTARY LIKE OUR OWN STEP, AND DELIBERATELY NOT TAGGED. That is the entire distinction: both
+## shapes are involuntary, the engine cannot tell them apart, and OWN_TAG is the one bit that says
+## "this one is the holder's own unpreventable teleport". A hostile shoving us must NOT set it, or a
+## self-exemption reading is_own would wave the shove through.
+##
+## NO own_involuntary PARAMETER, unlike movement_type(). A shove is never ours, so a flag with one
+## legal value would be a reshape waiting to happen; the frozen signature is deliberately narrow.
+##
+## voluntary IS RE-ASSERTED AFTER create()'s BUFF MERGE, for the same reason movement_type(unit, true)
+## does it: MovementType.create sets `type.voluntary = is_voluntary` (movement_type.gd:44) and THEN
+## merges every Buff.TO.MOVEMENT_TYPE resource the unit holds (:51), where merge_in is
+## `voluntary = voluntary or other.voluntary` (:81). One buffed movement type authored voluntary = true
+## would make this shape preventable by Immobilized (event_unit_move.gd:451), and the card says the
+## target IS moved. Latent today - nothing vanilla or resident sets that flag - which is why nothing
+## else would notice it going wrong.
+##
+## AND other_tags IS ERASED, the symmetric half: merge_in propagates other_tags wholesale
+## (movement_type.gd:96), so a movement-type buff carrying our own tag would smuggle it in here too.
+## The tag means "ours", and only movement_type(unit, true) is allowed to leave it standing.
+##
+## NOT MovementType.create_for_involuntary (movement_type.gd:63-71), which already exists and is what
+## a knockback uses. Three reasons, all measured off that function: it never sets teleport, so
+## is_teleport() answers false and no listener sees the move at all; it sets ignore_rxns, vanilla's
+## own "do not react to this" signal, which is precisely what ruling 18 does not want, since a Maiden's
+## Blush must be able to veto a Hunt; and it skips the buff merge entirely, so a FLYING or INTANGIBLE
+## target would lose those flags mid-shove.
+static func forced_movement_type(unit:Unit) -> MovementType:
+	var type := MovementType.create(unit, false)
+	type.teleport = true
+	type.ignore_engagement = true
+	type.voluntary = false
+	type.other_tags.erase(OWN_TAG)
+	return type
+
+
+## Shove a unit that is NOT the caller: move()'s body with the untagged involuntary type, executed
+## inline, with the move core handed back so the caller can read `aborted`.
+##
+## THE `object` IS THE SHOVER, AND THAT IS THE POINT. move() derives it from the activation too, but
+## there the activation belongs to the mover, so forcer(context) returns the mech itself and
+## are_enemies(unit, unit) is false. Here the activation belongs to the SLUAGH, so forcer() returns
+## the Sluagh, are_enemies is true, and a Maiden's Blush's Uncertainty Field correctly offers to fade
+## instead of being shoved - which is the reading design ruling 18 records for this card.
+##
+## A TARGET TILE, NOT A PATH - THE ONE LINE WHERE THIS DIFFERS FROM move(), AND IT IS A DECISION
+## (SP2 controller ruling, 2026-09-20, reversing the plan's departure 7; PROPOSED to the author).
+## See this block's header for the four-way measurement: "involuntary + target tile" BEATS
+## Immobilized and LOSES to a MOVEMENT_RESTRICTION ban, because EventUnitMove.undergo_move builds a
+## pathfinder of its own for a target-tile move (event_unit_move.gd:139-145) and Pathfinder.create is
+## where every ban is read (:345-352) - while the Immobilized gate there (:333) and the one in the
+## move event (:451) both test voluntary, which this type is not. That is EXACTLY design ruling 18's
+## claim and no more: "Immobilized gates only voluntary moves, so the shove lands on an Immobilized
+## target". A shove is somebody ELSE's move, and the fence a unit's own effects put around it (an
+## Interdiction Field, Thy Hubris' chain) is the engine's ban channel - a hostile Hunt does not get
+## to break that fence, where the frame's OWN unpreventable Step (move()) deliberately does. It also
+## keeps the two routes distinct in substance and not only in the tag. An Uncertainty Field's veto
+## is an ENTIRE_MOVEMENT PRE listener (:71-72) and fires before undergo_move either way.
+##
+## If the author wants a Hunt to beat a ban too, the change is one line here: array = one
+## Pathfinder.Step in place of target_tiles, exactly as move() sends.
+static func shove(activation:EventCore, unit:Unit, tile:Vector2i) -> EventCore:
+	if not Unit.is_valid(unit): return null
+	if not Tile.is_valid(tile, unit.map): return null
+	return await _run(activation, {
+		unit = unit,
+		target_tiles = [tile],
+		resource = forced_movement_type(unit),
+		object = _source(activation),
+	})
 
 
 ## The SpecificAction to hang on a move as its `object`, or null when the activation has none.

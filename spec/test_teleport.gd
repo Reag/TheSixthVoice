@@ -119,6 +119,29 @@ const FROZEN_SIGNATURES := {
 		],
 		defaults = 0, return_type = TYPE_OBJECT, return_class = &'EventCore',
 	},
+
+	# ---- THE SHOVE (SP2 Sluagh, design ruling 18), frozen with the eleven above ----
+	# The third movement-type shape this file's own is_own docstring names and nothing built until
+	# Hunt of the Vagrant Sowche needed it: SOMEBODY ELSE'S shove. Involuntary like our own Step, and
+	# deliberately NOT own-tagged, which is the whole distinction the tag exists to draw.
+	#
+	# forced_movement_type takes ONE argument and has NO default, unlike movement_type(unit, own) -
+	# there is no second shape for it to select, and a bool that only ever takes one value is a
+	# reshape waiting to happen.
+	forced_movement_type = {
+		args = [['unit', TYPE_OBJECT, &'Unit']],
+		defaults = 0, return_type = TYPE_OBJECT, return_class = &'MovementType',
+	},
+	# shove takes NO own_involuntary either, where move() does: a shove is never ours, so the flag
+	# would have exactly one legal value. Three arguments, no defaults.
+	shove = {
+		args = [
+			['activation', TYPE_OBJECT, &'EventCore'],
+			['unit', TYPE_OBJECT, &'Unit'],
+			['tile', TYPE_VECTOR2I, &''],
+		],
+		defaults = 0, return_type = TYPE_OBJECT, return_class = &'EventCore',
+	},
 }
 
 var game:Gamemaster
@@ -228,17 +251,17 @@ func apply_a_movement_type_buff_carrying_our_tag() -> void:
 
 # ---------------------------------------------------------------- the interface itself
 
-func test_the_frozen_interface_pins_these_eleven_signatures():
-	# Roadmap §4 freezes the first six when SP1 ships and the last five when SP2 does. This pins the
-	# FULL signature of each of the eleven -
+func test_the_frozen_interface_pins_these_thirteen_signatures():
+	# Roadmap §4 freezes the first six when SP1 ships, the next five when SP2 does, and the last two
+	# when the SLUAGH's SP2 does (design ruling 18: forced_movement_type + shove). This pins the FULL
+	# signature of each of the thirteen -
 	# argument count, each argument's name and order, each argument's type, the default-argument
 	# count, and the return type - not only that the name survives. A rename, a reordered parameter,
 	# a changed type or a silently-grown default is five later frames' worth of churn, and nothing
 	# else in the suite would notice any of them until those frames are written.
 	#
-	# Deliberately does NOT fail if a TWELFTH function is added: the whole freeze contract is
-	# "additions allowed, reshapes not", and a later frame may need one more (the roadmap's Black
-	# Mountain note is the planned case for the Overshield helper, and the same rule applies here).
+	# Deliberately does NOT fail if a FOURTEENTH function is added: the whole freeze contract is
+	# "additions allowed, reshapes not", and this task is itself the second exercise of that clause.
 	#
 	# Through a Script-typed local, not Teleport.get_script_method_list() directly: GDScript reads a
 	# preloaded script constant as a CLASS in a call position and refuses the call at parse time.
@@ -481,6 +504,13 @@ func immobilize(of:Unit) -> void:
 	UnitCondition.apply_status(SpecFactory.dummy_event(), of,
 		Lancer.STATUS.IMMOBILIZED, Lancer.UNTIL.MANUAL)
 
+## An activation belonging to the FORCING unit rather than to the mover - the shape Hunt has when it
+## shoves its target. sourced_activation() above is deliberately the other one (the mover's own), and
+## the pair is what lets test_shove_hangs_the_shovers_specific_on_the_event discriminate.
+func forcing_activation() -> EventCore:
+	var gear:GearCore = forcing_unit.get_gear(&'mw_improvised_attack')
+	return SpecFactory.dummy_event({unit = forcing_unit, gear = gear, action = gear.get_solo_action()})
+
 # ---------------------------------------------------------------- candidate_tiles
 
 func test_candidate_tiles_excludes_a_tile_another_unit_is_standing_on():
@@ -622,3 +652,135 @@ func test_move_beats_a_movement_restriction_ban_while_the_pathfinder_route_loses
 	await Teleport.move(sourced_activation(), unit, DESTINATION)
 	assert_eq(unit.tile(), DESTINATION,
 		'And move() lands anyway - no pathfinder is ever built, so no ban is ever read.')
+
+# ================================================================================================
+# THE SHOVE (SP2, SLUAGH, design ruling 18). Everything above this line is the Maiden's Blush's and
+# is unchanged.
+# ================================================================================================
+
+# ---------------------------------------------------------------- forced_movement_type
+
+func test_forced_movement_type_is_an_involuntary_untagged_teleport_that_ignores_engagement():
+	# The third shape, and every clause of it is load-bearing somewhere:
+	#  - teleport, or Teleport.is_teleport answers false and no listener - Uncertainty Field included -
+	#    ever sees the move (teleport.gd:48-51);
+	#  - NOT voluntary, which is what clears the Immobilized gate (event_unit_move.gd:451 is
+	#    `if movement_type.voluntary and UnitCondition.is_immobilized(unit): return false`);
+	#  - ignore_engagement, matching our own involuntary shape and vanilla's
+	#    create_for_involuntary (movement_type.gd:66);
+	#  - NOT ours. This is the ONE clause that distinguishes it from movement_type(unit, true), and
+	#    nothing else in this file or the suite would notice it going wrong.
+	var type := Teleport.forced_movement_type(unit)
+	assert_true(MovementType.is_valid(type), 'It is a MovementType.')
+	assert_true(type.teleport, 'It teleports.')
+	assert_false(type.voluntary, 'It is involuntary - which is what beats the Immobilized gate.')
+	assert_true(type.ignore_engagement, 'It ignores engagement.')
+	assert_false(Teleport.is_own(type),
+		'THE DISTINCTION: it is NOT tagged as ours. A hostile shove is exactly the case is_own exists'
+		+ ' to answer false for, and move(unit, tile) would have tagged it - own_involuntary defaults'
+		+ ' to true there (teleport.gd:334).')
+	assert_false(type.ignore_rxns,
+		'And it does NOT set NO_RXNS, so a Maiden\'s Blush is free to veto it - design ruling 18 says'
+		+ ' it can, and vanilla create_for_involuntary (movement_type.gd:65) would have set it.')
+
+func test_forced_movement_type_stays_involuntary_under_a_voluntary_movement_type_buff():
+	# THE SAME MERGE HAZARD movement_type(unit, true) re-asserts against, re-asked for the new shape.
+	# MovementType.create sets `type.voluntary = is_voluntary` (movement_type.gd:44) and THEN merges
+	# every Buff.TO.MOVEMENT_TYPE resource the unit holds (:51), where merge_in is
+	# `voluntary = voluntary or other.voluntary` (:81). A single movement-type buff authored
+	# voluntary = true would hand this shape back VOLUNTARY, and a shove that is voluntary is one an
+	# Immobilized target simply refuses.
+	#
+	# LATENT, NOT LIVE - no vanilla resource and none of the three residents sets `voluntary` on a
+	# movement-type buff - which is exactly why the case is built by hand.
+	apply_a_voluntary_movement_type_buff()
+
+	var type := Teleport.forced_movement_type(unit)
+	assert_true(type.free_climb, 'CONTROL: the buff really is merged into what create() returns.')
+	assert_false(type.voluntary, 'And voluntary is re-asserted FALSE after that merge.')
+
+func test_forced_movement_type_never_carries_our_tag_even_when_a_buff_smuggles_it_in():
+	# THE SYMMETRIC HALF, and it is the reason forced_movement_type erases rather than merely omits.
+	# merge_in propagates other_tags wholesale (movement_type.gd:96), so a Buff.TO.MOVEMENT_TYPE
+	# resource whose own other_tags happened to carry OWN_TAG would leak it into a shove - and a
+	# consumer reading is_own would then treat somebody else's shove as its own unpreventable Step,
+	# which is the one confusion the tag exists to prevent.
+	apply_a_movement_type_buff_carrying_our_tag()
+
+	var type := Teleport.forced_movement_type(unit)
+	assert_false(type.voluntary, 'CONTROL: still involuntary.')
+	assert_false(Teleport.is_own(type),
+		'THE FINDING: still not ours, even though the buff smuggled the tag into the merge.')
+
+# ---------------------------------------------------------------- shove
+
+func test_shove_lands_by_tile_and_returns_a_completed_core():
+	var core:EventCore = await Teleport.shove(forcing_activation(), unit, DESTINATION)
+	assert_not_null(core, 'It handed the move core back.')
+	assert_false(core.aborted, 'Which did not abort.')
+	assert_eq(unit.tile(), DESTINATION, 'And the shoved unit is there.')
+
+func test_shove_lands_on_an_immobilized_target_but_loses_to_a_movement_restriction_ban():
+	# Design ruling 18's own clause: "Immobilized gates only voluntary moves, so the shove lands on an
+	# Immobilized target." The pair with the control is the point - the flag is what does the work,
+	# and event_unit_move.gd:451 is the only gate that reads it.
+	immobilize(unit)
+	await Teleport.shove(forcing_activation(), unit, DESTINATION)
+	assert_eq(unit.tile(), DESTINATION, 'Immobilized does not stop a shove.')
+
+	UnitTile.move_to(unit, START)
+	await Teleport.move(forcing_activation(), unit, DESTINATION, false)
+	assert_eq(unit.tile(), START,
+		'CONTROL: the VOLUNTARY route still loses to it, so the assertion above is about the flag and'
+		+ ' not about the fixture.')
+
+	# THE OTHER HALF, AND THE ONE THAT DISCRIMINATES THE ROUTE (SP2 controller ruling, 2026-09-20):
+	# a shove is a TARGET-TILE move, so undergo_move builds a pathfinder for it
+	# (event_unit_move.gd:139-145) and Pathfinder.create reads every MOVEMENT_RESTRICTION ban
+	# (:345-352). Without a live ban on the map this test cannot tell a target tile from a
+	# hand-built path, and shove() could quietly become move() minus the tag. Same fixture as
+	# test_move_beats_a_movement_restriction_ban_while_the_pathfinder_route_loses_to_it: the
+	# Minotaur's Interdiction Field hung straight on a hostile at distance 2 allows the blank array.
+	UnitCondition.clear_status(SpecFactory.dummy_event(), unit, Lancer.STATUS.IMMOBILIZED)
+	assert_false(unit.has_status(Lancer.STATUS.IMMOBILIZED), 'Fixture: Immobilized is off again.')
+	UnitTile.move_to(forcing_unit, Vector2i(4, 2))
+	UnitCondition.apply_buff_id(SpecFactory.dummy_event(), forcing_unit, &'buff_interdiction_field')
+	var core:EventCore = await Teleport.shove(forcing_activation(), unit, DESTINATION)
+	assert_eq(unit.tile(), START, 'A MOVEMENT_RESTRICTION ban stops a shove: the target-tile route reads it.')
+	assert_not_null(core, 'The core is still handed back, so a caller can log the refusal.')
+
+	await Teleport.move(forcing_activation(), unit, DESTINATION)
+	assert_eq(unit.tile(), DESTINATION,
+		'CONTROL: the OWN unpreventable route beats the same ban, so the refusal above is the route'
+		+ ' and not the fixture.')
+
+func test_shove_returns_an_aborted_core_when_a_pre_listener_vetoes():
+	# The generic seam design ruling 18 leans on for "a Maiden\'s Blush can veto it": a shove is an
+	# ordinary event_unit_move, so ENTIRE_MOVEMENT PRE gets its say at event_unit_move.gd:71 and
+	# :72 pulls the cord. The real Uncertainty Field case is pinned in test_hunt.gd, where there is a
+	# Blush to hold it; here the listener is the file\'s own hand-built one, so the assertion is about
+	# the route and not about that frame.
+	arm_listener()
+	var core:EventCore = await Teleport.shove(forcing_activation(), unit, DESTINATION)
+	assert_eq(listener.heard, 1, 'The listener saw exactly one teleport.')
+	assert_not_null(core, 'Still handed back.')
+	assert_true(core.aborted, 'Marked aborted.')
+	assert_eq(unit.tile(), START, 'And nothing moved.')
+
+func test_shove_hangs_the_shovers_specific_on_the_event_so_forcer_names_them():
+	# THE ASYMMETRY WITH move(), AND THE WHOLE REASON THE SHOVE PASSES AN `object`. move() is called
+	# by the unit that is moving, so forcer(context) returns that same mech and
+	# UnitRelation.are_enemies(unit, unit) is false - which is what makes Step of Mist and Thunder
+	# exempt from its own frame\'s Uncertainty Field (teleport.gd:84-95). A SHOVE is called by somebody
+	# ELSE, so the same read returns the SHOVER, are_enemies is TRUE, and the field correctly offers.
+	# Without this assertion the two cases are indistinguishable in this file.
+	var core:EventCore = await Teleport.shove(forcing_activation(), unit, DESTINATION)
+	assert_true(SpecificAction.is_valid(core.context.object),
+		'The move carries a SpecificAction as its object.')
+	assert_eq(core.context.object.unit, forcing_unit,
+		'And it names the SHOVER, not the shoved - which is what Teleport.forcer reads back.')
+	assert_eq(Teleport.forcer(core.context), forcing_unit,
+		'Read through the helper itself, because that is what a consumer calls.')
+	assert_true(UnitRelation.are_enemies(unit, forcing_unit),
+		'And the two really are enemies, so a self-exemption written as are_enemies(holder, forcer)'
+		+ ' does NOT fire on a shove.')
