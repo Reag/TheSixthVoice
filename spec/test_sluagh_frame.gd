@@ -194,6 +194,31 @@ func test_the_flavours_two_literal_backslashes_survived_the_csv_importer():
 		'And ends with TWO literal backslashes, the attribution, and nothing after it.')
 	assert_eq(flavour.count('\\'), 2, 'Exactly two backslashes in the whole row.')
 
+func test_the_frame_carries_its_four_traits_in_sheet_order():
+	# APPENDED ONCE PER TASK and pinned here at the close - Task 2 added Wicked Host, Task 3 the
+	# Stealing, Task 5 Inexorable Formation, Task 6 CRY OF THE HOSTED DEAD, each a pure APPEND.
+	#
+	# THIS ASSERTS ORDER, DELIBERATELY, and must not be relaxed to membership. The array order is
+	# PLAYER-VISIBLE: catalog_license_focus_spread.gd:31 iterates core.frame.traits in array order to
+	# fill the catalog's trait slots (lifting the core power out into its own slot as it goes), and
+	# mech_section.gd:109 iterates loadout.get_frame_traits(), which preserves it. The order below is
+	# the sheet's - the three traits in the order it prints them, then the core system - and design
+	# 1.1 names it explicitly. The Fitzgerald's whole-branch review found its array in
+	# task-completion order, which buried the core system; this is the pin that stops the same thing
+	# happening here.
+	#
+	# IT SHOULD NOT GROW. SP2, SP3 and SP4 add GEAR to li_sluagh's ranks, not traits to the frame -
+	# a trait is something the mech always has, and every remaining Sluagh ability is licensed
+	# equipment. A red here from a later sub-project means a piece of gear was wired as a trait.
+	var frame:Frame = _frame()
+	assert_not_null(frame, 'fixture: the frame loads.')
+	if frame == null: return
+	var carried:Array = frame.traits.map(func(kit:Kit) -> StringName: return kit.compcon_id)
+	assert_eq(carried,
+		[&'mt_wicked_host', &'mt_the_stealing_of_the_souls_of_the_dead', &'mt_inexorable_formation',
+		 &'cp_cry_of_the_hosted_dead'],
+		'The frame carries exactly its three traits and its core system, in the sheet\'s order.')
+
 # ---------------------------------------------------------------- the licence
 
 func test_the_licence_is_registered():
