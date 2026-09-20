@@ -454,6 +454,41 @@ func test_a_line_that_cannot_reach_the_sluagh_is_left_alone():
 		'And is not dragged onto the Sluagh.')
 	assert_false(summary.all_attacked_units.has(sluagh), 'The Sluagh is not in the area either.')
 
+func test_a_blast_is_left_alone_when_the_sluagh_is_beyond_the_weapons_range():
+	# RULING 17's OTHER HALF, and the gap the controller found in the first cut of this file: "a
+	# rebuild centred on the owner is legal BY THE ATTACKER'S OWN TARGETING" is a question about
+	# RANGE as much as about the unit refilter, and can_target_unit carries no geometry at all
+	# (Task 5 departure 2 measured that: action.gd:215-222 is self / hidden / banned, and
+	# ActionAttackWeapon's override adds arcs and knockback immunity).
+	#
+	# THE BLAST IS WHY THIS NEEDS ITS OWN CASE AND THE LINE ONE DOES NOT COVER IT. A Line's reach is
+	# its own pattern, so a Sluagh past it drops out of the rebuilt area and `new_units.has(owner)`
+	# refuses the rewrite. A BLAST re-centres wherever it is aimed and always contains its own
+	# centre, so that check can never refuse one however far away the aim tile is - and the engine
+	# never re-checks range against a rewritten target (action_draw_fire.gd's own header records it).
+	# Without an explicit range clause the mortar's Blast 1 is dragged 22 tiles onto a Sluagh its
+	# aim_range 15 could not have been pointed at by any player.
+	var mortar := arm(hostile, MORTAR)
+	SluaghFixture.cheat_a_hit()
+	await SluaghFixture.grey_birds(game, sluagh, hostile)
+	SluaghFixture.step(sluagh, FAR_FROM_THE_HOSTILE)
+	SluaghFixture.track(game)
+	# THE PRECONDITION, measured rather than assumed, so this cannot pass because the geometry drifted:
+	# 22 against the mortar's 15.
+	var specific := SpecificAction.from_id(hostile, MORTAR)
+	var reach:int = specific.action.get_target_range(specific)
+	var gap:int = int(UnitRelation.closest_tiles_between(hostile, sluagh).distance)
+	assert_gt(gap, reach,
+		'fixture: the Sluagh is beyond the mortar\'s reach (%d against %d).' % [gap, reach])
+
+	var summary:DeclaredAttackSummary = await fire_at_tile(hostile, mortar, ALLY_TILE, 19)
+	if summary == null: return
+	assert_true(summary.directly_attacked_tiles.has(ALLY_TILE),
+		'THE CARD STOPS AT THE WEAPON: the blast keeps the aim the attacker gave it...')
+	assert_false(summary.directly_attacked_tiles.has(sluagh.tile()),
+		'...and is not dragged onto a Sluagh the mortar cannot reach.')
+	assert_false(summary.all_attacked_units.has(sluagh), 'The Sluagh is not in the area either.')
+
 func test_without_the_ban_the_hostile_can_target_the_ally():
 	# THE CONTROL FOR THE AI CASE BELOW, and it is what makes that one mean anything: an AI that
 	# would have shot the Sluagh anyway proves nothing. This is the same board, unbound.

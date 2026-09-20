@@ -3,6 +3,17 @@
 # through untouched. This rewrites the declared attack in place at ATTACK_DECLARED PRE so it is
 # centred on the Sluagh instead.
 #
+# THE FOUR REFUSALS, all in rebuild() and all ruling 17's "only when a rebuild centred on the owner
+# is legal by the attacker's own targeting":
+#   - no range_pattern at all - a single-target shot, which the BAN already steers (in
+#     triggers_on_event, so the rewrite is never attempted twice on one attack);
+#   - the aim tile OUT OF THE ATTACKER'S RANGE or line of sight for this action (step 0, added as a
+#     follow-up to SP2 Task 6 - the controller found the gap: can_target_unit carries no geometry
+#     and the reach check below cannot see it, because a Blast always contains its own centre);
+#   - a BURST, which is centred on the ACTOR and so has nothing to re-aim;
+#   - a Line or Cone whose rebuilt area still would not contain the owner.
+# An attack already covering the Sluagh is not a refusal but a no-op: it needs no re-aiming.
+#
 # THE SEAM. event_unit_attack_declared.execute_preblock awaits the ATTACK_DECLARED PRE reactions
 # (:21-23) BEFORE execute reads directly_attacked_tiles / all_attacked_tiles (:35-36), duplicates
 # all_attacked_units for the per-target rolls (:54), runs them (:67) and hands all_attacked_tiles to
@@ -82,8 +93,9 @@ func activate(core:BuffCore, activation:EventCore) -> void:
 	# spend, so a rebuild that has become illegal since the dry run simply leaves the attack alone.
 	rebuild(owner, triggering.context, true)
 
-## DRY (live = false) answers "would the rebuilt area contain the owner?"; LIVE writes the four
-## summary arrays in place.
+## DRY (live = false) answers "is a rebuild centred on the owner legal for this attacker?" - the
+## attacker's range and LOS to the aim tile, the AoE shape, and whether the rebuilt area still holds
+## the owner; LIVE writes the four summary arrays in place.
 ##
 ## THE AIM TILE IS THE OWNER'S OCCUPIED TILE CLOSEST TO THE ATTACKER, not its anchor - the generous
 ## reading of "could target you" and the one a player aiming by hand picks. Draw Fire's own header
@@ -94,6 +106,19 @@ static func rebuild(owner:Unit, triggering_context:Context, live:bool) -> bool:
 	var map:MapState = specific.unit.map
 	if summary.directly_attacked_tiles.is_empty(): return false
 	var aim:Vector2i = Tile.closest_possible_to(owner.occupied_tiles(), specific.unit.tile())
+	# 0. THE ATTACKER'S OWN RANGE AND LINE OF SIGHT, FOR THIS ACTION, FROM WHERE IT STANDS. Ruling 17
+	# says the recentre fires only when a rebuild centred on the owner is legal by the ATTACKER'S own
+	# targeting, and the unit refilter below cannot answer that: can_target_unit carries NO geometry
+	# (action.gd:215-222 is self / hidden / banned; ActionAttackWeapon's override adds arcs and
+	# knockback immunity, not range), which is the same measurement that made the ban buff ask this
+	# separately - buff_grey_birds_ban.owner_is_a_legal_target's identical clause, the
+	# unit_relation.gd:266 shape. The `new_units.has(owner)` check further down does not cover it
+	# either: it refuses an out-of-reach LINE because the pattern's own length drops the owner out of
+	# the area, but a BLAST always contains the tile it is centred on, however far away that is - and
+	# the engine never re-checks range against a rewritten target. Without this a mortar aimed at an
+	# ally is dragged onto a Sluagh its aim_range could not have been pointed at.
+	# It runs in the DRY call as well as the LIVE one, so triggers_on_event refuses it too.
+	if not UnitTargeting.get_tiles_in_range(specific).has(aim): return false
 
 	# 1. "THEY MUST TARGET YOU WITH THAT ACTION": every direct target tile becomes the aim tile,
 	# deduped to one. This is where this file and Draw Fire part company - that one moves only the
