@@ -290,3 +290,6 @@ gear.mt_wicked_host.effect,"Whenever the Sluagh is hit by an attack made by a ho
 ,
 gear.mt_the_stealing_of_the_souls_of_the_dead.name,The Stealing of the Souls of the Dead
 gear.mt_the_stealing_of_the_souls_of_the_dead.effect,"Whenever a hostile character is destroyed within |Sensors|, the Sluagh gains |OVERSHIELD| equal to |GRIT|."
+,
+gear.mt_inexorable_formation.name,Inexorable Formation
+gear.mt_inexorable_formation.effect,The Sluagh increases its |Sensors| equal to its |OVERSHIELD|.

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/mt_inexorable_formation/buff_inexorable_formation.gd" id="1_formation"]
+
+[resource]
+script = ExtResource("1_formation")
+to = &"statblock"
+triggers_on = Array[StringName]([&"damage"])
+trigger_timing = 1
+hide_from_player = true

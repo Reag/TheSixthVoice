@@ -611,6 +611,12 @@ const ICON_TARGETS := {
 	# wears an icon for it and it correctly gets no row inside this dictionary - the mt_blasting_powder
 	# / mt_halo / mt_sap shape. The Kit's own icon is SP5's.
 	&'mt_the_stealing_of_the_souls_of_the_dead': {},
+	# SP1 Task 5 (Sluagh). A pure passive trait: no action of its own, so it wears the Kit's icon and
+	# lists none - the mt_gravity_well shape. Its one buff, buff_inexorable_formation, is HIDDEN and
+	# is correctly absent from BOTH buff tables: nothing draws a Buff.TO.STATBLOCK buff, because
+	# update_cached_values asks it for get_values() and never for an icon
+	# (unit_battle_state.gd:231-234). The Kit's own icon is SP5's.
+	&'mt_inexorable_formation': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
