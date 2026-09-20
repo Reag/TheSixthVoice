@@ -484,3 +484,40 @@ func test_the_ai_declares_its_shot_at_the_sluagh():
 	assert_gt(sluagh.current_damage(), before_sluagh, 'A shot really landed on the Sluagh...')
 	assert_eq(ally.current_damage(), before_ally, '...and none on the ally.')
 
+# ---------------------------------------------------------------- the card and the licence
+
+func test_the_card_rows_resolve():
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation, 'This mod has a compiled translation.')
+	if translation == null: return
+	for key:String in [
+		'gear.ms_o_trickery.name', 'gear.ms_o_trickery.flavor',
+		'gear.ms_o_trickery.action_grey_birds.name', 'gear.ms_o_trickery.action_grey_birds.effect',
+	]:
+		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
+		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
+	assert_eq(X.tr('gear.ms_o_trickery.name'), "O' Trickery", 'The card\'s own name.')
+	assert_eq(X.tr('gear.ms_o_trickery.action_grey_birds.effect'),
+		'Until the end of the next round, if your target takes an action that could target you, '
+		+ 'they must target you with that action.',
+		'And the invade\'s effect row is the LCP\'s sentence, entire and unpiped.')
+	# THE CHIP INVENTS NOTHING: it has no rows of its own and wears the action's through
+	# localization_key_override (buff_grey_birds.tres). This asserts BOTH halves - the absence and
+	# the override - because either alone would leave the chip reading as its own Kit's name or as
+	# a raw key.
+	assert_eq(translation.get_message('gear.buff_grey_birds.name'), StringName(''),
+		'The chip deliberately has no name row of its own...')
+	var chip:Buff = ContentLibrary.get_buff(SluaghFixture.GREY_BIRDS_CHIP)
+	assert_eq(chip.localization_key_override, 'ms_o_trickery.action_grey_birds',
+		'...and wears the invade\'s instead.')
+
+func test_the_licence_grants_the_system_at_rank_one():
+	var licence:UnlockTree = ContentLibrary.get_license_tree(SluaghFixture.LICENSE_ID)
+	assert_not_null(licence, 'li_sluagh loads as an UnlockTree.')
+	if licence == null: return
+	var rank_1_ids:Array[StringName] = []
+	for kit:Kit in licence.rank_1.granted_gear: rank_1_ids.append(kit.compcon_id)
+	assert_true(rank_1_ids.has(SluaghFixture.TRICKERY), 'Rank 1 grants O\' Trickery...')
+	assert_true(rank_1_ids.has(SluaghFixture.REND_NEXUS), '...alongside the Rend Nexus...')
+	assert_eq(rank_1_ids.size(), 2, '...and nothing else. Rank I is two items on the sheet.')
+

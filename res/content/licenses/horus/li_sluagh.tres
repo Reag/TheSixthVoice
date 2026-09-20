@@ -7,10 +7,11 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/mf_sluagh.tres" id="5_mf_sluagh"]
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/placeholder/mf_placeholder.png" id="6_icon"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_rend_nexus/mw_rend_nexus.tres" id="7_mw_rend_nexus"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_o_trickery/ms_o_trickery.tres" id="8_ms_o_trickery"]
 
 [sub_resource type="Resource" id="Resource_rank1"]
 script = ExtResource("2_unlockrank")
-granted_gear = Array[ExtResource("4_kit")]([ExtResource("7_mw_rend_nexus")])
+granted_gear = Array[ExtResource("4_kit")]([ExtResource("7_mw_rend_nexus"), ExtResource("8_ms_o_trickery")])
 
 [sub_resource type="Resource" id="Resource_rank2"]
 script = ExtResource("2_unlockrank")

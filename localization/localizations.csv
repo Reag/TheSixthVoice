@@ -309,3 +309,7 @@ gear.cp_cry_of_the_hosted_dead.action_mark_retort.effect,"As a |reaction|, when 
 gear.mw_rend_nexus.name,Rend Nexus
 gear.mw_rend_nexus.flavor,"""I call to you, O damned souls, sit and speak to me of the all the horrors we have wrought!"""
 gear.mw_rend_nexus.on_crit,"Until the end of your next turn, the next attack against you has +2 |Difficulty|."
+gear.ms_o_trickery.name,O' Trickery
+gear.ms_o_trickery.flavor,"""And this HORUS system forces its way in, hijacking the targeting array, forcing focus onto the user's location and overriding decision points."" ""Fantastic."" ""Oh and this one brings them right next to the user."" ""Ah, surely nothing could go wrong with this."""
+gear.ms_o_trickery.action_grey_birds.name,The Flight of the Crescent of Grey Birds
+gear.ms_o_trickery.action_grey_birds.effect,"Until the end of the next round, if your target takes an action that could target you, they must target you with that action."

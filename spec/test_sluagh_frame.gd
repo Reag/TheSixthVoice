@@ -251,8 +251,9 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	# genuinely new red is visible instead of hiding in a crowd - the same reasoning
 	# test_primrose_frame.gd's own rewrite recorded.
 	#
-	# O' Trickery is still to come from a later SP2 task, so rank 1 is not yet the whole of rank I the
-	# way SP3 and SP4 will make ranks 2 and 3. When it lands, this line grows to two ids, sorted.
+	# UPDATED, SP2 Task 7 (2026-09-20): O' Trickery is now wired into rank 1 alongside the Rend
+	# Nexus, exactly as this comment predicted - "When it lands, this line grows to two ids, sorted."
+	# Rank I is now the whole of rank I; ranks 2 and 3 still wait on SP3 and SP4.
 	#
 	# EXACT LISTS, not "contains ours": the natural mistake when copying li_primrose.tres is to carry
 	# over ITS granted_gear entries, and those are ids this mod really does ship, so a has-assertion
@@ -261,8 +262,8 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	# Strings, not StringNames: test_primrose_frame.gd found (and fixed) that Array[StringName].sort()
 	# orders by the interned _data pointer, not the text, so a sorted assertion of more than one id
 	# must sort String, not StringName, to stay independent of script load order. Built that way here
-	# from the start, even with one id today, so this file does not have to re-learn that lesson when
-	# O' Trickery makes it two.
+	# from the start, even with one id before this task, so this file did not have to re-learn that
+	# lesson when O' Trickery made it two.
 	var license := _license()
 	assert_not_null(license, 'fixture: the licence loads.')
 	if license == null: return
@@ -270,8 +271,8 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	var rank_1_ids:Array[String] = []
 	for kit:Kit in license.rank_1.granted_gear: rank_1_ids.append(String(kit.compcon_id))
 	rank_1_ids.sort()
-	assert_eq(rank_1_ids, ['mw_rend_nexus'] as Array[String],
-		'Rank 1 grants exactly the Rend Nexus so far (O\' Trickery is a later SP2 task).')
+	assert_eq(rank_1_ids, ['ms_o_trickery', 'mw_rend_nexus'] as Array[String],
+		'Rank 1 grants exactly O\' Trickery and the Rend Nexus, sorted.')
 	assert_eq(license.rank_2.granted_gear.size(), 0, 'Rank 2 grants no gear yet (SP3 fills it).')
 	assert_eq(license.rank_3.granted_gear.size(), 0, 'Rank 3 grants no gear yet (SP4 fills it).')
 
