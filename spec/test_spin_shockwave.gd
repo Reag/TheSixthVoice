@@ -64,3 +64,32 @@ func test_a_non_positive_radius_is_refused() -> void:
 	assert_eq(ring.process_material.scale_min, 3.0, 'a zero radius leaves the last good one alone.')
 	ring.set_radius_in_tiles(-2)
 	assert_eq(ring.process_material.scale_min, 3.0, 'and so does a negative one.')
+
+# ================================================================ the per-unit impact pop
+
+## NO CODE MAKES THIS FIRE, which is exactly why it needs a wiring test. run_attack_and_target_fx's
+## `if fxg_target:` block loops every target unit unconditionally (common_action_util.gd:872-877), so
+## the only two things that can go wrong are the resource losing the scene and Task 3's call losing
+## its `hostiles` argument. This test covers the first; test_activate_passes_the_hostiles_to_the_fx
+## covers the second.
+func test_the_spin_action_carries_an_impact_fx() -> void:
+	var kit:Kit = ContentLibrary.get_kit(&'ms_flourishing_twirl')
+	assert_not_null(kit, 'the kit loads.')
+	if kit == null: return
+	var action = kit.get_action(&'action_spin')
+	assert_not_null(action, 'action_spin is on the kit.')
+	if action == null: return
+
+	assert_not_null(action.fxg_target, 'Spin carries a target-FX for the units it catches.')
+	if action.fxg_target == null: return
+	assert_true(action.fxg_target.resource_path.ends_with('fxg_spin_impact.tscn'),
+		'And it is fxg_spin_impact.tscn: %s' % action.fxg_target.resource_path)
+
+## The preamble is AWAITED before the saves roll (common_action_util.gd:879-882), so every millisecond
+## here is dead air between the wave and the first die. Pinned low rather than left to drift.
+func test_the_impact_fx_does_not_stall_the_saves() -> void:
+	const IMPACT_SCENE := 'res://unpacked/Reag-TheSixthVoice/res/content/fx_groups/actions/fxg_spin_impact.tscn'
+	var fxg:Node = load(IMPACT_SCENE).instantiate()
+	autofree(fxg)
+	assert_lt(fxg.preamble_duration, 0.2,
+		'the impact preamble is short - it is awaited before the first save is rolled.')

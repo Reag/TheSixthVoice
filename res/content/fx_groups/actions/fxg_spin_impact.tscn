@@ -1,0 +1,65 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://bivnhhagha82d" path="res://engine/gamemaster/effects_controller/fx_group/fx_group.gd" id="1_fxg"]
+[ext_resource type="Script" uid="uid://dhpk84klr4yme" path="res://engine/gamemaster/effects_controller/fx_group/bump_node.gd" id="2_bump"]
+[ext_resource type="Script" uid="uid://bmeufp6r8o534" path="res://engine/gamemaster/effects_controller/fx_group/bump_core.gd" id="3_bump_core"]
+[ext_resource type="ArrayMesh" uid="uid://benf3x3vnex5l" path="res://assets/fx/resources/spike_sparks.tres" id="4_sparks"]
+
+[sub_resource type="Resource" id="Resource_impact_core"]
+script = ExtResource("3_bump_core")
+distance = 0.08
+duration_in = 0.05
+duration_out = 0.12
+camshake = 0.15
+camshake_duration = 0.3
+
+[sub_resource type="Curve" id="Curve_alpha"]
+_data = [Vector2(0.1, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_alpha"]
+curve = SubResource("Curve_alpha")
+
+[sub_resource type="Curve" id="Curve_scale"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.15, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_scale"]
+curve = SubResource("Curve_scale")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_impact"]
+lifetime_randomness = 0.3
+particle_flag_align_y = true
+angle_min = -180.0
+angle_max = 180.0
+direction = Vector3(1, 0.2, 1)
+spread = 180.0
+initial_velocity_min = 1.5
+initial_velocity_max = 2.5
+gravity = Vector3(0, 0, 0)
+scale_min = 0.1
+scale_max = 0.3
+scale_curve = SubResource("CurveTexture_scale")
+alpha_curve = SubResource("CurveTexture_alpha")
+
+[node name="FxgSpinImpact" type="Node3D"]
+script = ExtResource("1_fxg")
+emitter_duration = 0.2
+preamble_mode = 2
+preamble_duration = 0.05
+
+[node name="BumpNode" type="Node" parent="."]
+script = ExtResource("2_bump")
+core = SubResource("Resource_impact_core")
+
+[node name="Sparks" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+sorting_offset = -1.0
+emitting = false
+amount = 8
+lifetime = 0.35
+one_shot = true
+explosiveness = 1.0
+fixed_fps = 60
+process_material = SubResource("ParticleProcessMaterial_impact")
+draw_pass_1 = ExtResource("4_sparks")
