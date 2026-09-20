@@ -284,3 +284,6 @@ gear.ms_flourishing_twirl.action_spin.effect,"Choose a weapon you have mounted, 
 frame.mf_sluagh.name,Sluagh
 frame.mf_sluagh.flavor.short,Obsessive Support
 frame.mf_sluagh.flavor,"""Here I am my beloved I was brave once and I shall be brave once more I was strong once and I shall be strong once more I was a savior once and I shall be a savior once more I died once and I shall die once more Here I am my beloved You are grand You are bleak Together we have no use for death"" (not operational) \\\\ - RA"
+,
+gear.mt_wicked_host.name,Wicked Host
+gear.mt_wicked_host.effect,"Whenever the Sluagh is hit by an attack made by a hostile character, the next attack against it has +1 |difficulty|. This effect lasts until the end of the scene."

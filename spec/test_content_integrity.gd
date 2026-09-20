@@ -597,6 +597,15 @@ const ICON_TARGETS := {
 	# action carrying the icon) and is deliberately NOT what this is - the ms_dazzling_wind precedent
 	# above is. The Kit's icon is SP5's, which is what makes this row deliberately red until then.
 	&'ms_flourishing_twirl': {&'action_spin': KIT},
+	# SP1 Task 2 (Sluagh). A pure passive trait: no action of its own, so it wears the Kit's icon and
+	# lists none - the mt_knock_em_down / mt_magnetic_weight_redistribution shape. Its two buffs are
+	# buff_wicked_host_watch (hidden plumbing, drawn nowhere, correctly absent from both buff tables)
+	# and buff_wicked_host, which IS visible and is listed in VISIBLE_BUFFS below.
+	#
+	# The Kit's own icon is SP5's, so THIS ROW is what makes
+	# test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then - it is the
+	# first new Kit of the sub-project.
+	&'mt_wicked_host': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -725,6 +734,15 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# a THREAT_RANGE bonus is read by ActionAttackWeapon.threat_distance and drawn nowhere, same as
 	# buff_artful_caress above, so it is not in HIDDEN_BUFFS_NEEDING_ICONS either.
 	&'buff_ddmr_aegis',
+	# SP1 Task 2 (Sluagh). Wicked Host's +1 difficulty chip, and visible for two independent reasons
+	# (ruling 9). attack_roll.gd:189 passes buff_core.base.icon RAW into the roll breakdown - NOT
+	# through Buff.get_icon() - so BuffBonus's difficulty-svg fallback (buff_bonus.gd:34-42) never
+	# runs on that path and a null icon draws a blank beside the -1; buff_diversion_rail,
+	# buff_gravity_well and buff_ddmr_aegis are all listed for exactly that reason. And it is the
+	# attacker's only warning that this particular shot is harder. Its hidden sibling
+	# buff_wicked_host_watch is deliberately ABSENT - the pair is one mechanic, and the observer is
+	# never a chip on the unit.
+	&'buff_wicked_host',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
