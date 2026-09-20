@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_o_trickery/action_grey_birds.gd" id="1_greybirds"]
+
+; is_invade defaults TRUE (action_attack_tech.gd:10) and is written anyway, because it is what the
+; card's activation line says and three of this action's behaviours hang off it: an allied target
+; auto-hits (:71-73), a hostile hit takes 2 heat (:17), and there is no per-turn soft limit (:13-15).
+[resource]
+script = ExtResource("1_greybirds")
+is_invade = true

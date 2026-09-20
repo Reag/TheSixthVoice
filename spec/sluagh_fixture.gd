@@ -64,6 +64,15 @@ const SOFT_COVER_CHIP := &'buff_mark_soft_cover'
 const REND_NEXUS := &'mw_rend_nexus'
 const REND_NEXUS_CHIP := &'buff_rend_nexus'
 
+## SP2 Tasks 5, 6 and 8. The rank-I system, its two invades, and the three buffs Grey Birds applies.
+## buff_grey_birds_recentre is declared here and CREATED in Task 6; the chip is the only visible one.
+const TRICKERY := &'ms_o_trickery'
+const GREY_BIRDS_ID := &'action_grey_birds'
+const HUNT_ID := &'action_hunt_of_the_vagrant_sowche'
+const GREY_BIRDS_CHIP := &'buff_grey_birds'
+const GREY_BIRDS_BAN := &'buff_grey_birds_ban'
+const GREY_BIRDS_RECENTRE := &'buff_grey_birds_recentre'
+
 ## The plain vanilla rifle every Fitzgerald spec uses: MAIN, weapon_type unset so it is the archetype
 ## default RIFLE (3), 1d6, RELIABLE 2, aim_range 10, threat 1. It carries NO accuracy modifier, so an
 ## attack with it pops a d20 and nothing else off Dice.CHEAT_ROLL_QUEUE - which is what makes the
@@ -352,3 +361,21 @@ static func nexus_shot(game:Gamemaster, sluagh:Unit, target:Unit) -> void:
 	if sluagh.state.is_taking_turn: await SpecFactory.end_turn(game, sluagh)
 	await SpecFactory.start_turn(game, sluagh)
 	await SpecFactory.use_solo(game, sluagh, REND_NEXUS, target)
+
+## SP2 Task 5. Equip the rank-I system.
+static func equip_trickery(unit:Unit) -> GearCore: return equip(unit, TRICKERY)
+
+## Invade with THE FLIGHT OF THE CRESCENT OF GREY BIRDS.
+##
+## POPS ONE ENTRY off Dice.CHEAT_ROLL_QUEUE: the d20 (attack_roll.gd:67) and nothing else - a tech
+## attack's damage_dice is the flat string '2' (action_attack_tech.gd:17), so roll_dice's loop body
+## never runs, and no accuracy die is popped without an accuracy modifier (dice.gd:87-88).
+## cheat_a_hit()/cheat_a_miss() are therefore complete queues for it.
+##
+## The turn cycle is shoot()'s, for the reason its header (:184-197) gives - except that an INVADE
+## has no per-turn soft limit at all (action_attack_tech.gd:13-15 returns 99 for one), so the guard
+## here is about the ACTIVATION being legal rather than about the second use being swallowed.
+static func grey_birds(game:Gamemaster, sluagh:Unit, target:Unit) -> void:
+	if sluagh.state.is_taking_turn: await SpecFactory.end_turn(game, sluagh)
+	await SpecFactory.start_turn(game, sluagh)
+	await SpecFactory.use(game, sluagh, TRICKERY, GREY_BIRDS_ID, target)

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_o_trickery/buff_grey_birds_ban.gd" id="1_ban"]
+
+; HIDDEN: the pair with buff_grey_birds is one mechanic, and two chips for one effect read as two
+; effects. Nothing draws a Buff.TO.ACTION_BANNED_UNITS buff anywhere - the only reader is
+; can_target_unit - so it needs no HIDDEN_BUFFS_NEEDING_ICONS row either.
+[resource]
+script = ExtResource("1_ban")
+to = &"action_banned_units"
+hide_from_player = true
+triggers_on = Array[StringName]([&"new_round"])
+trigger_timing = 0

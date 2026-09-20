@@ -648,6 +648,14 @@ const ICON_TARGETS := {
 	# the assert_eq(action.get_icon(kit), kit.icon_override) at :839. That is the plan's arithmetic and
 	# it is expected.
 	&'mw_rend_nexus': {&'action_rend_nexus': KIT},
+	# SP2 Tasks 5 and 8 (Sluagh). O' TRICKERY, the rank-I Unique system. Both of its actions are
+	# INVADES - not reactions, not situationally activated - so the gear bar draws both and
+	# _action_reaches_a_player_facing_surface returns true for each (:910). Design section 5 gives the
+	# system ONE family covering the Kit, action_grey_birds and the Grey Birds chips, and a SEPARATE
+	# one for Hunt - so Grey Birds is a KIT row and Hunt is a named family. Task 8 adds the second
+	# entry; a Kit with one listed action and two carried ones fails the :876 pairing assertion, so
+	# the two must land together with their actions.
+	&'ms_o_trickery': {&'action_grey_birds': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -797,6 +805,11 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# that path and a null icon draws a blank beside the -2; and it is the attacker's only warning
 	# that this particular shot is harder.
 	&'buff_rend_nexus',
+	# SP2 Task 5 (Sluagh). The Grey Birds chip, and it is the ONLY thing the card puts on the board:
+	# its two working buffs are hidden plumbing (a targeting ban nothing draws, and an
+	# ATTACK_DECLARED listener with no passive channel at all), so without this the player has no way
+	# to see which enemy is bound - or that the invade landed. Its icon is SP5's.
+	&'buff_grey_birds',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
