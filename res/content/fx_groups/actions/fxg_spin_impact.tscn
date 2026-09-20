@@ -45,8 +45,7 @@ alpha_curve = SubResource("CurveTexture_alpha")
 [node name="FxgSpinImpact" type="Node3D"]
 script = ExtResource("1_fxg")
 emitter_duration = 0.2
-preamble_mode = 2
-preamble_duration = 0.05
+preamble_mode = 0
 
 [node name="BumpNode" type="Node" parent="."]
 script = ExtResource("2_bump")

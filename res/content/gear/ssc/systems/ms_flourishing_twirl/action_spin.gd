@@ -336,7 +336,9 @@ func activate(context:Context, activation:EventCore) -> void:
 			gear_id
 		)
 
-## Throw the shockwave ring, sized to the chosen weapon's reach.
+## Throw the shockwave ring, sized to the chosen weapon's reach. Returns the FxGroup it created (or
+## null on any early return), purely so a spec can inspect what actually got built and run -
+## action_spin.gd's own caller ignores the value (SP4 whole-branch review, Finding 4).
 ##
 ## create -> configure -> run, which is the engine's own seam for an FX that needs a runtime value:
 ## FxGroup.create_from_scene calls initialize and RETURNS (fx_group.gd:101-113), leaving run() to the
@@ -346,17 +348,18 @@ func activate(context:Context, activation:EventCore) -> void:
 ##
 ## Every failure here is silent and harmless: an FX that cannot be built is not a reason to abort an
 ## action the player has already paid for.
-func fire_shockwave(unit:Unit, reach:int) -> void:
-	if not Unit.is_valid(unit): return
-	if reach <= 0: return
+func fire_shockwave(unit:Unit, reach:int) -> FxGroup:
+	if not Unit.is_valid(unit): return null
+	if reach <= 0: return null
 	var scene:PackedScene = load(SHOCKWAVE_SCENE)
-	if scene == null or not scene.can_instantiate(): return
+	if scene == null or not scene.can_instantiate(): return null
 
 	var fxg:FxGroup = FxGroup.create_from_scene(scene, UnitTile.position_center(unit), Vector3.ZERO, unit.token.Bumper)
-	if fxg == null: return
+	if fxg == null: return null
 	var ring:Node = fxg.get_node_or_null('Ring')
 	if ring != null: ring.set_radius_in_tiles(reach)
 	fxg.run()
+	return fxg
 
 ## One dictionary per MOUNTED weapon profile that prints a threat: { reach, label }.
 ##

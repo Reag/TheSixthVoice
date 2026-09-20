@@ -15,6 +15,8 @@
 # destroy the only clean signal available.
 extends GutTest
 
+const Fixture := preload('res://unpacked/Reag-TheSixthVoice/spec/primrose_fixture.gd')
+
 const SHOCKWAVE_SCENE := 'res://unpacked/Reag-TheSixthVoice/res/content/fx_groups/actions/fxg_shockwave.tscn'
 
 ## The radius arithmetic, with no game in the way. One tile is 1.0 world unit in X/Z (Tile.SIZE),
@@ -65,6 +67,55 @@ func test_a_non_positive_radius_is_refused() -> void:
 	ring.set_radius_in_tiles(-2)
 	assert_eq(ring.process_material.scale_min, 3.0, 'and so does a negative one.')
 
+# ================================================================ what fire_shockwave actually builds
+
+## THE SAME FAILURE MODE AS action_glimmering_armaments.gd, ONE LEVEL DOWN (SP4 whole-branch review,
+## Finding 4). The five call-site tests below (and test_activate_actually_fires_the_shockwave above)
+## pin that activate() CALLS fire_shockwave; none of them pin what fire_shockwave's BODY does. Replace
+## that body with `pass` and every one of those tests stays green while the ring never plays - the
+## exact hole this mod's own comments cite action_glimmering_armaments.gd for falling into, reproduced
+## one function lower. This test calls fire_shockwave directly, with a real unit and a real radius,
+## and checks what it actually built.
+##
+## fire_shockwave now RETURNS the FxGroup it creates so a spec can reach it at all - its caller in
+## activate() still ignores the value, which is harmless (see fire_shockwave's own header).
+##
+## THE GAME RUNS IN TEST_MODE HERE, WHICH CHANGES WHAT IS OBSERVABLE. FxGroup.run() calls finish() -
+## and therefore queue_free() - synchronously the moment X.TEST_MODE is true (fx_group.gd:207-211),
+## before run() has even taken its census of children. `is_running` is set unconditionally at the top
+## of run(), before that branch, and nothing ever clears it back to false (fx_group.gd:204-205) - so
+## it reads true in TEST_MODE for the same reason it would read true in live play: it proves run() was
+## actually called, not that anything is still animating. queue_free() is deferred, so the node and
+## its Ring child are still valid for the rest of this frame, which is what makes the assertions below
+## possible at all. What IS reliably true in both modes, because nothing after fire_shockwave's own
+## set_radius_in_tiles call touches it again, is the Ring's process_material.scale_min - so that is
+## the assertion that actually matters here, per Finding 4's own instruction: the radius reaching the
+## ring is the part that matters, not whether the group is still mid-flight when this line runs.
+func test_fire_shockwave_returns_a_running_group_sized_to_the_reach() -> void:
+	var kit:Kit = ContentLibrary.get_kit(&'ms_flourishing_twirl')
+	assert_not_null(kit, 'the kit loads.')
+	if kit == null: return
+	var action = kit.get_action(&'action_spin')
+	assert_not_null(action, 'action_spin is on the kit.')
+	if action == null: return
+
+	var game:Gamemaster = Fixture.create_game(self)
+	var primrose:Unit = Fixture.create_primrose(game, Vector2i(5, 4))
+
+	const RADIUS := 3
+	var fxg:FxGroup = action.fire_shockwave(primrose, RADIUS)
+	assert_not_null(fxg, 'fire_shockwave hands back the group it created, not just true/false.')
+	if fxg == null: return
+
+	assert_true(fxg.is_running, 'run() was actually called on the group fire_shockwave built.')
+
+	var ring:Node = fxg.get_node_or_null('Ring')
+	assert_not_null(ring, 'the group carries its Ring child.')
+	if ring == null: return
+	assert_eq(ring.process_material.scale_min, float(RADIUS),
+		'the radius passed in reached the ring - the part of this that actually matters (ruling 20).')
+	assert_eq(ring.process_material.scale_max, float(RADIUS), 'and it does not vary between particles.')
+
 # ================================================================ the per-unit impact pop
 
 ## NO CODE MAKES THIS FIRE, which is exactly why it needs a wiring test. run_attack_and_target_fx's
@@ -87,12 +138,26 @@ func test_the_spin_action_carries_an_impact_fx() -> void:
 
 ## The preamble is AWAITED before the saves roll (common_action_util.gd:879-882), so every millisecond
 ## here is dead air between the wave and the first die. Pinned low rather than left to drift.
+##
+## THE MODE IS WHAT ACTUALLY DECIDES THIS, NOT THE DURATION (SP4 whole-branch review, Finding 3).
+## FxGroup.await_preamble only blocks while `is_preamble_finished` is false, and what sets that flag
+## is entirely a function of `preamble_mode` (fx_group.gd:249-267): IMMEDIATE (0) falls through to
+## `emit_finished_preamble()` synchronously inside run() (fx_group.gd:267), so `await_preamble` never
+## actually awaits - `is_preamble_finished` is already true when it checks. A `preamble_duration` of
+## 0.05 with `preamble_mode` left at AT_FINISH (3) would pass the old duration-only assertion below
+## while `await_preamble` waited for the ENTIRE effect to finish instead of returning instantly -
+## `preamble_duration` is read only by DURATION mode (fx_group.gd:250-251) and AT_FINISH ignores it
+## completely. So the duration alone proves nothing about whether the saves stall; the mode does.
 func test_the_impact_fx_does_not_stall_the_saves() -> void:
 	const IMPACT_SCENE := 'res://unpacked/Reag-TheSixthVoice/res/content/fx_groups/actions/fxg_spin_impact.tscn'
 	var fxg:Node = load(IMPACT_SCENE).instantiate()
 	autofree(fxg)
+	assert_eq(fxg.preamble_mode, FxGroup.PREAMBLE_MODE.IMMEDIATE,
+		'IMMEDIATE is what makes await_preamble return instantly (fx_group.gd:249-267) - the duration '
+		+ 'assertion below cannot tell IMMEDIATE from AT_FINISH, which would stall on the whole effect.')
 	assert_lt(fxg.preamble_duration, 0.2,
-		'the impact preamble is short - it is awaited before the first save is rolled.')
+		'kept as a secondary check: still true, and still says something real if the mode is ever '
+		+ 'DURATION, the one mode that actually reads this value (fx_group.gd:250-251).')
 
 # ================================================================ the call sites
 

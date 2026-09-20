@@ -57,8 +57,7 @@ orientation = 1
 [node name="FxgShockwave" type="Node3D"]
 script = ExtResource("1_fxg")
 emitter_duration = 0.1
-preamble_mode = 2
-preamble_duration = 0.45
+preamble_mode = 0
 
 [node name="Ring" type="GPUParticles3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)

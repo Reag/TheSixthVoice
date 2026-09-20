@@ -13,10 +13,45 @@
 ## A BumpNode is the only child type FxGroup hands the TOKEN to. `FxGroup.initialize` walks its
 ## children and calls `child.set_target_node(bumping_node, bump_angle)` for every `child is BumpNode`
 ## (fx_group.gd:158), where `bumping_node` is `user.token.Bumper` - the caller passes it in from
-## `CommonActionUtil.run_attack_and_target_fx`'s single-target branch, the one Spin actually takes
-## since it calls `run_system_fxgs(unit)` with empty `primary_targets` (common_action_util.gd:862).
-## Nothing else in the census reaches the acting unit's own token. So subclassing BumpNode is not a
+## `CommonActionUtil.run_attack_and_target_fx`'s single-attack-fxg branch, the one Spin actually takes
+## because `RUN_FX_FLAGS.multiple_attack_fxgs` is never passed to `run_system_fxgs` and the branch
+## check (`if fx_flags.has(RUN_FX_FLAGS.multiple_attack_fxgs):`, common_action_util.gd:837) is
+## therefore false - action_spin.gd's activate() passes no `run_fx_flags` argument at all. Nothing
+## else in the census reaches the acting unit's own token. So subclassing BumpNode is not a
 ## convenience here; it is the seam.
+##
+## THIS WAS WRONGLY ATTRIBUTED TO AN EMPTY `primary_targets` UNTIL THE SP4 WHOLE-BRANCH REVIEW.
+## Spin no longer calls `run_system_fxgs(unit)`; Task 3 changed the call to
+## `run_system_fxgs(unit, hostiles)`, so `primary_targets` is the non-empty hostiles array whenever
+## Spin catches anyone. The else-branch above is still taken for the reason restated above -
+## `multiple_attack_fxgs` is never passed - not because the target list is empty.
+##
+## WHAT THE NOW NON-EMPTY TARGET LIST ACTUALLY CHANGES FOR fxg_spin, ALL OF IT INERT (confirmed at
+## this review). TWO DIFFERENT THINGS ARE BOTH CALLED "target_node" HERE AND MUST NOT BE CONFLATED:
+## FxGroup.initialize's own 5th PARAMETER (null before this task, `hostiles[0].token.Bumper` now) is a
+## different variable from BumpNode's own `target_node` MEMBER (set below by `set_target_node`, and
+## what `start()` actually reads).
+##
+##   - `average_target_pos` becomes the hostiles' centroid rather than `origin_position`
+##     (common_action_util.gd's single-attack-fxg branch averages `target_tiles`, which is non-empty
+##     now that `target_units` is), so `FxGroup.initialize` computes a real non-zero `bump_angle`
+##     instead of 0 and hands it into the same `set_target_node(bumping_node, bump_angle)` call named
+##     above (fx_group.gd:158) - which stores it as BumpNode's `angle` property. Unread: the `start()`
+##     override below never references `angle`.
+##   - `initialize`'s `target_node` PARAMETER becomes `hostiles[0].token.Bumper` instead of null - but
+##     that parameter is never even handed to a BumpNode child: the same call above passes only
+##     `bumping_node` and `bump_angle` (fx_group.gd:158). `target_node` is wired only to
+##     ArcingProjectile.set_target and Line3DAnchored.set_anchor_nodes (fx_group.gd:161-166), and
+##     `fxg_spin.tscn` has neither. So BumpNode's OWN `target_node` member - what `start()`'s
+##     `find_facing_node(target_node)` actually reads - is always set from `bumping_node`, i.e. always
+##     the ACTING unit's Bumper, in every branch of run_attack_and_target_fx, unaffected by any of
+##     this.
+##
+## Likewise `additional_preamble_time` (`fx_group.gd:152`, distance-scaled by
+## `preamble_duration_per_tile`) does not move, because `fxg_spin.tscn` leaves
+## `preamble_duration_per_tile` at its default of 0. Recorded because this is exactly what a future
+## change to this scene - adding a projectile child, say, or a distance-scaled preamble - would break
+## silently.
 ##
 ## ================== target_node IS THE Bumper, NOT THE TOKEN ==================
 ##

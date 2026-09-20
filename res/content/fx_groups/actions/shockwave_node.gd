@@ -40,6 +40,23 @@
 ## every GPUParticles3D child during run() (fx_group.gd:330-339), and hides it beforehand as a plain
 ## Node3D during initialize (:172-173). This node only has to be the right type and carry the right
 ## numbers.
+##
+## ================== WHY fxg_shockwave.tscn's ROOT IS preamble_mode IMMEDIATE, NOT DURATION ==================
+##
+## spin_node.gd's own header records the same engine defect at length - read that section first, this
+## one only restates the conclusion for this scene. fx_group.gd's DURATION timer connects its timeout
+## to `emit_signal.bind(&'preamble_finished')` rather than to `emit_finished_preamble()`
+## (fx_group.gd:260), so `is_preamble_finished` is never set true, and `check_if_finished`'s DURATION
+## clause (`preamble_mode != PREAMBLE_MODE.DURATION or is_preamble_finished`, fx_group.gd:439) is
+## therefore never satisfied. A DURATION-mode fxg_shockwave would be freed only by its
+## MAX_EFFECT_TIME timer, ten seconds later (fx_group.gd:25) - and unlike fxg_spin, nothing here even
+## gets the excuse spin_node.gd's DURATION mode has: action_spin.gd's fire_shockwave() is deliberately
+## NOT awaited (see its header) and nothing anywhere awaits this scene's preamble either, so DURATION
+## mode would buy this scene literally nothing while still parking a dead FxGroup node with a live
+## _process for ten seconds - and Spin fires one ring plus one fxg_spin_impact per hostile caught, so
+## a Spin catching several hostiles would stack that many. IMMEDIATE reaches the
+## `else: emit_finished_preamble()` branch in run() and finishes the group as soon as its emitters are
+## kicked off, which is the correct lifetime for an FX nothing waits on.
 extends GPUParticles3D
 
 ## Has the shared process material been replaced with this instance's own copy yet? See the header.
