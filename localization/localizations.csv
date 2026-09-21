@@ -345,3 +345,7 @@ gear.buff_in_triumvirate_pair.name,In Triumvirate
 gear.buff_in_triumvirate_pair.effect,"Always treated as adjacent to your partner while within the Sluagh's |Sensors|."
 gear.buff_in_triumvirate_ward.name,In Triumvirate
 gear.buff_in_triumvirate_ward.effect,All attacks against you gain +1 |difficulty|.
+,
+frame.mf_leoleth.name,Leoleth
+frame.mf_leoleth.flavor.short,Kinetic Rage
+frame.mf_leoleth.flavor,"Originally meant to act as Harrison Armory's primary skirmisher unit, the Leoleth was archived late into testing due to a critical issue that led to continual interference when pilots tried to use ranged targeting systems. Due to this bug and a lack of supporting technology, the Leoleth project was scrapped and its resources were cannibalized to be used elsewhere. With the start of the Broadcasts, HA realized the opportunity revive previously retired projects and the Leoleth was the most promising candidate. While its hydraulic systems still had significant compatibility issues with targeting, new breakthroughs in perpetual momentum transference gave the mech alternative impact rate adjustments. Upon its release the Leoleth quickly became popular for its ability to turn potential energy into rapid kinetic movement at unprecedented speeds. The Boolean nature of its rerouting systems allow the Leoleth to swap between being hypermobile and a force of nature in a matter of mere seconds making it exceptionally useful for variable engagement zones and complex environments."

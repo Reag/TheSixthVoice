@@ -1,0 +1,72 @@
+[gd_resource type="Resource" script_class="Frame" format=3]
+
+[ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="1_frame"]
+[ext_resource type="Script" uid="uid://bxpc46igtsmvw" path="res://engine/character/unit/statblock.gd" id="2_statblock"]
+[ext_resource type="Script" uid="uid://dch85ypcupfgo" path="res://engine/character/unit_core/color_scheme.gd" id="3_colorscheme"]
+[ext_resource type="Texture2D" uid="uid://f4wtf6eaedu8" path="res://assets/palettes/toneramps/tone_highcontrast.png" id="4_toneramp"]
+[ext_resource type="Script" uid="uid://djuk56crywqss" path="res://engine/character/unit_core/mount_type.gd" id="5_mounttype"]
+[ext_resource type="Resource" uid="uid://bsktp4ushq6g1" path="res://content/mounts/mount_flex.tres" id="6_mountflex"]
+[ext_resource type="Resource" uid="uid://dj0bl2ve85q5o" path="res://content/mounts/mount_heavy.tres" id="7_mountheavy"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/placeholder/mf_placeholder.png" id="9_sprite"]
+
+; NO ART YET, SO NO CENSUS (design 1.1, SP5 slot). The Vauban's and the Sluagh's schemes were each
+; DERIVED from their own sprite by counting its literal fill colours; with the shared 80x80 stand-in
+; there is nothing to count that is not the stand-in. So this clones the frame's MANUFACTURER's
+; block - mf_iskander.tres:20-25, read 2026-09-21 - which is exactly what mf_maidens_blush.tres did
+; at its own SP1 with its base frame's block: the token still reads as a Harrison Armory machine on
+; the board until real art lands.
+;
+; palette_2 = tone_highcontrast is the Iskander's own slot and ramp. base_3 is deliberately NOT
+; written: the Iskander sets it to null, which on a typed Color export is a no-op that keeps
+; DEFAULT_BASE, so writing it would be noise. palette_1 and palette_3 are not written either, and
+; NOTHING should ever assert they are null - ColorScheme defaults every palette slot to
+; DEFAULT_TONERAMP (color_scheme.gd:59-62).
+;
+; WHEN SP5 SUPPLIES ART, re-derive these three by a colour census of that sprite (the Vauban's SP5
+; ruling) and update test_leoleth_frame.test_the_colour_scheme_is_the_iskanders_ha_block, which
+; asserts BOTH these literals and the live Iskander's, so a divergence says which side moved.
+[sub_resource type="Resource" id="Resource_colorscheme"]
+script = ExtResource("3_colorscheme")
+palette_2 = ExtResource("4_toneramp")
+base_0 = Color(0.16466352, 0.23109427, 0.31874013, 1)
+base_1 = Color(0.2874422, 0.52152926, 0.82283276, 1)
+base_2 = Color(0.21505132, 0.56908107, 0.6512088, 1)
+
+; The sheet's fourteen columns plus reactions and activations, which Statblock carries and the card
+; does not (statblock.gd:31, :34). armor = 1 and tech_attack = -2 are both written even though one is
+; small and the other negative: a reader of this file should not have to know an export default to
+; know the card.
+[sub_resource type="Resource" id="Resource_statblock"]
+script = ExtResource("2_statblock")
+size = 1
+structure = 4
+stress = 4
+health = 8
+armor = 1
+evasion = 10
+edef = 6
+speed = 4
+heat = 7
+save_target = 10
+sensor_range = 10
+tech_attack = -2
+repairs = 3
+systems_points = 7
+reactions = 1
+activations = 1
+
+[resource]
+script = ExtResource("1_frame")
+default_color_scheme = SubResource("Resource_colorscheme")
+sprites = Array[Texture2D]([ExtResource("9_sprite")])
+; DELIBERATELY EMPTY. Tasks 2, 3, 4 and 5 append mt_toe_to_toe, the 43-A trait, mt_fleet_of_foot and
+; cp_hydraulic_excess, in the sheet's own order, and Task 13 pins the result. An ext_resource pointing
+; at a file that does not exist yet would make this WHOLE resource fail to parse, taking the frame out
+; of ContentLibrary with no error a player would ever see.
+traits = Array[ExtResource("8_kit")]([])
+mount_types = Array[ExtResource("5_mounttype")]([ExtResource("6_mountflex"), ExtResource("7_mountheavy")])
+stat = SubResource("Resource_statblock")
+; STRIKER (Lancer.SQUAD_ROLE, lancer.gd:181). role_secondary is omitted: it defaults to NONE
+; (frame.gd:82) and the sheet lists one role.
+role_primary = 1
