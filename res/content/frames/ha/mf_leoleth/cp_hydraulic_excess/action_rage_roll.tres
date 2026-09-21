@@ -1,0 +1,14 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/action_rage_roll.gd" id="1_action"]
+
+[resource]
+script = ExtResource("1_action")
+; new_turn / POST. trigger_timing = 1 is ReactionBus.TIMING.POST, and it is the whole timing of this
+; ability: handle_starting_unit clears START_OF_TURN buffs at event_turn_start.gd:76, between the PRE
+; await (:14) and the POST queue (:56).
+triggers_on = Array[StringName]([&"new_turn"])
+trigger_timing = 1
+consumes_rxn = false
+usage_group = &"rage_roll"
+; NO icon_override: the script overrides show_in_tooltip to false.

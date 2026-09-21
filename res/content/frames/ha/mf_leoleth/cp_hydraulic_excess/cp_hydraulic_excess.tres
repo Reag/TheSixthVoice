@@ -3,10 +3,14 @@
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/action_all_systems_red.tres" id="3_asr"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/action_rage.tres" id="4_rage"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/action_rage_roll.tres" id="5_rageroll"]
 
 [resource]
 script = ExtResource("2_kit")
-actions = Array[ExtResource("1_action")]([ExtResource("3_asr")])
+; ORDER: the passive's reaction, the protocol the player presses, the hidden roll. Task 10 appends
+; action_combust and Task 11 adds the Bulwark aura to `passives`. Task 13 pins the result.
+actions = Array[ExtResource("1_action")]([ExtResource("3_asr"), ExtResource("4_rage"), ExtResource("5_rageroll")])
 is_trait = true
 ; NO icon_override in SP1. SP5 gives this Kit the ALL SYSTEMS RED glyph: design section 5 asks for
 ; exactly two families on this core system, and the RAGE family is worn by action_rage and

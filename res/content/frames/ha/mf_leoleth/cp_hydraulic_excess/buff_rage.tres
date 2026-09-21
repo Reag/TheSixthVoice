@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+; NO `to`, NO triggers, NO statuses: this chip exists to be READ (by action_rage_roll's gate) and to
+; be SEEN. `until` is omitted - Lancer.UNTIL.MANUAL is its own zero, and MANUAL is the engine's
+; spelling of "for the rest of the scene".
+; VISIBLE, and it is the only sign on the token that the core power is running. It carries its own
+; name and effect rows - the whole RAGE table - so it needs no BUFFS_THAT_BORROW_A_CARD entry.
+; NO icon in SP1.

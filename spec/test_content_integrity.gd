@@ -712,14 +712,15 @@ const ICON_TARGETS := {
 	&'mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa': {},
 	# SP1 Task 4 (Leoleth). A passive trait with no action of its own - the mt_hole_puncher shape.
 	&'mt_fleet_of_foot': {},
-	# SP1 Task 5 (Leoleth). HYDRAULIC EXCESS. Written here with NO action rows at all, and Tasks 6 and
-	# 10 add action_rage and action_combust. Neither action_all_systems_red nor action_rage_roll ever
-	# gets a row: both are ActionReactions whose scripts override show_in_tooltip to false, so
-	# _action_reaches_a_player_facing_surface (:1027-1030 as this file now stands) answers false and the guard asserts they are
-	# NOT listed. Design section 5 gives this Kit exactly two glyph families - ALL SYSTEMS RED and RAGE
-	# - and ALL SYSTEMS RED cannot wear one of its own for that same reason, so the Kit's own glyph IS
-	# that family. The Sluagh's Astral Guardian is the identical finding.
-	&'cp_hydraulic_excess': {},
+	# SP1 Tasks 5 and 6 (Leoleth). HYDRAULIC EXCESS. Task 10 adds action_combust to this dictionary,
+	# sharing the SAME family name as action_rage - design section 5 gives this Kit exactly two glyph
+	# families, ALL SYSTEMS RED and RAGE, and the six effect chips wear RAGE's glyph in six tints.
+	# Neither action_all_systems_red nor action_rage_roll ever gets a row: both are ActionReactions
+	# whose scripts override show_in_tooltip to false, so _action_reaches_a_player_facing_surface
+	# (:1027-1030 as this file now stands) answers false and the guard asserts they are NOT listed.
+	# ALL SYSTEMS RED therefore cannot wear a glyph of its own and the KIT's own icon is that family,
+	# exactly as the Sluagh's frame close found for Astral Guardian.
+	&'cp_hydraulic_excess': {&'action_rage': &'action_rage'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -897,6 +898,9 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# nothing about cover. It carries its own name and effect rows rather than borrowing the core
 	# Kit's, so it needs no BUFFS_THAT_BORROW_A_CARD entry.
 	&'buff_all_systems_red_cover',
+	# SP1 Task 6 (Leoleth). The RAGE chip: the only sign on the token that the core power is running
+	# for the rest of the scene. It carries the whole table as its own effect row.
+	&'buff_rage',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
