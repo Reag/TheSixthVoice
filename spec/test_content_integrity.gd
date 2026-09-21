@@ -701,6 +701,12 @@ const ICON_TARGETS := {
 	# draws for it; KIT, because the design's family is {the Kit, action_in_triumvirate, the pair
 	# and ward chips}. The Kit's own icon is SP5's.
 	&'ms_the_morrigan_class_nhp': {&'action_in_triumvirate': KIT},
+	# SP1 Task 2 (Leoleth). Toe To Toe's reaction wears the KIT's glyph rather than a family of its
+	# own: design section 5's icon family for this trait is "the trait and its Skirmish reaction share
+	# one glyph", and the icon directive spells that as KIT - absence, not duplication. Both the row
+	# and the Kit's own icon_override are SP5's, so this row's two assertions are part of deliberate
+	# red #2 until then.
+	&'mt_toe_to_toe': {&'action_toe_to_toe': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

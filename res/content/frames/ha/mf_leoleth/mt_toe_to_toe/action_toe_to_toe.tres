@@ -1,0 +1,14 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/mt_toe_to_toe/action_toe_to_toe.gd" id="1_action"]
+
+[resource]
+script = ExtResource("1_action")
+; end_turn / PRE, point-free, free action - ruling 3, the Raleigh's Full Metal Jacket shape
+; (action_full_metal_jacket.tres is the same four lines). trigger_timing = 0 is ReactionBus.TIMING.PRE.
+triggers_on = Array[StringName]([&"end_turn"])
+trigger_timing = 0
+consumes_rxn = false
+counts_as_free_action = true
+; NO icon_override in SP1 (plan Global Constraints). SP5 gives this action and its Kit one glyph
+; family - the icon directive's "a trait and the action it creates share one glyph".
