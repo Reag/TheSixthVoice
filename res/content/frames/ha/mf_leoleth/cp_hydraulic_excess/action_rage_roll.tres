@@ -1,6 +1,7 @@
 [gd_resource type="Resource" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/action_rage_roll.gd" id="1_action"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/deployable/dep_decimate.tres" id="2_decimate"]
 
 [resource]
 script = ExtResource("1_action")
@@ -11,4 +12,7 @@ triggers_on = Array[StringName]([&"new_turn"])
 trigger_timing = 1
 consumes_rxn = false
 usage_group = &"rage_roll"
+; Face 1's crater (SP1 Task 7). An export rather than a preload in the script - see the script's own
+; comment on decimate_deployable.
+decimate_deployable = ExtResource("2_decimate")
 ; NO icon_override: the script overrides show_in_tooltip to false.

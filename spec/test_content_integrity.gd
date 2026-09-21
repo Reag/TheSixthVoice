@@ -242,6 +242,20 @@ func test_the_vaubans_unguarded_rows_resolve():
 	for key:String in VAUBAN_LOCALIZATION_ROWS:
 		assert_ne(tr(key), key, '%s resolves to real text.' % key)
 
+## The Leoleth's one unguarded row (SP1 Task 7). `gear.mt_decimate_terrain.name` belongs to a MARKER's
+## trait Kit, and no surface a spec in this mod can reach renders its card at all - exactly the
+## Vauban's mt_maar_terrain case above, and for the same reason.
+##
+## frame.dep_decimate.name is NOT here: spec/test_decimate.gd reads it off this mod's own compiled
+## artifact, which is the stronger check.
+const LEOLETH_LOCALIZATION_ROWS:Array[String] = [
+	'gear.mt_decimate_terrain.name',
+]
+
+func test_the_leoleths_unguarded_rows_resolve():
+	for key:String in LEOLETH_LOCALIZATION_ROWS:
+		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+
 ## The Rend Axe's three rows (SP2 Task 1, Primrose). Unlike the three lists above, these ARE also
 ## guarded where they are used - test_rend_axe.gd's test_the_name_and_flavour_and_effect_resolve
 ## reads the same keys off this mod's own compiled artifact - so this entry is belt-and-braces
@@ -721,6 +735,13 @@ const ICON_TARGETS := {
 	# ALL SYSTEMS RED therefore cannot wear a glyph of its own and the KIT's own icon is that family,
 	# exactly as the Sluagh's frame close found for Astral Guardian.
 	&'cp_hydraulic_excess': {&'action_rage': &'action_rage'},
+	# SP1 Task 7 (Leoleth). The Decimate crater's two trait Kits. Neither carries a player-pressable
+	# action: the terrain zone has no actions at all, and the expiry's one action is a hidden reaction
+	# whose script overrides show_in_tooltip to false. So both rows are `{}` and only the Kits' own
+	# icons are checked - and a MARKER's Kit icon is drawn on nothing today, which is why SP5 owes this
+	# frame no new glyph for either.
+	&'mt_decimate_terrain': {},
+	&'mt_decimate_expiry': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -901,6 +922,9 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# SP1 Task 6 (Leoleth). The RAGE chip: the only sign on the token that the core power is running
 	# for the rest of the scene. It carries the whole table as its own effect row.
 	&'buff_rage',
+	# SP1 Task 7 (Leoleth). Decimate's crit chip - the first of RAGE's six face chips, each of which is
+	# the only on-token sign of which face came up this turn.
+	&'buff_rage_decimate_crit',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

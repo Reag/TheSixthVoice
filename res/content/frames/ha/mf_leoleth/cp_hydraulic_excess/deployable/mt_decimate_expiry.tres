@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/deployable/action_decimate_expiry.tres" id="3_expiry"]
+
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("3_expiry")])
+is_trait = true
+; NO icon_override, and NO localisation rows: ActionReaction.log_usage refuses to log for a
+; non-character unit whose action name is still a raw key (action_reaction.gd:36-39), and this
+; reaction never calls spend_actions anyway, so nothing ever renders its name.

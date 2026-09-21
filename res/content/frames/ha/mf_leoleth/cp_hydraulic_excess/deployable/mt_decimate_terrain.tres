@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="2_passive"]
+[ext_resource type="Script" uid="uid://cdg8upk76j000" path="res://engine/character/gear_passive/passive_terrain_zone.gd" id="3_terrainzone"]
+[ext_resource type="Script" uid="uid://bhirgicgi66th" path="res://engine/gamemaster/map/terrain/terrain_data.gd" id="4_terraindata"]
+[ext_resource type="Script" uid="uid://c0yv6pnw2be6l" path="res://engine/character/gear_action/resources/range_pattern.gd" id="5_rangepattern"]
+[ext_resource type="PackedScene" path="res://unpacked/Reag-TheSixthVoice/res/content/fx_endless/gear/fxe_reag_shattered_ground.tscn" id="6_fxe"]
+
+; BLAST 1 (Lancer.AOE_TYPE.BLAST == 1, lancer.gd:96-100), centred on the crater itself - the Maar's
+; own shape. BLAST rather than BURST for the Maar's reason: BURST covers the origin's whole FOOTPRINT
+; plus the radius, BLAST covers the anchor plus or minus it, and a crater has no footprint. Centred
+; on a size-1 unit's tile the two are the same nine tiles, which is the card's Burst 1 exactly
+; (ruling 8).
+[sub_resource type="Resource" id="Resource_blast1"]
+script = ExtResource("5_rangepattern")
+pattern = 1
+value = 1
+
+[sub_resource type="Resource" id="Resource_difficult"]
+script = ExtResource("4_terraindata")
+difficult_terrain = true
+
+; A PLAIN PassiveTerrainZone, not SP1's gated one: a crater has nothing to gate on. It exists only
+; while its unit does, which IS its lifetime.
+[sub_resource type="Resource" id="Resource_zone"]
+script = ExtResource("3_terrainzone")
+terrain_data = SubResource("Resource_difficult")
+range_pattern = SubResource("Resource_blast1")
+height = 1
+; The mod's EXISTING shared ground fx - the same scene mt_maar_terrain.tres and
+; passive_grav_amped_field.tres already wear. PassiveTerrainZone.get_attached_fx draws one instance at
+; every voxel the zone's own range_pattern covers, so this ships a drawn crater with NO new art.
+fxe = ExtResource("6_fxe")
+
+[resource]
+script = ExtResource("1_kit")
+passives = Array[ExtResource("2_passive")]([SubResource("Resource_zone")])
+is_trait = true
+; NO icon_override in SP1.

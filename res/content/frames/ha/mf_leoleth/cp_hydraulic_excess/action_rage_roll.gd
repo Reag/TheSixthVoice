@@ -27,6 +27,8 @@
 # no popcorn of its own; Combust's activation logs itself.
 extends ActionReactionSelf
 
+const Terrain := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/terrain/terrain.gd')
+
 const RAGE_CHIP := &'buff_rage'
 
 ## face -> the standalone buff that face grants. Face 4 (Combust) is deliberately absent: it is an
@@ -38,6 +40,12 @@ const FACE_CHIPS:Dictionary[int, StringName] = {
 	5: &'buff_rage_bulwark',
 	6: &'buff_rage_hatred',
 }
+
+## Decimate's crater (face 1), wired in action_rage_roll.tres. An export rather than a preload,
+## because a mod resource preloading another mod resource by absolute res:// path is a hard
+## dependency Godot resolves at parse time - and because this is how every vanilla deploy names its
+## Frame.
+@export var decimate_deployable:Frame
 
 func get_required_triggering_context() -> Array[Context.PROP]:
 	return [Context.PROP.unit]
@@ -76,5 +84,27 @@ func activate(context:Context, activation:EventCore) -> void:
 ## OVERRIDE POINT for the three faces a buff cannot express: Decimate lays terrain (Task 7), Swift
 ## queues a free Boost (Task 8) and Combust offers an action (Task 10). Faces 3, 5 and 6 are entirely
 ## their chip and never reach here.
-func apply_face_effect(_face:int, _context:Context, _activation:EventCore) -> void:
-	pass
+func apply_face_effect(face:int, context:Context, activation:EventCore) -> void:
+	match face:
+		1: await lay_the_crater(context, activation)
+
+## DECIMATE (ruling 8): "A Burst 1 area around you becomes difficult terrain."
+##
+## Through the mod's FROZEN shared Terrain helper, which is the Apocalypse Rail's own recipe -
+## a Faction.NONE unit built from the frame, spawned with SKIP_ANIMATION, owned through
+## UnitAction.set_deployable_owner. THE HELPER RETURNS NULL WHEN THE SPAWN DID NOT LAND (its header
+## enumerates three different failures), and this checks it: a crater that is not on the map is not a
+## crater, and reading a non-null Unit as success would take a corpse for a laid field.
+##
+## LAID WHERE THE LEOLETH STANDS AT THE ROLL, which is the card's "around you". The Blast 1 is the
+## zone's own range_pattern, centred on the crater, so nothing here computes tiles.
+##
+## THE NULL BRANCH IS A SILENT RETURN, DELIBERATELY. There is no vanilla event.unit_spawn.failed row
+## to log with (assets/localization/localizations.csv carries event.unit_spawn, .desc and .log and
+## nothing else), and inventing one would break this sub-project's one-invented-string rule. The
+## Vauban's own Terrain.lay caller does the same.
+func lay_the_crater(context:Context, activation:EventCore) -> void:
+	var unit:Unit = context.unit
+	if decimate_deployable == null: return
+	var laid:Unit = await Terrain.lay(activation, SpecificAction.from_context(context), unit.tile(), decimate_deployable)
+	if laid == null: return # the spawn did not land; nothing to do and nothing to say

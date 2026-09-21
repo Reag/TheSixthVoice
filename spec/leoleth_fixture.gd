@@ -373,10 +373,17 @@ static func walk(game:Gamemaster, unit:Unit, tile:Vector2i) -> void:
 static func kill(game:Gamemaster, unit:Unit) -> void:
 	await game.execute_event(&'event_unit_die', {unit = unit})
 
-## The ONE Decimate crater on the map, or null. Markers are excluded from map.get_all_units by
-## default, so this asks for them explicitly (map_state.gd:314-321, include_markers).
+## The ONE Decimate crater on the map, or null.
+##
+## PLAIN get_all_units(), WITH NO ARGUMENTS, AND THE ARGUMENTS ARE WHY. The signature is
+## `get_all_units(skip_markers := false, skip_deployables := false)` (map_state.gd:222-229) - two
+## SKIP flags, not two INCLUDE flags, and markers are in by DEFAULT. Task 1 wrote `(true, true)` here
+## reading it as map_state.gd:314's `include_markers` shape, which belongs to get_all_units_AT_TILE;
+## that asked the map to skip every marker and therefore could never return a crater at all.
+## Corrected at Task 7, measured: test_the_burst_one_around_it_becomes_difficult_terrain passed (the
+## ground really was difficult) in the same run where every marker() assertion read null.
 static func marker(game:Gamemaster) -> Unit:
-	for unit:Unit in game.map.get_all_units(true, true):
+	for unit:Unit in game.map.get_all_units():
 		if Unit.is_valid(unit) and unit.core.frame.compcon_id == DECIMATE_FRAME_ID: return unit
 	return null
 

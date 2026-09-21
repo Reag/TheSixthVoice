@@ -412,15 +412,20 @@ gear.cp_hydraulic_excess.action_rage.name,RAGE
 gear.cp_hydraulic_excess.action_rage.effect,"At the start of each of your turns for the rest of the scene roll a d6 then gain the corresponding effect. The effects last until the start of your next turn:
 1 Decimate: A |Burst| 1 area around you becomes |difficult terrain| and your |critical hits| deal +3 |bonus damage|.
 2 Swift: You may immediately |Boost| as a |free action| and your |Evasion| increases by 2.
-3 Reach: Your melee weapons gain |+1 Threat| and |Reliable| 2.
+3 Reach: Your melee weapons gain |+1 Threat| and |Reliable 2|.
 4 Combust: Choose a |blast| 1 area within |line of sight| and |SENSORS|. All |characters| at least partially within the area must succeed a |Hull save| or take 2d6 |Kinetic| damage and be knocked |Prone|.
-5 Bulwark: All hostile |characters| within |line of sight| have +1 |difficulty| on attacks against characters other than you.
+5 Bulwark: All hostile |characters| within |line of sight| have +1 |Difficulty| on attacks against characters other than you.
 6 Hatred: Whenever you take damage from a hostile character, they take 3 |energy| damage."
 gear.buff_rage.name,RAGE
 gear.buff_rage.effect,"At the start of each of your turns for the rest of the scene roll a d6 then gain the corresponding effect. The effects last until the start of your next turn:
 1 Decimate: A |Burst| 1 area around you becomes |difficult terrain| and your |critical hits| deal +3 |bonus damage|.
 2 Swift: You may immediately |Boost| as a |free action| and your |Evasion| increases by 2.
-3 Reach: Your melee weapons gain |+1 Threat| and |Reliable| 2.
+3 Reach: Your melee weapons gain |+1 Threat| and |Reliable 2|.
 4 Combust: Choose a |blast| 1 area within |line of sight| and |SENSORS|. All |characters| at least partially within the area must succeed a |Hull save| or take 2d6 |Kinetic| damage and be knocked |Prone|.
-5 Bulwark: All hostile |characters| within |line of sight| have +1 |difficulty| on attacks against characters other than you.
+5 Bulwark: All hostile |characters| within |line of sight| have +1 |Difficulty| on attacks against characters other than you.
 6 Hatred: Whenever you take damage from a hostile character, they take 3 |energy| damage."
+,
+frame.dep_decimate.name,Decimate
+gear.mt_decimate_terrain.name,Decimate
+gear.buff_rage_decimate_crit.name,Decimate
+gear.buff_rage_decimate_crit.effect,A |Burst| 1 area around you becomes |difficult terrain| and your |critical hits| deal +3 |bonus damage|.
