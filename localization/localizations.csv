@@ -331,3 +331,8 @@ gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.effect,"Until the end 
 gear.ms_bleakshadow_gate.action_eyes_of_night.name,EYES OF NIGHT
 gear.ms_bleakshadow_gate.action_eyes_of_night.trigger,You or an allied character within |Sensors| hit an enemy benefiting from soft or hard cover for the first time this turn.
 gear.ms_bleakshadow_gate.action_eyes_of_night.effect,"The attack deals an additional +3 bonus damage and you take 2 |Energy| damage. This damage cannot be reduced in any way."
+gear.ms_the_morrigan_class_nhp.name,The Morrígan-class NHP
+gear.ms_the_morrigan_class_nhp.flavor,"""Worry not! All that hunger is gone for now ""It was here a moment and then gone again with the dawning of the day ""Back again into that bedeviled sward ""Now it is only us who remain, ""You, and me, and RA!"""
+gear.ms_the_morrigan_class_nhp.effect,Your mech gains the AI tag and the In Triumvirate quick tech action.
+gear.ms_the_morrigan_class_nhp.action_in_triumvirate.name,In Triumvirate
+gear.ms_the_morrigan_class_nhp.action_in_triumvirate.effect,"Choose an allied character within |Sensors|. Until the end of your next turn, your chosen ally is always treated as being adjacent to you while within your |Sensors|, regardless of actual distance between you, and all attacks against them gain +1 |difficulty|."

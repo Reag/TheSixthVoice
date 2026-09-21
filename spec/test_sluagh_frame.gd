@@ -283,9 +283,10 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	var rank_3_ids:Array[String] = []
 	for kit:Kit in license.rank_3.granted_gear: rank_3_ids.append(String(kit.compcon_id))
 	rank_3_ids.sort()
-	# Task 6 completes rank 3 with the Morrígan-class NHP.
-	assert_eq(rank_3_ids, ['ms_bleakshadow_gate'] as Array[String],
-		'Rank 3 grants exactly Bleakshadow Gate, sorted.')
+	# UPDATED, SP4 Task 6 (2026-09-21): the Morrígan-class NHP joined Bleakshadow Gate, exactly as
+	# the line this replaces predicted. The licence is now complete across all three ranks.
+	assert_eq(rank_3_ids, ['ms_bleakshadow_gate', 'ms_the_morrigan_class_nhp'] as Array[String],
+		'Rank 3 grants exactly Bleakshadow Gate and the Morrígan-class NHP, sorted.')
 
 func test_the_licence_names_itself_after_the_frame():
 	# THERE IS NO LICENCE NAME ROW, AND THAT IS THE ENGINE'S DESIGN rather than an omission.

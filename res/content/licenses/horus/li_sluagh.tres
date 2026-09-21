@@ -11,6 +11,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_nightfare_nexus/mw_nightfare_nexus.tres" id="9_mw_nightfare_nexus"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_twilight_swarm/ms_twilight_swarm.tres" id="10_ms_twilight_swarm"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_bleakshadow_gate/ms_bleakshadow_gate.tres" id="11_ms_bleakshadow_gate"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_the_morrigan_class_nhp/ms_the_morrigan_class_nhp.tres" id="12_ms_the_morrigan_class_nhp"]
 
 [sub_resource type="Resource" id="Resource_rank1"]
 script = ExtResource("2_unlockrank")
@@ -23,7 +24,7 @@ granted_gear = Array[ExtResource("4_kit")]([ExtResource("9_mw_nightfare_nexus"),
 
 [sub_resource type="Resource" id="Resource_rank3"]
 script = ExtResource("2_unlockrank")
-granted_gear = Array[ExtResource("4_kit")]([ExtResource("11_ms_bleakshadow_gate")])
+granted_gear = Array[ExtResource("4_kit")]([ExtResource("11_ms_bleakshadow_gate"), ExtResource("12_ms_the_morrigan_class_nhp")])
 
 [resource]
 script = ExtResource("1_unlocktree")

@@ -22,7 +22,10 @@ const SluaghFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/sluagh_fi
 ## test_astral_guardian.gd and test_mark_retort.gd carry, for the one case below that reads a grant.
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
 
-# (No OUR_TRANSLATION const here yet: SP4 Task 6 adds the card rows and the test that reads them.)
+## SP4 Task 6. Read THIS MOD'S OWN compiled artifact, not the global tr(), so a passing display-text
+## test can be attributed to this mod rather than to a sibling Reag-* mod loaded in the same testkit
+## run - test_bleakshadow_gate.gd's and test_sluagh_frame.gd's own convention.
+const OUR_TRANSLATION := 'res://unpacked/Reag-TheSixthVoice/localization/localizations.en.translation'
 
 const SLUAGH_TILE := Vector2i(4, 6)
 const NEAR_ALLY_TILE := Vector2i(10, 6)   # 6 from the Sluagh: not adjacent, inside Sensors 10
@@ -400,3 +403,50 @@ func test_guardian_on_the_sluagh_does_not_cover_the_far_partner():
 		'Control: the Sluagh DOES guard the ally it genuinely touches, so the buff is live.')
 	assert_false(UnitRelation.get_guardian_units(ally).has(sluagh),
 		'Guardian scans get_units_within(attacked, 1) - a radius (unit_relation.gd:454-457). Never widened. Fork 5.')
+
+# ---------------------------------------------------------------- Task 6: the card text and rank 3
+
+func test_the_card_rows_resolve():
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation, 'This mod has a compiled translation.')
+	if translation == null: return
+	for key:String in [
+			'gear.ms_the_morrigan_class_nhp.name', 'gear.ms_the_morrigan_class_nhp.flavor',
+			'gear.ms_the_morrigan_class_nhp.effect',
+			'gear.ms_the_morrigan_class_nhp.action_in_triumvirate.name',
+			'gear.ms_the_morrigan_class_nhp.action_in_triumvirate.effect']:
+		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
+		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
+	assert_eq(X.tr('gear.ms_the_morrigan_class_nhp.name'), 'The Morrígan-class NHP', 'The card name, diacritic and all.')
+	assert_eq(X.tr('gear.ms_the_morrigan_class_nhp.effect'),
+		'Your mech gains the AI tag and the In Triumvirate quick tech action.', 'Verbatim, unpiped.')
+	assert_eq(X.tr('gear.ms_the_morrigan_class_nhp.action_in_triumvirate.effect'),
+		'Choose an allied character within |Sensors|. Until the end of your next turn, your chosen ally is always '
+		+ 'treated as being adjacent to you while within your |Sensors|, regardless of actual distance between you, '
+		+ 'and all attacks against them gain +1 |difficulty|.',
+		'The LCP verbatim, pipes added: |Sensors| (LCP case) and |difficulty| (Wicked Host\'s case).')
+	var kit:Kit = ContentLibrary.get_kit(SluaghFixture.MORRIGAN)
+	if kit.actions.is_empty(): return assert_true(false, 'fixture: the Kit loaded.')
+	assert_eq(Translate.action(kit, kit.actions[0], 'effect', false),
+		X.tr('gear.ms_the_morrigan_class_nhp.action_in_triumvirate.effect'), 'The action finds its own row, not the Kit\'s effect.')
+	assert_every_pipe_resolves('gear.ms_the_morrigan_class_nhp.action_in_triumvirate.effect')
+
+## Splitting on '|' alternates literal text (even indices) with labels (odd) - test_bleakshadow_gate.gd's
+## idiom, copied here rather than shared, matching that file's own precedent. An unbalanced pipe
+## leaves an odd count; a label the glossary does not know renders as a coloured word with no hover
+## (test_content_integrity.gd:162).
+func assert_every_pipe_resolves(key:String) -> void:
+	var parts := X.tr(key).split('|')
+	assert_eq(parts.size() % 2, 1, '%s: pipes are balanced.' % key)
+	for i in parts.size():
+		if i % 2 == 0: continue
+		var label:String = parts[i].split('=')[0]
+		assert_ne(GlossaryItem.find_key_from_label(label), '', '%s: |%s| is a glossary term.' % [key, label])
+
+func test_the_licence_grants_it_at_rank_three():
+	var license:UnlockTree = ContentLibrary.get_license_tree(SluaghFixture.LICENSE_ID)
+	if license == null or license.rank_3 == null: return assert_true(false, 'fixture: the licence loaded.')
+	var ids:Array[String] = []
+	for kit:Kit in license.rank_3.granted_gear: ids.append(String(kit.compcon_id))
+	ids.sort()
+	assert_eq(ids, ['ms_bleakshadow_gate', 'ms_the_morrigan_class_nhp'] as Array[String], 'Rank 3 is complete: the whole of rank III.')
