@@ -148,12 +148,25 @@ const PARTNER_KEY := 'partner'   # BuffCore.state: the partner's persistent id
 ## (buff_core.gd:102). So the Sensors test is the card's "while within YOUR Sensors" whichever end
 ## is queried, and it is read LIVE - Inexorable Formation moves the Sluagh's Sensors with its
 ## Overshield, so a pair that went quiet at 11 comes back when the range grows.
+## THE WIDENING IS DISTANCE ONLY, so vanilla's OTHER two gates are re-run here - the doctrine the
+## Wormhole Grasp banner above states in so many words ("super first, then re-run vanilla's OTHER
+## gates for the one case it refused"). adjacent_characters is get_characters_within(unit, 1, false),
+## which filters on other_unit.is_character() (unit_relation.gd:42) and, inside get_units_within, on
+## UnitRelation.can_affect(whos_asking, other_unit) (:60). can_affect (:393-404) refuses an EXILED
+## unit on either side, a tangibility MISMATCH, an INVULNERABLE target, and a pair that shares
+## neither a global nor an effect shard. Without these two lines an exiled or intangible partner
+## would stay "adjacent" to all 37 content readers - a widening of the distance rule into a waiver
+## of the engine's own reachability rules, which the card never says.
 static func adjacent_characters(unit:Unit) -> Array[Unit]:
+	# In front of super rather than behind it: super already dereferences unit.map, so this guards
+	# OUR body only, and the file's other banners put their early-outs first for the same reason.
+	if not Unit.is_valid(unit) or unit.map == null: return super.adjacent_characters(unit)
 	var adjacent_units := super.adjacent_characters(unit)
-	if not Unit.is_valid(unit) or unit.map == null: return adjacent_units
 	for buff:BuffCore in UnitCondition.get_buffs_to(unit, ADJACENT_TO):
 		var partner:Unit = buff.get_linked_unit(PARTNER_KEY, unit.map)
 		if not Unit.is_valid(partner) or partner == unit: continue
+		if not partner.is_character(): continue
+		if not UnitRelation.can_affect(unit, partner): continue
 		var owner:Unit = buff.get_owner_unit(unit.map)   # the Sluagh, on either end
 		if not Unit.is_valid(owner): continue
 		# "while within your Sensors": the OWNER's live Sensors, measured to whichever end is not the owner.

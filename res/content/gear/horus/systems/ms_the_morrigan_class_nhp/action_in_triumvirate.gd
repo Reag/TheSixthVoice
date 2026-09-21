@@ -37,10 +37,15 @@ func activate_for_target(context:Context, activation:EventCore, target_unit:Unit
 	var gear:GearCore = context.gear
 	if not Unit.is_valid(unit) or not Unit.is_valid(target_unit) or not GearCore.is_valid(gear): return
 
+	# THE ABORT COMES FIRST, and the order is the point: it used to sit after the clear loop, where
+	# a unit lost between targeting and here would leave the PREVIOUS pair cleared and no new pair
+	# applied - the card would have un-paired the Sluagh for nothing. Nothing is torn down until the
+	# activation is known to be good.
+	if activation.abort_without_units([unit, target_unit]): return
+
 	# Fork 4: one partner at a time.
 	for other:Unit in context.map.get_all_units():
 		UnitCondition.clear_buffs_owned_by(activation, other, gear.persistent_id)
-	if activation.abort_without_units([unit, target_unit]): return
 
 	var on_sluagh := BuffCore.create(ContentLibrary.get_buff(PAIR), gear.persistent_id)
 	on_sluagh.set_state(PARTNER_KEY, target_unit.core.persistent_id)

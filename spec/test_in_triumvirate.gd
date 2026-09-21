@@ -19,7 +19,7 @@ extends GutTest
 
 const SluaghFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/sluagh_fixture.gd')
 
-const OUR_TRANSLATION := 'res://unpacked/Reag-TheSixthVoice/localization/localizations.en.translation'
+# (No OUR_TRANSLATION const here yet: SP4 Task 6 adds the card rows and the test that reads them.)
 
 const SLUAGH_TILE := Vector2i(4, 6)
 const NEAR_ALLY_TILE := Vector2i(10, 6)   # 6 from the Sluagh: not adjacent, inside Sensors 10
@@ -197,29 +197,55 @@ func test_everything_clears_at_the_end_of_the_sluaghs_next_turn():
 	assert_false(paired(sluagh) or paired(ally) or warded(ally), '...and clears at its END: END_OF_OWNERS_NEXT_TURN, the owner being the Sluagh.')
 	assert_false(adjacent_both_ways(sluagh, ally), 'Adjacency is back to the map.')
 
-func test_the_recorded_edge_an_ally_who_has_not_acted_keeps_its_chips_past_the_sluaghs_turn_end():
-	# Fork 3, ACCEPTED and pinned - and the MEASUREMENT (2026-09-21) corrected the plan's guess of
-	# which way this edge falls. The clock is the OWNER's turn end, read by
-	# clear_owners_turn_statuses for every buff from the Sluagh's gear; but that function skips an
-	# END_OF_OWNERS_NEXT_TURN buff whose turn_count is still 0 (unit_condition.gd:62), and
-	# turn_count ticks only at the HOLDER's own turn start (new_turn_for_statuses,
-	# unit_condition.gd:24, called for the STARTING unit alone, event_turn_start.gd:76). So it is
-	# the ally who has NOT taken a turn in between that keeps its chips one Sluagh turn end LONGER,
-	# not the ally who acted - the brief had it the other way round. lancer.gd:52's own warning
-	# ("will clear at end of NEXT owner end turn they see"), measured.
+func test_an_ally_who_never_acted_still_loses_both_chips_at_the_sluaghs_turn_end():
+	# THE VANILLA EDGE, CLOSED (controller ruling, 2026-09-21: card fidelity over the edge). Left
+	# alone, clear_owners_turn_statuses skips an END_OF_OWNERS_NEXT_TURN buff whose turn_count is
+	# still 0 (unit_condition.gd:62), and turn_count ticks only at the HOLDER's own turn start
+	# (new_turn_for_statuses, :24, called for the STARTING unit alone, event_turn_start.gd:76) - so
+	# an ally that has not started a turn since the press used to keep its pair AND its ward one
+	# Sluagh turn-end longer than "until the end of your next turn" (measured, and this case pinned
+	# it that way until the ruling). lancer.gd:52 warns about exactly this.
 	#
-	# THE ASYMMETRY IS THE POINT, and it is what a player would actually see: the Sluagh's own chip
-	# goes on schedule, so for that extra turn the widening is ONE-SIDED - the ally still counts the
-	# Sluagh as adjacent while the Sluagh no longer counts the ally. Recorded, not guarded (spike
-	# section 4 fork 3: vanilla's own buffs on this lifetime behave the same).
+	# buff_in_triumvirate_pair.on_clear now makes the OWNER'S core the clock for all three chips:
+	# when the Sluagh's own core goes - and its turn_count DID tick, so it goes on schedule - it
+	# cascades clear_buffs_owned_by over every other unit. The ally never takes a turn here, which
+	# is the whole arrangement: under the old behaviour it kept both chips and the widening was
+	# one-sided for an extra turn.
 	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(paired(ally) and warded(ally), 'Liveness: the ally is holding both before the clock runs.')
 	await SpecFactory.end_turn(game, sluagh)
 	await SpecFactory.start_turn(game, sluagh)
 	await SpecFactory.end_turn(game, sluagh)
 	assert_false(paired(sluagh), 'The Sluagh\'s own chip clears on schedule - its turn_count ticked at its own turn start.')
-	assert_true(paired(ally) and warded(ally), 'The ally\'s two do NOT: turn_count is still 0, so :62 skips them.')
-	assert_false(UnitRelation.is_adjacent(sluagh, ally), 'So the widening is one-sided for that extra turn...')
-	assert_true(UnitRelation.is_adjacent(ally, sluagh), '...the ally still counts the Sluagh as adjacent.')
+	assert_false(paired(ally) or warded(ally), 'AND the ally\'s two go with it, though the ally never took a turn: the owner\'s core is the clock.')
+	assert_false(UnitRelation.is_adjacent(sluagh, ally) or UnitRelation.is_adjacent(ally, sluagh),
+		'So the widening ends on the card\'s schedule in BOTH directions - no one-sided extra turn.')
+
+func test_a_partner_can_affect_refuses_is_not_adjacent_either_way():
+	# THE WIDENING IS DISTANCE ONLY (controller ruling, 2026-09-21). adjacent_characters is
+	# get_characters_within(unit, 1, false), which filters on is_character() (unit_relation.gd:42)
+	# and on can_affect(whos_asking, other_unit) inside get_units_within (:60) - so the banner re-runs
+	# both rather than waiving them, the doctrine its own file states three banners up.
+	#
+	# INVULNERABLE, ON BOTH ENDS, and the choice is forced rather than stylistic. can_affect
+	# (:393-404) offers four refusals and the other three are unusable here:
+	#  - EXILED is already refused one line earlier, by is_character(): is_active() excludes EXILED
+	#    (unit.gd:113), so the mutation on the can_affect line would redden nothing and the case
+	#    would be testing the wrong guard;
+	#  - INTANGIBLE strips the very chips this case must keep - handle_intangibilty_changing clears
+	#    every buff whose owner's tangibility does not match (unit_condition.gd:261-265);
+	#  - a shard split needs map plumbing this fixture has no helper for.
+	# INVULNERABLE appears in neither is_active() nor apply_status's special-case match, so it moves
+	# nothing but can_affect. It refuses whichever side is the TARGET (:397), so one end alone would
+	# close one direction only; both ends closes both, which is what "always treated as adjacent"
+	# has to stop promising.
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(adjacent_both_ways(sluagh, ally), 'Liveness: adjacent both ways before the status lands.')
+	SpecFactory.apply(ally, Lancer.STATUS.INVULNERABLE)
+	SpecFactory.apply(sluagh, Lancer.STATUS.INVULNERABLE)
+	assert_true(paired(sluagh) and paired(ally) and warded(ally), 'The chips are untouched - this is the banner refusing, not the buffs falling off.')
+	assert_false(UnitRelation.is_adjacent(sluagh, ally), 'can_affect refuses the invulnerable TARGET, so the partner is not appended...')
+	assert_false(UnitRelation.is_adjacent(ally, sluagh), '...and not in the other direction either.')
 
 func test_it_cannot_target_a_hostile_or_the_sluagh_itself():
 	var hostile := SluaghFixture.create_hostile(game, HOSTILE_TILE)

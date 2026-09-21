@@ -21,6 +21,22 @@
 ## own "comes before actually falling off... hm."), so a refresh made here would still SEE this
 ## buff and re-shelter the ally. Hence the erase: clear_buff erases again at :980 and Array.erase
 ## on an absent element is a no-op. Measured by test_in_triumvirate's "cover leaves" case.
+##
+## THE OWNER-SIDE CORE IS THE CLOCK FOR ALL THREE CHIPS, and that is card fidelity chosen over
+## vanilla's edge (controller ruling, 2026-09-21). "Until the end of your next turn" is the SLUAGH'S
+## next turn, and only the Sluagh's own core measures it correctly: turn_count ticks at the HOLDER's
+## turn start (unit_condition.gd:24, for the STARTING unit alone, event_turn_start.gd:76), so the
+## Sluagh's core reads 1 at its next turn start and clear_owners_turn_statuses clears it at the end
+## of that turn (:62) - exactly the card. The ALLY's two chips carry the same until, but their
+## turn_count ticks on the ALLY's turn, so an ally that has not started a turn since the press would
+## keep them one Sluagh turn-end longer (lancer.gd:52's own warning; measured before this cascade
+## existed). So they follow the owner's core instead of their own tick: when the Sluagh's core goes,
+## it takes every buff from this gear off every other unit with it.
+##
+## NO RECURSION, and the asymmetry is what guarantees it: the cascade is gated on the holder BEING
+## the owner, and the ally-side cores never are, so their own on_clear does the erase and the
+## tracking refresh and stops. activate_for_target's re-target loop already clears every unit and
+## stays idempotent under this - the cascade just gets there first and the loop finds nothing left.
 extends Buff
 
 const PARTNER_KEY := 'partner'
@@ -28,4 +44,7 @@ const PARTNER_KEY := 'partner'
 func on_clear(event:EventCore, core:BuffCore, unit:Unit) -> void:
 	if not Unit.is_valid(unit) or unit.map == null: return
 	unit.state.buffs.erase(core)
+	if unit == core.get_owner_unit(unit.map):
+		for other:Unit in unit.map.get_all_units():
+			if other != unit: UnitCondition.clear_buffs_owned_by(event, other, core.from_gear)
 	UnitTile.update_tracking_and_statuses(unit.map, event)
