@@ -331,7 +331,7 @@ gear.ms_twilight_swarm.action_crown_of_restless_dead.effect,"An allied character
 gear.ms_bleakshadow_gate.name,Bleakshadow Gate
 gear.ms_bleakshadow_gate.flavor,"""No creature nor sinner may hide from me. ""For I do not seek them in the light, but rather where it dies ""And from where it is found remember this ""There is no RA ""There is only me"""
 gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.name,Activate Bleakshadow Gate
-gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.effect,"Until the end of your next turn, you gain the EYES OF NIGHT |reaction|."
+gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.effect,"Until the end of your next turn, you gain the |EYES OF NIGHT=gear.ms_bleakshadow_gate.action_eyes_of_night| |reaction|."
 gear.ms_bleakshadow_gate.action_eyes_of_night.name,EYES OF NIGHT
 gear.ms_bleakshadow_gate.action_eyes_of_night.trigger,You or an allied character within |Sensors| hit an enemy benefiting from soft or hard cover for the first time this turn.
 gear.ms_bleakshadow_gate.action_eyes_of_night.effect,"The attack deals an additional +3 bonus damage and you take 2 |Energy| damage. This damage cannot be reduced in any way."

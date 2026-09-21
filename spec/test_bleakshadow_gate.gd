@@ -530,8 +530,13 @@ func test_the_card_rows_resolve():
 		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
 		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
 	assert_eq(X.tr('gear.ms_bleakshadow_gate.name'), 'Bleakshadow Gate', 'The card name.')
+	# The LCP's words are untouched; the pipes are the house style. EYES OF NIGHT carries an
+	# EXPLICIT key (`|Label=key|`) so it renders as a green gear link to the Gate's own card, which
+	# is where the reaction's trigger and effect now live - the author's ask, 2026-09-21, and
+	# gear.mw_acrasial_falcata.effect's shape (it links Biting Retort the same way).
 	assert_eq(X.tr('gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.effect'),
-		'Until the end of your next turn, you gain the EYES OF NIGHT |reaction|.', 'The LCP verbatim, one pipe.')
+		'Until the end of your next turn, you gain the |EYES OF NIGHT=gear.ms_bleakshadow_gate.action_eyes_of_night| |reaction|.',
+		'The LCP verbatim, two pipes - the reaction linked, the term glossed.')
 	assert_eq(X.tr('gear.ms_bleakshadow_gate.action_eyes_of_night.trigger'),
 		'You or an allied character within |Sensors| hit an enemy benefiting from soft or hard cover for the first time this turn.',
 		'The trigger, verbatim. "soft or hard cover" is NOT piped (Global Constraints).')
@@ -586,13 +591,51 @@ func test_the_gate_chip_borrows_the_activates_card_on_purpose():
 ## Splitting on '|' alternates literal text (even indices) with labels (odd) - test_draw_fire.gd's
 ## _unpiped idiom. An unbalanced pipe leaves an odd count; a label the glossary does not know
 ## renders as a coloured word with no hover, which test_content_integrity.gd:162 explains.
+## Mirrors GlossaryItem.process_glossed_text (glossary_item.gd:219-256) rather than checking every
+## pipe the same way, because the engine does not: a pipe carrying an EXPLICIT key (`|Label=key|`)
+## never reaches find_key_from_label at all (:235-237), so the LABEL is free text by design and only
+## the KEY has to resolve.
+##
+## This helper used to validate the label in both cases, which was latently wrong and went unnoticed
+## only because no row in this file carried an explicit key until the activate's did (author's ask,
+## 2026-09-21). test_in_triumvirate.gd carries an identical copy that is still label-only; it has no
+## explicit-key row today, so it is correct by accident - fix it there when one lands.
 func assert_every_pipe_resolves(key:String) -> void:
 	var parts := X.tr(key).split('|')
 	assert_eq(parts.size() % 2, 1, '%s: pipes are balanced.' % key)
 	for i in parts.size():
 		if i % 2 == 0: continue
-		var label:String = parts[i].split('=')[0]
-		assert_ne(GlossaryItem.find_key_from_label(label), '', '%s: |%s| is a glossary term.' % [key, label])
+		var inner:String = parts[i]
+		if not inner.contains('='):
+			assert_ne(GlossaryItem.find_key_from_label(inner), '',
+				'%s: |%s| is a glossary term.' % [key, inner])
+			continue
+		# An explicit key. The engine renders it as a GREEN GEAR LINK when the key begins `gear.`
+		# and its second segment names a real Kit (:239-246); otherwise it is a plain term link
+		# whose key must translate.
+		var split_tag := inner.split('=')
+		var label:String = split_tag[0]
+		var tag_key:String = split_tag[1] if split_tag.size() >= 2 else ''
+		assert_false(label.is_empty(), '%s: an explicit pipe still has a label.' % key)
+		assert_false(tag_key.is_empty(), '%s: |%s=| names a key.' % [key, label])
+		var segments := tag_key.split('.')
+		if tag_key.begins_with('gear') and segments.size() >= 2:
+			# NOT assert_not_null on get_kit - that assertion is VACUOUS, and a mutation caught it
+			# being so. ContentLibrary.get_kit NEVER returns null: on a miss it logs X.error and
+			# returns the Kit.UNKNOWN_ID placeholder (content_library.gd:231-236). Compare the id.
+			#
+			# THE ENGINE HAS THE SAME HOLE, and it is worth knowing rather than fixing here:
+			# process_glossed_text takes the green-gear branch on `ContentLibrary.get_kit(kit_id)
+			# != null` (glossary_item.gd:245), which is ALWAYS true - so a link with a misspelled
+			# kit id still renders GREEN and still opens a tooltip, just the UNKNOWN kit's. The
+			# text looks right and points nowhere. This assertion is the only thing that would
+			# notice.
+			var linked_id := StringName(segments[1])
+			assert_eq(ContentLibrary.get_kit(linked_id).compcon_id, linked_id,
+				'%s: |%s| links to Kit %s, which really is registered - so it renders GREEN and opens THAT card, not the UNKNOWN placeholder.'
+					% [key, label, linked_id])
+		else:
+			assert_ne(X.tr(tag_key), tag_key, '%s: |%s| links to %s, which resolves.' % [key, label, tag_key])
 
 func test_the_licence_grants_it_at_rank_three():
 	var license:UnlockTree = ContentLibrary.get_license_tree(SluaghFixture.LICENSE_ID)
