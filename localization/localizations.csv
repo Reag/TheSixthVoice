@@ -354,3 +354,6 @@ gear.mt_toe_to_toe.name,Toe To Toe
 gear.mt_toe_to_toe.effect,"At the end of its turn, if the Leoleth has not spent any of its standard movement, it may |Skirmish| as a |free action| with a melee weapon that has not been used this turn."
 gear.mt_toe_to_toe.action_toe_to_toe.name,Toe To Toe
 gear.mt_toe_to_toe.action_toe_to_toe.effect,"|Skirmish| with a melee weapon that has not been used this turn."
+,
+gear.mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.name,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+gear.mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.effect,The Leoleth makes all ranged attacks at +2 |difficulty|.

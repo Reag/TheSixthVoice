@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BuffWeaponTypeBonus" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/buff_aaaa_difficulty.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+; Lancer.WEAPON_TYPE is { CQB, CANNON, MELEE, RIFLE, LAUNCHER, NEXUS } (lancer.gd:107), so MELEE is 2.
+weapon_types_forbidden = Array[int]([2])
+allow_basic = true
+bonus_subtype = &"accuracy"
+bonus_value = -2
+to = &"attack_roll"
+hide_from_player = true
+; `until` is omitted: Lancer.UNTIL.MANUAL is its own zero (lancer.gd:46-47) and this is a permanent
+; frame trait. NO icon in SP1 - see HIDDEN_BUFFS_NEEDING_ICONS.

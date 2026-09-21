@@ -707,6 +707,9 @@ const ICON_TARGETS := {
 	# and the Kit's own icon_override are SP5's, so this row's two assertions are part of deliberate
 	# red #2 until then.
 	&'mt_toe_to_toe': {&'action_toe_to_toe': KIT},
+	# SP1 Task 3 (Leoleth). A passive trait with no action of its own, so it wears the Kit's icon and
+	# lists nothing - the mt_hole_puncher / mt_knock_em_down shape. The Kit's own icon is SP5's.
+	&'mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1139,6 +1142,12 @@ const HIDDEN_BUFFS_NEEDING_ICONS:Array[StringName] = [
 	# visible; the reasoning is in action_biting_retort.gd's DIFFICULTY_BUFF docstring. Its icon is
 	# SP5's, so this row is what makes this test deliberately red until then.
 	&'buff_biting_retort_difficulty',
+	# SP1 Task 3 (Leoleth). The 43 As' chip is hidden - a permanent chip on the token would be noise
+	# beside a trait card that says the same thing - but attack_roll.gd:189 draws it in the roll
+	# breakdown regardless, passing buff_core.base.icon RAW rather than through Buff.get_icon(), so
+	# BuffBonus's difficulty-svg fallback never runs there and a null leaves a blank beside the -2.
+	# Its icon is SP5's, so this row is what makes this test deliberately red until then.
+	&'buff_aaaa_difficulty',
 ]
 
 func test_every_hidden_buff_that_is_still_drawn_has_a_real_icon():

@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/placeholder/mf_placeholder.png" id="9_sprite"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/mt_toe_to_toe/mt_toe_to_toe.tres" id="10_toetotoe"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.tres" id="11_aaaa"]
 
 ; NO ART YET, SO NO CENSUS (design 1.1, SP5 slot). The Vauban's and the Sluagh's schemes were each
 ; DERIVED from their own sprite by counting its literal fill colours; with the shared 80x80 stand-in
@@ -65,7 +66,7 @@ sprites = Array[Texture2D]([ExtResource("9_sprite")])
 ; the sheet's own order, and Task 13 pins the result. An ext_resource pointing
 ; at a file that does not exist yet would make this WHOLE resource fail to parse, taking the frame out
 ; of ContentLibrary with no error a player would ever see.
-traits = Array[ExtResource("8_kit")]([ExtResource("10_toetotoe")])
+traits = Array[ExtResource("8_kit")]([ExtResource("10_toetotoe"), ExtResource("11_aaaa")])
 mount_types = Array[ExtResource("5_mounttype")]([ExtResource("6_mountflex"), ExtResource("7_mountheavy")])
 stat = SubResource("Resource_statblock")
 ; STRIKER (Lancer.SQUAD_ROLE, lancer.gd:181). role_secondary is omitted: it defaults to NONE
