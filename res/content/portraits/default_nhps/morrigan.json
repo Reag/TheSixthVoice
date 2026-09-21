@@ -1,0 +1,92 @@
+{
+	"body_height": 0,
+	"body_size": "small",
+	"colors": {
+		"accessory_other_primary": {
+			"tone": "palette_hologram_01"
+		},
+		"bg_primary": {
+			"base": "2a3b51ff",
+			"tone": "tone_standard"
+		},
+		"body_texture": {
+			"base": "333333ff",
+			"tone": "tone_standard"
+		},
+		"clothing_inner_primary": {
+			"tone": "palette_hologram_05"
+		},
+		"clothing_inner_secondary": {
+			"base": "6e6e6eff",
+			"tone": "tone_standard"
+		},
+		"clothing_outer_primary": {
+			"tone": "palette_hologram_01"
+		},
+		"clothing_outer_secondary": {
+			"base": "abababff",
+			"tone": "tone_standard"
+		},
+		"hair": {
+			"tone": "palette_hologram_04"
+		},
+		"head_texture": {
+			"tone": "palette_hologram_02"
+		},
+		"iris": {
+			"tone": "palette_hologram_04"
+		},
+		"lipstick": {
+			"tone": "palette_hologram_05"
+		},
+		"nhp_color": {
+			"base": "491d44ff",
+			"tone": "tone_standard"
+		},
+		"skin": {
+			"tone": "palette_hologram_01"
+		}
+	},
+	"compat_version": 19,
+	"is_nhp": true,
+	"is_stock": true,
+	"offsets": {},
+	"slices": {
+		"accessories_glasses": "blank",
+		"accessories_jewelry": "hangingearrings2",
+		"background": "circle",
+		"body": "body",
+		"clothing_inner": "twotonedshirt",
+		"ears": "b_typical_2",
+		"eyebrows": "round",
+		"eyes": "lashes",
+		"hair": "long",
+		"head": "slim",
+		"head_texture": [
+			"beautymark1_right",
+			"blush"
+		],
+		"mouth": "mouth",
+		"nose": "small"
+	},
+	"token": {
+		"colors": {
+			"0": {
+				"base": "6e6e6eff",
+				"tone": "tone_standard"
+			},
+			"1": {
+				"base": "6e6e6eff",
+				"tone": "tone_standard"
+			},
+			"2": {
+				"base": "e3c55cff",
+				"tone": "tone_standard"
+			},
+			"3": {
+				"tone": "tone_standard"
+			}
+		},
+		"frame_id": "bod_human"
+	}
+}
