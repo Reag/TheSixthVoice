@@ -1,0 +1,28 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_bleakshadow_gate/action_eyes_of_night.gd" id="1_eyes"]
+
+[resource]
+script = ExtResource("1_eyes")
+; Its own group (gear_core.gd:166-168): the activate has one too.
+usage_group = &"action_eyes_of_night"
+triggers_on = Array[StringName]([&"attack"])
+; POST (ReactionBus.TIMING.POST == 1): the roll block that applies require_hit is behind
+; `if trigger_timing == POST` (action_reaction_attacked.gd:101-105), and the AttackRoll the script
+; reads cover off exists only there.
+trigger_timing = 1
+require_hit = true
+; RELATION { ANY 0, ALLIES 1, ENEMIES 2 } (action_reaction_attacked.gd:12). The DEFENDER is an enemy
+; of the Sluagh; the ATTACKER is ANY, because it may be the Sluagh itself - the script adds the
+; "or an allied character within Sensors" clause, which the archetype cannot express.
+require_attacker_relation = 0
+require_defender_relation = 2
+; Both default FALSE and both are needed: "hit an enemy", unqualified. Without them a hostile-facing
+; invade is refused at :126-127 and a basic attack at :113. action_mark_retort.tres's reasoning.
+; (allow_tech cannot reach a bonus today - the engine computes cover for weapon attacks only,
+; attack_roll.gd:152-156 - but the card's wording is unqualified and the flag costs nothing. The
+; script's header records the measurement.)
+allow_tech = true
+allow_basic = true
+; consumes_rxn IS DELIBERATELY ABSENT: it defaults TRUE (action_reaction.gd:12), which is what
+; "reaction" means and what gives the card its 1/round without an override (:69).

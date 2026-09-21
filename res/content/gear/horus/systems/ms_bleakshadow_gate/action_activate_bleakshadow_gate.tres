@@ -15,6 +15,6 @@ action_type = 1
 is_tech = true
 ; "you gain": nothing to target. count 0 (action_system_apply_buff.gd:52-56), one confirm, no picker.
 apply_only_to_self = true
-; Its own group, separate from the reaction's (unit_action.gd:167-168).
+; Its own group, separate from the reaction's (gear_core.gd:166-168).
 usage_group = &"action_activate_bleakshadow_gate"
 emit_text_popcorn_on_use = true

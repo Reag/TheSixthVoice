@@ -1,0 +1,13 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_bleakshadow_gate/buff_eyes_of_night_bonus.gd" id="1_bonus"]
+
+[resource]
+script = ExtResource("1_bonus")
+to = &"bonus_damage_specific"
+damage_dice = "3"
+is_onetime = true
+; HIDDEN, and in NEITHER icon table: bonus_source_id (attack_util.gd:307) has no reader outside
+; attack_util.gd, so nothing ever draws this buff. It lives for the width of one damage roll.
+hide_from_player = true
+can_apply_to_tech_attacks = true
