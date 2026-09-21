@@ -19,6 +19,9 @@ const MyconidFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/myconid_
 const MaidensBlushFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/maidens_blush_fixture.gd')
 const VaubanFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/vauban_fixture.gd')
 const PrimroseFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/primrose_fixture.gd')
+const SluaghFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/sluagh_fixture.gd')
+## Read-only here: the Mark's retort case asserts the dome is untouched between its two halves.
+const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
 
 const TALENTS_MOD := 'gavstarb-talents_1st_party'
 ## House Guard rank 1. Hidden buff, adjacency_range = 2, only_to_allies - see the registry row.
@@ -67,6 +70,21 @@ const PRIMROSE_NEAR := Vector2i(6, 4)      # 2 out - exactly the tile House Guar
 # INSIDE the Hammer's own RADIUS 1 and would be a genuine bystander rather than the "widening would
 # have to reach this" case the ruling test needs.
 const HAMMER_FAR_HOSTILE_TILE := PRIMROSE_ADJACENT + Vector2i(2, 0)  # 2 out from the TARGET
+# The Sluagh case builds its OWN game (see the tests below), as the Maiden's Blush, Vauban and
+# Primrose cases do. The Sluagh is SIZE 1, so adjacency here is simply distance 1 from its one tile.
+const SLUAGH_TILE := Vector2i(4, 6)
+const SLUAGH_ADJACENT := Vector2i(5, 6)      # 1 out - adjacent with or without the widening
+const SLUAGH_TWO_OUT := Vector2i(6, 6)       # 2 out - exactly the tile House Guard's widening pulls in
+const SLUAGH_SHOOTER := Vector2i(10, 6)      # inside the assault rifle's Range 10 of everyone
+const MARK_COVER_CHIP := &'buff_mark_soft_cover'
+## The Mark's retort case (close review, slice 3 I-3). What the Sluagh holds, and therefore what the
+## retort deals to whoever missed - the attacker's health is the observable.
+const RETORT_SHIELD := 3
+## Loses to any evasion this fixture hands out. Its queue needs no more entries than this: every
+## further roll in that sequence (soft cover's accuracy die, the rifle's damage d6) is fed by
+## SluaghFixture.queue's own tail of 1s, and a 1 is the right answer for all of them.
+const SLUAGH_D20_MISSES := 1
+
 # HAMMER_FAR_ALLY_TILE lived here until SP4 Task 5's review. It served a Primrose-side liveness pair
 # that the review showed could not detect what it existed to detect (the widening the Hammer's gather
 # would have to consult is the TARGET's, not the Primrose's), and which duplicated
@@ -570,3 +588,225 @@ func test_house_guard_does_not_widen_the_eternity_hammers_bystander_gather() -> 
 		"RULING 18: a hostile two tiles from the target takes no Burn - the widening never reaches the "
 		+ "Hammer's own get_characters_within query.")
 	assert_eq(far_hostile.current_damage(), 0, 'and no HP loss either.')
+
+
+# ===================== THE RULING: THE SLUAGH TAKES THE WIDENING =====================
+
+## RULING, 2026-09-20, taken at the Sluagh DESIGN (ruling 6, the frame's `Contested seams:` line) -
+## the OPPOSITE of the two rulings above, and for a reason rather than a preference.
+##
+## The Mark's soft cover is a PassiveAura SUBCLASS whose is_within_range is overridden to
+## UnitRelation.is_adjacent, NOT the stock distance_between <= aura_range (passive_aura.gd:85). The
+## talents mod overrides adjacent_characters and nothing else, and is_adjacent(a, b) IS
+## adjacent_characters(a).has(b) (unit_relation.gd:7-8) - so the widening reaches this aura where it
+## reaches no stock one. The Sluagh is itself an adjacency widener at SP4 (In Triumvirate), which is
+## why refusing the seam here would mean measuring a radius and then re-adding its own widening by
+## hand.
+##
+## THIS IS ALSO THE ONLY TEST IN THE SUITE THAT CAN TELL THE OVERRIDE FROM THE DEFAULT. Deleting
+## passive_mark_cover_aura.gd's is_within_range reddens NOTHING in test_mark_of_the_dead.gd, because
+## a radius of 1 and is_adjacent agree in vanilla. Measured at SP1 Task 7 and recorded there.
+func test_house_guard_on_the_sluagh_widens_the_marks_soft_cover() -> void:
+	if skipped_without_talents(): return
+	var sluagh_game:Gamemaster = SluaghFixture.create_game(self)
+	var sluagh:Unit = SluaghFixture.create_sluagh(sluagh_game, SLUAGH_TILE)
+	var far_ally:Unit = SluaghFixture.create_ally(sluagh_game, SLUAGH_TWO_OUT)
+
+	# THE PRECONDITION, and it is what stops this passing for the boring reason: without the buff
+	# two tiles out is not adjacent, so a green below would be meaningless.
+	assert_false(UnitRelation.is_adjacent(sluagh, far_ally),
+		'fixture: two tiles out is NOT adjacent before the buff.')
+	widen_adjacency_on(sluagh)
+	assert_true(UnitRelation.is_adjacent(sluagh, far_ally),
+		'LIVENESS: House Guard on the SLUAGH really does pull it into is_adjacent.')
+
+	await SluaghFixture.press_mark(sluagh_game, sluagh)
+	assert_true(UnitCondition.has_buff(far_ally, MARK_COVER_CHIP),
+		'RULED: the dome REACHES the widened ally - the aura asks is_adjacent, not a radius.')
+	assert_eq(CoverCalculator.determine_cover(far_ally, SluaghFixture.create_hostile(
+		sluagh_game, SLUAGH_SHOOTER)).total, Lancer.COVER.SOFT,
+		'And the engine\'s own cover pipeline reads it.')
+
+## THE OTHER HALF OF THE SAME RULING, and it is the half most content does not have: is_adjacent is
+## ASYMMETRIC while the talents mod is installed. is_adjacent(a, b) reads a's buffs alone
+## (unit_relation.gd:7-8), and the aura asks is_adjacent(aura_unit, moving_unit) - the SLUAGH first.
+## So House Guard on the ALLY widens nothing for this card.
+##
+## Written as its own test rather than as a line in the one above, because it is a different claim
+## about a different unit and it is the one a future reader will doubt.
+func test_house_guard_on_the_ally_alone_does_not_widen_the_marks_soft_cover() -> void:
+	if skipped_without_talents(): return
+	var sluagh_game:Gamemaster = SluaghFixture.create_game(self)
+	var sluagh:Unit = SluaghFixture.create_sluagh(sluagh_game, SLUAGH_TILE)
+	var far_ally:Unit = SluaghFixture.create_ally(sluagh_game, SLUAGH_TWO_OUT)
+
+	widen_adjacency_on(far_ally)
+	assert_true(UnitRelation.is_adjacent(far_ally, sluagh),
+		'LIVENESS: the buff IS live on the ally - it pulls the Sluagh into the ALLY\'S list.')
+	assert_false(UnitRelation.is_adjacent(sluagh, far_ally),
+		'And that is one-sided: the SLUAGH\'S list is unchanged.')
+
+	await SluaghFixture.press_mark(sluagh_game, sluagh)
+	assert_false(UnitCondition.has_buff(far_ally, MARK_COVER_CHIP),
+		'RULED: the dome does NOT reach it. Direction matters, and the aura reads the Sluagh.')
+
+## THE SAME RULING ON A DIFFERENT MECHANISM, because the Mark's aura and Astral Guardian are two
+## unrelated pieces of code that happen to ask the same question. A reaction gate is not an aura, and
+## a regression in one would not touch the other.
+##
+## THE SHOT IS REAL and the observable is the ALLY'S Overshield, not a counter: a gate that passed
+## but granted nothing would be a different defect with the same shape.
+func test_house_guard_on_the_sluagh_lets_astral_guardian_reach_an_ally_two_tiles_out() -> void:
+	if skipped_without_talents(): return
+	var sluagh_game:Gamemaster = SluaghFixture.create_game(self)
+	var sluagh:Unit = SluaghFixture.create_sluagh(sluagh_game, SLUAGH_TILE)
+	var far_ally:Unit = SluaghFixture.create_ally(sluagh_game, SLUAGH_TWO_OUT)
+	var shooter:Unit = SluaghFixture.create_hostile(sluagh_game, SLUAGH_SHOOTER)
+	SluaghFixture.arm_rifle(shooter)
+
+	widen_adjacency_on(sluagh)
+	assert_true(UnitRelation.is_adjacent(sluagh, far_ally), 'LIVENESS: the widening is live.')
+
+	# [d20, the guardian's d6, the rifle's damage d6] - SluaghFixture.queue's own order.
+	SluaghFixture.queue([19, 4, 5])
+	await SluaghFixture.shoot(sluagh_game, shooter, far_ally)
+	assert_eq(far_ally.current_damage(), 1,
+		'RULED: Astral Guardian fired for an ally TWO tiles out - 4 Overshield absorbed 4 of the 5.')
+
+## THE THIRD MECHANISM ON THE SAME SEAM, AND THE ONE RULING 6 CLAIMED WAS PINNED AND WAS NOT (close
+## review, slice 3 I-3). rulings.md's 2026-09-20 row says all three "adjacent" effects take House
+## Guard's widening and are "Pinned by spec/test_compat.gd (SP1)"; the Mark's aura had two cases and
+## Astral Guardian one, and the Mark's RETORT had none. So nothing in the suite could tell
+## action_mark_retort.gd's `UnitRelation.is_adjacent(unit, defender)` from a radius of 1 - they
+## agree in vanilla, and only the talents mod's widening separates them.
+##
+## THE CONTROL IS INSIDE THE TEST, as the two halves of one shot sequence, because the widening can
+## only be applied once and the honest control is the SAME attacker missing the SAME ally at the
+## SAME tile without it. shoot() cycles the attacker's turn between the two, which hands every unit
+## its reaction point back (event_turn_start.gd:42-44) - so the second half is not riding on
+## bookkeeping the first half left behind.
+##
+## THE OBSERVABLE IS THE ATTACKER'S HEALTH, not a counter: a gate that passed and dealt nothing
+## would be a different defect with the same shape. A miss with the rifle lands its Reliable 2 on
+## the 200 HP ally and is irrelevant to that number.
+func test_house_guard_on_the_sluagh_lets_the_marks_retort_answer_a_miss_two_tiles_out() -> void:
+	if skipped_without_talents(): return
+	var sluagh_game:Gamemaster = SluaghFixture.create_game(self)
+	var sluagh:Unit = SluaghFixture.create_sluagh(sluagh_game, SLUAGH_TILE)
+	var far_ally:Unit = SluaghFixture.create_ally(sluagh_game, SLUAGH_TWO_OUT)
+	var shooter:Unit = SluaghFixture.create_hostile(sluagh_game, SLUAGH_SHOOTER)
+	SluaghFixture.arm_rifle(shooter)
+
+	await SluaghFixture.press_mark(sluagh_game, sluagh)
+	await SluaghFixture.grant_overshield(sluagh, RETORT_SHIELD)
+	await SpecFactory.end_turn(sluagh_game, sluagh)
+
+	# CONTROL, unwidened: two tiles out is not adjacent, so the retort is not offered.
+	assert_false(UnitRelation.is_adjacent(sluagh, far_ally),
+		'fixture: two tiles out is NOT adjacent before the buff.')
+	var before:int = shooter.current_damage()
+	SluaghFixture.queue([SLUAGH_D20_MISSES])
+	await SluaghFixture.shoot(sluagh_game, shooter, far_ally)
+	assert_eq(shooter.current_damage(), before,
+		'CONTROL: with no widening, a miss on an ally two tiles out answers nothing.')
+
+	widen_adjacency_on(sluagh)
+	assert_true(UnitRelation.is_adjacent(sluagh, far_ally), 'LIVENESS: the widening is live.')
+	assert_eq(Overshield.current(sluagh), RETORT_SHIELD,
+		'fixture: and the dome is untouched - nothing was shot at the Sluagh.')
+
+	SluaghFixture.queue([SLUAGH_D20_MISSES])
+	await SluaghFixture.shoot(sluagh_game, shooter, far_ally)
+	assert_eq(shooter.current_damage() - before, RETORT_SHIELD,
+		'RULED: the Mark\'s retort answered a miss on an ally TWO tiles out - the gate asks '
+		+ 'is_adjacent, not a radius. Rewrite it as distance_between <= 1 and this is the only '
+		+ 'test in the suite that reddens.')
+
+## THE CONTROL THAT KEEPS ALL THREE HONEST. Without the buff, the same ally at the same tile gets
+## neither - so the three greens above are about the widening and not about the content being
+## permanently generous. It runs WITHOUT the talents mod too, which is why it is the one test here
+## that does not skip: nothing in it depends on the mod existing.
+##
+## ITS QUEUE WRITES THE SAME NUMBER IN BOTH DICE SLOTS, and that is the one correction this task
+## makes to the plan's own spec source. The guardian's d6 and the rifle's damage d6 come out of ONE
+## global FIFO (dice.gd:33-35), so in a case where the guardian is correctly REFUSED nothing pops the
+## middle entry and the damage die is the SECOND number, not the third - the plan's [19, 4, 5] would
+## have dealt 4 here and failed against its own expected 5 on a working build. Writing 5 in both
+## slots makes the damage read identical whether or not a d6 was popped first, so the assertion is a
+## statement about the gate rather than about queue alignment, and it keeps every bit of its
+## discrimination: a guardian that DID fire would grant 5, absorb the whole 5 and leave 0 on HP.
+## (The same correction test_astral_guardian.gd's header records for its own four negative cases,
+## measured at SP1 Task 6.)
+func test_without_the_widening_the_same_ally_two_tiles_out_gets_neither() -> void:
+	var sluagh_game:Gamemaster = SluaghFixture.create_game(self)
+	var sluagh:Unit = SluaghFixture.create_sluagh(sluagh_game, SLUAGH_TILE)
+	var far_ally:Unit = SluaghFixture.create_ally(sluagh_game, SLUAGH_TWO_OUT)
+	var shooter:Unit = SluaghFixture.create_hostile(sluagh_game, SLUAGH_SHOOTER)
+	SluaghFixture.arm_rifle(shooter)
+
+	await SluaghFixture.press_mark(sluagh_game, sluagh)
+	assert_false(UnitCondition.has_buff(far_ally, MARK_COVER_CHIP),
+		'No widening, no dome at two tiles out.')
+
+	SluaghFixture.queue([19, 5, 5])
+	await SluaghFixture.shoot(sluagh_game, shooter, far_ally)
+	assert_eq(far_ally.current_damage(), 5,
+		'And no guardian either: the ally took the whole 5 on HP.')
+
+
+# ---------------------------------------------------------------- SP4: the Sluagh's own banner beside House Guard's
+
+## Both overrides call super first, so they compose in either install order. This case runs OUR
+## banner (In Triumvirate at six tiles) and THEIRS (House Guard at two) on the same Sluagh in the
+## same run, and asserts both are live. The registry's Sixth Voice row (compat-seams.md).
+##
+## THE TWO CASES BELOW USE THE FILE'S OWN `game` rather than a Sluagh game of their own, which is the
+## one difference from the four cases above. Those need SluaghFixture.create_game for its 30x12 map
+## (a Sensors-13 read stands units 13 tiles out); six tiles fits the Myconid fixture's 15x9 with room
+## to spare, and the Myconid standing at (4,4)-(5,5) is nothing to either assertion - neither the
+## near ally at two out nor the far partner at six is measured through it.
+func test_in_triumvirate_and_house_guard_widen_the_same_sluagh_together() -> void:
+	if skipped_without_talents(): return
+	var sluagh := SluaghFixture.create_sluagh(game, SLUAGH_TILE)
+	SluaghFixture.equip_morrigan(sluagh)
+	var near := ally(SLUAGH_TWO_OUT)
+	var far := ally(SLUAGH_TILE + Vector2i(6, 0))
+
+	assert_false(UnitRelation.is_adjacent(sluagh, near) or UnitRelation.is_adjacent(sluagh, far),
+		'Control: neither adjacent.')
+
+	widen_adjacency_on(sluagh)
+	await SluaghFixture.triumvirate(game, sluagh, far)
+
+	assert_true(UnitRelation.is_adjacent(sluagh, near),
+		'House Guard still widens with our banner installed...')
+	assert_true(UnitRelation.is_adjacent(sluagh, far),
+		'...and our banner is live with House Guard resident. Same run, same unit.')
+
+## The channels are separate: House Guard's buff does not make a Triumvirate partner, and our pair
+## buff is not a House Guard radius. Read by name, not by effect.
+##
+## THE LITERAL &'adjacency_range' RATHER THAN A CONSTANT, deliberately: this file names the third
+## party's BUFF (HOUSE_GUARD_BUFF) and its HELPER, not its channel, and a constant of ours for a
+## string they own would read as though we shipped it. The last two lines are what stop the first
+## from being vacuous - applying THEIR buff puts exactly one entry on that channel, so the name is
+## the right one, and our pair is still alone on ours.
+func test_the_two_widenings_read_different_channels() -> void:
+	if skipped_without_talents(): return
+	var sluagh := SluaghFixture.create_sluagh(game, SLUAGH_TILE)
+	SluaghFixture.equip_morrigan(sluagh)
+	var far := ally(SLUAGH_TILE + Vector2i(6, 0))
+
+	await SluaghFixture.triumvirate(game, sluagh, far)
+
+	assert_true(UnitCondition.get_buffs_to(sluagh, &'adjacency_range').is_empty(),
+		'Our pair sits on no talents channel.')
+	assert_false(UnitCondition.get_buffs_to(sluagh, SluaghFixture.ADJACENT_TO).is_empty(),
+		'It sits on ours.')
+
+	widen_adjacency_on(sluagh)
+
+	assert_eq(UnitCondition.get_buffs_to(sluagh, &'adjacency_range').size(), 1,
+		'...and that literal IS the channel talents reads: House Guard\'s own buff is the only thing on it.')
+	assert_eq(UnitCondition.get_buffs_to(sluagh, SluaghFixture.ADJACENT_TO).size(), 1,
+		'...and it never joined ours.')

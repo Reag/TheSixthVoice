@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.7.0'
+const EXPECTED_VERSION := '0.8.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -597,6 +597,110 @@ const ICON_TARGETS := {
 	# action carrying the icon) and is deliberately NOT what this is - the ms_dazzling_wind precedent
 	# above is. The Kit's icon is SP5's, which is what makes this row deliberately red until then.
 	&'ms_flourishing_twirl': {&'action_spin': KIT},
+	# SP1 Task 2 (Sluagh). A pure passive trait: no action of its own, so it wears the Kit's icon and
+	# lists none - the mt_knock_em_down / mt_magnetic_weight_redistribution shape. Its two buffs are
+	# buff_wicked_host_watch (hidden plumbing, drawn nowhere, correctly absent from both buff tables)
+	# and buff_wicked_host, which IS visible and is listed in VISIBLE_BUFFS below.
+	#
+	# The Kit's own icon is SP5's, so THIS ROW is what makes
+	# test_every_player_facing_kit_and_action_has_a_real_icon deliberately red until then - it is the
+	# first new Kit of the sub-project.
+	&'mt_wicked_host': {},
+	# SP1 Task 3 (Sluagh). One action, and it is a HIDDEN reaction: show_in_tooltip is overridden to
+	# false and reactions never reach the gear bar (gear_bar.gd:145), so nothing the player sees ever
+	# wears an icon for it and it correctly gets no row inside this dictionary - the mt_blasting_powder
+	# / mt_halo / mt_sap shape. The Kit's own icon is SP5's.
+	&'mt_the_stealing_of_the_souls_of_the_dead': {},
+	# SP1 Task 5 (Sluagh). A pure passive trait: no action of its own, so it wears the Kit's icon and
+	# lists none - the mt_gravity_well shape. Its one buff, buff_inexorable_formation, is HIDDEN and
+	# is correctly absent from BOTH buff tables: nothing draws a Buff.TO.STATBLOCK buff, because
+	# update_cached_values asks it for get_values() and never for an icon
+	# (unit_battle_state.gd:231-234). The Kit's own icon is SP5's.
+	&'mt_inexorable_formation': {},
+	# SP1 Tasks 6, 7 and 8 (Sluagh). CRY OF THE HOSTED DEAD, the core system. THREE actions by the
+	# end of SP1 and only SOME of them belong in the value map:
+	#  - action_astral_guardian (Task 6) is a reaction with show_in_tooltip false, so it reaches no
+	#    player-facing surface and is correctly ABSENT - the mt_halo / ms_heaer shape. This retires
+	#    design section 5's {Kit, action_astral_guardian} glyph family: the Kit's glyph is the whole
+	#    of it.
+	#  - action_mark_of_the_dead (Task 7) is a QUICK action on the gear bar and gets its own glyph.
+	#  - action_mark_retort (Task 8) is a reaction that DOES reach the trait card, because it has its
+	#    own effect row and show_in_tooltip is not overridden (action.gd:350-353) - the
+	#    action_draw_fire / action_uffish_gyre shape.
+	# SP5 COLLAPSED THE TWO FAMILIES INTO ONE: design section 5 groups the Mark, its chip, the
+	# soft-cover chip and the retort as ONE glyph family, so both actions and buff_mark_of_the_dead
+	# share action_mark_of_the_dead.svg. The guard would otherwise refuse two DIFFERENT family names
+	# wearing the same texture on one Kit (the claimed/texture_by_family loop below), because the
+	# gear bar would draw them as one button - naming both rows the same family is what tells the
+	# guard this is one button on purpose.
+	&'cp_cry_of_the_hosted_dead': {&'action_mark_of_the_dead': &'action_mark_of_the_dead', &'action_mark_retort': &'action_mark_of_the_dead'},
+	# SP2 Task 2 (Sluagh). The rank-I weapon. Its single action IS the Kit's first weapon action, so
+	# _action_reaches_a_player_facing_surface returns true for it unconditionally (:909) - the
+	# character sheet's integrated-weapon box draws it with no show_in_tooltip check at all - and it
+	# therefore MUST be listed. It is a KIT row, not a named family: design section 5 gives this
+	# weapon ONE glyph family, {mw_rend_nexus, its +2 chip}, so the action inherits the Kit's drawing
+	# and carries no icon_override of its own (icon-sharing.md section 5: KIT is absence, not
+	# duplication). ms_flourishing_twirl above is the same shape.
+	#
+	# A KIT ROW ON AN ICON-LESS KIT COSTS THREE FAILING ASSERTS, NOT ONE, until SP5: the Kit's own
+	# _assert_real_icon (:819), the assert_not_null(kit.icon_override) this branch makes (:833), and
+	# the assert_eq(action.get_icon(kit), kit.icon_override) at :839. That is the plan's arithmetic and
+	# it is expected.
+	&'mw_rend_nexus': {&'action_rend_nexus': KIT},
+	# SP2 Tasks 5 and 8 (Sluagh). O' TRICKERY, the rank-I Unique system. Both of its actions are
+	# INVADES - not reactions, not situationally activated - so the gear bar draws both and
+	# _action_reaches_a_player_facing_surface returns true for each (:910). Design section 5 gives the
+	# system ONE family covering the Kit, action_grey_birds and the Grey Birds chips, and a SEPARATE
+	# one for Hunt - so Grey Birds is a KIT row and Hunt is a named family. Task 8 added the second
+	# entry alongside the action itself; a Kit with one listed action and two carried ones fails the
+	# :876 pairing assertion, so the two had to land together.
+	#
+	# HUNT COSTS ONE MORE FAILING ASSERT UNTIL SP5, not three: a NAMED family on an icon-less action
+	# fails only _assert_real_icon(action.icon_override) at :843, because :844 continues on null
+	# before the assert_ne at :845 is reached. The three-assert arithmetic above is the KIT-row shape
+	# and does not repeat here.
+	&'ms_o_trickery': {&'action_grey_birds': KIT, &'action_hunt_of_the_vagrant_sowche': &'action_hunt_of_the_vagrant_sowche'},
+	# SP3 Task 1 (Sluagh). The rank-II Auxiliary weapon. mw_rend_nexus's shape exactly: its single
+	# action IS the Kit's first weapon action, so it is drawn unconditionally by the character
+	# sheet's integrated-weapon box, and design section 5 gives the weapon ONE family -
+	# {mw_nightfare_nexus, buff_nightfare_soft_cover} - so the action inherits the Kit's drawing and
+	# this is a KIT row. THREE failing asserts until SP5, per the arithmetic above.
+	&'mw_nightfare_nexus': {&'action_nightfare_nexus': KIT},
+	# SP3 Tasks 3 and 4 (Sluagh). TWILIGHT SWARM, the rank-II Unique shield system. Both of its
+	# actions are ordinary pressables - not reactions, not situationally activated - so the gear bar
+	# draws both and _action_reaches_a_player_facing_surface returns true for each (:910). Design
+	# section 5 splits them: the Kit and Damnation are ONE family, so Damnation is a KIT row, and the
+	# Crown gets a family of its own, so it is a NAMED one. Task 4 added the second entry alongside
+	# the action itself; a Kit with one listed action and two carried ones fails the :876 pairing
+	# assertion, so the two had to land together.
+	#
+	# THE CROWN COSTS ONE MORE FAILING ASSERT UNTIL SP5, not three - a NAMED family on an icon-less
+	# action fails only _assert_real_icon(action.icon_override) at :843, the Hunt row's arithmetic.
+	&'ms_twilight_swarm': {&'action_damnation_of_the_host': KIT, &'action_crown_of_restless_dead': &'action_crown_of_restless_dead'},
+	# SP4 Task 1 (Sluagh). Bleakshadow Gate. BOTH actions are listed, and for different reasons: the
+	# activate is the one button the GEAR BAR draws (path 2), and EYES OF NIGHT is drawn on the
+	# SYSTEM CARD (path 3) - a reaction never reaches the gear bar at all (gear_bar.gd:145), but
+	# Action.show_in_tooltip answers true for it, so the card carries its own trigger and effect
+	# rows. The mt_juggernaut_drive / action_draw_fire shape, not the ms_heaer one.
+	#
+	# EYES OF NIGHT WAS ABSENT FROM THIS ROW UNTIL THE FRAME CLOSE (2026-09-21), because
+	# action_eyes_of_night.gd overrode show_in_tooltip to false - which kept the reaction off the
+	# card entirely. The Kit has NO gear.ms_bleakshadow_gate.effect row, so nothing else described
+	# it either and the +3 / 2-self-damage was unreadable anywhere in the game. The author ordered
+	# the override removed; this row is the other half of that change, and the two must stay
+	# together - _action_reaches_a_player_facing_surface calls show_in_tooltip directly, so either
+	# edit alone turns the reverse-check assert red.
+	#
+	# BOTH are KIT rows, because the design gives the system ONE family:
+	# {ms_bleakshadow_gate, action_activate_bleakshadow_gate, action_eyes_of_night, the Gate chip}.
+	# Two KIT rows on one Kit are safe by construction - a KIT row `continue`s before joining
+	# texture_by_family, so this Kit contributes zero named families and the collision loop below
+	# runs zero iterations for it (progress-icon-families.md, ledger M2).
+	&'ms_bleakshadow_gate': {&'action_activate_bleakshadow_gate': KIT, &'action_eyes_of_night': KIT},
+	# SP4 Task 4 (Sluagh). The Morrígan-class NHP. In Triumvirate is the one button the gear bar
+	# draws for it; KIT, because the design's family is {the Kit, action_in_triumvirate, the pair
+	# and ward chips}. The Kit's own icon is SP5's.
+	&'ms_the_morrigan_class_nhp': {&'action_in_triumvirate': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -725,6 +829,50 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# a THREAT_RANGE bonus is read by ActionAttackWeapon.threat_distance and drawn nowhere, same as
 	# buff_artful_caress above, so it is not in HIDDEN_BUFFS_NEEDING_ICONS either.
 	&'buff_ddmr_aegis',
+	# SP1 Task 2 (Sluagh). Wicked Host's +1 difficulty chip, and visible for two independent reasons
+	# (ruling 9). attack_roll.gd:189 passes buff_core.base.icon RAW into the roll breakdown - NOT
+	# through Buff.get_icon() - so BuffBonus's difficulty-svg fallback (buff_bonus.gd:34-42) never
+	# runs on that path and a null icon draws a blank beside the -1; buff_diversion_rail,
+	# buff_gravity_well and buff_ddmr_aegis are all listed for exactly that reason. And it is the
+	# attacker's only warning that this particular shot is harder. Its hidden sibling
+	# buff_wicked_host_watch is deliberately ABSENT - the pair is one mechanic, and the observer is
+	# never a chip on the unit.
+	&'buff_wicked_host',
+	# SP1 Task 7 (Sluagh). The Mark's chip, and visible per ruling 14: it is the only thing on the
+	# board that says the dome is up, and the dome lasts the whole scene. Its hidden companion
+	# buff_mark_soft_cover is deliberately ABSENT from both tables - the pair is one mechanic, and
+	# nothing draws a Buff.TO.COVER buff's own icon anyway: the roll breakdown adds the cover mod
+	# with Icon.cover(preattack.cover) (attack_roll.gd:169), never with buff_core.base.icon.
+	&'buff_mark_of_the_dead',
+	# SP2 Task 2 (Sluagh). The Rend Nexus crit chip, and visible for the same two independent reasons
+	# buff_wicked_host is (ruling 10). attack_roll.gd:189 passes buff_core.base.icon RAW into the roll
+	# breakdown - NOT through Buff.get_icon() - so BuffBonus's difficulty-svg fallback never runs on
+	# that path and a null icon draws a blank beside the -2; and it is the attacker's only warning
+	# that this particular shot is harder.
+	&'buff_rend_nexus',
+	# SP2 Task 5 (Sluagh). The Grey Birds chip, and it is the ONLY thing the card puts on the board:
+	# its two working buffs are hidden plumbing (a targeting ban nothing draws, and an
+	# ATTACK_DECLARED listener with no passive channel at all), so without this the player has no way
+	# to see which enemy is bound - or that the invade landed. Its icon is SP5's.
+	&'buff_grey_birds',
+	# SP3 Task 1 (Sluagh). The Nightfare Nexus's soft-cover chip, and a DELIBERATE DIVERGENCE from
+	# buff_mark_soft_cover above, which is hidden. The author ruled it visible on 2026-09-21: that
+	# one is hidden because buff_mark_of_the_dead stands beside it as the signal the dome is up,
+	# and this weapon leaves no companion chip at all - so without a visible one the player has no
+	# marker that the shot did anything until they next aim at that unit.
+	#
+	# WHICH ICON IT NEEDS IS THE STATUS BAR'S, NOT THE ROLL BREAKDOWN'S. A Buff.TO.COVER buff's own
+	# icon is never drawn by a roll - attack_roll.gd:169 adds the cover modifier with
+	# Icon.cover(preattack.cover) - which is why buff_mark_soft_cover belongs in neither icon table
+	# and this one belongs in THIS table rather than in HIDDEN_BUFFS_NEEDING_ICONS. Its icon is
+	# SP5's, shared with the weapon as one family.
+	&'buff_nightfare_soft_cover',
+	# SP4 Task 1 (Sluagh). The Gate's chip, visible per ruling 22: the only sign the reaction is up.
+	&'buff_bleakshadow_gate',
+	# SP4 Task 4 (Sluagh). In Triumvirate's two chips, visible per ruling 23: the pair on both ends
+	# says who is paired, the ward on the ally says why attacks on it are worse.
+	&'buff_in_triumvirate_pair',
+	&'buff_in_triumvirate_ward',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -868,6 +1016,92 @@ func test_every_visible_buff_has_a_real_icon():
 		assert_true(VISIBLE_BUFFS.has(buff.compcon_id),
 			'%s is listed in VISIBLE_BUFFS.' % buff.resource_path.get_file())
 		_assert_real_icon(buff.icon, buff.compcon_id)
+
+## Visible chips that deliberately render a row belonging to something ELSE, and the key each one
+## lands on. A row-less buff does NOT fail to render - Translate.buff walks a five-step fallback
+## chain (translate.gd:49-79) and the LAST step returns the raw key itself, because
+## `return_key_if_blank` defaults true (:49) and buff.gd:189 leaves it at the default. So the
+## failure is silent and the player reads `gear.mw_rend_nexus.effect` in the tooltip body.
+##
+## ADDED AT THE SLUAGH FRAME CLOSE, 2026-09-21, after review slices 3, 5 and 7 each found the same
+## defect independently: buff_rend_nexus and buff_nightfare_soft_cover both shipped rendering a raw
+## key. The root cause is structural rather than a typo, which is why this is a standing guard and
+## not two CSV rows. A WEAPON Kit's rules row is `.on_hit` / `.on_crit`, never `.effect` - so for a
+## chip owned by a weapon the fallback chain has nowhere to land, while every other visible chip in
+## this mod happened to sit on a Kit that has an `.effect` row and looked fine by luck.
+##
+## Being on this list is a claim that the borrowed card is the RIGHT card, checked by a human. A
+## buff that sets `localization_key_override` is NOT listed and is skipped automatically: the
+## override is that same claim, made in the buff's own file where a reader will find it
+## (buff_grey_birds is the one that does this today, pointing at ms_o_trickery.action_grey_birds).
+##
+## The four entries are all TRAIT chips whose Kit carries a real `.effect` row saying exactly what
+## the chip does - which is why they were correct on screen and only this guard's stricter reading
+## flagged them. A trait Kit's rules row IS `.effect`, so the fallback lands somewhere true; the
+## weapon case that started all this has no such row to land on.
+const BUFFS_THAT_BORROW_A_CARD := {
+	# Borrows its Kit's `actions[0]`, which on that Kit is the activate - and that is exactly what
+	# the chip should say ("until the end of your next turn you gain the reaction"). Pinned
+	# separately by test_bleakshadow_gate.test_the_gate_chip_borrows_the_activates_card_on_purpose.
+	&'buff_bleakshadow_gate': 'gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.effect',
+	# The remaining three are one-Kit trait chips that fall through to the trait's own effect row.
+	# Their Kits carry no actions at all, so there is no sibling action for the fallback to land on
+	# by mistake - the hazard the Rend Nexus hit needs a MULTI-action or a weapon Kit.
+	&'buff_wicked_host': 'gear.mt_wicked_host.effect',
+	&'buff_weak_computer': 'gear.mt_weak_computer.effect',
+	&'buff_gravity_well': 'gear.mt_gravity_well.effect',
+}
+
+func test_every_visible_buff_renders_real_text_rather_than_a_raw_key():
+	# Read off OUR OWN compiled artifact, not through tr(), for the reason the glossary test gives:
+	# tr() cannot attribute a row to this mod rather than to Thy Hubris, and it cannot see the
+	# staleness trap where a correct CSV sits beside an artifact that has never heard of the key.
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation,
+		'This mod has a compiled translation (run the headless --import if this is a fresh clone).')
+	if translation == null: return
+	var visible:Array[Buff] = []
+	for buff:Buff in ModResources.load_ours(MOD_ID, &'buffs'):
+		if not buff.hide_from_player: visible.append(buff)
+	assert_false(visible.is_empty(), 'There are visible buffs, so this test has something to check.')
+	for buff:Buff in visible:
+		# An explicit override is the claim this guard wants, made in the buff's own file - but it
+		# still has to point at rows that EXIST. translate.gd:51-52 returns on the override with
+		# `return_key_if_blank` false, so a bogus one renders BLANK rather than the raw key: a
+		# different silent failure, and one no other assertion here would see.
+		if not buff.localization_key_override.is_empty():
+			for property:String in ['name', 'effect']:
+				var override_key := 'gear.%s.%s' % [buff.localization_key_override, property]
+				assert_ne(translation.get_message(override_key), StringName(''),
+					'%s overrides onto %s, and that row exists.' % [buff.compcon_id, override_key])
+			continue
+		if BUFFS_THAT_BORROW_A_CARD.has(buff.compcon_id):
+			# A borrower must still land on something real - the chain's last step is the raw key.
+			var borrowed:String = BUFFS_THAT_BORROW_A_CARD[buff.compcon_id]
+			assert_ne(translation.get_message(borrowed), StringName(''),
+				'%s borrows %s, and that row exists.' % [buff.compcon_id, borrowed])
+			continue
+		# Everything else owns its rows. `name` as well as `effect`: attack_roll.gd:189 titles a
+		# roll-breakdown line with buff_core.name_text(), which walks the same chain.
+		for property:String in ['name', 'effect']:
+			var key := 'gear.%s.%s' % [buff.compcon_id, property]
+			assert_ne(translation.get_message(key), StringName(''),
+				'%s carries its own %s row, so the chip cannot render a raw key.' % [buff.compcon_id, property])
+
+func test_every_licence_this_mod_owns_has_a_real_icon():
+	# UnlockTree.icon is player-facing (the licence catalog) and NOTHING else in this file could see
+	# it: the two icon guards above walk Kits, Actions and Buffs only. Found at the Sluagh frame
+	# close, 2026-09-21 (review slices 2 and 7, independently) - li_sluagh AND li_primrose had both
+	# shipped wearing res/assets/frames/placeholder/mf_placeholder.png, and no assertion anywhere
+	# could notice.
+	#
+	# The convention is vanilla's: a licence wears its own frame's sprite (li_gorgon.icon is
+	# horus_gorgon.png), which is also what li_fitzgerald already did. So this needs no new art -
+	# it is a wiring guard, and the fix for both was one ext_resource path each.
+	var licences:Array[Resource] = ModResources.load_ours(MOD_ID, &'licenses')
+	assert_false(licences.is_empty(), 'This mod owns licences, so this test has something to check.')
+	for licence:Resource in licences:
+		_assert_real_icon(licence.icon, licence.resource_path.get_file())
 
 ## Buffs that are hidden from the chip list but STILL need an icon, because something other than the
 ## status bar draws them.

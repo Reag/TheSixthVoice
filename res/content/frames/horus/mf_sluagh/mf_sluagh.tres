@@ -1,0 +1,66 @@
+[gd_resource type="Resource" script_class="Frame" format=3]
+
+[ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="1_frame"]
+[ext_resource type="Script" uid="uid://bxpc46igtsmvw" path="res://engine/character/unit/statblock.gd" id="2_statblock"]
+[ext_resource type="Script" uid="uid://dch85ypcupfgo" path="res://engine/character/unit_core/color_scheme.gd" id="3_colorscheme"]
+[ext_resource type="Script" uid="uid://djuk56crywqss" path="res://engine/character/unit_core/mount_type.gd" id="4_mounttype"]
+[ext_resource type="Resource" uid="uid://ct04xdxr561wg" path="res://content/mounts/mount_main_aux.tres" id="5_mountmainaux"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/horus/mf_sluagh/mf_sluagh.png" id="9_sprite"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/mt_wicked_host/mt_wicked_host.tres" id="10_wickedhost"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/mt_the_stealing_of_the_souls_of_the_dead/mt_the_stealing_of_the_souls_of_the_dead.tres" id="11_stealing"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/mt_inexorable_formation/mt_inexorable_formation.tres" id="12_formation"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/cp_cry_of_the_hosted_dead/cp_cry_of_the_hosted_dead.tres" id="13_core"]
+
+; DERIVED FROM THE SPRITE ART, NOT LEFT AS THE PLACEHOLDER GRAYS (the Vauban's SP5 ruling, re-run
+; here). Measured 2026-09-20 with the same shader-literal test palette_swap_func.gdshaderinc uses
+; (pixel == (v,0,0)/(0,v,0)/(0,0,v)/(0,v,v) for v in palette_index_r.png's seven red values 51, 85,
+; 119, 153, 187, 221, 255): mf_sluagh.png (80x80, 2,875 opaque pixels) has ZERO channel-encoded
+; pixels, so this scheme is INERT on this sprite exactly like the Vauban's and the Primrose's - it
+; cannot repaint the token at all.
+; So base_0..2 hold the sprite's OWN most-common literal fill colors (a plain colour census,
+; excluding the pure-black linework at 49px/0,0,0): a grey-violet (113,108,123 - 109px), the bright
+; violet (141,109,195 - 72px) and a near-black violet-grey (53,48,63 - 57px), most-used first per
+; the Iskander's own slot convention. When real channel-encoded art replaces this sprite, it
+; inherits a default that already looks like what the art shows today, instead of grey.
+[sub_resource type="Resource" id="Resource_colorscheme"]
+script = ExtResource("3_colorscheme")
+base_0 = Color(0.44313726, 0.42352942, 0.48235294, 1)
+base_1 = Color(0.5529412, 0.42745098, 0.7647059, 1)
+base_2 = Color(0.20784314, 0.1882353, 0.24705882, 1)
+
+[sub_resource type="Resource" id="Resource_statblock"]
+script = ExtResource("2_statblock")
+size = 1
+structure = 4
+stress = 4
+health = 8
+armor = 0
+evasion = 10
+edef = 10
+speed = 4
+heat = 4
+save_target = 10
+sensor_range = 10
+tech_attack = 1
+repairs = 4
+systems_points = 7
+reactions = 1
+activations = 1
+
+[resource]
+script = ExtResource("1_frame")
+default_color_scheme = SubResource("Resource_colorscheme")
+sprites = Array[Texture2D]([ExtResource("9_sprite")])
+; FILLED IN SHEET ORDER, ONE TASK AT A TIME, AND NOW COMPLETE. Task 2 added mt_wicked_host, Task 3
+; mt_the_stealing_of_the_souls_of_the_dead, Task 5 mt_inexorable_formation - all three LCP sheet
+; traits, so check_content.py --frame sluagh has been clean since then - and Task 6 appends
+; cp_cry_of_the_hosted_dead, the core system, fourth and last. Task 9 pins the result. An
+; ext_resource pointing at a file that does not exist yet would make this WHOLE resource fail to
+; parse, taking the frame out of ContentLibrary with no error a player would ever see - which is why
+; each entry lands only once its own files do.
+traits = Array[ExtResource("8_kit")]([ExtResource("10_wickedhost"), ExtResource("11_stealing"), ExtResource("12_formation"), ExtResource("13_core")])
+mount_types = Array[ExtResource("4_mounttype")]([ExtResource("5_mountmainaux")])
+stat = SubResource("Resource_statblock")
+role_primary = 5
+role_secondary = 2

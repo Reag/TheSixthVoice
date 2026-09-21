@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="BuffBonus" format=3]
+
+[ext_resource type="Script" uid="uid://bav10yhc56w73" path="res://engine/character/buff/archtypes/buff_bonus.gd" id="1_bonus"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_rend_nexus.svg" id="2_icon"]
+
+; RULING 10: Wicked Host's chip at a different value and a different clock. accuracy -2 rather than
+; -1, and until = 1 (Lancer.UNTIL.END_OF_NEXT_TURN, lancer.gd:48) rather than MANUAL, because this
+; card says "until the end of your next turn" where that one says "until the end of the scene".
+;
+; VISIBLE, and for the same two reasons buff_wicked_host is: attack_roll.gd:189 passes
+; buff_core.base.icon RAW into the roll breakdown - not through Buff.get_icon() - so BuffBonus's
+; difficulty-svg fallback (buff_bonus.gd:34-42) never runs on that path and a null icon draws a blank
+; beside the -2; and it is the attacker's only warning that this shot is harder. Its icon is SP5's,
+; which is what makes the VISIBLE_BUFFS guard deliberately red until then.
+[resource]
+script = ExtResource("1_bonus")
+icon = ExtResource("2_icon")
+bonus_subtype = &"accuracy"
+bonus_value = -2
+until = 1
+to = &"attack_roll_incoming"
+is_onetime = true

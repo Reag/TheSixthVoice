@@ -1,0 +1,28 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_o_trickery/buff_grey_birds_lifetime.gd" id="1_lifetime"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_o_trickery.svg" id="2_icon"]
+
+; THE COMPANION CHIP. It has no `to` and no behaviour of its own - it exists so the player can see
+; WHO is bound, because the other two buffs are hidden plumbing and the card's effect is otherwise
+; invisible on the board until someone tries to shoot and cannot.
+;
+; ON THE LIFETIME SCRIPT DIRECTLY, with no subclass: the expiry is all it needs, and the base's
+; triggers_on_event is exactly "am I expired?".
+;
+; trigger_timing = 0 is ReactionBus.TIMING.PRE (reaction_bus.gd:5). NEW_ROUND is emitted at both
+; timings (event_round_new.gd:40 and :77) with round_count already incremented at :31, so PRE is a
+; free choice here and a forced one on buff_grey_birds_recentre - see the base's header.
+;
+; IT WEARS THE ACTION'S OWN ROWS AND INVENTS NO STRING. Translate.buff falls through to the OWNER
+; GEAR's keys when a buff has none of its own, and the owner here is the KIT - whose .effect row
+; does not exist, because O' Trickery's text lives on its two actions. localization_key_override is
+; the engine's answer and vanilla uses it for exactly this: buff_excommunicate.tres carries
+; `localization_key_override = "ms_aggressive_system_sync.action_excommunicate"` on the identical
+; shape (a hidden binding buff whose tooltip should read as the action that applied it).
+[resource]
+script = ExtResource("1_lifetime")
+icon = ExtResource("2_icon")
+localization_key_override = "ms_o_trickery.action_grey_birds"
+triggers_on = Array[StringName]([&"new_round"])
+trigger_timing = 0

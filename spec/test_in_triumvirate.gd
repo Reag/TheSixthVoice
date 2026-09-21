@@ -1,0 +1,650 @@
+# THE MORRÍGAN-CLASS NHP and IN TRIUMVIRATE (Sluagh rank III, SP4). Design section 4.2, ruling 23;
+# spike specs/2026-09-20-adjacency-override-feasibility.md.
+#
+#   "AI, UNIQUE, HEAT SELF 2, 3 SP. Your mech gains the AI tag and the In Triumvirate quick tech
+#    action. In Triumvirate (Quick Tech): Choose an allied character within Sensors. Until the end
+#    of your next turn, your chosen ally is always treated as being adjacent to you while within
+#    your Sensors, regardless of actual distance between you, and all attacks against them gain
+#    +1 difficulty."
+#
+# THE SEAM. "Treated as being adjacent" is a fourth banner in this mod's unit_relation.gd_ext.gd: an
+# adjacent_characters override, super first, that appends the partner named by a
+# `reag_adjacent_to` buff while the OWNER's live Sensors still reach. is_adjacent(a, b) is
+# adjacent_characters(a).has(b) (unit_relation.gd:7-8) - ONE-SIDED - so the action puts a pair buff
+# on EACH end. Every reader that asks is_adjacent / adjacent_characters through the node sees the
+# pair (Task 5 measures which); nothing that measures a radius does.
+#
+#   godot --resolution 800x600 --position -2400,-2400 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_in_triumvirate.gd
+extends GutTest
+
+const SluaghFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/sluagh_fixture.gd')
+## SP4 Task 5. The shared helper every Overshield read in this mod goes through - the same preload
+## test_astral_guardian.gd and test_mark_retort.gd carry, for the one case below that reads a grant.
+const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
+
+## SP4 Task 6. Read THIS MOD'S OWN compiled artifact, not the global tr(), so a passing display-text
+## test can be attributed to this mod rather than to a sibling Reag-* mod loaded in the same testkit
+## run - test_bleakshadow_gate.gd's and test_sluagh_frame.gd's own convention.
+const OUR_TRANSLATION := 'res://unpacked/Reag-TheSixthVoice/localization/localizations.en.translation'
+
+const SLUAGH_TILE := Vector2i(4, 6)
+const NEAR_ALLY_TILE := Vector2i(10, 6)   # 6 from the Sluagh: not adjacent, inside Sensors 10
+const EDGE_ALLY_TILE := Vector2i(15, 6)   # 11: one past Sensors 10, inside 11
+const OTHER_ALLY_TILE := Vector2i(4, 9)   # 3
+const HOSTILE_TILE := Vector2i(10, 9)     # 3 from the near ally, inside the rifle's Range 10
+
+const BASE_SENSORS := 10
+const HEAT_SELF := 2
+
+## The ward case's numbers. A d20 of 11 beats create_ally's evasion 10 on its own; the ward makes the
+## roll pop an accuracy die (attack_roll.gd:70), queued as 6 and applied as -6 (dice.gd:65), so
+## 11 - 6 = 5 misses.
+const D20_HITS_ONLY_WITHOUT_THE_WARD := 11
+const WORST_ACCURACY_DIE := 6
+## The rifle's 1d6, cheated ABOVE its Reliable 2 and no higher - test_wicked_host.gd's DAMAGE_DIE and
+## its reasoning verbatim. Reliable is a FLOOR ON A HIT, not only a miss payout: get_values_by_type
+## tops the total back up whenever `total < reliable` (attack_util.gd:141-144), so a cheated 1 lands
+## 2 and a hit becomes indistinguishable from a miss by the damage number - which is the only
+## evidence this case has.
+const DAMAGE_DIE := 3
+## What a MISS with the rifle still lands: it is Reliable 2.
+const RELIABLE := 2
+
+## FINAL REVIEW, item 3. Vanilla's bare Buff.TO.TECH_IMMUNITY carrier - the Napoleon's Trueblack
+## Aegis, `to = &"tech_immunity"` and nothing else (buff_trueblack_aegis_tech_immunity.tres). There
+## is no Lancer.STATUS for tech immunity: is_immune_to_tech reads frame.is_biological or a buff on
+## that channel (unit_condition.gd:532). The iceout drone is vanilla's other carrier and needs a
+## deployable placed on the map; this one goes straight on a unit with SpecFactory.apply_buff.
+const TECH_IMMUNITY_BUFF := &'buff_trueblack_aegis_tech_immunity'
+
+## SP4 Task 5. A guaranteed hit that never crits, test_astral_guardian.gd's D20_HITS.
+const D20_HITS := 19
+## SP4 Task 5. A guaranteed miss - nothing this fixture hands out has evasion below 1.
+const D20_MISSES := 1
+## SP4 Task 5. Astral Guardian's own d6, cheated. Chosen ABOVE the damage die so the ally ends the
+## guardian case holding Overshield and taking nothing on HP, which is two readings of one shot.
+const GUARDIAN_D6 := 4
+## SP4 Task 5. What the Sluagh holds when the Mark's retort reads its dome, and therefore what the
+## retort deals - test_mark_retort.gd's SHIELD.
+const SHIELD := 3
+
+var game:Gamemaster
+var sluagh:Unit
+var ally:Unit
+
+func before_each() -> void:
+	game = SluaghFixture.create_game(self)
+	sluagh = SluaghFixture.create_sluagh(game, SLUAGH_TILE)
+	SluaghFixture.equip_morrigan(sluagh)
+	ally = SluaghFixture.create_ally(game, NEAR_ALLY_TILE)
+
+func after_each() -> void:
+	Dice.CHEAT_ROLL_QUEUE.clear()
+
+func morrigan() -> GearCore: return sluagh.get_gear(SluaghFixture.MORRIGAN)
+func action() -> Action: return morrigan().get_action(SluaghFixture.TRIUMVIRATE_ID)
+func specific() -> SpecificAction: return SpecificAction.create(sluagh, morrigan(), action())
+func paired(unit:Unit) -> bool: return UnitCondition.has_buff(unit, SluaghFixture.PAIR_CHIP)
+func warded(unit:Unit) -> bool: return UnitCondition.has_buff(unit, SluaghFixture.WARD_CHIP)
+func adjacent_both_ways(a:Unit, b:Unit) -> bool:
+	return UnitRelation.is_adjacent(a, b) and UnitRelation.is_adjacent(b, a)
+
+# ---------------------------------------------------------------- the profile
+
+func test_the_kit_and_action_match_the_card():
+	var kit:Kit = ContentLibrary.get_kit(SluaghFixture.MORRIGAN)
+	assert_eq(kit.compcon_id, SluaghFixture.MORRIGAN, 'Registered under its own id (get_kit never returns null).')
+	assert_eq(kit.sp_cost, 3, 'SP 3.')
+	assert_eq(kit.system_tags, 13, 'Unique + AI + NHP = 13, every vanilla NHP\'s value.')
+	assert_true(kit.is_ai() and kit.is_nhp() and kit.is_unique(), 'The three tags.')
+	assert_eq(kit.actions.size(), 1, 'One action.')
+	if kit.actions.is_empty(): return
+	var tri:Action = kit.actions[0]
+	assert_eq(tri.get_id(), SluaghFixture.TRIUMVIRATE_ID, 'In Triumvirate.')
+	assert_true(tri is ActionSystemTargetUnit, 'An ActionSystemTargetUnit.')
+	assert_eq(tri.action_type, Lancer.ACTION.QUICK, 'QUICK.')
+	assert_true(tri.is_tech, 'Tech: jammable.')
+	assert_eq(tri.self_heat_dice, '2', 'HEAT SELF 2 is self_heat_dice (unit_action.gd:291-294).')
+	assert_true(tri.target_range_is_sensors, 'Within Sensors.')
+	assert_false(tri.can_target_enemies, 'Allies only...')
+	assert_true(tri.can_target_allies, '...')
+	assert_false(tri.can_target_self, '...and not the Sluagh itself.')
+	assert_true(tri.requires_target_character,
+		'A character - but this flag is is_character() and only the CHEAP FIRST GATE: the .gd\'s '
+		+ 'can_target_unit narrows it to is_actor(). See the drone case.')
+
+func test_pressing_it_costs_two_heat_and_lands_three_chips():
+	# THE SELF-HEAT POPS NOTHING OFF THE DICE FIFO, and this assertion is what corrects
+	# SluaghFixture.triumvirate's own header, which guessed that it popped one and asked to be
+	# measured here. gain_self_heat calls Dice.roll_string(self_heat_dice) (unit_action.gd:291-294),
+	# and roll_string on the flat string "2" goes through process_dice_string, which parses it as a
+	# BONUS and returns count 0 (dice.gd:98-112) - so roll_dice's loop body never runs (:22-35) and
+	# the queue is not touched. nightfare_shot's flat "3" reasoning applies after all.
+	#
+	# THE TURN IS OPENED FIRST, AND THAT IS WHAT THE FIRST MEASUREMENT CAUGHT: event_turn_start's
+	# recharge loop rolls a d6 for every non-basic gear that is not yet recharged
+	# (event_turn_start.gd:89-91), so the turn triumvirate() opens for us pops ONE entry with the
+	# Morrígan equipped. Open it before queueing and the activation is isolated.
+	await SluaghFixture.open_turn(game, sluagh)
+	SluaghFixture.queue([5])
+	var queued_before:int = Dice.CHEAT_ROLL_QUEUE.size()
+	var heat_before:int = sluagh.core.current.heat
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_eq(sluagh.core.current.heat - heat_before, HEAT_SELF, 'HEAT SELF 2, through spend_actions -> gain_self_heat.')
+	assert_eq(Dice.CHEAT_ROLL_QUEUE.size(), queued_before, 'And it popped NOTHING: a flat self_heat_dice rolls no dice.')
+	assert_true(paired(sluagh) and paired(ally), 'The pair: one chip on each end.')
+	assert_true(warded(ally), 'The ward on the ally.')
+	assert_false(warded(sluagh), 'Not on the Sluagh.')
+	for chip_id:StringName in [SluaghFixture.PAIR_CHIP, SluaghFixture.WARD_CHIP]:
+		var chip:BuffCore = UnitCondition.get_buff(ally, chip_id)
+		assert_false(chip.base.hide_from_player, '%s is VISIBLE (ruling 23).' % chip_id)
+		assert_eq(chip.base.until, Lancer.UNTIL.END_OF_OWNERS_NEXT_TURN, '%s: until = END_OF_OWNERS_NEXT_TURN (7).' % chip_id)
+		assert_eq(chip.get_owner_unit(game.map), sluagh, '%s is owned by the Sluagh (from_gear the NHP), on either end.' % chip_id)
+
+# ---------------------------------------------------------------- the seam
+
+func test_the_partner_six_tiles_out_is_adjacent_in_both_directions():
+	assert_eq(UnitRelation.distance_between(sluagh, ally), 6, 'fixture: six tiles apart.')
+	assert_false(UnitRelation.is_adjacent(sluagh, ally) or UnitRelation.is_adjacent(ally, sluagh), 'Control: not adjacent before.')
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(UnitRelation.is_adjacent(sluagh, ally), 'THE CARD: the ally is adjacent to the Sluagh...')
+	assert_true(UnitRelation.is_adjacent(ally, sluagh), '...and the Sluagh to the ally - two buffs, because is_adjacent is one-sided.')
+	assert_true(UnitRelation.adjacent_characters(sluagh).has(ally), 'The list itself carries the partner (level 0)...')
+	assert_true(UnitRelation.adjacent_characters(ally).has(sluagh), '...on both ends.')
+	assert_eq(UnitRelation.distance_between(sluagh, ally), 6, 'And the DISTANCE is untouched: only the adjacency list widened.')
+
+func test_a_third_unit_is_not_pulled_in():
+	var other := SluaghFixture.create_ally(game, OTHER_ALLY_TILE)
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_false(UnitRelation.is_adjacent(sluagh, other), 'Only the named partner.')
+	assert_false(UnitRelation.is_adjacent(ally, other), 'And the pair does not chain.')
+
+func test_beyond_the_sluaghs_sensors_the_pair_goes_quiet_and_returns_when_sensors_grow():
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	SluaghFixture.step(ally, EDGE_ALLY_TILE)
+	SluaghFixture.track(game)
+	assert_eq(UnitRelation.distance_between(sluagh, ally), 11, 'fixture: eleven, one past Sensors 10.')
+	assert_true(paired(ally), 'The chips stay...')
+	assert_false(adjacent_both_ways(sluagh, ally), '..."while within your Sensors": not adjacent at 11, either way.')
+	await SluaghFixture.grant_overshield(sluagh, 1)
+	assert_eq(sluagh.get_sensor_range(), BASE_SENSORS + 1, 'fixture: Inexorable Formation lifts Sensors to 11.')
+	assert_true(adjacent_both_ways(sluagh, ally), 'THE LIVE READ (fork 2): the OWNER\'s Sensors, tested on every call, both ends.')
+
+func test_the_ward_gives_every_attack_on_the_ally_one_difficulty_and_is_not_consumed():
+	# THE CARD IN NUMBERS, test_wicked_host.gd's idiom. The ally's evasion is 10 (create_ally). A d20
+	# of 11 hits on its own; the ward makes the roll pop an accuracy die (attack_roll.gd:70), queued
+	# as 6 and applied as -6 (dice.gd:65), so 11 - 6 = 5 misses. The rifle's Reliable 2 is what a miss
+	# still lands, and DAMAGE_DIE is cheated ABOVE it so the hit and the miss are different numbers;
+	# nothing reads the chip to decide.
+	var hostile := SluaghFixture.create_hostile(game, HOSTILE_TILE)
+	SluaghFixture.arm_rifle(hostile)
+	SluaghFixture.queue([D20_HITS_ONLY_WITHOUT_THE_WARD, DAMAGE_DIE])
+	await SluaghFixture.shoot(game, hostile, ally)
+	assert_eq(ally.current_damage(), DAMAGE_DIE, 'Control: without the ward an 11 hits and the die lands 3.')
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	SluaghFixture.queue([D20_HITS_ONLY_WITHOUT_THE_WARD, WORST_ACCURACY_DIE, DAMAGE_DIE])
+	await SluaghFixture.shoot(game, hostile, ally)
+	assert_eq(ally.current_damage(), DAMAGE_DIE + RELIABLE, 'With the ward the same 11 MISSED: 11 - 6 is 5. Only Reliable 2 landed.')
+	assert_true(warded(ally), 'NOT one-time: the ward survives the roll (the card says "all attacks").')
+	SluaghFixture.queue([D20_HITS_ONLY_WITHOUT_THE_WARD, WORST_ACCURACY_DIE, DAMAGE_DIE])
+	await SluaghFixture.shoot(game, hostile, ally)
+	assert_eq(ally.current_damage(), DAMAGE_DIE + RELIABLE + RELIABLE, 'And the next attack is worse too.')
+
+## TECH IMMUNITY SWITCHES THE WARD OFF, AND IT IS VANILLA DOING IT (final review, item 3; taken by
+## the author at the frame close - a tech-immune unit is out of all three of the card's effects).
+## The PAIR's half needs a line of our own and is pinned by
+## test_a_tech_immune_partner_is_not_adjacent_from_either_side; EYES OF NIGHT's half is a different
+## gate again (ActionReaction.check_if_prohibited) and is pinned in test_bleakshadow_gate.gd.
+##
+## Buff.check_if_prohibited (buff.gd:228-239) refuses any buff whose OWNER GEAR is tech - the
+## Morrígan is, through In Triumvirate's is_tech (UnitAction.is_tech, unit_action.gd:567-571) -
+## whenever the HOLDER, context.unit or context.target_unit is tech-immune. It runs on EVERY
+## get_buffs_to (unit_condition.gd:850), and attack_roll.gd:135 reads ATTACK_ROLL_INCOMING off the
+## defender with the ATTACK context, whose `unit` is the attacker. So a tech-immune shooter is
+## context.unit, the ward is prohibited for that read alone, and the shot lands as though the ally
+## were unwarded. Nothing is logged: a prohibited buff is simply absent from the list.
+##
+## THE MECHANISM IS A VANILLA BUFF, NOT A STATUS. There is no Lancer.STATUS for this;
+## UnitCondition.is_immune_to_tech (unit_condition.gd:532) reads frame.is_biological or any
+## Buff.TO.TECH_IMMUNITY buff. Vanilla's only two carriers are the Napoleon's
+## buff_trueblack_aegis_tech_immunity and the iceout drone's aura, and the drone would need a
+## deployable and a position; the Aegis buff is a bare Buff with to = &"tech_immunity", so
+## SpecFactory.apply_buff puts it straight on the shooter - test_guardian_on_the_sluagh's
+## SpecFactory.apply_buff(sluagh, &'buff_guardian') shape.
+##
+## THE NUMBERS ARE THIS FILE'S OWN AND THE TWO HALVES ARE EACH OTHER'S CONTROL - which is the whole
+## verification this case can have, because the thing a mutation would have to break is
+## Buff.check_if_prohibited itself, engine code, off limits.
+##
+## LIVENESS (an ordinary shooter, ward live): the ward's -1 makes the roll pop a difficulty die
+## (attack_roll.gd:70), queued as 6 and applied as -6, so 11 - 6 = 5 misses evasion 10 and only the
+## rifle's Reliable 2 lands. A miss is also below Astral Guardian's require_hit, so no dome.
+##
+## PROHIBITED (the same shooter, now tech-immune): the ward is absent from the read, so no accuracy
+## mod reaches the roll and roll_d6_accuracy(0) pops NOTHING (dice.gd:86-88). The same 11 HITS - and
+## a hit on the far partner is Astral Guardian's trigger, so the middle queue entry is the guardian's
+## d6 rather than a difficulty die: [11, GUARDIAN_D6, DAMAGE_DIE], exactly
+## test_astral_guardian_fires_for_the_far_partners_hit's shape. BOTH readings are asserted, and both
+## discriminate: were the ward still live here the 11 would spend GUARDIAN_D6 as its difficulty die,
+## 11 - 4 = 7 would miss, no dome would be granted and the ally's HP would take a second Reliable 2 -
+## which fails the Overshield line and the HP line alike.
+func test_a_tech_immune_attacker_ignores_the_ward():
+	var hostile := SluaghFixture.create_hostile(game, HOSTILE_TILE)
+	SluaghFixture.arm_rifle(hostile)
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(warded(ally), 'fixture: the ward is on the ally for both halves of this case.')
+
+	# LIVENESS FIRST, so the prohibited half cannot be read as the ward simply never working. A miss
+	# leaves Astral Guardian's 1/round unspent (require_hit), so the second shot still has it.
+	SluaghFixture.queue([D20_HITS_ONLY_WITHOUT_THE_WARD, WORST_ACCURACY_DIE, DAMAGE_DIE])
+	await SluaghFixture.shoot(game, hostile, ally)
+	assert_eq(ally.current_damage(), RELIABLE,
+		'Liveness: against an ordinary shooter the ward holds - 11 - 6 = 5 misses and only Reliable 2 lands.')
+	assert_eq(Overshield.current(ally), 0, 'And a miss grants no dome: the guardian is still in hand.')
+
+	SpecFactory.apply_buff(hostile, TECH_IMMUNITY_BUFF)
+	assert_true(UnitCondition.is_immune_to_tech(hostile), 'fixture: the shooter is now immune to tech.')
+	assert_true(warded(ally), 'The chip is still ON the ally - this is check_if_prohibited refusing a READ, not a buff falling off.')
+	SluaghFixture.queue([D20_HITS_ONLY_WITHOUT_THE_WARD, GUARDIAN_D6, DAMAGE_DIE])
+	await SluaghFixture.shoot(game, hostile, ally)
+	assert_eq(Overshield.current(ally), GUARDIAN_D6 - DAMAGE_DIE,
+		'THE VANILLA RULE: the ward is prohibited for a tech-immune attacker, so the same 11 HIT - the guardian granted 4 and the 3 ate into it.')
+	assert_eq(ally.current_damage(), RELIABLE,
+		'And nothing more reached HP: the hit was soaked, where a ward-shortened 7 would have missed for another Reliable 2.')
+
+## A TECH-IMMUNE PARTNER SWITCHES THE PAIR OFF AT BOTH ENDS - and one of the two ends is OURS
+## (author's ruling, 2026-09-21, at the frame close; slice-1 close review I-1).
+##
+## THE ENGINE ONLY CLOSES ONE END. The banner reads the pair with
+## UnitCondition.get_buffs_to(unit, ADJACENT_TO) and NO context, so unit_condition.gd:822-824 fills
+## in Context.create({unit = unit}): check_if_prohibited (buff.gd:234-238) then tests the queried
+## unit as holder AND as context.unit, and never looks at the PARTNER. In Triumvirate applies two
+## cores, one per end, so the ALLY's own read is prohibited while the SLUAGH's is not - the card
+## would have gone half-live, which is exactly the House Guard asymmetry recorded in memory
+## third-party-adjacency-widening. `if UnitCondition.is_immune_to_tech(partner): continue` in the
+## banner is what closes the Sluagh's end, and this case is the only thing that pins it.
+##
+## THE CHIPS ARE ASSERTED STILL HELD, the shape test_a_tech_immune_attacker_ignores_the_ward uses:
+## nothing falls off, the reads are refused. has_buff does not apply check_if_prohibited
+## (unit_condition.gd:819-820 -> get_buffs, a plain filter), so it reads the raw list.
+func test_a_tech_immune_partner_is_not_adjacent_from_either_side():
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(adjacent_both_ways(sluagh, ally), 'Liveness: adjacent both ways before the immunity lands.')
+	SpecFactory.apply_buff(ally, TECH_IMMUNITY_BUFF)
+	assert_true(UnitCondition.is_immune_to_tech(ally), 'fixture: the partner is immune to tech.')
+	assert_true(paired(sluagh) and paired(ally), 'Both chips are still HELD - this is a refused read, not a buff falling off.')
+	assert_false(UnitRelation.is_adjacent(ally, sluagh),
+		'VANILLA\'S HALF: the immune partner\'s own read is prohibited, so it no longer counts the Sluagh adjacent...')
+	assert_false(UnitRelation.is_adjacent(sluagh, ally),
+		'...AND OURS: the banner refuses an immune partner too, so the pair is off at both ends rather than one-sided.')
+
+func test_retargeting_a_second_ally_clears_the_first_pair():
+	var other := SluaghFixture.create_ally(game, OTHER_ALLY_TILE)
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	await SluaghFixture.triumvirate(game, sluagh, other)
+	assert_false(paired(ally) or warded(ally), 'Fork 4: the first ally lost both chips.')
+	assert_true(paired(other) and warded(other), 'The second holds them.')
+	assert_eq(UnitCondition.get_buffs(sluagh, SluaghFixture.PAIR_CHIP).size(), 1, 'The Sluagh holds ONE pair chip, naming the new partner.')
+	assert_true(adjacent_both_ways(sluagh, other), 'Adjacent to the new partner...')
+	assert_false(UnitRelation.is_adjacent(sluagh, ally), '...and no longer to the old.')
+
+func test_everything_clears_at_the_end_of_the_sluaghs_next_turn():
+	# THE ORDINARY ROUND, and the ally's own turn inside it is LOAD-BEARING rather than decoration -
+	# measured 2026-09-21, see the recorded-edge case below. clear_owners_turn_statuses skips any
+	# END_OF_OWNERS_NEXT_TURN buff whose turn_count is still 0 (unit_condition.gd:62), and turn_count
+	# ticks at the HOLDER's own turn start alone (new_turn_for_statuses, :24, called for the STARTING
+	# unit only, event_turn_start.gd:76). Take the ally's turn out of this sequence and its two chips
+	# outlive the Sluagh's turn end - which is the next case, not this one.
+	var hostile := SluaghFixture.create_hostile(game, HOSTILE_TILE)
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	await SpecFactory.end_turn(game, sluagh)
+	assert_true(paired(sluagh) and paired(ally) and warded(ally), 'Survives the pressing turn\'s end.')
+	await SpecFactory.start_turn(game, hostile)
+	await SpecFactory.end_turn(game, hostile)
+	assert_true(paired(sluagh) and paired(ally) and warded(ally), 'Survives the enemy\'s turn.')
+	await SpecFactory.start_turn(game, ally)
+	await SpecFactory.end_turn(game, ally)
+	assert_true(paired(sluagh) and paired(ally) and warded(ally), 'And survives the ALLY\'s own turn end: the clock is the owner\'s, not the holder\'s.')
+	await SpecFactory.start_turn(game, sluagh)
+	assert_true(paired(sluagh) and paired(ally) and warded(ally), 'Survives the Sluagh\'s next turn start...')
+	await SpecFactory.end_turn(game, sluagh)
+	assert_false(paired(sluagh) or paired(ally) or warded(ally), '...and clears at its END: END_OF_OWNERS_NEXT_TURN, the owner being the Sluagh.')
+	assert_false(adjacent_both_ways(sluagh, ally), 'Adjacency is back to the map.')
+
+func test_an_ally_who_never_acted_still_loses_both_chips_at_the_sluaghs_turn_end():
+	# THE VANILLA EDGE, CLOSED (controller ruling, 2026-09-21: card fidelity over the edge). Left
+	# alone, clear_owners_turn_statuses skips an END_OF_OWNERS_NEXT_TURN buff whose turn_count is
+	# still 0 (unit_condition.gd:62), and turn_count ticks only at the HOLDER's own turn start
+	# (new_turn_for_statuses, :24, called for the STARTING unit alone, event_turn_start.gd:76) - so
+	# an ally that has not started a turn since the press used to keep its pair AND its ward one
+	# Sluagh turn-end longer than "until the end of your next turn" (measured, and this case pinned
+	# it that way until the ruling). lancer.gd:52 warns about exactly this.
+	#
+	# buff_in_triumvirate_pair.on_clear now makes the OWNER'S core the clock for all three chips:
+	# when the Sluagh's own core goes - and its turn_count DID tick, so it goes on schedule - it
+	# cascades clear_buffs_owned_by over every other unit. The ally never takes a turn here, which
+	# is the whole arrangement: under the old behaviour it kept both chips and the widening was
+	# one-sided for an extra turn.
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(paired(ally) and warded(ally), 'Liveness: the ally is holding both before the clock runs.')
+	await SpecFactory.end_turn(game, sluagh)
+	await SpecFactory.start_turn(game, sluagh)
+	await SpecFactory.end_turn(game, sluagh)
+	assert_false(paired(sluagh), 'The Sluagh\'s own chip clears on schedule - its turn_count ticked at its own turn start.')
+	assert_false(paired(ally) or warded(ally), 'AND the ally\'s two go with it, though the ally never took a turn: the owner\'s core is the clock.')
+	assert_false(UnitRelation.is_adjacent(sluagh, ally) or UnitRelation.is_adjacent(ally, sluagh),
+		'So the widening ends on the card\'s schedule in BOTH directions - no one-sided extra turn.')
+
+func test_a_partner_can_affect_refuses_is_not_adjacent_either_way():
+	# THE WIDENING IS DISTANCE ONLY (controller ruling, 2026-09-21). adjacent_characters is
+	# get_characters_within(unit, 1, false), which filters on is_character() (unit_relation.gd:42)
+	# and on can_affect(whos_asking, other_unit) inside get_units_within (:60) - so the banner re-runs
+	# both rather than waiving them, the doctrine its own file states three banners up.
+	#
+	# INVULNERABLE, ON BOTH ENDS, and the choice is forced rather than stylistic. can_affect
+	# (:393-404) offers four refusals and the other three are unusable here:
+	#  - EXILED is already refused one line earlier, by is_character(): is_active() excludes EXILED
+	#    (unit.gd:113), so the mutation on the can_affect line would redden nothing and the case
+	#    would be testing the wrong guard;
+	#  - INTANGIBLE strips the very chips this case must keep - handle_intangibilty_changing clears
+	#    every buff whose owner's tangibility does not match (unit_condition.gd:261-265);
+	#  - a shard split needs map plumbing this fixture has no helper for.
+	# INVULNERABLE appears in neither is_active() nor apply_status's special-case match, so it moves
+	# nothing but can_affect. It refuses whichever side is the TARGET (:398), so one end alone would
+	# close one direction only; both ends closes both, which is what "always treated as adjacent"
+	# has to stop promising.
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(adjacent_both_ways(sluagh, ally), 'Liveness: adjacent both ways before the status lands.')
+	SpecFactory.apply(ally, Lancer.STATUS.INVULNERABLE)
+	SpecFactory.apply(sluagh, Lancer.STATUS.INVULNERABLE)
+	assert_true(paired(sluagh) and paired(ally) and warded(ally), 'The chips are untouched - this is the banner refusing, not the buffs falling off.')
+	assert_false(UnitRelation.is_adjacent(sluagh, ally), 'can_affect refuses the invulnerable TARGET, so the partner is not appended...')
+	assert_false(UnitRelation.is_adjacent(ally, sluagh), '...and not in the other direction either.')
+
+## THE OTHER RE-RUN GATE, and SHUTDOWN is the one status that isolates it (close review, slice 1
+## I-2 and slice 6 M-2 - the same gap found from both sides).
+##
+## `if not partner.is_character(): continue` is the banner's re-run of unit_relation.gd:42, and
+## until this case nothing in the suite depended on it: neutralising the line reddened NOTHING.
+## The case above isolates can_affect with INVULNERABLE; the reverse needs a status is_character()
+## refuses and can_affect does not. Subtracting what the other two guards cover leaves SHUTDOWN,
+## off-map, faction NONE and a non-CHARACTER entity type. SHUTDOWN is the cheapest: is_active()
+## requires `not has_status(SHUTDOWN)` (unit.gd:112) and can_affect (:393-404) says nothing about
+## it at all. EXILED cannot serve - can_affect refuses it twice over (:395-396) - and a drone is a
+## character (unit.gd:116) and can no longer be a partner at all, so
+## test_an_allied_drone_is_not_a_legal_partner cannot serve either.
+##
+## IT CLOSES ONE DIRECTION, NOT TWO, AND THAT IS MEASURED RATHER THAN DESIGNED (2026-09-21, this
+## case's first RED). The gate asks whether the PARTNER is a character, so it refuses the shut-down
+## ally when the SLUAGH is queried - and the shut-down ally's own list still carries the Sluagh,
+## who is a character, from the ally's own pair core. Vanilla behaves the same way (a querying
+## unit's own state is never examined by get_characters_within), nothing downstream of a shut-down
+## unit acts on its list, and the author has ruled only on the TECH-IMMUNITY asymmetry, so this one
+## is recorded here and reported rather than closed. "adjacent both ways" is false either way,
+## which is what the card's promise rests on.
+func test_a_shutdown_partner_is_not_adjacent():
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(adjacent_both_ways(sluagh, ally), 'Liveness: adjacent both ways before the status lands.')
+	SpecFactory.apply(ally, Lancer.STATUS.SHUTDOWN)
+	assert_true(paired(sluagh) and paired(ally), 'The chips are untouched - the banner is refusing, not the buffs falling off.')
+	assert_true(UnitRelation.can_affect(sluagh, ally),
+		'THE ISOLATION: can_affect still permits the pair - it never reads SHUTDOWN - so only the is_character() line can refuse.')
+	assert_false(ally.is_character(),
+		'And a shut-down unit is not a CHARACTER (is_active excludes SHUTDOWN, unit.gd:112)...')
+	assert_false(UnitRelation.is_adjacent(sluagh, ally), '...so the banner does not append it to the SLUAGH\'s list...')
+	assert_false(adjacent_both_ways(sluagh, ally), '...and "always treated as adjacent" stops being true.')
+	assert_true(UnitRelation.is_adjacent(ally, sluagh),
+		'RECORDED, NOT ENDORSED: the shut-down unit\'s OWN list still carries the Sluagh - the gate tests the PARTNER, '
+		+ 'and the Sluagh is a character. Nothing downstream of a shut-down unit reads it.')
+
+func test_it_cannot_target_a_hostile_or_the_sluagh_itself():
+	var hostile := SluaghFixture.create_hostile(game, HOSTILE_TILE)
+	assert_false(action().can_target_unit(hostile, specific()), 'Not an enemy.')
+	assert_false(action().can_target_unit_self(specific()), 'Not itself.')
+	assert_false(UnitTargeting.get_tiles_targetable(specific()).has(EDGE_ALLY_TILE + Vector2i(1, 0)),
+		'And nothing past Sensors is targetable (range lives on the picking path, SP3\'s finding).')
+
+func test_an_allied_drone_is_not_a_legal_partner():
+	# AUTHOR'S RULING, 2026-09-21 (the frame close), REVERSING THE SP4 RULING THAT ADMITTED A DRONE.
+	# "Character" on this frame, and across this mod, is is_actor() - ruling 194 (the Vauban's
+	# Gravity Well), rulings 64 and 70 (a drone's shot counts as its OWNER'S) and ruling 269 (the
+	# Stealing). The canonical paragraph is in action_stealing_of_the_souls.gd's header.
+	#
+	# THE ARCHETYPE'S FLAG DOES NOT DELIVER IT, which is the whole reason this case exists:
+	# requires_target_character is `potential_target.is_character()`
+	# (action_system_target_unit.gd:16) and a drone PASSES that (unit.gd:116). What refuses it is
+	# action_in_triumvirate.gd's own can_target_unit override; neutralise that override and this is
+	# the one test in the file that reddens.
+	#
+	# BOTH PATHS ARE ASSERTED, because they are different code. can_target_unit is the player's
+	# picking filter (action.gd:214) AND the filter on a target supplied straight to the plan
+	# (target_action_util.gd:172) - so the second half, handing the drone to the action by hand and
+	# finding no pair, is what says a spec or an AI cannot route round the first.
+	var drone := SluaghFixture.create_drone(game, OTHER_ALLY_TILE)
+	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
+	assert_false(drone.is_actor(), '...and is NOT an actor, which is the distinction the ruling made.')
+	assert_false(action().can_target_unit(drone, specific()), 'A drone does not pass the filter.')
+	await SluaghFixture.triumvirate(game, sluagh, drone)
+	assert_false(paired(drone), 'And handing it to the action by hand pairs nothing either.')
+	assert_false(adjacent_both_ways(sluagh, drone), 'So no banner reaches it.')
+
+# ---------------------------------------------------------------- Task 5: what the pair reaches
+#
+# Spike section 3's list, measured on THIS frame's own readers. Every one of the Sluagh's three
+# "adjacent" effects sits on UnitRelation.is_adjacent(sluagh, x) by SP1's ruling 6 - which is why
+# In Triumvirate reaches them - and Guardian sits on a radius, which is why it does not.
+#
+# THESE ARE MEASUREMENTS, NOT TDD. Task 4 built the mechanism; what is new here is the evidence that
+# each reader is on the widened function rather than on a distance, and one of them (the cover
+# leaving) is the only assertion in the suite that can see the pair buff's on_clear self-erase.
+
+## THE AURA, IN BOTH DIRECTIONS - it arrives with the pair and it leaves with it, and nobody moves.
+##
+## ARRIVING is passive_mark_cover_aura.gd asking is_adjacent rather than a radius (SP1 Task 7's
+## override, pinned by test_compat.gd as the only test that can tell it from the default) PLUS
+## In Triumvirate calling UnitTile.update_tracking_and_statuses by hand: auras refresh from that
+## function alone (unit_tile.gd:15-24, passive_aura.gd:24) and from apply_buffs only when the OWNER
+## gear holds a PassiveAura (unit_condition.gd:713-715) - which the NHP does not.
+##
+## LEAVING is the half that needed content to be written for it, and it is the mutation target.
+## clear_buff calls on_clear BEFORE erasing the core (unit_condition.gd:979-980, with Wickworks' own
+## "comes before actually falling off... hm."), so the refresh made inside on_clear would still SEE
+## the pair and re-shelter the ally. buff_in_triumvirate_pair.on_clear therefore erases itself from
+## unit.state.buffs first. Delete that one line and this case's last assertion goes red while
+## everything else in the file stays green - measured, Task 5 Step 4.
+##
+## THE FIVE-STEP SEQUENCE is the owner's clock (END_OF_OWNERS_NEXT_TURN, with the cascade): the
+## Sluagh's turn end, the enemy's whole turn, then the Sluagh's next turn start and end. The ally
+## never takes a turn, which is deliberate - it is the arrangement the cascade exists for.
+func test_the_marks_soft_cover_reaches_the_far_partner_and_leaves_when_the_pair_expires():
+	var hostile := SluaghFixture.create_hostile(game, HOSTILE_TILE)
+	await SluaghFixture.press_mark(game, sluagh)
+	assert_false(UnitCondition.has_buff(ally, SluaghFixture.SOFT_COVER_CHIP),
+		'Control: six out, no cover from the dome.')
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(UnitCondition.has_buff(ally, SluaghFixture.SOFT_COVER_CHIP),
+		'THE MOMENT IT LANDS: the aura re-read (update_tracking_and_statuses by hand) shelters the far partner.')
+	assert_eq(CoverCalculator.determine_cover(ally, hostile).total, Lancer.COVER.SOFT,
+		'And the engine\'s own cover pipeline reads it, six tiles from the dome\'s centre.')
+
+	await SpecFactory.end_turn(game, sluagh)
+	await SpecFactory.start_turn(game, hostile)
+	await SpecFactory.end_turn(game, hostile)
+	await SpecFactory.start_turn(game, sluagh)
+	await SpecFactory.end_turn(game, sluagh)
+
+	assert_false(paired(ally), 'fixture: the pair expired.')
+	assert_false(UnitCondition.has_buff(ally, SluaghFixture.SOFT_COVER_CHIP),
+		'AND THE COVER LEFT WITH IT - the pair buff\'s on_clear erases itself and refreshes tracking. Nobody moved.')
+
+## ASTRAL GUARDIAN, a REACTION GATE rather than an aura, and therefore a second and unrelated piece
+## of code asking the same question (test_compat.gd's own reasoning for its House Guard pair).
+##
+## THE QUEUE IS [d20, the guardian's d6, the rifle's damage d6] - SluaghFixture.queue's own order,
+## because the POST reactions run at event_unit_attack.gd:123 and damage is rolled afterwards at
+## event_unit_attack_declared.gd:74. DAMAGE_DIE is 3, ABOVE the rifle's Reliable 2, so the number
+## read is the die and not the floor (attack_util.gd:141-144).
+##
+## BOTH READINGS ARE ASSERTED, and that is what makes the case immune to queue alignment: a guardian
+## that was refused pops no middle entry, so the damage die would be the 4 - landing 4 on HP and
+## leaving no Overshield, which fails both lines rather than one.
+func test_astral_guardian_fires_for_the_far_partners_hit():
+	var hostile := SluaghFixture.create_hostile(game, HOSTILE_TILE)
+	SluaghFixture.arm_rifle(hostile)
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	SluaghFixture.queue([D20_HITS, GUARDIAN_D6, DAMAGE_DIE])
+	await SluaghFixture.shoot(game, hostile, ally)
+	assert_eq(Overshield.current(ally), GUARDIAN_D6 - DAMAGE_DIE,
+		'Astral Guardian granted 4 and the hit took 3: the far partner is "adjacent" to the guardian.')
+	assert_eq(ally.current_damage(), 0, 'And the dome took the whole hit - nothing reached HP.')
+
+## THE MARK'S RETORT, the third of this frame's "adjacent" readers and the second reaction gate.
+##
+## THE OBSERVABLE IS THE ATTACKER'S HEALTH, which is what makes the Reliable 2 rifle safe here -
+## test_mark_retort.gd's own header. The shot MISSES (the retort's trigger), the ally takes the
+## floored 2 that a miss still lands, and none of that is read.
+##
+## THE QUEUE IS ALL 1s AND THE ALIGNMENT CANNOT MATTER. The Mark is up, so the far partner is
+## sheltered by the case above and the roll spends a d6 on the difficulty between the d20 and the
+## damage - [d20, difficulty d6, damage d6] - but D20_MISSES and SluaghFixture.queue's tail are both
+## 1, so every slot reads the same whichever way it lands.
+func test_the_marks_retort_fires_for_a_miss_against_the_far_partner():
+	var hostile := SluaghFixture.create_hostile(game, HOSTILE_TILE)
+	SluaghFixture.arm_rifle(hostile)
+	await SluaghFixture.grant_overshield(sluagh, SHIELD)
+	await SluaghFixture.press_mark(game, sluagh)
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	SluaghFixture.queue([D20_MISSES, D20_MISSES])
+	await SluaghFixture.shoot(game, hostile, ally)
+	assert_eq(hostile.current_damage(), SHIELD,
+		'The retort dealt the Sluagh\'s Overshield to the attacker of its far partner.')
+
+## A VANILLA READER, and the reason the seam had to be adjacent_characters rather than a rule of our
+## own: Stabilize's "clear a condition on an adjacent ally" offers the partner six tiles out without
+## knowing anything about this mod (action_stabilize.gd:282, the spike's measured witness). Recorded
+## as the card working - 28 content readers sit on that function (32 counting is_adjacent's four,
+## re-counted at the close) and every one of them widens.
+func test_stabilize_offers_the_far_partners_condition():
+	SpecFactory.apply(ally, Lancer.STATUS.IMPAIRED)
+	assert_false(UnitCondition.get_ability_clearable_conditions_on(ally).is_empty(),
+		'Control: the partner carries a condition Stabilize could clear.')
+	var stabilize:Action = ContentLibrary.get_kit(&'ms_stabilize').actions[0]
+	assert_true(stabilize.has_method(&'get_adjacent_allies_with_clearable_conditions'),
+		'Control: this is Stabilize\'s own helper.')
+	assert_false(stabilize.get_adjacent_allies_with_clearable_conditions(sluagh).has(ally),
+		'Control: six out, not offered.')
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(stabilize.get_adjacent_allies_with_clearable_conditions(sluagh).has(ally),
+		'A VANILLA reader of adjacent_characters sees the pair (spike section 3). The card working, recorded.')
+
+## AND THE LINE THE WIDENING DOES NOT CROSS. Guardian scans get_units_within(attacked, 1, ...) - a
+## hard-coded 1 through distance_between (unit_relation.gd:454-457) - so a Sluagh holding Guardian
+## does not become a guardian for its far partner, however adjacent the rest of the engine thinks it
+## is. Design fork 5 accepts that, and the whole distance_between family goes with it (PassiveAura's
+## radius, get_characters_within, is_close_enough_to_engage - spike section 3).
+func test_guardian_on_the_sluagh_does_not_cover_the_far_partner():
+	var touching := SluaghFixture.create_ally(game, SLUAGH_TILE + Vector2i(1, 0))
+	SpecFactory.apply_buff(sluagh, &'buff_guardian')
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(UnitRelation.is_adjacent(sluagh, ally), 'Liveness: the pair is up.')
+	assert_true(UnitRelation.get_guardian_units(touching).has(sluagh),
+		'Control: the Sluagh DOES guard the ally it genuinely touches, so the buff is live.')
+	assert_false(UnitRelation.get_guardian_units(ally).has(sluagh),
+		'Guardian scans get_units_within(attacked, 1) - a radius (unit_relation.gd:454-457). Never widened. Fork 5.')
+	# ENGAGEMENT, carried here when spec/test_spike_adjacency_override.gd was deleted at the close
+	# (slice-1 M-5): it was that file's one claim with no twin in shipped-content tests. Engagement
+	# is the interesting half of the distance family, because the banner DOES reach it -
+	# get_engaging_units collects through UnitRelation.adjacent_characters (unit_relation.gd:192, a
+	# node call, so it dispatches to the override at any depth) - and then filters the widened list
+	# through is_close_enough_to_engage (:165-166, `distance_between > 1` is false), so the far
+	# partner is thrown straight back out. Reached and still refused, not never reached.
+	assert_false(UnitRelation.get_engaging_units(sluagh).has(ally),
+		'And the far partner does not ENGAGE: collected through the widened list, then dropped by the radius filter.')
+
+# ---------------------------------------------------------------- Task 6: the card text and rank 3
+
+func test_the_card_rows_resolve():
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation, 'This mod has a compiled translation.')
+	if translation == null: return
+	for key:String in [
+			'gear.ms_the_morrigan_class_nhp.name', 'gear.ms_the_morrigan_class_nhp.flavor',
+			'gear.ms_the_morrigan_class_nhp.effect',
+			'gear.ms_the_morrigan_class_nhp.action_in_triumvirate.name',
+			'gear.ms_the_morrigan_class_nhp.action_in_triumvirate.effect']:
+		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
+		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
+	assert_eq(X.tr('gear.ms_the_morrigan_class_nhp.name'), 'The Morrígan-class NHP', 'The card name, diacritic and all.')
+	assert_eq(X.tr('gear.ms_the_morrigan_class_nhp.effect'),
+		'Your mech gains the AI tag and the In Triumvirate quick tech action.', 'Verbatim, unpiped.')
+	assert_eq(X.tr('gear.ms_the_morrigan_class_nhp.action_in_triumvirate.effect'),
+		'Choose an allied character within |Sensors|. Until the end of your next turn, your chosen ally is always '
+		+ 'treated as being adjacent to you while within your |Sensors|, regardless of actual distance between you, '
+		+ 'and all attacks against them gain +1 |difficulty|.',
+		'The LCP verbatim, pipes added: |Sensors| (LCP case) and |difficulty| (Wicked Host\'s case).')
+	var kit:Kit = ContentLibrary.get_kit(SluaghFixture.MORRIGAN)
+	if kit.actions.is_empty(): return assert_true(false, 'fixture: the Kit loaded.')
+	assert_eq(Translate.action(kit, kit.actions[0], 'effect', false),
+		X.tr('gear.ms_the_morrigan_class_nhp.action_in_triumvirate.effect'), 'The action finds its own row, not the Kit\'s effect.')
+	assert_every_pipe_resolves('gear.ms_the_morrigan_class_nhp.action_in_triumvirate.effect')
+
+	# ---- THE TWO CHIPS WRITE THEIR OWN ROWS (final review, item 1) ----
+	#
+	# WITHOUT THEM BOTH CHIPS RENDERED THE SLUAGH'S TARGETING SENTENCE. Translate.buff falls through
+	# to the OWNER GEAR's actions[0] rows when a buff has none of its own (translate.gd:72-77,
+	# get_solo_action = kit.actions[0]); this Kit's actions[0] is In Triumvirate, so on the status
+	# bar (mech_info.gd:34) the ally's pair chip AND its ward chip both read "In Triumvirate" plus
+	# "Choose an allied character within Sensors..." - second-person instructions at a unit that
+	# chose nothing - and attack_roll.gd:189 titled the -1 accuracy in the roll breakdown the same
+	# way. buff_ddmr_aegis and buff_grav_amped_saves are this mod's precedent for the fix;
+	# test_grav_amped_interference.gd:336-337 is the assertion shape copied here.
+	#
+	# THE NAME IS COMPARED ANYWAY, unlike the Vauban's, and it is worth saying why it still bites:
+	# both chips' name row and the action's are all "In Triumvirate" - one card, one name - so
+	# name_text() would read the same either way TODAY. The assertion that discriminates is the
+	# get_message() one above it: the row has to EXIST in this mod's own artifact. Delete the row
+	# and the name assert stays green while that one goes red, which is the guard.
+	#
+	# buff_bleakshadow_gate is the deliberate opposite and is pinned as such in
+	# test_bleakshadow_gate.test_the_gate_chip_borrows_the_activates_card_on_purpose: there
+	# actions[0] IS the activate, so the fallback lands on the right card.
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	var action_effect:String = X.tr('gear.ms_the_morrigan_class_nhp.action_in_triumvirate.effect')
+	for chip_id:StringName in [SluaghFixture.PAIR_CHIP, SluaghFixture.WARD_CHIP]:
+		var chip:BuffCore = UnitCondition.get_buff(ally, chip_id)
+		assert_not_null(chip, 'fixture: the ally holds %s.' % chip_id)
+		if chip == null: continue
+		var name_key := 'gear.%s.name' % chip_id
+		var effect_key := 'gear.%s.effect' % chip_id
+		for key:String in [name_key, effect_key]:
+			assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
+		assert_eq(chip.name_text(), X.tr(name_key), '%s renders its OWN name row.' % chip_id)
+		assert_eq(chip.effect_text(), X.tr(effect_key), '%s renders its OWN effect row...' % chip_id)
+		assert_ne(chip.effect_text(), action_effect,
+			'...and NOT the action\'s targeting sentence, which the fallback used to hand the ally.')
+		assert_every_pipe_resolves(effect_key)
+	assert_eq(X.tr('gear.%s.effect' % SluaghFixture.WARD_CHIP), 'All attacks against you gain +1 |difficulty|.',
+		'The ward states the defender\'s half of the card, in the second person the chip is read in.')
+	assert_eq(X.tr('gear.%s.effect' % SluaghFixture.PAIR_CHIP),
+		'Always treated as adjacent to your partner while within the Sluagh\'s |Sensors|.',
+		'And the pair states the paired unit\'s half - true read from either end, which is why one row pair serves both.')
+
+## Splitting on '|' alternates literal text (even indices) with labels (odd) - test_bleakshadow_gate.gd's
+## idiom, copied here rather than shared, matching that file's own precedent. An unbalanced pipe
+## leaves an odd count; a label the glossary does not know renders as a coloured word with no hover
+## (test_content_integrity.gd:162).
+func assert_every_pipe_resolves(key:String) -> void:
+	var parts := X.tr(key).split('|')
+	assert_eq(parts.size() % 2, 1, '%s: pipes are balanced.' % key)
+	for i in parts.size():
+		if i % 2 == 0: continue
+		var label:String = parts[i].split('=')[0]
+		assert_ne(GlossaryItem.find_key_from_label(label), '', '%s: |%s| is a glossary term.' % [key, label])
+
+func test_the_licence_grants_it_at_rank_three():
+	var license:UnlockTree = ContentLibrary.get_license_tree(SluaghFixture.LICENSE_ID)
+	if license == null or license.rank_3 == null: return assert_true(false, 'fixture: the licence loaded.')
+	var ids:Array[String] = []
+	for kit:Kit in license.rank_3.granted_gear: ids.append(String(kit.compcon_id))
+	ids.sort()
+	assert_eq(ids, ['ms_bleakshadow_gate', 'ms_the_morrigan_class_nhp'] as Array[String], 'Rank 3 is complete: the whole of rank III.')

@@ -78,7 +78,8 @@ static func can_weapon_hit_target_as_rxn(specific:SpecificAction, target_unit:Un
 	)
 
 ## super builds the vanilla list; then, for a marked unit only, vanilla's own loop
-## (unit_relation.gd:232-249) is run once more for the SUPERHEAVY weapons it skipped, gate for gate,
+## (unit_relation.gd:235-251, whose :233 and :250-251 this body replicates too) is run once more
+## for the SUPERHEAVY weapons it skipped, gate for gate,
 ## with can_weapon_hit_target_as_rxn resolving to the override above. Vanilla never lists a
 ## Superheavy weapon, so nothing appended here can already be in the list. The Ordnance filter, the
 ## Earthstep suppression and the AI's threat model all sit above this function and see the appended
@@ -113,3 +114,108 @@ static func get_weapons_that_can_react_against(
 			if specific.action.requires_line_of_sight(specific) and not UnitRelation.can_see(from_unit, target_unit): continue
 			reaction_weapons.append(specific)
 	return reaction_weapons
+
+
+# ============================================================================================
+# IN TRIUMVIRATE (Sluagh, ms_the_morrigan_class_nhp). A named partner counts as adjacent.
+#
+#   "Until the end of your next turn, your chosen ally is always treated as being adjacent to you
+#    while within your Sensors, regardless of actual distance between you."
+#
+# Design specs/2026-09-20-sluagh-design.md ruling 23; spike
+# specs/2026-09-20-adjacency-override-feasibility.md section 6, verbatim with fork 2 answered as the
+# OWNER's live Sensors. super FIRST, so talents' House Guard (which also overrides this function,
+# reading &'adjacency_range') and Thy Hubris' compose in either install order - spec/test_compat.gd
+# pins both. Unit.is_valid on everything; append-if-absent (the Kraken's shape).
+#
+# REACHED FROM: a node call (UnitRelation.adjacent_characters - 28 direct content readers, 32
+# counting is_adjacent's four; re-counted at the close, where the spike doc's "37" was found to be
+# 28 + 4 + the four get_engaging_units sites, which the next paragraph explains are NOT readers the
+# widening reaches. Stabilize is the measured witness) and from is_adjacent, an unqualified static
+# call ONE level down
+# (unit_relation.gd:7-8) - the depth an override is still dispatched at (this file's header).
+# get_engaging_units is also one level down but filters the widened list through
+# is_close_enough_to_engage, a radius, so engagement never widens (spike section 1).
+# spec/test_unit_relation_extension.gd pins both depths.
+#
+# TECH IMMUNITY SWITCHES THE WHOLE CARD OFF, and for the pair it takes ONE LINE OF OURS to do it
+# symmetrically (author's ruling, 2026-09-21, at the frame close; the wording here and in the SP4
+# ledger always claimed the symmetric behaviour, and until that line the engine did not deliver it).
+# The loop below reads the pair through UnitCondition.get_buffs_to, which applies
+# Buff.check_if_prohibited on every read (unit_condition.gd:850). check_if_prohibited
+# (buff.gd:228-239) refuses any buff whose OWNER GEAR is tech - the Morrígan is, through In
+# Triumvirate's is_tech (UnitAction.is_tech, unit_action.gd:567-571) - whenever the HOLDER,
+# context.unit or context.target_unit is tech-immune (frame.is_biological or any
+# Buff.TO.TECH_IMMUNITY buff, unit_condition.gd:532).
+#
+# WHY THE ENGINE ALONE GIVES ONE-SIDEDNESS, measured at the close (slice 1, I-1). get_buffs_to is
+# called below with NO context argument, so unit_condition.gd:822-824 builds
+# Context.create({unit = unit}): context.unit is the QUERIED unit and context.target_unit is never
+# set, and get_holder_unit (buff_core.gd:129-133) is the queried unit again. The PARTNER is never
+# examined by check_if_prohibited at all. In Triumvirate applies TWO pair cores, one per end, so
+# adjacent_characters(ally) on a tech-immune ally reads the ALLY's core and is prohibited, while
+# adjacent_characters(sluagh) reads the SLUAGH's core, is not prohibited, and would happily append
+# the immune ally - the House Guard asymmetry (memory third-party-adjacency-widening) arrived at
+# from the other direction. `if UnitCondition.is_immune_to_tech(partner): continue` below is what
+# closes the other end, and it is the only one of the three effects that needs our help.
+#
+# The other two are vanilla's own, unchanged:
+#  - the WARD: a tech-immune ATTACKER is context.unit on the read at attack_roll.gd:135, so the
+#    -1 is dropped and the shot lands as though the ward were not there;
+#  - EYES OF NIGHT: refused OUTRIGHT, and earlier than this comment used to say - not by
+#    Buff.check_if_prohibited (that path is unreachable, because the +3 buff is never applied) but
+#    by ActionReaction.check_if_prohibited (action_reaction.gd:99-111) via reaction_bus.gd:120,
+#    which drops the whole reaction against a tech-immune attacker or defender: no prompt, no +3
+#    and no 2 self-damage.
+# There is no log line for any of it - a prohibited buff is simply absent from the read. Pinned by
+# spec/test_in_triumvirate.test_a_tech_immune_attacker_ignores_the_ward (the ward),
+# test_a_tech_immune_partner_is_not_adjacent_from_either_side (the pair, both ends) and
+# spec/test_bleakshadow_gate.test_a_tech_immune_defender_offers_nothing (the reaction).
+# ============================================================================================
+
+## The channel buff_in_triumvirate_pair sits on, and the override below is its only reader.
+## Deliberately NOT talents' &'adjacency_range': a buff of ours on that key would make THEIR
+## override widen the Sluagh to every ally within the number, and only while talents is installed.
+const ADJACENT_TO := &'reag_adjacent_to'
+const PARTNER_KEY := 'partner'   # BuffCore.state: the partner's persistent id
+
+## super builds the vanilla list (and whatever a mod below us added); then each pair buff on THIS
+## unit names one partner, which is appended while the OWNER's Sensors still reach it.
+##
+## THE OWNER IS THE SLUAGH ON EITHER END, because both cores are from_gear the NHP
+## (buff_core.gd:102). So the Sensors test is the card's "while within YOUR Sensors" whichever end
+## is queried, and it is read LIVE - Inexorable Formation moves the Sluagh's Sensors with its
+## Overshield, so a pair that went quiet at 11 comes back when the range grows.
+## THE WIDENING IS DISTANCE ONLY, so vanilla's OTHER two gates are re-run here - the doctrine the
+## Wormhole Grasp banner above states in so many words ("super first, then re-run vanilla's OTHER
+## gates for the one case it refused"). adjacent_characters is get_characters_within(unit, 1, false),
+## which filters on other_unit.is_character() (unit_relation.gd:42) and, inside get_units_within, on
+## UnitRelation.can_affect(whos_asking, other_unit) (:60). can_affect (:393-404) refuses an EXILED
+## unit on either side, a tangibility MISMATCH, an INVULNERABLE target, and a pair that shares
+## neither a global nor an effect shard. Without these two lines an exiled or intangible partner
+## would stay "adjacent" to all 28 content readers - a widening of the distance rule into a waiver
+## of the engine's own reachability rules, which the card never says.
+##
+## AND THE TECH-IMMUNITY LINE IS OURS, not a re-run of anything vanilla (see the banner above): the
+## engine drops a tech-immune HOLDER's own read and nothing else, so without it the pair would go
+## ONE-SIDED rather than off. The author ruled it symmetric at the frame close.
+static func adjacent_characters(unit:Unit) -> Array[Unit]:
+	# In front of super rather than behind it: super already dereferences unit.map, so this guards
+	# OUR body only, and the file's other banners put their early-outs first for the same reason.
+	if not Unit.is_valid(unit) or unit.map == null: return super.adjacent_characters(unit)
+	var adjacent_units := super.adjacent_characters(unit)
+	for buff:BuffCore in UnitCondition.get_buffs_to(unit, ADJACENT_TO):
+		var partner:Unit = buff.get_linked_unit(PARTNER_KEY, unit.map)
+		if not Unit.is_valid(partner) or partner == unit: continue
+		if not partner.is_character(): continue
+		if not UnitRelation.can_affect(unit, partner): continue
+		# OURS, not vanilla's: the engine prohibits only the immune unit's OWN read, so this is what
+		# makes a tech-immune partner switch the pair off at BOTH ends (author's ruling).
+		if UnitCondition.is_immune_to_tech(partner): continue
+		var owner:Unit = buff.get_owner_unit(unit.map)   # the Sluagh, on either end
+		if not Unit.is_valid(owner): continue
+		# "while within your Sensors": the OWNER's live Sensors, measured to whichever end is not the owner.
+		var far_end:Unit = partner if unit == owner else unit
+		if UnitRelation.distance_between(owner, far_end) > owner.get_sensor_range(): continue
+		if not adjacent_units.has(partner): adjacent_units.append(partner)
+	return adjacent_units

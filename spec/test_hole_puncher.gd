@@ -149,7 +149,7 @@ func preattack(specific:SpecificAction, against:Unit) -> AttackRoll.PreAttack:
 
 ## Every accuracy mod on a roll whose title is the trait's row, as a list of their values.
 ##
-## attack_roll.gd:188 passes buff_core.name_text() as the mod's title_key - already TRANSLATED,
+## attack_roll.gd:189 passes buff_core.name_text() as the mod's title_key - already TRANSLATED,
 ## unlike the vanilla cover and status lines beside it, which pass raw keys. So the comparison is
 ## against tr(SOFT_COVER_KEY), and it fails loudly if the buff's localization row goes missing
 ## (name_text would hand back the bare key, or an empty string if an override stopped resolving).

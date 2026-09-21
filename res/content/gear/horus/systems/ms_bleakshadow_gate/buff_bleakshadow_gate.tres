@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_bleakshadow_gate.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_buff")
+icon = ExtResource("2_icon")
+; A PURE MARKER: action_eyes_of_night.gd reads it through UnitCondition.has_buff and nothing else
+; reads it at all. buff_mark_of_the_dead.tres is the same file with a different clock.
+;
+; until = 1 is Lancer.UNTIL.END_OF_NEXT_TURN (lancer.gd:48). turn_count ticks at the WEARER's turn
+; start (unit_condition.gd:24) and end_turn_for_statuses clears once it reads 1 (:41-42; :40 is the
+; END_OF_THIS_TURN branch): pressed
+; mid-turn at count 0, it survives this turn's end, the enemy's whole turn, the Sluagh's next turn
+; start, and clears at THAT turn's end. "Until the end of your next turn."
+until = 1
+; VISIBLE, per ruling 22 - it is the only thing on the board that says the Gate is open. Its `icon`
+; is SP5's, which is why test_every_visible_buff_has_a_real_icon carries one more failing assert
+; from this task on.
+;
+; IT WRITES NO ROWS OF ITS OWN, ON PURPOSE, AND THAT IS PINNED (final review, item 1). Translate.buff
+; falls through to the OWNER GEAR's actions[0] when a buff has no rows of its own (translate.gd:72-77)
+; - and on THIS Kit actions[0] IS the activate, so the chip renders "Activate Bleakshadow Gate" /
+; "Until the end of your next turn, you gain the EYES OF NIGHT reaction", which is exactly what the
+; chip means: the Gate is open. Nothing is invented and nothing is borrowed wrongly.
+;
+; THE MEMORY RULE (lancer-tactics-buff-card-fallback) SAYS A MULTI-ACTION KIT'S CHIP MUST NOT BORROW
+; BY ACCIDENT - the fallback SUCCEEDS whatever it lands on, so no resolution guard ever fires and a
+; wrong card is silent. This Kit HAS two actions (the activate and EYES OF NIGHT), which is precisely
+; the shape the rule warns about; it is safe here only because the reaction is actions[1]. Reorder
+; the actions array and this chip starts reading the reaction's trigger text at a unit that has not
+; reacted. test_bleakshadow_gate.test_the_gate_chip_borrows_the_activates_card_on_purpose is the
+; guard: it asserts the chip's own rows are ABSENT from the compiled translation AND that
+; name_text()/effect_text() equal the activate's rows, so either half of the arrangement changing
+; goes red. buff_wicked_host is this mod's precedent for a deliberately row-less chip.

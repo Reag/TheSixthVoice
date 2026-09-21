@@ -1,0 +1,25 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_twilight_swarm/action_damnation_of_the_host.gd" id="1_damnation"]
+
+; action_type = 1 is Lancer.ACTION.QUICK (lancer.gd:27) and is_tech is the card's "Tech" half.
+; TOGETHER they are what makes this a QUICK TECH rather than a plain quick: ActionSystem's
+; get_per_turn_soft_limit returns 99 only when BOTH hold and the frame is a player mech, which is the
+; repeat-action rule's explicit exemption for quick tech. Drop either and three Damnations in one
+; turn stops being legal - which the card's LIMITED 3 plainly expects to be.
+;
+; is_tech ALSO makes it jammable (ActionSystem.is_jammable returns is_tech) and makes a tech-immune
+; unit an illegal target - neither of which matters here, since this action targets only its own
+; user, but both are asserted so a later reader knows they were considered rather than missed.
+;
+; NO consumes_charges LINE, and that is ruling 3 in its provisional form: the archetype default is
+; true (action.gd:108), so this action spends one of the Kit's three. The Crown carries the override
+; that opts OUT. If //Bela// reverses the ruling, the override moves; nothing here changes.
+;
+; NO usage_group, deliberately. This action has no round limit of its own to protect, so it keeps the
+; default group (the Kit's id) and its uses are tallied there. The CROWN is the one that needs its
+; own, because a FREE action is 1/round hard and would otherwise be filled by a Damnation.
+[resource]
+script = ExtResource("1_damnation")
+action_type = 1
+is_tech = true

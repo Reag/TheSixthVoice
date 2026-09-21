@@ -1,0 +1,40 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_twilight_swarm/action_crown_of_restless_dead.gd" id="1_crown"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_crown_of_restless_dead.svg" id="2_icon"]
+
+; action_type = 3 is Lancer.ACTION.FREE (lancer.gd:27), and it carries the card's "1/round" on its
+; own: Action.get_per_round_hard_limit returns 1 for any action whose cost is FREE
+; (action.gd:156-158). No code, no counter, no buff.
+;
+; usage_group IS THE ONE LINE THAT LIMIT NEEDS ANYWAY, and it is the least obvious field in this
+; sub-project. The per-round tally is kept PER USAGE GROUP, and GearCore.get_usage_group_for_action
+; falls back to the KIT ID when an action names none (gear_core.gd:166-168). Both of this Kit's
+; actions would therefore share one tally - and since this action's hard limit is ONE use of its
+; group per round, a single DAMNATION OF THE HOST earlier in the round would fill the slot and the
+; Crown would be refused. That is not a rare corner: using the quick tech and then the free action is
+; the obvious play. Design section 3.2 says "own usage group" without saying why; this is why.
+; test_a_damnation_does_not_consume_crowns_one_per_round is the pin, and deleting this line reddens
+; that test and nothing else.
+;
+; THE FOUR TARGETING FIELDS ARE THE CARD'S "an allied character within sensors", split the way
+; ActionSystemTargetUnit splits it. can_target_self is LEFT UNSET (default false) and asserted
+; anyway - "allied" in Lancer never includes yourself for a transfer like this, and the Sluagh
+; crowning itself would be a no-op that still cost the round.
+;
+; requires_target_character IS THE CHEAP FIRST GATE AND NOT THE WHOLE CLAUSE. It is is_character(),
+; which is TRUE of a DRONE (unit.gd:116), and "character" on this frame is is_actor() - so the .gd
+; carries a can_target_unit override that narrows it. The flag stays because it refuses objects and
+; markers a step earlier for free. See the .gd's header.
+;
+; NO consumes_charges HERE, because it cannot be here: it is a FUNCTION on Action (action.gd:108),
+; not an export. Ruling 3's exemption is the override in the .gd.
+[resource]
+script = ExtResource("1_crown")
+icon_override = ExtResource("2_icon")
+action_type = 3
+usage_group = &"crown_of_restless_dead"
+target_range_is_sensors = true
+can_target_enemies = false
+can_target_allies = true
+requires_target_character = true

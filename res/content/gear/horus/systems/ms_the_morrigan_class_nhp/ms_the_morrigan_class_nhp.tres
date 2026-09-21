@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_the_morrigan_class_nhp/action_in_triumvirate.tres" id="3_tri"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_the_morrigan_class_nhp.svg" id="4_icon"]
+
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("3_tri")])
+sp_cost = 3
+; Unique 1 + AI 4 + NHP 8 = 13 (kit.gd:30): every vanilla NHP's value, and Thy Hubris' Pestilence's.
+; is_ai() is what the one-AI limit reads (passive_ai_privilege.gd:34-52); "your mech gains the AI
+; tag" is this line.
+;
+; NO PassiveAiPrivilege SUB-RESOURCE, unlike every vanilla NHP and the Pestilence. That passive
+; only carries a default portrait JSON and a barkset, and neither exists for the Morrígan. So
+; installing this NHP does not rename or re-portrait the pilot's NHP (:63-79). Recorded at the SP4
+; close, PROPOSED for the author.
+;
+; ONE ACTION, so no usage_group is needed: GearCore.get_usage_group_for_action falls back to the KIT
+; id when an action names none (gear_core.gd:166-168), and with a single action there is nothing for
+; that shared tally to lock out.
+system_tags = 13
+icon_override = ExtResource("4_icon")
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

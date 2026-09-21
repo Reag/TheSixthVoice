@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="BuffBonus" format=3]
+
+[ext_resource type="Script" uid="uid://bav10yhc56w73" path="res://engine/character/buff/archtypes/buff_bonus.gd" id="1_bonus"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_the_morrigan_class_nhp.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_bonus")
+icon = ExtResource("2_icon")
+; "all attacks against them gain +1 difficulty": accuracy -1 on the INCOMING roll channel, which
+; attack_roll.gd reads off the DEFENDER. buff_wicked_host.tres is the same file with is_onetime;
+; this one is NOT one-time, because the card says ALL attacks, for the clock's length.
+bonus_subtype = &"accuracy"
+bonus_value = -1
+to = &"attack_roll_incoming"
+until = 7
+; VISIBLE (ruling 23). Its icon is SP5's; BuffBonus.get_icon's difficulty-svg fallback covers the
+; roll breakdown meanwhile, but the status bar wants a real one.
+;
+; IT HAS ROWS OF ITS OWN - gear.buff_in_triumvirate_ward.name / .effect (final review, item 1).
+; Without them Translate.buff falls through to the OWNER GEAR's actions[0] (translate.gd:72-77),
+; which on this Kit is In Triumvirate - so the warded ALLY's status chip read "In Triumvirate" plus
+; the Sluagh's whole targeting sentence ("Choose an allied character within Sensors...", in the
+; second person at a unit that chose nothing), and attack_roll.gd:189 titled the -1 accuracy in the
+; roll breakdown the same way. buff_ddmr_aegis and buff_grav_amped_saves are this mod's precedent
+; for a chip with its own two rows; test_in_triumvirate.test_the_card_rows_resolve pins both.
+;
+; TECH IMMUNITY SWITCHES THIS OFF, AND IT IS VANILLA DOING IT (final review, item 3; taken by the
+; author at the frame close). Buff.check_if_prohibited (buff.gd:228-239) refuses any buff whose
+; OWNER GEAR is tech - this one's is the Morrígan, tech through In Triumvirate's is_tech
+; (UnitAction.is_tech, unit_action.gd:567-571) - whenever the HOLDER, context.unit or
+; context.target_unit is tech-immune (frame.is_biological or a Buff.TO.TECH_IMMUNITY buff,
+; unit_condition.gd:532). It is applied on EVERY get_buffs_to (unit_condition.gd:850), so a
+; tech-immune ATTACKER ignores this ward with no log line at all (attack_roll.gd:135 passes the
+; attack context, whose `unit` is the attacker). Pinned by
+; test_in_triumvirate.test_a_tech_immune_attacker_ignores_the_ward.
+;
+; THE OTHER TWO EFFECTS GO QUIET BY DIFFERENT ROUTES, and this comment used to lump all three under
+; this one gate (close review, slices 1 and 6):
+;  - the PAIR: check_if_prohibited only ever examines the QUERIED unit (get_buffs_to is called with
+;    no context, unit_condition.gd:822-824), so vanilla alone would leave the pair ONE-SIDED. The
+;    banner's own `if UnitCondition.is_immune_to_tech(partner): continue` is what switches it off at
+;    both ends - ours, not vanilla's. test_a_tech_immune_partner_is_not_adjacent_from_either_side.
+;  - EYES OF NIGHT: refused OUTRIGHT and earlier, by ActionReaction.check_if_prohibited
+;    (action_reaction.gd:99-111) via reaction_bus.gd:120 - no prompt, no +3 and no 2 self-damage.
+;    The Buff path never runs there, because the +3 buff is never applied.
+;    test_bleakshadow_gate.test_a_tech_immune_defender_offers_nothing.

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_o_trickery/buff_grey_birds_recentre.gd" id="1_recentre"]
+
+; TWO TRIGGERS, ONE TIMING - which is the whole reason the lifetime base uses PRE.
+; Buff.triggers_on is an array (buff.gd:138) and trigger_timing a single value (:139);
+; ATTACK_DECLARED must be PRE (event_unit_attack_declared.gd:21-23 is the only seam before the
+; summary is read), and NEW_ROUND is emitted at PRE as well (event_round_new.gd:40) with round_count
+; already incremented at :31. trigger_timing = 0 is ReactionBus.TIMING.PRE.
+;
+; NO `to` AT ALL: this is a pure listener with no passive channel, which is also why it needs no
+; HIDDEN_BUFFS_NEEDING_ICONS row - nothing draws it.
+[resource]
+script = ExtResource("1_recentre")
+hide_from_player = true
+triggers_on = Array[StringName]([&"attack_declared", &"new_round"])
+trigger_timing = 0

@@ -280,3 +280,68 @@ gear.ms_flourishing_twirl.name,Flourishing Twirl
 gear.ms_flourishing_twirl.flavor,"Unlike some of its sister parts, the Flourishing Twirl subsystems are a very concise description of their function. By rapidly spinning a frame around its Y axis, any substantially sized weapon held can decimate nearby foes. However, those function are only half of the systems, the other half consist of gyroscopic balancers to keep the pilot inside from getting violently dizzy."
 gear.ms_flourishing_twirl.action_spin.name,Spin
 gear.ms_flourishing_twirl.action_spin.effect,"Choose a weapon you have mounted, all hostile characters within its threat and |line of sight| must succeed an |Agility save| or take 4 |kinetic| damage and become |Impaired| until the end of their next turn."
+,
+frame.mf_sluagh.name,Sluagh
+frame.mf_sluagh.flavor.short,Obsessive Support
+frame.mf_sluagh.flavor,"""Here I am my beloved I was brave once and I shall be brave once more I was strong once and I shall be strong once more I was a savior once and I shall be a savior once more I died once and I shall die once more Here I am my beloved You are grand You are bleak Together we have no use for death"" (not operational) \\\\ - RA"
+,
+gear.mt_wicked_host.name,Wicked Host
+gear.mt_wicked_host.effect,"Whenever the Sluagh is hit by an attack made by a hostile character, the next attack against it has +1 |difficulty|. This effect lasts until the end of the scene."
+,
+gear.mt_the_stealing_of_the_souls_of_the_dead.name,The Stealing of the Souls of the Dead
+gear.mt_the_stealing_of_the_souls_of_the_dead.effect,"Whenever a hostile character is destroyed within |Sensors|, the Sluagh gains |OVERSHIELD| equal to |GRIT|."
+,
+gear.mt_inexorable_formation.name,Inexorable Formation
+gear.mt_inexorable_formation.effect,The Sluagh increases its |Sensors| equal to its |OVERSHIELD|.
+,
+gear.cp_cry_of_the_hosted_dead.name,Cry of the Hosted Dead
+gear.cp_cry_of_the_hosted_dead.effect,"1/round, when an adjacent allied character is hit by an attack made by a hostile character, they gain +1d6 |OVERSHIELD|. The |OVERSHIELD| is granted before damage is dealt."
+gear.cp_cry_of_the_hosted_dead.action_astral_guardian.name,Astral Guardian
+,
+gear.cp_cry_of_the_hosted_dead.action_mark_of_the_dead.name,Mark of the Dead and the Damned and the Lost
+gear.cp_cry_of_the_hosted_dead.action_mark_of_the_dead.effect,"A dome of bleak darkness envelops you, causing the following effects until the end of the scene:
+You and adjacent allied characters gain |soft cover|.
+As a |reaction|, when an attack misses you or an adjacent allied character, you may deal |energy| damage to the attacker equal to your |OVERSHIELD|."
+gear.buff_mark_of_the_dead.name,Mark of the Dead and the Damned and the Lost
+gear.buff_mark_of_the_dead.effect,"You and adjacent allied characters gain |soft cover|. As a |reaction|, when an attack misses you or an adjacent allied character, you may deal |energy| damage to the attacker equal to your |OVERSHIELD|."
+gear.cp_cry_of_the_hosted_dead.action_mark_retort.name,Mark of the Dead and the Damned and the Lost
+gear.cp_cry_of_the_hosted_dead.action_mark_retort.effect,"As a |reaction|, when an attack misses you or an adjacent allied character, you may deal |energy| damage to the attacker equal to your |OVERSHIELD|."
+gear.mw_rend_nexus.name,Rend Nexus
+gear.mw_rend_nexus.flavor,"""I call to you, O damned souls, sit and speak to me of the all the horrors we have wrought!"""
+gear.mw_rend_nexus.on_crit,"Until the end of your next turn, the next attack against you has +2 |Difficulty|."
+gear.buff_rend_nexus.name,Rend Nexus
+gear.buff_rend_nexus.effect,"The next attack against you has +2 |Difficulty|."
+gear.ms_o_trickery.name,O' Trickery
+gear.ms_o_trickery.flavor,"""And this HORUS system forces its way in, hijacking the targeting array, forcing focus onto the user's location and overriding decision points."" ""Fantastic."" ""Oh and this one brings them right next to the user."" ""Ah, surely nothing could go wrong with this."""
+gear.ms_o_trickery.action_grey_birds.name,The Flight of the Crescent of Grey Birds
+gear.ms_o_trickery.action_grey_birds.effect,"Until the end of the next round, if your target takes an action that could target you, they must target you with that action."
+gear.ms_o_trickery.action_hunt_of_the_vagrant_sowche.name,Hunt of the Vagrant Sowche
+gear.ms_o_trickery.action_hunt_of_the_vagrant_sowche.effect,"Your target must succeed a |Systems save| or be teleported to a free space adjacent to the closest character. If there are multiple characters tied for closest, you choose. This can only be used 1/scene on each character."
+gear.mw_nightfare_nexus.name,Nightfare Nexus
+gear.mw_nightfare_nexus.flavor,"The Nightfare nexus commands a small swarm of hypercharged magnetic drones that can tear through metal or flesh in seconds. The sheer force of their frenzy leaves thick black clouds of debris in their wake. To those in this cloud, it seems as though all light has vanished, leaving them in endless night."
+gear.mw_nightfare_nexus.on_hit,The target gains |soft cover| until the start of your next turn.
+gear.buff_nightfare_soft_cover.name,Nightfare Nexus
+gear.buff_nightfare_soft_cover.effect,"You have |soft cover| until the start of the Sluagh's next turn."
+gear.ms_twilight_swarm.name,Twilight Swarm
+gear.ms_twilight_swarm.flavor,"""Oh APEP, I can see your hunger, your bloodlust, and your anger. You have no place here you bestial thing! Their souls are mine to hold and keep and love forever!"
+gear.ms_twilight_swarm.action_damnation_of_the_host.name,Damnation of the Host
+gear.ms_twilight_swarm.action_damnation_of_the_host.effect,You gain |OVERSHIELD| equal to 1d6+|GRIT|
+gear.ms_twilight_swarm.action_crown_of_restless_dead.name,Crown of Restless Dead
+gear.ms_twilight_swarm.action_crown_of_restless_dead.effect,"An allied character within |sensors| gains |OVERSHIELD| equal to your |OVERSHIELD|, then you take that much |Energy| damage. This damage cannot be prevented in any way. You may only take this action 1/round."
+gear.ms_bleakshadow_gate.name,Bleakshadow Gate
+gear.ms_bleakshadow_gate.flavor,"""No creature nor sinner may hide from me. ""For I do not seek them in the light, but rather where it dies ""And from where it is found remember this ""There is no RA ""There is only me"""
+gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.name,Activate Bleakshadow Gate
+gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.effect,"Until the end of your next turn, you gain the EYES OF NIGHT |reaction|."
+gear.ms_bleakshadow_gate.action_eyes_of_night.name,EYES OF NIGHT
+gear.ms_bleakshadow_gate.action_eyes_of_night.trigger,You or an allied character within |Sensors| hit an enemy benefiting from soft or hard cover for the first time this turn.
+gear.ms_bleakshadow_gate.action_eyes_of_night.effect,"The attack deals an additional +3 bonus damage and you take 2 |Energy| damage. This damage cannot be reduced in any way."
+gear.buff_eyes_of_night_bonus.name,EYES OF NIGHT
+gear.ms_the_morrigan_class_nhp.name,The Morrígan-class NHP
+gear.ms_the_morrigan_class_nhp.flavor,"""Worry not! All that hunger is gone for now ""It was here a moment and then gone again with the dawning of the day ""Back again into that bedeviled sward ""Now it is only us who remain, ""You, and me, and RA!"""
+gear.ms_the_morrigan_class_nhp.effect,Your mech gains the AI tag and the In Triumvirate quick tech action.
+gear.ms_the_morrigan_class_nhp.action_in_triumvirate.name,In Triumvirate
+gear.ms_the_morrigan_class_nhp.action_in_triumvirate.effect,"Choose an allied character within |Sensors|. Until the end of your next turn, your chosen ally is always treated as being adjacent to you while within your |Sensors|, regardless of actual distance between you, and all attacks against them gain +1 |difficulty|."
+gear.buff_in_triumvirate_pair.name,In Triumvirate
+gear.buff_in_triumvirate_pair.effect,"Always treated as adjacent to your partner while within the Sluagh's |Sensors|."
+gear.buff_in_triumvirate_ward.name,In Triumvirate
+gear.buff_in_triumvirate_ward.effect,All attacks against you gain +1 |difficulty|.

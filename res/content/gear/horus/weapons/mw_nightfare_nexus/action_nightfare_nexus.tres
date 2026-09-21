@@ -1,0 +1,36 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://vi3dfs5ql3lg" path="res://engine/character/gear_action/action_attack_weapon.gd" id="1_attack"]
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="2_onhiteffect"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_nightfare_nexus/onhit_nightfare_nexus.tres" id="3_onhit"]
+
+; weapon_size IS WRITTEN OUT AS 0, which is Lancer.WEAPON_SIZE.AUX (lancer.gd:104) and is also the
+; export's default. Declared rather than omitted because action_rend_nexus.tres beside it declares
+; `weapon_size = 1` for its MAIN, and AUXILIARY versus MAIN is the one profile difference between the
+; two Nexuses that a reader is most likely to skim past.
+;
+; DAMAGE IS THE FLAT STRING "3", NOT A DIE, and that has a consequence every spec here depends on:
+; Dice.process_dice_string finds no 'd', returns count 0 with the whole string as the bonus, and
+; roll_dice's loop body never runs (dice.gd:22-35) - so THIS WEAPON POPS NOTHING OFF
+; Dice.CHEAT_ROLL_QUEUE FOR ITS DAMAGE. A tech attack's flat '2' (action_attack_tech.gd:17) is the
+; same shape. The Rend Nexus, by contrast, pops its 1d3+1 TWICE, because AttackUtil.DamageRoll rolls
+; hit_rolls and crit_rolls separately (attack_util.gd:250-251). sluagh_fixture.nightfare_shot's header
+; carries this warning for anyone writing a queue.
+;
+; THREAT IS LEFT UNSET, the archetype default of 1 (action_attack_weapon.gd:16), which is what
+; vanilla's own mw_nexus_light.tres does with the identical profile shape. The card gives a Range and
+; no Threat, and a Nexus is never a melee weapon.
+;
+; SMART AND NOTHING ELSE. It makes this roll against E-DEFENCE rather than evasion
+; (action_attack_weapon.gd:250-252). The Rend Nexus adds AP; this card does not, and the profile spec
+; asserts the ABSENCE of `ap` rather than only the presence of `smart`, because a stray tag would
+; otherwise ship silently.
+[resource]
+script = ExtResource("1_attack")
+damage_type = 1
+damage_dice = "3"
+weapon_size = 0
+weapon_type = 5
+aim_range = 15
+tags = Array[StringName]([&"smart"])
+on_hit_effects = Array[ExtResource("2_onhiteffect")]([ExtResource("3_onhit")])

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="BuffCover" format=3]
+
+[ext_resource type="Script" uid="uid://d0l6p3u6jopti" path="res://engine/character/buff/archtypes/buff_cover.gd" id="1_cover"]
+
+[resource]
+script = ExtResource("1_cover")
+; cover = 1 is Lancer.COVER.SOFT (lancer.gd:151, enum COVER { NONE, SOFT, HARD }). Vanilla's
+; buff_hive_frenzy_cover_aura.tres - the Balor's aura-placed cover buff - is this file with an icon.
+cover = 1
+; THE ONLY CHANNEL THE COVER PIPELINE READS. CoverCalculator.determine_cover asks
+; UnitCondition.get_buffs_to(..., Buff.TO.COVER, ...) of the defender and of the attacker
+; (cover_calculator.gd:56-62) and of nobody else.
+to = &"cover"
+; HIDDEN. buff_mark_of_the_dead is the signal that the dome is up; two chips for one effect read as
+; two effects. It needs no icon and belongs in NEITHER icon table: a Buff.TO.COVER buff's own icon is
+; never drawn - the roll breakdown adds the cover mod with Icon.cover(preattack.cover)
+; (attack_roll.gd:169), not with buff_core.base.icon.
+hide_from_player = true
