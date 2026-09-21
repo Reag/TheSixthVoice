@@ -152,7 +152,13 @@ static func movement_type(unit:Unit, own_involuntary:bool = false) -> MovementTy
 		# branch above - the one that just applied it - is allowed to leave it standing, which is why
 		# this branch erases rather than merely ignores it. Latent today, same as the flag above:
 		# nothing writes this string but Teleport itself, so nothing else would notice it going wrong.
-		type.other_tags.erase(OWN_TAG)
+		#
+		# A `while`, NOT A SINGLE erase (close review, slice 1 M-1): Array.erase removes ONE
+		# occurrence, and merge_in APPENDS other_tags wholesale with no de-duplication
+		# (movement_type.gd:96) for EVERY movement-type buff the unit holds (:51) - so two such
+		# buffs each carrying our tag left one copy standing, and is_own() then read a foreign
+		# voluntary teleport as our own unpreventable Step. Additive fix: no signature moves.
+		while type.other_tags.has(OWN_TAG): type.other_tags.erase(OWN_TAG)
 	return type
 
 
@@ -311,7 +317,7 @@ static func pick_tile(context:Context, activation:EventCore, tiles:Array[Vector2
 	var specific := SpecificAction.create(context.unit, context.gear, proxy)
 
 	# No pathfinder: this is a pick, never a move-then-act. ask_for_targets_alt turns a null or
-	# aborted plan into CompconPlan.create_aborted() (target_action_util.gd:203).
+	# aborted plan into CompconPlan.create_aborted() (target_action_util.gd:201).
 	var plan:CompconPlan = await TargetActionUtil.ask_for_targets_alt(activation, specific)
 	if plan == null or plan.aborted: return Tile.INVALID
 	if plan.target_tiles.is_empty(): return Tile.INVALID
@@ -391,20 +397,30 @@ static func move_along(activation:EventCore, unit:Unit, pathfinder:Pathfinder, p
 ##
 ## AND other_tags IS ERASED, the symmetric half: merge_in propagates other_tags wholesale
 ## (movement_type.gd:96), so a movement-type buff carrying our own tag would smuggle it in here too.
-## The tag means "ours", and only movement_type(unit, true) is allowed to leave it standing.
+## The tag means "ours", and only movement_type(unit, true) is allowed to leave it standing. The
+## erase is a LOOP for the reason movement_type()'s own branch records (close review, slice 1 M-1):
+## Array.erase removes ONE occurrence and N such buffs append N copies.
 ##
 ## NOT MovementType.create_for_involuntary (movement_type.gd:63-71), which already exists and is what
 ## a knockback uses. Three reasons, all measured off that function: it never sets teleport, so
 ## is_teleport() answers false and no listener sees the move at all; it sets ignore_rxns, vanilla's
 ## own "do not react to this" signal, which is precisely what ruling 18 does not want, since a Maiden's
 ## Blush must be able to veto a Hunt; and it skips the buff merge entirely, so a FLYING or INTANGIBLE
-## target would lose those flags mid-shove.
+## target would lose the buff-granted ones mid-shove.
+##
+## THAT THIRD REASON WAS OVERSTATED UNTIL THE CLOSE (slice 1 M-2). What is actually lost is whatever
+## a Buff.TO.MOVEMENT_TYPE resource would have merged in, plus create's unconditional
+## `ignore_difficult` and `can_move_through_enemies` for an INTANGIBLE target (movement_type.gd:47-50).
+## FLYING SURVIVES: create_for_involuntary sets `type.flying = unit.state.is_flying()` at :68, and
+## is_flying() is `is_swimming or is_zero_g or has_status(FLYING)` (unit_battle_state.gd:252) -
+## broader, if anything, than create's own read at :46; `ignore_dangerous` follows an intangible
+## target too, at :69. The decision stands on the other two reasons, both re-verified at the close.
 static func forced_movement_type(unit:Unit) -> MovementType:
 	var type := MovementType.create(unit, false)
 	type.teleport = true
 	type.ignore_engagement = true
 	type.voluntary = false
-	type.other_tags.erase(OWN_TAG)
+	while type.other_tags.has(OWN_TAG): type.other_tags.erase(OWN_TAG)
 	return type
 
 

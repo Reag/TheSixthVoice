@@ -49,10 +49,17 @@ func is_within_range(moving_unit:Unit, aura_unit:Unit) -> bool:
 	return UnitRelation.is_adjacent(aura_unit, moving_unit)
 
 ## "allied CHARACTERS", and applies_only_to_characters does not deliver it on its own: that flag is
-## moving_unit.is_character() (passive_aura.gd:73), and Unit.is_character() returns TRUE for a drone
-## ("active mech/pilot/drone", unit.gd:116). This frame reads "character" as is_actor() (:117) on
-## every card that uses the word - the Stealing (ruling 11) and Astral Guardian (design 1.5.1's own
-## spec list) both do - so the dome does too.
+## `moving_unit.is_character()` (passive_aura.gd:73), and Unit.is_character() returns TRUE for a drone
+## ("active mech/pilot/drone", unit.gd:116). is_actor() is is_character() and not is_drone (:117), so
+## AN ADJACENT ALLIED DRONE IS NOT SHELTERED and this line is the only thing that refuses it - delete
+## it and `test_an_adjacent_allied_drone_is_not_sheltered` reddens. A REAL NARROWING, not a
+## restatement.
+##
+## THIS IS THE MOD'S SETTLED READING OF THE WORD, not this frame's local taste: ruling 194 (the
+## Vauban's Gravity Well shelters allied MECHS, "drones and deployables are not sheltered" - the same
+## mechanism, a range-1 aura, one frame over), rulings 64 and 70 (a drone's shot counts as its
+## owner's) and ruling 269 (the Stealing) all spell it the same way. The canonical paragraph is in
+## mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd's header.
 func can_apply_buff_to_unit(moving_unit:Unit, aura_unit:Unit, aura_gear:GearCore) -> bool:
 	if not super(moving_unit, aura_unit, aura_gear): return false
 	return moving_unit.is_actor()

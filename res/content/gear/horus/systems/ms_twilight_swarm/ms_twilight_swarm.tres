@@ -7,7 +7,7 @@
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_twilight_swarm.svg" id="5_icon"]
 
 ; TWILIGHT SWARM, the Sluagh's rank-II Unique shield system (SP3 Tasks 3 and 4). BOTH ACTIONS
-; SINCE TASK 4, in the CARD'S ORDER (specs/sixth-voice/08-sluagh.md:80-85) - which is the order
+; SINCE TASK 4, in the CARD'S ORDER (specs/sixth-voice/08-sluagh.md:80-83) - which is the order
 ; the gear bar draws, so it is player-visible. ms_o_trickery.tres is the mod's own two-actions-on-one-
 ; system precedent, and vanilla's ms_aggressive_system_sync is the original: both actions are plain
 ; entries in `actions`, no variant group and no sub-menu, each taking its localisation rows from its
@@ -23,7 +23,6 @@
 ; else. This is a copy of that decision, not a new one. test_the_profile_matches_the_card asserts
 ; is_ai() and is_nhp() FALSE as well as the two true bits, because a wrong literal (9, 21, 25) would
 ; satisfy a has-check on either bit that matters.
-;
 [resource]
 script = ExtResource("2_kit")
 actions = Array[ExtResource("1_action")]([ExtResource("3_damnation"), ExtResource("4_crown")])

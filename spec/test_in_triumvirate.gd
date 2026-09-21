@@ -109,7 +109,9 @@ func test_the_kit_and_action_match_the_card():
 	assert_false(tri.can_target_enemies, 'Allies only...')
 	assert_true(tri.can_target_allies, '...')
 	assert_false(tri.can_target_self, '...and not the Sluagh itself.')
-	assert_true(tri.requires_target_character, 'A character (the archetype\'s reading - see the drone case).')
+	assert_true(tri.requires_target_character,
+		'A character - but this flag is is_character() and only the CHEAP FIRST GATE: the .gd\'s '
+		+ 'can_target_unit narrows it to is_actor(). See the drone case.')
 
 func test_pressing_it_costs_two_heat_and_lands_three_chips():
 	# THE SELF-HEAT POPS NOTHING OFF THE DICE FIFO, and this assertion is what corrects
@@ -188,13 +190,16 @@ func test_the_ward_gives_every_attack_on_the_ally_one_difficulty_and_is_not_cons
 	await SluaghFixture.shoot(game, hostile, ally)
 	assert_eq(ally.current_damage(), DAMAGE_DIE + RELIABLE + RELIABLE, 'And the next attack is worse too.')
 
-## TECH IMMUNITY SWITCHES THE WARD OFF, AND IT IS VANILLA DOING IT (final review, item 3; the ruling
-## is PROPOSED to the author - this case pins the behaviour as it stands so a reversal is one test).
+## TECH IMMUNITY SWITCHES THE WARD OFF, AND IT IS VANILLA DOING IT (final review, item 3; taken by
+## the author at the frame close - a tech-immune unit is out of all three of the card's effects).
+## The PAIR's half needs a line of our own and is pinned by
+## test_a_tech_immune_partner_is_not_adjacent_from_either_side; EYES OF NIGHT's half is a different
+## gate again (ActionReaction.check_if_prohibited) and is pinned in test_bleakshadow_gate.gd.
 ##
 ## Buff.check_if_prohibited (buff.gd:228-239) refuses any buff whose OWNER GEAR is tech - the
 ## Morrígan is, through In Triumvirate's is_tech (UnitAction.is_tech, unit_action.gd:567-571) -
 ## whenever the HOLDER, context.unit or context.target_unit is tech-immune. It runs on EVERY
-## get_buffs_to (unit_condition.gd:850), and attack_roll.gd:134 reads ATTACK_ROLL_INCOMING off the
+## get_buffs_to (unit_condition.gd:850), and attack_roll.gd:135 reads ATTACK_ROLL_INCOMING off the
 ## defender with the ATTACK context, whose `unit` is the attacker. So a tech-immune shooter is
 ## context.unit, the ward is prohibited for that read alone, and the shot lands as though the ally
 ## were unwarded. Nothing is logged: a prohibited buff is simply absent from the list.
@@ -246,6 +251,32 @@ func test_a_tech_immune_attacker_ignores_the_ward():
 		'THE VANILLA RULE: the ward is prohibited for a tech-immune attacker, so the same 11 HIT - the guardian granted 4 and the 3 ate into it.')
 	assert_eq(ally.current_damage(), RELIABLE,
 		'And nothing more reached HP: the hit was soaked, where a ward-shortened 7 would have missed for another Reliable 2.')
+
+## A TECH-IMMUNE PARTNER SWITCHES THE PAIR OFF AT BOTH ENDS - and one of the two ends is OURS
+## (author's ruling, 2026-09-21, at the frame close; slice-1 close review I-1).
+##
+## THE ENGINE ONLY CLOSES ONE END. The banner reads the pair with
+## UnitCondition.get_buffs_to(unit, ADJACENT_TO) and NO context, so unit_condition.gd:822-824 fills
+## in Context.create({unit = unit}): check_if_prohibited (buff.gd:234-238) then tests the queried
+## unit as holder AND as context.unit, and never looks at the PARTNER. In Triumvirate applies two
+## cores, one per end, so the ALLY's own read is prohibited while the SLUAGH's is not - the card
+## would have gone half-live, which is exactly the House Guard asymmetry recorded in memory
+## third-party-adjacency-widening. `if UnitCondition.is_immune_to_tech(partner): continue` in the
+## banner is what closes the Sluagh's end, and this case is the only thing that pins it.
+##
+## THE CHIPS ARE ASSERTED STILL HELD, the shape test_a_tech_immune_attacker_ignores_the_ward uses:
+## nothing falls off, the reads are refused. has_buff does not apply check_if_prohibited
+## (unit_condition.gd:819-820 -> get_buffs, a plain filter), so it reads the raw list.
+func test_a_tech_immune_partner_is_not_adjacent_from_either_side():
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(adjacent_both_ways(sluagh, ally), 'Liveness: adjacent both ways before the immunity lands.')
+	SpecFactory.apply_buff(ally, TECH_IMMUNITY_BUFF)
+	assert_true(UnitCondition.is_immune_to_tech(ally), 'fixture: the partner is immune to tech.')
+	assert_true(paired(sluagh) and paired(ally), 'Both chips are still HELD - this is a refused read, not a buff falling off.')
+	assert_false(UnitRelation.is_adjacent(ally, sluagh),
+		'VANILLA\'S HALF: the immune partner\'s own read is prohibited, so it no longer counts the Sluagh adjacent...')
+	assert_false(UnitRelation.is_adjacent(sluagh, ally),
+		'...AND OURS: the banner refuses an immune partner too, so the pair is off at both ends rather than one-sided.')
 
 func test_retargeting_a_second_ally_clears_the_first_pair():
 	var other := SluaghFixture.create_ally(game, OTHER_ALLY_TILE)
@@ -319,7 +350,7 @@ func test_a_partner_can_affect_refuses_is_not_adjacent_either_way():
 	#    every buff whose owner's tangibility does not match (unit_condition.gd:261-265);
 	#  - a shard split needs map plumbing this fixture has no helper for.
 	# INVULNERABLE appears in neither is_active() nor apply_status's special-case match, so it moves
-	# nothing but can_affect. It refuses whichever side is the TARGET (:397), so one end alone would
+	# nothing but can_affect. It refuses whichever side is the TARGET (:398), so one end alone would
 	# close one direction only; both ends closes both, which is what "always treated as adjacent"
 	# has to stop promising.
 	await SluaghFixture.triumvirate(game, sluagh, ally)
@@ -330,6 +361,42 @@ func test_a_partner_can_affect_refuses_is_not_adjacent_either_way():
 	assert_false(UnitRelation.is_adjacent(sluagh, ally), 'can_affect refuses the invulnerable TARGET, so the partner is not appended...')
 	assert_false(UnitRelation.is_adjacent(ally, sluagh), '...and not in the other direction either.')
 
+## THE OTHER RE-RUN GATE, and SHUTDOWN is the one status that isolates it (close review, slice 1
+## I-2 and slice 6 M-2 - the same gap found from both sides).
+##
+## `if not partner.is_character(): continue` is the banner's re-run of unit_relation.gd:42, and
+## until this case nothing in the suite depended on it: neutralising the line reddened NOTHING.
+## The case above isolates can_affect with INVULNERABLE; the reverse needs a status is_character()
+## refuses and can_affect does not. Subtracting what the other two guards cover leaves SHUTDOWN,
+## off-map, faction NONE and a non-CHARACTER entity type. SHUTDOWN is the cheapest: is_active()
+## requires `not has_status(SHUTDOWN)` (unit.gd:112) and can_affect (:393-404) says nothing about
+## it at all. EXILED cannot serve - can_affect refuses it twice over (:395-396) - and a drone is a
+## character (unit.gd:116) and can no longer be a partner at all, so
+## test_an_allied_drone_is_not_a_legal_partner cannot serve either.
+##
+## IT CLOSES ONE DIRECTION, NOT TWO, AND THAT IS MEASURED RATHER THAN DESIGNED (2026-09-21, this
+## case's first RED). The gate asks whether the PARTNER is a character, so it refuses the shut-down
+## ally when the SLUAGH is queried - and the shut-down ally's own list still carries the Sluagh,
+## who is a character, from the ally's own pair core. Vanilla behaves the same way (a querying
+## unit's own state is never examined by get_characters_within), nothing downstream of a shut-down
+## unit acts on its list, and the author has ruled only on the TECH-IMMUNITY asymmetry, so this one
+## is recorded here and reported rather than closed. "adjacent both ways" is false either way,
+## which is what the card's promise rests on.
+func test_a_shutdown_partner_is_not_adjacent():
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(adjacent_both_ways(sluagh, ally), 'Liveness: adjacent both ways before the status lands.')
+	SpecFactory.apply(ally, Lancer.STATUS.SHUTDOWN)
+	assert_true(paired(sluagh) and paired(ally), 'The chips are untouched - the banner is refusing, not the buffs falling off.')
+	assert_true(UnitRelation.can_affect(sluagh, ally),
+		'THE ISOLATION: can_affect still permits the pair - it never reads SHUTDOWN - so only the is_character() line can refuse.')
+	assert_false(ally.is_character(),
+		'And a shut-down unit is not a CHARACTER (is_active excludes SHUTDOWN, unit.gd:112)...')
+	assert_false(UnitRelation.is_adjacent(sluagh, ally), '...so the banner does not append it to the SLUAGH\'s list...')
+	assert_false(adjacent_both_ways(sluagh, ally), '...and "always treated as adjacent" stops being true.')
+	assert_true(UnitRelation.is_adjacent(ally, sluagh),
+		'RECORDED, NOT ENDORSED: the shut-down unit\'s OWN list still carries the Sluagh - the gate tests the PARTNER, '
+		+ 'and the Sluagh is a character. Nothing downstream of a shut-down unit reads it.')
+
 func test_it_cannot_target_a_hostile_or_the_sluagh_itself():
 	var hostile := SluaghFixture.create_hostile(game, HOSTILE_TILE)
 	assert_false(action().can_target_unit(hostile, specific()), 'Not an enemy.')
@@ -337,15 +404,29 @@ func test_it_cannot_target_a_hostile_or_the_sluagh_itself():
 	assert_false(UnitTargeting.get_tiles_targetable(specific()).has(EDGE_ALLY_TILE + Vector2i(1, 0)),
 		'And nothing past Sensors is targetable (range lives on the picking path, SP3\'s finding).')
 
-func test_an_allied_drone_is_a_legal_partner():
-	# The Crown's ruling (author, 2026-09-21) on the same archetype: requires_target_character is
-	# Unit.is_character(), "active mech/pilot/drone" (unit.gd:116). PROPOSED for the frame close
-	# alongside the trigger-side is_actor() reading; pinned as the accepted behaviour so a reversal
-	# is one test and one override.
+func test_an_allied_drone_is_not_a_legal_partner():
+	# AUTHOR'S RULING, 2026-09-21 (the frame close), REVERSING THE SP4 RULING THAT ADMITTED A DRONE.
+	# "Character" on this frame, and across this mod, is is_actor() - ruling 194 (the Vauban's
+	# Gravity Well), rulings 64 and 70 (a drone's shot counts as its OWNER'S) and ruling 269 (the
+	# Stealing). The canonical paragraph is in action_stealing_of_the_souls.gd's header.
+	#
+	# THE ARCHETYPE'S FLAG DOES NOT DELIVER IT, which is the whole reason this case exists:
+	# requires_target_character is `potential_target.is_character()`
+	# (action_system_target_unit.gd:16) and a drone PASSES that (unit.gd:116). What refuses it is
+	# action_in_triumvirate.gd's own can_target_unit override; neutralise that override and this is
+	# the one test in the file that reddens.
+	#
+	# BOTH PATHS ARE ASSERTED, because they are different code. can_target_unit is the player's
+	# picking filter (action.gd:214) AND the filter on a target supplied straight to the plan
+	# (target_action_util.gd:172) - so the second half, handing the drone to the action by hand and
+	# finding no pair, is what says a spec or an AI cannot route round the first.
 	var drone := SluaghFixture.create_drone(game, OTHER_ALLY_TILE)
-	assert_true(action().can_target_unit(drone, specific()), 'A drone passes the filter.')
+	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
+	assert_false(drone.is_actor(), '...and is NOT an actor, which is the distinction the ruling made.')
+	assert_false(action().can_target_unit(drone, specific()), 'A drone does not pass the filter.')
 	await SluaghFixture.triumvirate(game, sluagh, drone)
-	assert_true(adjacent_both_ways(sluagh, drone), 'And the pair works on it.')
+	assert_false(paired(drone), 'And handing it to the action by hand pairs nothing either.')
+	assert_false(adjacent_both_ways(sluagh, drone), 'So no banner reaches it.')
 
 # ---------------------------------------------------------------- Task 5: what the pair reaches
 #
@@ -441,7 +522,8 @@ func test_the_marks_retort_fires_for_a_miss_against_the_far_partner():
 ## A VANILLA READER, and the reason the seam had to be adjacent_characters rather than a rule of our
 ## own: Stabilize's "clear a condition on an adjacent ally" offers the partner six tiles out without
 ## knowing anything about this mod (action_stabilize.gd:282, the spike's measured witness). Recorded
-## as the card working - 37 content readers sit on that function and every one of them widens.
+## as the card working - 28 content readers sit on that function (32 counting is_adjacent's four,
+## re-counted at the close) and every one of them widens.
 func test_stabilize_offers_the_far_partners_condition():
 	SpecFactory.apply(ally, Lancer.STATUS.IMPAIRED)
 	assert_false(UnitCondition.get_ability_clearable_conditions_on(ally).is_empty(),
@@ -469,6 +551,15 @@ func test_guardian_on_the_sluagh_does_not_cover_the_far_partner():
 		'Control: the Sluagh DOES guard the ally it genuinely touches, so the buff is live.')
 	assert_false(UnitRelation.get_guardian_units(ally).has(sluagh),
 		'Guardian scans get_units_within(attacked, 1) - a radius (unit_relation.gd:454-457). Never widened. Fork 5.')
+	# ENGAGEMENT, carried here when spec/test_spike_adjacency_override.gd was deleted at the close
+	# (slice-1 M-5): it was that file's one claim with no twin in shipped-content tests. Engagement
+	# is the interesting half of the distance family, because the banner DOES reach it -
+	# get_engaging_units collects through UnitRelation.adjacent_characters (unit_relation.gd:192, a
+	# node call, so it dispatches to the override at any depth) - and then filters the widened list
+	# through is_close_enough_to_engage (:165-166, `distance_between > 1` is false), so the far
+	# partner is thrown straight back out. Reached and still refused, not never reached.
+	assert_false(UnitRelation.get_engaging_units(sluagh).has(ally),
+		'And the far partner does not ENGAGE: collected through the widened list, then dropped by the radius filter.')
 
 # ---------------------------------------------------------------- Task 6: the card text and rank 3
 

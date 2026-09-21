@@ -73,9 +73,18 @@ const FOOTPRINT_BLOCKED := Vector2i(9, 5)
 const FOOTPRINT_FITS := Vector2i(11, 5)
 
 ## An ALLIED DRONE between the victim and the anchor. Two jobs in one case: it ENGAGES the victim (it
-## is adjacent and hostile to it), and it is a character that is NOT an actor - so the closest-CHARACTER
-## search must walk past it and take the anchor two tiles further out.
+## is adjacent and hostile to it), and it is a character that is NOT an actor - so the
+## closest-CHARACTER search must walk past it and take the anchor two tiles further out.
 const DRONE_TILE := Vector2i(9, 6)
+## In the DRONE'S own ring and NOT in the anchor's: the tile that enters the offered set the moment
+## "character" stops meaning is_actor() and the drone becomes the anchor. Asserted ABSENT.
+##
+## THE EXCLUSIVITY IS THE WHOLE POINT AND IT IS NARROW - MEASURED 2026-09-21, the first draft of
+## this constant was (9,7) and was in BOTH rings, so the assertion failed against a correct build.
+## The drone is at (9,6) and the anchor at (10,6), one apart, so their rings overlap on four tiles
+## ((9,5) (10,5) (9,7) (10,7)) and the drone's own tile plus the anchor's are occupied. That leaves
+## exactly (8,5), (8,7) and TARGET_TILE itself as drone-exclusive; (8,7) is the free one.
+const BESIDE_THE_DRONE := Vector2i(8, 7)
 ## Beside the ANCHOR and two tiles from the drone, so landing here really leaves the drone's
 ## engagement zone - and so it is absent from the offered set the moment "character" stops meaning
 ## is_actor() and the drone becomes the anchor.
@@ -194,10 +203,20 @@ func test_a_second_hunt_on_the_same_character_is_refused_at_targeting():
 func test_the_closest_character_can_be_the_sluagh_itself():
 	# "the closest character" - ANY faction, the Sluagh included (ruling 18). Moving the anchor out
 	# of the way leaves the Sluagh as the nearest thing to the target.
+	#
+	# THE OFFERED SET IS THE ASSERTION THAT MEANS ANYTHING HERE, and it was added at the frame close
+	# after the reviewer found this case vacuous: the landing is a tile the SPEC supplied to the
+	# responder, and nothing on that path checks it against what was offered (this file's header,
+	# target_action_util.gd:227). So with the landing alone this case passed unchanged against a
+	# search that excluded the Sluagh outright - the anchor at distance 17 would have been picked, a
+	# ring built round IT, and the queued plan still honoured. Reading the ring back is the only way
+	# to say WHOSE side the target was dragged to.
 	SluaghFixture.step(anchor, Vector2i(25, 6))
 	SluaghFixture.track(game)
 	var beside_the_sluagh := Vector2i(SLUAGH_TILE.x, SLUAGH_TILE.y + 1)
 	await run_hunt(beside_the_sluagh)
+	assert_true(offered_tiles().has(beside_the_sluagh),
+		'The SLUAGH is the anchor: the set offered is its own ring.')
 	assert_eq(target.tile(), beside_the_sluagh, 'The target is dragged to the Sluagh\'s own side.')
 
 func test_a_single_closest_character_is_auto_picked_with_no_prompt():
@@ -287,11 +306,25 @@ func test_the_shove_drags_an_engaged_target_out_past_the_drone_that_engaged_it()
 	# target, and two units on the same side never engage each other, so it would have been a
 	# tautology. An allied DRONE is hostile to the target and does engage it.
 	#
-	# (2) "CHARACTER" MEANS is_actor(). Unit.is_character() is TRUE for a drone (unit.gd:116-117), so
-	# a drone at distance 1 would beat the anchor at distance 2 the moment the search asks the wrong
-	# question - and BEYOND_THE_DRONE is beside the ANCHOR and two tiles from the drone, so it leaves
-	# the offered set entirely if that happens. Without this clause nothing in the suite places a
-	# drone at all and the mutation is invisible.
+	# (2) "CHARACTER" MEANS is_actor(), the mod's settled reading (rulings 194, 64/70 and 269;
+	# canonical paragraph in action_stealing_of_the_souls.gd's header). Unit.is_character() is TRUE
+	# for a drone (unit.gd:116-117), so a drone at distance 1 beats the anchor at distance 2 the
+	# moment the search asks the wrong question - and BEYOND_THE_DRONE is beside the ANCHOR and two
+	# tiles from the drone, so it leaves the offered set entirely if that happens. Without this
+	# clause nothing in the suite places a drone at all and the mutation is invisible.
+	#
+	# THIS SEARCH IS WHY THE WHOLE FRAME SETTLED ON is_actor(), and the alternative was MEASURED on
+	# this very board (2026-09-21): under is_character() the drone became the anchor, the offered set
+	# became its own ring, and the Hunt could no longer drag a target clear of the thing holding it.
+	# Only a character can engage (UnitRelation.can_be_engaged_by:154) and an engager is adjacent by
+	# definition, so an engager is ALWAYS at distance 1 and every tile in its ring is beside it - the
+	# card's whole point, deleted by one predicate. BESIDE_THE_DRONE is asserted ABSENT below as the
+	# standing pin on that.
+	#
+	# THE DISCRIMINATION IS ON offered_tiles(), NOT ON THE LANDING. Nothing validates an answered
+	# plan against what was offered (this file's header, target_action_util.gd:227), so a tile the
+	# engine never offered is still shoved to - measured 2026-09-21, flipping the predicate moved the
+	# offered set and left a landing assertion green.
 	var drone:Unit = SluaghFixture.create_drone(game, DRONE_TILE)
 	SluaghFixture.track(game)
 	assert_true(UnitCondition.is_engaged(target), 'fixture: the drone really engages the target.')
@@ -299,8 +332,18 @@ func test_the_shove_drags_an_engaged_target_out_past_the_drone_that_engaged_it()
 	await run_hunt(BEYOND_THE_DRONE)
 	assert_true(offered_tiles().has(BEYOND_THE_DRONE),
 		'The ANCHOR is the closest character: a drone is not one, whatever is_character() says.')
+	assert_false(offered_tiles().has(BESIDE_THE_DRONE),
+		'And the DRONE\'s own ring is never offered - it was walked past, not stopped at.')
 	assert_eq(target.tile(), BEYOND_THE_DRONE, 'And the shove lands regardless of engagement.')
-	assert_false(UnitCondition.is_engaged(target), 'Two tiles out, the engagement is gone.')
+	# THE TRACKING PASS IS NOT DECORATION, and without it this last assertion is weaker than it
+	# looks. EventUnitMove hangs buff_ignore_engagement_from on the mover for every unit already
+	# engaging it (event_unit_move.gd:553-557) and lets it die at END_OF_MOVE, so the ENGAGED status
+	# the move itself recomputes is taken while that buff still suppresses it - a false negative
+	# would read as success here. Re-running the pass is what the game does on its own next tick,
+	# and it is the fixture's own helper for exactly this.
+	SluaghFixture.track(game)
+	assert_false(UnitCondition.is_engaged(target),
+		'Two tiles out, the engagement is gone - re-measured after the tracking pass, not before.')
 	assert_true(Unit.is_valid(drone), 'fixture: the drone is still standing where it was.')
 
 func test_an_interdiction_field_stops_the_shove_and_the_stamp_still_stands():
@@ -323,6 +366,16 @@ func test_an_interdiction_field_stops_the_shove_and_the_stamp_still_stands():
 	# (buff_interdiction_field.gd:16-21). The holder must be WITHIN 3 of the mover or get_values
 	# returns the doughnut instead of the lockdown (:29-33) - so the Sluagh steps to 3 away, which
 	# still leaves the anchor at 2 the unique closest character.
+	#
+	# NO UNBUFFED CONTROL RUN ON THIS BOARD, and that is a limit rather than an oversight (raised at
+	# the frame close, 2026-09-21). This is the only case that steps the Sluagh to (5,6), so "the
+	# shove would have landed here without the field" is not shown by any sibling - but it cannot be
+	# shown inside this test either: the 1/scene stamp refuses a second Hunt on the same character
+	# (test_a_second_hunt_on_the_same_character_is_refused_at_targeting), and hunting a different one
+	# is a different board again. The offered-set assertion below is the nearest available control -
+	# it says LANDING really was reachable and standable for this target on THIS board, so only the
+	# MOVE was refused - and Task 8's mutation 4 (Teleport.shove -> Teleport.move) still reddens
+	# exactly this case, so it is discriminating today.
 	SluaghFixture.step(sluagh, Vector2i(5, 6))
 	SluaghFixture.track(game)
 	UnitCondition.apply_buff_id(SpecFactory.dummy_event(), sluagh, &'buff_interdiction_field')

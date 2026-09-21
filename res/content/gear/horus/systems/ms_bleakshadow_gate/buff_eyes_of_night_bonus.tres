@@ -32,7 +32,17 @@ is_onetime = true
 ;     bonus is simply lost with its owner. Whether the card should refuse a lethal 2 is a separate
 ;     question, PROPOSED to the author; the confirm prompt already makes it the player's call.
 ; Closed, not open (controller ruling, Task 2 review, re-affirmed at the final review).
-; HIDDEN, and in NEITHER icon table: bonus_source_id (attack_util.gd:307) has no reader outside
-; attack_util.gd, so nothing ever draws this buff. It lives for the width of one damage roll.
+; HIDDEN, and in NEITHER icon table - but IT IS NAMED IN THE BATTLE LOG, and the claim that used to
+; sit here ("nothing ever draws this buff") was wrong (close review, slice 6 I-1). It is true only of
+; bonus_source_id (attack_util.gd:307), which has no reader outside attack_util.gd. The very next
+; line stamps bonus_source_NAME = bonus_damage_buff.name_text() (:308), and
+; event_unit_attack_declared.gd:305-313 writes it into a player-facing line ("{unit} is dealing
+; +{amount}{type} bonus damage against {target} from {sources}."). Without a row of its own,
+; Translate.buff falls through to the owner gear's actions[0] (translate.gd:72-75,
+; gear_core.gd:337-339) - which on this TWO-action Kit is the ACTIVATE, so the +3 was credited to
+; "Activate Bleakshadow Gate". gear.buff_eyes_of_night_bonus.name is the fix, pinned by
+; test_bleakshadow_gate.test_the_bonus_names_the_reaction_not_the_activate. Vanilla's twelve
+; bonus_damage_specific buffs carry no row because every one of them sits on a SINGLE-action Kit.
+; The buff still lives for the width of one damage roll.
 hide_from_player = true
 can_apply_to_tech_attacks = true

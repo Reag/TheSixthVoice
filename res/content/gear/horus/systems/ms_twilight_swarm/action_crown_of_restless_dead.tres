@@ -22,6 +22,11 @@
 ; anyway - "allied" in Lancer never includes yourself for a transfer like this, and the Sluagh
 ; crowning itself would be a no-op that still cost the round.
 ;
+; requires_target_character IS THE CHEAP FIRST GATE AND NOT THE WHOLE CLAUSE. It is is_character(),
+; which is TRUE of a DRONE (unit.gd:116), and "character" on this frame is is_actor() - so the .gd
+; carries a can_target_unit override that narrows it. The flag stays because it refuses objects and
+; markers a step earlier for free. See the .gd's header.
+;
 ; NO consumes_charges HERE, because it cannot be here: it is a FUNCTION on Action (action.gd:108),
 ; not an export. Ruling 3's exemption is the override in the .gd.
 [resource]

@@ -50,8 +50,16 @@ const SLUAGH_TILE := Vector2i(4, 6)
 ## Eight tiles east: well inside Range 15, and far outside anything's threat or adjacency.
 const TARGET_TILE := Vector2i(12, 6)
 
-## Beats a dummy's evasion 10 comfortably and does not reach attack_roll.gd:73's total_roll >= 20,
-## so the ON_CRIT stage never runs and a crit-staged effect could not pass for an on-hit one.
+## Beats the dummy's E-DEF 8 comfortably, and does not reach attack_roll.gd:73's total_roll >= 20, so
+## the ON_CRIT stage never runs and a crit-staged effect could not pass for an on-hit one.
+##
+## E-DEFENCE, NOT EVASION, AND THE DIFFERENCE IS NOT COSMETIC (corrected at the frame close,
+## 2026-09-21; this comment used to say "a dummy's evasion 10"). This weapon is SMART, so
+## ActionAttackWeapon.get_against_attack_type returns TECH (:250-252) and the roll is against
+## E-DEFENCE. The fixture's dummy takes its E-DEF from statblock_default.tres, which ships
+## `evasion = 8, edef = 8`, and FitzgeraldFixture.create_dummy rewrites health, armor and EVASION
+## only - so create_hostile's evasion argument is INERT here and tuning it to force a miss on this
+## weapon changes nothing at all. The real margin is 15 against 8.
 const D20_HITS := 15
 ## Loses to anything.
 const D20_MISSES := 1
@@ -68,6 +76,9 @@ func before_each() -> void:
 	game = SluaghFixture.create_game(self)
 	sluagh = SluaghFixture.create_sluagh(game, SLUAGH_TILE)
 	SluaghFixture.arm_nightfare_nexus(sluagh)
+	# THE DEFAULTED evasion ARGUMENT IS INERT ON THIS FILE'S BOARD - see D20_HITS. A SMART weapon
+	# rolls against E-DEFENCE, and create_hostile cannot set that; the dummy's E-DEF is the
+	# statblock default 8 in every test here. Do not try to force a miss by raising it.
 	target = SluaghFixture.create_hostile(game, TARGET_TILE)
 
 func after_each() -> void:
@@ -124,7 +135,7 @@ func test_the_kit_carries_one_on_hit_effect_that_buffs_the_target():
 	assert_not_null(kit, 'fixture: the Kit loads.')
 	# THE ACTION COUNT IS ASSERTED BEFORE THE GUARD, not after it. ContentLibrary.get_kit does not
 	# return null for an id it has never heard of - it hands back the mt_missing_mechsystem
-	# placeholder (kit.gd:13, UNKNOWN_ID), which is a Kit with an empty actions array - so a bare
+	# placeholder (kit.gd:9, UNKNOWN_ID), which is a Kit with an empty actions array - so a bare
 	# `if kit == null or kit.actions.is_empty(): return` would slip past assert_not_null and return
 	# without asserting anything discriminating. Measured on this very file's RED run (2026-09-21):
 	# this test was the ONE green of eight before any content existed.
@@ -176,9 +187,29 @@ func test_a_hit_leaves_nothing_on_the_sluagh():
 	assert_false(chipped(sluagh), 'The Sluagh gains nothing; the cover is the TARGET\'S.')
 	assert_eq(cover_from_the_sluagh(sluagh), Lancer.COVER.NONE, 'And it stands in the open.')
 
+## Did the weapon actually fire this turn? UnitAction.spend records every activation, freebie or not
+## (unit_action.gd:279 -> GearCore.increment_action_usage_for_action), so this is 0 when the
+## activation aborted and 1 when the shot went out.
+##
+## THE MISS CASE NEEDS THIS AND ITS SIBLINGS DO NOT. "0 damage and no chip" is equally satisfied by
+## the shot never happening, and the silent-abort path is real - a second use_solo in one turn dies
+## at event_gear_activate with no "Gear not available" line (sluagh_fixture.gd:439-443). The hit
+## cases carry `current_damage() == FLAT_DAMAGE` as their own guard; a miss has no positive number
+## to read, because a Nexus carries no Reliable.
+##
+## READ OFF THE USAGE TALLY RATHER THAN OFF THE DICE QUEUE, deliberately. Counting the entries left
+## in Dice.CHEAT_ROLL_QUEUE would work today but pins the fixture's 60-long tail and the exact
+## number of dice this weapon pops, both of which are incidental; "the weapon was used once" is the
+## thing the case actually depends on.
+func shots_fired() -> int:
+	var gear:GearCore = sluagh.get_gear(SluaghFixture.NIGHTFARE_NEXUS)
+	if not GearCore.is_valid(gear) or gear.kit.actions.is_empty(): return -1
+	return gear.get_uses_this_turn(gear.kit.actions[0])
+
 func test_a_miss_leaves_nothing():
 	SluaghFixture.queue([D20_MISSES])
 	await SluaghFixture.nightfare_shot(game, sluagh, target)
+	assert_eq(shots_fired(), 1, 'fixture: the shot really was fired - see shots_fired().')
 	assert_eq(target.current_damage(), 0,
 		'fixture: the shot missed, and a Nexus has no Reliable to floor it.')
 	assert_false(chipped(target), 'A miss hands out no cover.')
@@ -237,14 +268,49 @@ func test_the_chip_clears_at_the_start_of_the_sluaghs_next_turn():
 		'And it survives the target\'s turn END too. THIS IS THE ASSERTION THAT MAKES THE CLOCK '
 		+ 'MEASURABLE, and it was added after a mutation ran green without it (2026-09-21): '
 		+ 'UnitCondition.end_turn_for_statuses runs on ALL units at every turn end and clears an '
-		+ 'END_OF_NEXT_TURN buff once its turn_count has reached 1 (unit_condition.gd:32-41), which '
-		+ 'that counter does at the wearer\'s own turn start (:24). So a chip authored until = 1 '
+		+ 'END_OF_NEXT_TURN buff once its turn_count has reached 1 (unit_condition.gd:33-43, the '
+		+ 'branch itself at :41-42), which that counter does at the wearer\'s own turn start '
+		+ '(:24). So a chip authored until = 1 '
 		+ 'would be gone HERE - one step before the Sluagh\'s turn start - and the assertion below '
 		+ 'would pass for the wrong reason.')
 
 	await SluaghFixture.open_turn(game, sluagh)
 	assert_false(chipped(target), 'And the SLUAGH\'S next turn start is what clears it.')
 	assert_eq(cover_from_the_sluagh(target), Lancer.COVER.NONE, 'The cover goes with it.')
+
+func test_the_chip_the_player_reads_is_real_text_and_not_a_raw_key():
+	# THE DEFECT THIS PINS, found in the frame-close review and fixed by two CSV rows. The chip is
+	# VISIBLE, carries no rows of its own and no localization_key_override, so Translate.buff walked
+	# its whole chain (translate.gd:49-79) and ran out: the override (:51) absent, its own
+	# gear.<buff_id>.<prop> (:57) absent, the weather branch (:61) absent, the kit-plus-buff key
+	# (:69) absent, the solo-action key (:72-74) absent, and the last resort (:77) is
+	# `gear.mw_nightfare_nexus.effect` - which cannot exist, because a WEAPON Kit's rules row is
+	# .on_hit / .on_crit and never .effect. Buff.effect_text takes the default return_key_if_blank =
+	# true (buff.gd:189, translate.gd:49), so the player read the literal string
+	# "gear.mw_nightfare_nexus.effect" in the chip's tooltip - drawn unconditionally, with no empty
+	# guard (tooltip_organ_buff.gd:21).
+	#
+	# ASSERTED ON THE LIVE BuffCore, not on the CSV keys alone. test_the_card_rows_resolve below
+	# checks the two rows exist; only this reads them back the way the tooltip does, through
+	# BuffCore.effect_text -> Buff.effect_text -> Translate.buff, which is the chain that was broken.
+	# A `begins_with('gear.')` check is the shape of the defect rather than the shape of the text,
+	# so it stays true whatever the author later rewords the rows to.
+	SluaghFixture.queue([D20_HITS])
+	await SluaghFixture.nightfare_shot(game, sluagh, target)
+	var chip:BuffCore = UnitCondition.get_buff(target, SluaghFixture.NIGHTFARE_CHIP)
+	assert_not_null(chip, 'fixture: the chip is on the target.')
+	if chip == null: return
+	assert_false(chip.effect_text().begins_with('gear.'),
+		'The chip\'s tooltip body is real text, not the raw key Translate.buff falls through to.')
+	assert_false(chip.effect_text().is_empty(),
+		'...and it is not EMPTY either, which is the other way out of this chain: an override at '
+		+ 'translate.gd:51-52 returns blank rather than the key, so a chip "fixed" with a '
+		+ 'localization_key_override pointing at rows that do not exist reads as nothing at all. '
+		+ 'tooltip_organ_buff.gd:21 draws the body unconditionally, with no empty guard.')
+	assert_false(chip.name_text().begins_with('gear.'), 'And so is its title.')
+	assert_eq(chip.effect_text(),
+		'You have |soft cover| until the start of the Sluagh\'s next turn.',
+		'And it is the row the frame close added, verbatim.')
 
 # ---------------------------------------------------------------- the card and the licence
 
@@ -268,13 +334,21 @@ func test_the_card_rows_resolve():
 		'The LCP verbatim, pipes added. No divergence is recorded for this card and none is wanted.')
 	# THE ENGINE REALLY READS THIS KEY - it is not decoration. Translate.action falls through from
 	# gear.<kit>.<action>.on_hit to gear.<kit>.on_hit (translate.gd:26-29, :44-45), and both surfaces
-	# that draw a weapon card read it through that fallback: the character sheet at kit.gd:256 and
-	# the action tooltip at tooltip_organ_action.gd:188.
+	# that draw a weapon card read it through that fallback: the character sheet at kit.gd:254 and
+	# the action tooltip at tooltip_organ_action.gd:187. (Both files' NEXT line is the .on_crit
+	# read - kit.gd:256, tooltip_organ_action.gd:188 - which is what this comment used to cite.)
 	var kit:Kit = ContentLibrary.get_kit(SluaghFixture.NIGHTFARE_NEXUS)
 	if kit == null or kit.actions.is_empty(): return assert_true(false, 'fixture: the Kit loaded.')
 	assert_eq(Translate.action(kit, kit.actions[0], 'on_hit', false),
 		X.tr('gear.mw_nightfare_nexus.on_hit'),
 		'And Translate.action finds it from the ACTION, through the Kit-level fallback.')
+	# THE CHIP'S OWN TWO ROWS, added at the frame close (2026-09-21). They are INVENTED - this chip
+	# has no LCP source, so the localisation directive does not bind their wording - and the mod's
+	# own precedent for that is buff_ddmr_aegis / buff_grav_amped_saves.
+	for key:String in ['gear.buff_nightfare_soft_cover.name',
+			'gear.buff_nightfare_soft_cover.effect']:
+		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
+		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
 
 func test_the_licence_grants_it_at_rank_two():
 	var licence:UnlockTree = ContentLibrary.get_license_tree(SluaghFixture.LICENSE_ID)

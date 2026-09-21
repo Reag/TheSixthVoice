@@ -15,7 +15,15 @@
 # THE REFRESH IS TWO MECHANISMS AND BOTH ARE TESTED. A GAIN is refreshed by the shared helper
 # (SP1 Task 4's one line in Overshield.grant); a LOSS is not - event_unit_damage spends the shield
 # inside damage() at :119 and rebuilds nothing - so the buff itself listens on DAMAGE POST for its
-# own holder and refreshes there. Delete either and exactly one test below goes red.
+# own holder and refreshes there.
+#
+# DELETE EITHER AND SEVERAL TESTS GO RED - not one, which is what this line claimed until the close
+# (SP1 ledger line 104 had the real numbers all along). MEASURED at SP1 Task 5: emptying
+# buff_inexorable_formation.tres's `triggers_on` reddens THREE
+# (test_the_chip_is_hidden_and_on_the_statblock_channel,
+# test_sensors_fall_back_when_damage_strips_the_overshield, test_partial_loss_moves_sensors_partway);
+# neutralising overshield.gd:87's `target.update_cached_values_and_token()` reddens FOUR here, plus
+# two in test_overshield.gd.
 #
 #   godot --resolution 800x600 --position -2400,-2400 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_inexorable_formation.gd
 extends GutTest

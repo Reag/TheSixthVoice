@@ -24,13 +24,23 @@ until = 7
 ; roll breakdown the same way. buff_ddmr_aegis and buff_grav_amped_saves are this mod's precedent
 ; for a chip with its own two rows; test_in_triumvirate.test_the_card_rows_resolve pins both.
 ;
-; TECH IMMUNITY SWITCHES THIS OFF, AND IT IS VANILLA DOING IT (final review, item 3; PROPOSED to
-; the author). Buff.check_if_prohibited (buff.gd:228-239) refuses any buff whose OWNER GEAR is tech
-; - this one's is the Morrígan, tech through In Triumvirate's is_tech (UnitAction.is_tech,
-; unit_action.gd:567-571) - whenever the HOLDER, context.unit or context.target_unit is
-; tech-immune (frame.is_biological or a Buff.TO.TECH_IMMUNITY buff, unit_condition.gd:532). It is
-; applied on EVERY get_buffs_to (unit_condition.gd:850), so all three of the card's effects go
-; quiet with no log line: a tech-immune ATTACKER ignores this ward (attack_roll.gd:134 passes the
-; attack context, whose `unit` is the attacker), a tech-immune partner's PAIR is invisible to the
-; banner, and Eyes of Night's +3 is refused when the ally attacker or the defender is tech-immune.
-; test_in_triumvirate.test_a_tech_immune_attacker_ignores_the_ward pins the first of the three.
+; TECH IMMUNITY SWITCHES THIS OFF, AND IT IS VANILLA DOING IT (final review, item 3; taken by the
+; author at the frame close). Buff.check_if_prohibited (buff.gd:228-239) refuses any buff whose
+; OWNER GEAR is tech - this one's is the Morrígan, tech through In Triumvirate's is_tech
+; (UnitAction.is_tech, unit_action.gd:567-571) - whenever the HOLDER, context.unit or
+; context.target_unit is tech-immune (frame.is_biological or a Buff.TO.TECH_IMMUNITY buff,
+; unit_condition.gd:532). It is applied on EVERY get_buffs_to (unit_condition.gd:850), so a
+; tech-immune ATTACKER ignores this ward with no log line at all (attack_roll.gd:135 passes the
+; attack context, whose `unit` is the attacker). Pinned by
+; test_in_triumvirate.test_a_tech_immune_attacker_ignores_the_ward.
+;
+; THE OTHER TWO EFFECTS GO QUIET BY DIFFERENT ROUTES, and this comment used to lump all three under
+; this one gate (close review, slices 1 and 6):
+;  - the PAIR: check_if_prohibited only ever examines the QUERIED unit (get_buffs_to is called with
+;    no context, unit_condition.gd:822-824), so vanilla alone would leave the pair ONE-SIDED. The
+;    banner's own `if UnitCondition.is_immune_to_tech(partner): continue` is what switches it off at
+;    both ends - ours, not vanilla's. test_a_tech_immune_partner_is_not_adjacent_from_either_side.
+;  - EYES OF NIGHT: refused OUTRIGHT and earlier, by ActionReaction.check_if_prohibited
+;    (action_reaction.gd:99-111) via reaction_bus.gd:120 - no prompt, no +3 and no 2 self-damage.
+;    The Buff path never runs there, because the +3 buff is never applied.
+;    test_bleakshadow_gate.test_a_tech_immune_defender_offers_nothing.

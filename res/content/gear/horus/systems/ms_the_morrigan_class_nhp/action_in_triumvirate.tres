@@ -14,6 +14,11 @@ is_tech = true
 self_heat_dice = "2"
 ; "an allied character within Sensors", split the way ActionSystemTargetUnit splits it.
 ; can_target_self is LEFT at its default false and asserted anyway.
+;
+; requires_target_character IS THE CHEAP FIRST GATE AND NOT THE WHOLE CLAUSE. It is is_character(),
+; which is TRUE of a DRONE (unit.gd:116), and "character" on this frame is is_actor() - so the .gd
+; carries a can_target_unit override that narrows it. The flag stays because it refuses objects and
+; markers a step earlier for free. See the .gd's header.
 target_range_is_sensors = true
 can_target_enemies = false
 can_target_allies = true

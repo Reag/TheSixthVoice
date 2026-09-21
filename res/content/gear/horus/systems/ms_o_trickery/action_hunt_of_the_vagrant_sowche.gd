@@ -23,8 +23,20 @@
 # TO.SAVE buffs can read the forcer. A bare-unit call degrades both.
 #
 # "CHARACTER" MEANS is_actor(), not is_character(). Unit.is_character() is TRUE for a DRONE
-# (unit.gd:116) and is_actor() is the not-a-drone predicate (:117) - the reading SP1 took for the
-# Stealing, Astral Guardian and the Mark's aura on this same frame.
+# (unit.gd:116) and is_actor() is the not-a-drone predicate (:117). This is the MOD'S settled reading
+# of the word, held across three rulings on three frames - 194 (the Vauban's Gravity Well shelters
+# allied MECHS), 64/70 (a drone's shot counts as its OWNER'S) and 269 (the Stealing) - and the
+# canonical paragraph is in
+# res/content/frames/horus/mf_sluagh/mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd.
+#
+# THIS SEARCH IS WHY THE FRAME SETTLED THERE, and it was MEASURED at the close rather than argued.
+# Read as is_character(), an ENGAGING DRONE always wins: only a character can engage
+# (UnitRelation.can_be_engaged_by:154 demands is_character()) and an engager is adjacent by
+# definition, so it is always at distance 1, always ties or beats every other candidate, and every
+# tile in its ring is beside it. The Hunt could then never drag a target clear of the thing holding
+# it - the card's whole point, deleted by one predicate. With is_actor() the search walks past the
+# drone to the next real character, and the shove lands where the card says it should.
+# test_the_shove_drags_an_engaged_target_out_past_the_drone_that_engaged_it pins both halves.
 #
 # THE DESTINATION SET IS Teleport.candidate_tiles, NOT UnitTile.filter_to_free_tiles. The design
 # named the latter "for the target's size"; it takes no unit and no size, returns void and filters in
@@ -73,7 +85,8 @@ func on_hit(activation:EventCore, attacked_unit:Unit) -> void:
 	# 1. THE STAMP, FIRST. The hit is the use.
 	specific.gear.append_to_array_state(USED_ON_KEY, attacked_unit.core.persistent_id)
 
-	# 2. THE SAVE. Saver = attacked_unit, forcer = specific.unit (unit_hasecheck.gd:42-45, :80-84).
+	# 2. THE SAVE. Saver = attacked_unit, forcer = specific.unit (unit_hasecheck.gd:42-45, :79-84 -
+	# the saver is `target_unit = unit` at :79 and the forcer's three fields are :82-84).
 	var passed:bool = await UnitHasecheck.make_systems_save(activation, attacked_unit, specific)
 	if activation.abort_without_units([context.unit, attacked_unit]): return
 	if passed: return
@@ -110,6 +123,10 @@ func pick_closest_character(context:Context, target:Unit) -> Unit:
 	var tied:Array[Unit] = []
 	for other:Unit in target.map.get_all_characters():
 		if other == target or not Unit.is_valid(other): continue
+		# LOAD-BEARING, and it is the ONE line that keeps this card working. map.get_all_characters
+		# filters on is_character() (map_state.gd:231-235 -> UnitRelation.filter_for_characters:71),
+		# which PASSES a drone - so without this narrowing an engaging drone is always the closest
+		# "character" and the Hunt can never drag anyone clear. See the header.
 		if not other.is_actor(): continue # "character" on this frame; a drone is not one
 		var distance:int = UnitRelation.distance_between(target, other)
 		if distance >= UNREACHABLE: continue # off the map; see the constant

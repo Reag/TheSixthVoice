@@ -101,9 +101,23 @@ func test_the_card_rows_resolve():
 	if translation == null: return
 	for key:String in ['gear.cp_cry_of_the_hosted_dead.action_mark_of_the_dead.name',
 			'gear.cp_cry_of_the_hosted_dead.action_mark_of_the_dead.effect',
-			'gear.buff_mark_of_the_dead.name']:
+			'gear.buff_mark_of_the_dead.name',
+			# THE CHIP'S OWN EFFECT ROW, added at the close (slice 3 M-1). It shipped correct and
+			# nothing read it, so deleting it would have been silent - and not silent in a harmless
+			# way. Translate.buff's fallback chain (translate.gd:73-77) would then try
+			# gear.cp_cry_of_the_hosted_dead.<actions[0]>.effect, and actions[0] on this Kit is
+			# action_astral_guardian (cp_cry_of_the_hosted_dead.tres), which deliberately has no
+			# effect row - so the chain would land on gear.cp_cry_of_the_hosted_dead.effect, which
+			# IS Astral Guardian's text. The dome's chip would read out the 1d6 Overshield passive
+			# and the fallback would SUCCEED, so no raw-key guard anywhere would fire. That is the
+			# lancer-tactics-buff-card-fallback shape exactly.
+			'gear.buff_mark_of_the_dead.effect']:
 		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
 		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
+	# The discriminating half: "it resolves" is not enough, because the fallback resolves too.
+	assert_ne(X.tr('gear.buff_mark_of_the_dead.effect'), X.tr('gear.cp_cry_of_the_hosted_dead.effect'),
+		'The chip describes the DOME, not Astral Guardian - which is what the Kit-level fallback '
+		+ 'would hand it if the chip\'s own row went missing.')
 	assert_eq(X.tr('gear.cp_cry_of_the_hosted_dead.action_mark_of_the_dead.name'),
 		'Mark of the Dead and the Damned and the Lost', 'The card\'s own name, entire.')
 	# THE EFFECT ROW IS THE WHOLE active_effect, BOTH BULLETS. That is what the LCP holds - one
@@ -210,14 +224,26 @@ func test_an_adjacent_enemy_is_not_sheltered():
 
 func test_an_adjacent_allied_drone_is_not_sheltered():
 	# applies_only_to_characters is checked by PassiveAura.can_apply_buff_to_unit (passive_aura.gd:73)
-	# - and a drone IS a character to the engine (unit.gd:116), so that flag does NOT refuse it. This
-	# test therefore pins the SAME decision Astral Guardian's drone case does: the card says "allied
-	# characters" and this frame reads that as is_actor(), so the aura carries the clause too.
+	# - and a drone IS a character to the engine (unit.gd:116), so that flag does NOT refuse it. The
+	# aura therefore carries its own is_actor() clause, and this case is the only thing that pins it.
+	#
+	# IT IS THE MOD'S READING OF "CHARACTER", NOT THIS FRAME'S. Ruling 194 is the nearest precedent
+	# and it is the SAME MECHANISM one frame over: the Vauban's Gravity Well is a range-1 aura whose
+	# "adjacent allied mechs" explicitly does not shelter drones or deployables. Rulings 64/70 (a
+	# drone's shot counts as its owner's) and 269 (the Stealing) complete the set; the canonical
+	# paragraph is in action_stealing_of_the_souls.gd's header.
+	#
+	# THE TWO SETUP ASSERTIONS ARE KEPT: they name WHICH predicate is being read, so the green is a
+	# statement of the rule. Flip passive_mark_cover_aura.gd's clause to is_character() and this is
+	# the one test in the file that reddens.
 	var drone:Unit = SluaghFixture.create_drone(game, OTHER_ADJACENT_TILE)
 	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
-	assert_false(drone.is_actor(), '...and is NOT an actor.')
+	assert_false(drone.is_actor(), '...and is NOT an actor, which is the distinction the gate uses.')
 	await SluaghFixture.press_mark(game, sluagh)
+	assert_true(UnitRelation.is_adjacent(sluagh, drone), 'fixture: and it really is adjacent.')
 	assert_false(sheltered(drone), 'An adjacent allied DRONE is not sheltered.')
+	assert_eq(cover_against_the_shooter(drone), Lancer.COVER.NONE,
+		'And the engine\'s own cover pipeline agrees: no soft cover reaches it.')
 
 func test_without_the_mark_nobody_is_sheltered():
 	# requires_buff is what gates the whole aura (passive_aura.gd:40-42), and it is why the core

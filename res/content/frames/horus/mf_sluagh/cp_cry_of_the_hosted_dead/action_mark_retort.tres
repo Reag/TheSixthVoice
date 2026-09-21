@@ -18,7 +18,7 @@ trigger_timing = 1
 require_miss = true
 ; RELATION is { ANY, ALLIES, ENEMIES } (action_reaction_attacked.gd:12), so 2 is ENEMIES and 1 is
 ; ALLIES. A hostile attacker, against us or an ally - and are_allies is true of a unit and itself
-; (unit_relation.gd:363-364), which is what lets one filter cover "misses YOU" as well.
+; (unit_relation.gd:364-365), which is what lets one filter cover "misses YOU" as well.
 require_attacker_relation = 2
 require_defender_relation = 1
 ; Both default FALSE and both are needed: the card says "an attack", unqualified, and without them a

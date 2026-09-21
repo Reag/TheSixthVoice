@@ -78,10 +78,19 @@ const GREY_BIRDS_RECENTRE := &'buff_grey_birds_recentre'
 ## attack with it pops a d20 and nothing else off Dice.CHEAT_ROLL_QUEUE - which is what makes the
 ## exact queues in Tasks 2, 6 and 8 predictable.
 ##
-## ITS RELIABLE 2 IS THE ONE TRAP: a MISS with it still lands 2 damage on the defender, and that
-## damage lands AFTER the ATTACK POST reactions (memory lancer-tactics-spec-harness-traps). Any test
-## whose subject is "a miss did nothing to the DEFENDER" uses TECH_ID instead; tests that read the
-## ATTACKER's health (the Mark's retort) are unaffected.
+## ITS RELIABLE 2 IS THE ONE TRAP, AND IT IS A FLOOR ON A HIT TOO - NOT ONLY A MISS PAYOUT. A MISS
+## with it still lands 2 damage on the defender, and that damage lands AFTER the ATTACK POST
+## reactions (memory lancer-tactics-spec-harness-traps). Any test whose subject is "a miss did
+## nothing to the DEFENDER" uses TECH_ID instead; tests that read the ATTACKER's health (the Mark's
+## retort) are unaffected.
+##
+## THE HIT HALF IS THE ONE THAT KEEPS BEING GOT WRONG (measured SP1 Task 2, 2026-09-20; the plan had
+## it wrong and so did this header until the close). AttackUtil reduces the rolled damage and then
+## tops the TOTAL back up whenever `total < reliable` - `attack_util.gd:144-147`, which sits inside
+## the shared reduction path and is NOT in a miss branch. So a cheated damage die of 1 lands 2 on a
+## HIT as well, and a hit and a miss become indistinguishable by the damage number. **Never cheat a
+## rifle damage die below 3 in a test whose evidence is that number**: test_wicked_host.gd's
+## DAMAGE_DIE = 3 and test_rend_nexus.gd's say why in the same words.
 const MAIN_RIFLE := &'mw_assault_rifle'
 
 ## A vanilla TECH attack, and it needs no equipping: ms_fragment_signal is in every player mech's
@@ -122,6 +131,12 @@ static func create_sluagh(game:Gamemaster, tile:Vector2i) -> Unit:
 ## A FrameIsolation'd punching bag: 200 HP so it never dies mid-spec, armor 0 so damage numbers are
 ## the weapon's, and a caller-chosen evasion. Defaults to evasion 10 ("only hit when we say"), which
 ## is also the Sluagh's own evasion - so one cheated d20 decides a hit or a miss against either.
+##
+## THE evasion ARGUMENT DOES NOT MOVE E-DEFENCE, which stays at statblock_default.tres's 8 - this
+## function never writes it. A SMART weapon rolls against E-DEF (action_attack_weapon.gd:250-252),
+## so the argument is INERT for one and the sentence above is false in that case: the d20 that
+## decides a Nightfare Nexus hit is being compared against 8, not against the evasion you passed.
+## See test_nightfare_nexus.gd's D20_HITS. (Close review slice 5, M-2.)
 static func create_dummy(game:Gamemaster, tile:Vector2i, evasion:int = 10) -> Unit:
 	return FitzgeraldFixture.create_dummy(game, tile, evasion, Faction.AI_ENEMY)
 
@@ -133,9 +148,34 @@ static func create_hostile(game:Gamemaster, tile:Vector2i, evasion:int = 10) -> 
 static func create_ally(game:Gamemaster, tile:Vector2i) -> Unit:
 	return FitzgeraldFixture.create_dummy(game, tile, 10, Faction.PLAYER)
 
-## An allied DRONE: a character that is NOT a mech. The negative control for every "allied character"
-## clause on this frame - Astral Guardian's require_defender_to_be_character, and the Mark aura's
-## applies_only_to_characters (passive_aura.gd:73).
+## An allied DRONE: a character that is NOT an actor. It is the NEGATIVE control for every "allied
+## character" clause on this frame.
+##
+## "CHARACTER" ON THIS FRAME IS Unit.is_actor(), AND A DRONE IS NOT ONE. Unit.is_character() IS true
+## of a drone (unit.gd:116, "active mech/pilot/drone"), which is exactly why every clause has to say
+## is_actor() (:117) for itself. A drone is therefore NOT sheltered by the Mark's dome, NOT guarded
+## by Astral Guardian, does NOT arm the Mark's retort, does NOT open the Eyes, does NOT grant on the
+## Stealing, is NOT the Hunt's closest character, and is NOT a legal In Triumvirate partner or Crown
+## target. The canonical statement of the rule - and of the mod-wide precedent behind it (rulings
+## 194, 64/70 and 269) - lives in the production header of
+## res/content/frames/horus/mf_sluagh/mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd.
+##
+## THE ONE PLACE A DRONE STILL COUNTS IS WHERE IT **ACTS**, and there it acts as its OWNER: ruling
+## 70's Draw Fire resolution. mt_wicked_host is the frame's only attacker-side clause and resolves
+## through `Unit.get_attacker()` before asking is_actor(), so an OWNED hostile drone's hit arms the
+## chip as its owner's. `own_drone` below is what builds that case; an unowned drone is the control.
+##
+## WHAT IS EXCLUDED FOR A DIFFERENT REASON is an OBJECT, a WRECK or a MARKER, and
+## create_hostile_object below is the control for that half - is_character() is already false for
+## those (unit.gd:110, frame.gd:100), with no clause of ours involved.
+##
+## THE ENGINE FLAGS DO NOT DELIVER ANY OF THIS, and that correction is worth keeping because it has
+## been got wrong twice: `require_defender_to_be_character` (action_reaction_attacked.gd:95),
+## `PassiveAura.applies_only_to_characters` (passive_aura.gd:73) and
+## `ActionSystemTargetUnit.requires_target_character` (action_system_target_unit.gd:16) are ALL
+## `is_character()`, which a drone passes. Every spec that reads a drone therefore keeps its
+## `assert_true(drone.is_character())` / `assert_false(drone.is_actor())` pair: those two lines are
+## what make the test state the RULE rather than only the outcome.
 ##
 ## Built by flipping is_drone on an ALREADY-ISOLATED frame rather than by loading a vanilla drone
 ## frame, the Vauban fixture's reasoning verbatim: create_dummy calls FrameIsolation.isolate_frame,
@@ -146,6 +186,20 @@ static func create_drone(game:Gamemaster, tile:Vector2i, faction:Faction.SIDE = 
 	var drone := FitzgeraldFixture.create_dummy(game, tile, 10, faction)
 	drone.core.frame.is_drone = true
 	drone.core.full_repair()
+	return drone
+
+## Give a drone an OWNER, so Unit.get_attacker() resolves its shots to that owner.
+##
+## THIS IS THE ENGINE'S OWN CALL, not a hand-written field: UnitBattleState.set_owner writes
+## deployable_owner_id (unit_battle_state.gd:255-261, inheriting the owner's own owner when it has
+## one), get_owner_unit reads it back through map.get_unit_by_id (unit.gd:264-268), and
+## get_attacker -> get_owner_unit_or_self is what ruling 70 resolves through (unit.gd:270-282).
+##
+## AN UNOWNED DRONE IS THE CONTROL, and it is the default create_drone gives: with no owner id
+## get_attacker returns the drone itself, which is not an actor, so nothing arms. That pair is the
+## whole of the Wicked Host drone evidence.
+static func own_drone(drone:Unit, owner:Unit) -> Unit:
+	drone.state.set_owner(owner)
 	return drone
 
 ## A hostile OBJECT - a Jericho cover on the enemy side. THE POINT IS THAT IT IS NOT A CHARACTER:
@@ -253,6 +307,15 @@ static func shoot_again(game:Gamemaster, attacker:Unit, target:Unit) -> void:
 ## (event_unit_attack.gd:123, then event_unit_attack_declared.gd:74). So the queue for a guardian
 ## test reads [d20, the guardian's d6, the rifle's damage d6].
 ##
+## AND IN A CASE WHERE THE REACTION IS CORRECTLY REFUSED, THE DAMAGE DIE IS THE **SECOND** ENTRY, NOT
+## THE THIRD. Nothing pops the middle slot when no d6 is rolled, so a negative case written with the
+## positive case's queue reads the GUARDIAN's number as its damage and fails against a build that is
+## working (measured SP1 Task 6, and again at Task 9 - ledger lines 110 and 128). THE IDIOM EVERY
+## NEGATIVE CASE ON THIS FRAME USES: write the SAME number in both slots, so the damage read is
+## identical whether or not a die was popped first and the assertion is about the gate rather than
+## about queue alignment. Soft cover and the two accuracy chips pop entries in that same middle
+## region, for the same reason.
+##
 ## THE TAIL IS 1s, NOT 6s, AND THAT IS THIS FRAME: the Sluagh has 8 HP and 0 armor, so a stray
 ## cheated six is a quarter of its health and two of them end a test early. Every other fixture in
 ## this mod tails with sixes because its subject is a 200 HP dummy.
@@ -292,7 +355,7 @@ static func set_grit(unit:Unit, grit:int) -> void:
 ## Put Overshield on a unit through the shared helper, the way production does.
 ##
 ## THROUGH A DUMMY EVENT, which has no live block - so it takes the helper's SECOND path, through
-## X.current_level() (overshield.gd:52-53). That is the path every spec takes and the one
+## X.current_level() (overshield.gd:82-84). That is the path every spec takes and the one
 ## test_overshield.gd established; the live-block path is exercised for real by the Stealing's and
 ## Astral Guardian's own activations.
 static func grant_overshield(unit:Unit, amount:int) -> void:
@@ -347,7 +410,7 @@ static func arm_rend_nexus(unit:Unit) -> GearCore: return equip(unit, REND_NEXUS
 
 ## Fire the Rend Nexus at a target, opening a turn for the shooter first.
 ##
-## THE TURN CYCLE IS NOT DECORATION, for the reason shoot()'s own header (:184-197) gives:
+## THE TURN CYCLE IS NOT DECORATION, for the reason shoot()'s own header (:226-239) gives:
 ## Action.get_per_turn_soft_limit caps any non-free action at one use per turn (action.gd:161-163),
 ## and a second use_solo in one turn aborts at event_gear_activate's check_specific_context with NO
 ## "Gear not available" line - so the shot silently never happens and a "nothing changed" assertion
@@ -372,7 +435,7 @@ static func equip_trickery(unit:Unit) -> GearCore: return equip(unit, TRICKERY)
 ## never runs, and no accuracy die is popped without an accuracy modifier (dice.gd:87-88).
 ## cheat_a_hit()/cheat_a_miss() are therefore complete queues for it.
 ##
-## The turn cycle is shoot()'s, for the reason its header (:184-197) gives - except that an INVADE
+## The turn cycle is shoot()'s, for the reason its header (:226-239) gives - except that an INVADE
 ## has no per-turn soft limit at all (action_attack_tech.gd:13-15 returns 99 for one), so the guard
 ## here is about the ACTIVATION being legal rather than about the second use being swallowed.
 static func grey_birds(game:Gamemaster, sluagh:Unit, target:Unit) -> void:
@@ -436,7 +499,7 @@ static func arm_nightfare_nexus(unit:Unit) -> GearCore: return equip(unit, NIGHT
 ## three-entry comment onto this helper - a queue written for three would hand the wrong number to
 ## the next roll, and queue()'s tail of 1s makes that silent.
 ##
-## THE TURN CYCLE IS NOT DECORATION, for the reason shoot()'s own header (:184-197) gives:
+## THE TURN CYCLE IS NOT DECORATION, for the reason shoot()'s own header (:226-239) gives:
 ## Action.get_per_turn_soft_limit caps any non-free action at one use per turn (action.gd:161-163),
 ## and a second use_solo in one turn aborts at event_gear_activate's check_specific_context with NO
 ## "Gear not available" line - so the shot silently never happens and a "nothing changed" assertion

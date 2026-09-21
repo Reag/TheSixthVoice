@@ -8,9 +8,17 @@
 ## Sluagh), the character test and the weapon/tech branch (action_reaction_attacked.gd:64-128).
 ## THREE CLAUSES ARE THIS SCRIPT'S, because the archetype cannot express them:
 ##  - the ATTACKER is the Sluagh itself, OR an allied CHARACTER (is_actor: a mech or a pilot, never
-##    a drone - the frame's trigger convention, action_astral_guardian.gd's header) within the
-##    Sluagh's LIVE Sensors (unit.get_sensor_range(): frame + stat_bonus, so Inexorable Formation
-##    counts). require_attacker_within would measure from the holder too, but it cannot say "or me"
+##    a drone - unit.gd:117) within the Sluagh's LIVE Sensors (unit.get_sensor_range(): frame +
+##    stat_bonus, so Inexorable Formation counts).
+##    "CHARACTER" IS is_actor() ACROSS THE WHOLE FRAME, which is THE MOD'S settled reading and not
+##    this frame's local taste: ruling 194 (the Vauban's Gravity Well), rulings 64 and 70 (a drone's
+##    shot counts as its OWNER'S) and ruling 269 (the Stealing) all spell it that way. The canonical
+##    paragraph is in
+##    res/content/frames/horus/mf_sluagh/mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd.
+##    An allied DRONE's covered hit therefore does NOT open the Eyes; the archetype's
+##    require_defender_to_be_character could never have delivered that anyway, since it is about the
+##    DEFENDER (action_reaction_attacked.gd:95) and says nothing about who fired.
+##    require_attacker_within would measure from the holder too, but it cannot say "or me"
 ##    and it cannot read a live stat. require_attacker_relation is ANY on the .tres for the same
 ##    reason: are_allies is true of a unit and itself, but the Sensors clause must not apply to the
 ##    Sluagh's own shots.
@@ -18,8 +26,9 @@
 ##    (attack_roll.gd:99). A defender-side IGNORE_COVER (Markerlight) zeroes it at :161-163, so no
 ##    cover, so no trigger - the roll's own answer, not a second computation.
 ##    **AND THAT MAKES THE CARD WEAPON-ONLY IN PRACTICE, MEASURED IN TASK 2.** PreAttack.create
-##    computes cover only inside `if action is ActionAttackWeapon` (attack_roll.gd:152-156), and
-##    ActionAttackTech is a SIBLING of ActionAttackWeapon under ActionAttack, not a subclass - so a
+##    computes cover only inside `if action is ActionAttackWeapon` (the condition is
+##    attack_roll.gd:153-157, the clause itself :154), and ActionAttackTech is a SIBLING of
+##    ActionAttackWeapon under ActionAttack, not a subclass - so a
 ##    tech attack's pre.cover is the initialiser NONE, always, and an invade can never satisfy this
 ##    clause however covered the defender is. allow_tech stays true on the .tres (the card says "hit
 ##    an enemy", unqualified, and the day a tech attack carries cover this must not refuse it), and
@@ -47,6 +56,35 @@
 ## NO_REDUCE returns before armor and resistance (damage_modifications.gd:59); the Overshield soak is
 ## inside damage() (event_unit_damage.gd:215-218) and takes it first (ruling 7's parity).
 ##
+## IT IS DRAWN ON THE SYSTEM CARD (author's ordered change, 2026-09-21), and it used to be drawn
+## NOWHERE. This action carried `show_in_tooltip() -> bool: return false`, whose comment claimed
+## "the Kit's own effect row IS this card" - THE KIT HAS NO EFFECT ROW. Every
+## gear.ms_bleakshadow_gate.* key in the CSV was enumerated at the close: .name, .flavor, the
+## activate's .name/.effect and this reaction's .name/.trigger/.effect, and no .effect on the Kit.
+## So the card was built from the activate's row alone and the player had no way to read this
+## reaction's trigger, its +3 or its 2 self-damage anywhere in the game. With the override gone the
+## base runs (action.gd:341-353) and returns true at clause 5: this action's own effect row is
+## non-empty and differs from the Kit's, which is empty. tooltip_organ_kit.gd:71 is
+## show_in_tooltip's ONLY caller in the tree - it governs the kit/trait CARD, not the gear bar,
+## which drops every ActionReaction unconditionally at gear_bar.gd:145 and never asks this
+## function. The trigger line renders with it: ActionReaction.trigger_text (action_reaction.gd:21-24)
+## reads the ACTION-keyed row and prepends "Trigger:". The interlock is
+## test_content_integrity.gd's ICON_TARGETS, which now carries a KIT row for this action -
+## _action_reaches_a_player_facing_surface returns show_in_tooltip for a reaction, so the pairing
+## assertion goes red if either half is changed alone.
+##
+## TECH IMMUNITY KILLS THIS REACTION OUTRIGHT - not just its +3, and earlier than the branch used to
+## record (close review, slice 6 I-2). ActionReaction.check_if_prohibited (action_reaction.gd:99-111)
+## refuses any TECH reaction whose triggering context.unit or context.target_unit is tech-immune, and
+## reaction_bus.gd:120 calls it inside does_reaction_trigger BEFORE triggers_on_event (:123) is
+## reached. The Gate is tech gear (UnitAction.is_tech, unit_action.gd:567-571, is true of a Kit whose
+## activate sets is_tech), so against a tech-immune attacker or defender there is no prompt, no +3
+## AND no 2 self-damage. The Buff.check_if_prohibited path some of our comments used to name
+## (buff.gd:228-239) is unreachable here, because the buff is never applied. Note also that
+## triggering_context.unit is the DECLARED attacker - "may be a throughbolt round"
+## (event_unit_attack_declared.gd:28-29) - not get_attacker(context), so on a relayed shot the
+## immunity test reads the relay, where the Sensors clause below reads the real attacker.
+##
 ## THE TRIGGERING CONTEXT IS context.event.context, NOT this context - measured in SP1 Task 6 and
 ## used by action_astral_guardian.gd and action_mark_retort.gd. ReactionBus builds the block as
 ## {action, unit, gear, event} (reaction_bus.gd:53-60).
@@ -56,10 +94,6 @@ const GATE_CHIP := &'buff_bleakshadow_gate'
 const BONUS_BUFF := &'buff_eyes_of_night_bonus'
 const DEFENDER_KEY := 'eyes_defender'   # buff_eyes_of_night_bonus.gd reads the same key
 const SELF_DAMAGE := 2
-
-## A reaction never reaches the gear bar (gear_bar.gd:145); the Kit's own effect row IS this card.
-## It is also what keeps this action out of test_content_integrity.gd's ICON_TARGETS.
-func show_in_tooltip(_kit:Kit) -> bool: return false
 
 func is_available_to_activate(unit:Unit, gear:GearCore) -> bool:
 	if not super.is_available_to_activate(unit, gear): return false

@@ -231,12 +231,16 @@ func test_a_hit_on_an_adjacent_allied_drone_gets_nothing():
 	# DESIGN 1.5.1's OWN SPEC LIST, and it is NOT what require_defender_to_be_character delivers.
 	# That flag is `defender.is_character()` (action_reaction_attacked.gd:95), and Unit.is_character()
 	# returns TRUE for a drone - its own comment says "active mech/pilot/drone" (unit.gd:116). The
-	# script therefore adds is_actor() (:117, is_character() and not is_drone), exactly as the
-	# Stealing does for ruling 11's identical exclusion, so the two cards on this one frame mean the
-	# same thing by "character".
+	# script therefore adds is_actor() (:117, is_character() and not is_drone).
+	#
+	# IT IS THE MOD'S READING OF THE WORD, NOT THIS FRAME'S: ruling 194 (the Vauban's Gravity Well
+	# shelters allied MECHS - drones and deployables are not sheltered), rulings 64 and 70 (a
+	# drone's shot counts as its OWNER'S) and ruling 269 (the Stealing) are the three precedents,
+	# and the canonical paragraph is in action_stealing_of_the_souls.gd's header.
 	#
 	# THE TWO SETUP ASSERTIONS ARE THE POINT: they say out loud that the archetype's flag passes this
-	# unit, so the green below is about our clause and not about the .tres.
+	# unit, so the green below is about our clause and not about the .tres. Flip the script's clause
+	# to is_character() and this is the one test in the file that reddens.
 	var drone:Unit = SluaghFixture.create_drone(game, ADJACENT_TILE + Vector2i(0, 1))
 	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
 	assert_false(drone.is_actor(), '...and is NOT an actor, which is the distinction the gate uses.')

@@ -20,6 +20,8 @@ const MaidensBlushFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/mai
 const VaubanFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/vauban_fixture.gd')
 const PrimroseFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/primrose_fixture.gd')
 const SluaghFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/sluagh_fixture.gd')
+## Read-only here: the Mark's retort case asserts the dome is untouched between its two halves.
+const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
 
 const TALENTS_MOD := 'gavstarb-talents_1st_party'
 ## House Guard rank 1. Hidden buff, adjacency_range = 2, only_to_allies - see the registry row.
@@ -75,6 +77,13 @@ const SLUAGH_ADJACENT := Vector2i(5, 6)      # 1 out - adjacent with or without 
 const SLUAGH_TWO_OUT := Vector2i(6, 6)       # 2 out - exactly the tile House Guard's widening pulls in
 const SLUAGH_SHOOTER := Vector2i(10, 6)      # inside the assault rifle's Range 10 of everyone
 const MARK_COVER_CHIP := &'buff_mark_soft_cover'
+## The Mark's retort case (close review, slice 3 I-3). What the Sluagh holds, and therefore what the
+## retort deals to whoever missed - the attacker's health is the observable.
+const RETORT_SHIELD := 3
+## Loses to any evasion this fixture hands out. Its queue needs no more entries than this: every
+## further roll in that sequence (soft cover's accuracy die, the rifle's damage d6) is fed by
+## SluaghFixture.queue's own tail of 1s, and a 1 is the right answer for all of them.
+const SLUAGH_D20_MISSES := 1
 
 # HAMMER_FAR_ALLY_TILE lived here until SP4 Task 5's review. It served a Primrose-side liveness pair
 # that the review showed could not detect what it existed to detect (the widening the Hammer's gather
@@ -663,6 +672,55 @@ func test_house_guard_on_the_sluagh_lets_astral_guardian_reach_an_ally_two_tiles
 	await SluaghFixture.shoot(sluagh_game, shooter, far_ally)
 	assert_eq(far_ally.current_damage(), 1,
 		'RULED: Astral Guardian fired for an ally TWO tiles out - 4 Overshield absorbed 4 of the 5.')
+
+## THE THIRD MECHANISM ON THE SAME SEAM, AND THE ONE RULING 6 CLAIMED WAS PINNED AND WAS NOT (close
+## review, slice 3 I-3). rulings.md's 2026-09-20 row says all three "adjacent" effects take House
+## Guard's widening and are "Pinned by spec/test_compat.gd (SP1)"; the Mark's aura had two cases and
+## Astral Guardian one, and the Mark's RETORT had none. So nothing in the suite could tell
+## action_mark_retort.gd's `UnitRelation.is_adjacent(unit, defender)` from a radius of 1 - they
+## agree in vanilla, and only the talents mod's widening separates them.
+##
+## THE CONTROL IS INSIDE THE TEST, as the two halves of one shot sequence, because the widening can
+## only be applied once and the honest control is the SAME attacker missing the SAME ally at the
+## SAME tile without it. shoot() cycles the attacker's turn between the two, which hands every unit
+## its reaction point back (event_turn_start.gd:42-44) - so the second half is not riding on
+## bookkeeping the first half left behind.
+##
+## THE OBSERVABLE IS THE ATTACKER'S HEALTH, not a counter: a gate that passed and dealt nothing
+## would be a different defect with the same shape. A miss with the rifle lands its Reliable 2 on
+## the 200 HP ally and is irrelevant to that number.
+func test_house_guard_on_the_sluagh_lets_the_marks_retort_answer_a_miss_two_tiles_out() -> void:
+	if skipped_without_talents(): return
+	var sluagh_game:Gamemaster = SluaghFixture.create_game(self)
+	var sluagh:Unit = SluaghFixture.create_sluagh(sluagh_game, SLUAGH_TILE)
+	var far_ally:Unit = SluaghFixture.create_ally(sluagh_game, SLUAGH_TWO_OUT)
+	var shooter:Unit = SluaghFixture.create_hostile(sluagh_game, SLUAGH_SHOOTER)
+	SluaghFixture.arm_rifle(shooter)
+
+	await SluaghFixture.press_mark(sluagh_game, sluagh)
+	await SluaghFixture.grant_overshield(sluagh, RETORT_SHIELD)
+	await SpecFactory.end_turn(sluagh_game, sluagh)
+
+	# CONTROL, unwidened: two tiles out is not adjacent, so the retort is not offered.
+	assert_false(UnitRelation.is_adjacent(sluagh, far_ally),
+		'fixture: two tiles out is NOT adjacent before the buff.')
+	var before:int = shooter.current_damage()
+	SluaghFixture.queue([SLUAGH_D20_MISSES])
+	await SluaghFixture.shoot(sluagh_game, shooter, far_ally)
+	assert_eq(shooter.current_damage(), before,
+		'CONTROL: with no widening, a miss on an ally two tiles out answers nothing.')
+
+	widen_adjacency_on(sluagh)
+	assert_true(UnitRelation.is_adjacent(sluagh, far_ally), 'LIVENESS: the widening is live.')
+	assert_eq(Overshield.current(sluagh), RETORT_SHIELD,
+		'fixture: and the dome is untouched - nothing was shot at the Sluagh.')
+
+	SluaghFixture.queue([SLUAGH_D20_MISSES])
+	await SluaghFixture.shoot(sluagh_game, shooter, far_ally)
+	assert_eq(shooter.current_damage() - before, RETORT_SHIELD,
+		'RULED: the Mark\'s retort answered a miss on an ally TWO tiles out - the gate asks '
+		+ 'is_adjacent, not a radius. Rewrite it as distance_between <= 1 and this is the only '
+		+ 'test in the suite that reddens.')
 
 ## THE CONTROL THAT KEEPS ALL THREE HONEST. Without the buff, the same ally at the same tile gets
 ## neither - so the three greens above are about the widening and not about the content being

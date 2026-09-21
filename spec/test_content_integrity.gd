@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.7.0'
+const EXPECTED_VERSION := '0.8.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -677,12 +677,26 @@ const ICON_TARGETS := {
 	# THE CROWN COSTS ONE MORE FAILING ASSERT UNTIL SP5, not three - a NAMED family on an icon-less
 	# action fails only _assert_real_icon(action.icon_override) at :843, the Hunt row's arithmetic.
 	&'ms_twilight_swarm': {&'action_damnation_of_the_host': KIT, &'action_crown_of_restless_dead': &'action_crown_of_restless_dead'},
-	# SP4 Task 1 (Sluagh). Bleakshadow Gate. Its activate is the one button the gear bar draws for
-	# this Kit (the reaction never reaches the gear bar - gear_bar.gd:145 - and its own
-	# show_in_tooltip returns false, so it is correctly absent from this row). KIT, because the
-	# design gives the system ONE family: {ms_bleakshadow_gate, action_activate_bleakshadow_gate,
-	# action_eyes_of_night, the Gate chip}. The Kit's own icon is SP5's.
-	&'ms_bleakshadow_gate': {&'action_activate_bleakshadow_gate': KIT},
+	# SP4 Task 1 (Sluagh). Bleakshadow Gate. BOTH actions are listed, and for different reasons: the
+	# activate is the one button the GEAR BAR draws (path 2), and EYES OF NIGHT is drawn on the
+	# SYSTEM CARD (path 3) - a reaction never reaches the gear bar at all (gear_bar.gd:145), but
+	# Action.show_in_tooltip answers true for it, so the card carries its own trigger and effect
+	# rows. The mt_juggernaut_drive / action_draw_fire shape, not the ms_heaer one.
+	#
+	# EYES OF NIGHT WAS ABSENT FROM THIS ROW UNTIL THE FRAME CLOSE (2026-09-21), because
+	# action_eyes_of_night.gd overrode show_in_tooltip to false - which kept the reaction off the
+	# card entirely. The Kit has NO gear.ms_bleakshadow_gate.effect row, so nothing else described
+	# it either and the +3 / 2-self-damage was unreadable anywhere in the game. The author ordered
+	# the override removed; this row is the other half of that change, and the two must stay
+	# together - _action_reaches_a_player_facing_surface calls show_in_tooltip directly, so either
+	# edit alone turns the reverse-check assert red.
+	#
+	# BOTH are KIT rows, because the design gives the system ONE family:
+	# {ms_bleakshadow_gate, action_activate_bleakshadow_gate, action_eyes_of_night, the Gate chip}.
+	# Two KIT rows on one Kit are safe by construction - a KIT row `continue`s before joining
+	# texture_by_family, so this Kit contributes zero named families and the collision loop below
+	# runs zero iterations for it (progress-icon-families.md, ledger M2).
+	&'ms_bleakshadow_gate': {&'action_activate_bleakshadow_gate': KIT, &'action_eyes_of_night': KIT},
 	# SP4 Task 4 (Sluagh). The Morrígan-class NHP. In Triumvirate is the one button the gear bar
 	# draws for it; KIT, because the design's family is {the Kit, action_in_triumvirate, the pair
 	# and ward chips}. The Kit's own icon is SP5's.
@@ -1002,6 +1016,92 @@ func test_every_visible_buff_has_a_real_icon():
 		assert_true(VISIBLE_BUFFS.has(buff.compcon_id),
 			'%s is listed in VISIBLE_BUFFS.' % buff.resource_path.get_file())
 		_assert_real_icon(buff.icon, buff.compcon_id)
+
+## Visible chips that deliberately render a row belonging to something ELSE, and the key each one
+## lands on. A row-less buff does NOT fail to render - Translate.buff walks a five-step fallback
+## chain (translate.gd:49-79) and the LAST step returns the raw key itself, because
+## `return_key_if_blank` defaults true (:49) and buff.gd:189 leaves it at the default. So the
+## failure is silent and the player reads `gear.mw_rend_nexus.effect` in the tooltip body.
+##
+## ADDED AT THE SLUAGH FRAME CLOSE, 2026-09-21, after review slices 3, 5 and 7 each found the same
+## defect independently: buff_rend_nexus and buff_nightfare_soft_cover both shipped rendering a raw
+## key. The root cause is structural rather than a typo, which is why this is a standing guard and
+## not two CSV rows. A WEAPON Kit's rules row is `.on_hit` / `.on_crit`, never `.effect` - so for a
+## chip owned by a weapon the fallback chain has nowhere to land, while every other visible chip in
+## this mod happened to sit on a Kit that has an `.effect` row and looked fine by luck.
+##
+## Being on this list is a claim that the borrowed card is the RIGHT card, checked by a human. A
+## buff that sets `localization_key_override` is NOT listed and is skipped automatically: the
+## override is that same claim, made in the buff's own file where a reader will find it
+## (buff_grey_birds is the one that does this today, pointing at ms_o_trickery.action_grey_birds).
+##
+## The four entries are all TRAIT chips whose Kit carries a real `.effect` row saying exactly what
+## the chip does - which is why they were correct on screen and only this guard's stricter reading
+## flagged them. A trait Kit's rules row IS `.effect`, so the fallback lands somewhere true; the
+## weapon case that started all this has no such row to land on.
+const BUFFS_THAT_BORROW_A_CARD := {
+	# Borrows its Kit's `actions[0]`, which on that Kit is the activate - and that is exactly what
+	# the chip should say ("until the end of your next turn you gain the reaction"). Pinned
+	# separately by test_bleakshadow_gate.test_the_gate_chip_borrows_the_activates_card_on_purpose.
+	&'buff_bleakshadow_gate': 'gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.effect',
+	# The remaining three are one-Kit trait chips that fall through to the trait's own effect row.
+	# Their Kits carry no actions at all, so there is no sibling action for the fallback to land on
+	# by mistake - the hazard the Rend Nexus hit needs a MULTI-action or a weapon Kit.
+	&'buff_wicked_host': 'gear.mt_wicked_host.effect',
+	&'buff_weak_computer': 'gear.mt_weak_computer.effect',
+	&'buff_gravity_well': 'gear.mt_gravity_well.effect',
+}
+
+func test_every_visible_buff_renders_real_text_rather_than_a_raw_key():
+	# Read off OUR OWN compiled artifact, not through tr(), for the reason the glossary test gives:
+	# tr() cannot attribute a row to this mod rather than to Thy Hubris, and it cannot see the
+	# staleness trap where a correct CSV sits beside an artifact that has never heard of the key.
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation,
+		'This mod has a compiled translation (run the headless --import if this is a fresh clone).')
+	if translation == null: return
+	var visible:Array[Buff] = []
+	for buff:Buff in ModResources.load_ours(MOD_ID, &'buffs'):
+		if not buff.hide_from_player: visible.append(buff)
+	assert_false(visible.is_empty(), 'There are visible buffs, so this test has something to check.')
+	for buff:Buff in visible:
+		# An explicit override is the claim this guard wants, made in the buff's own file - but it
+		# still has to point at rows that EXIST. translate.gd:51-52 returns on the override with
+		# `return_key_if_blank` false, so a bogus one renders BLANK rather than the raw key: a
+		# different silent failure, and one no other assertion here would see.
+		if not buff.localization_key_override.is_empty():
+			for property:String in ['name', 'effect']:
+				var override_key := 'gear.%s.%s' % [buff.localization_key_override, property]
+				assert_ne(translation.get_message(override_key), StringName(''),
+					'%s overrides onto %s, and that row exists.' % [buff.compcon_id, override_key])
+			continue
+		if BUFFS_THAT_BORROW_A_CARD.has(buff.compcon_id):
+			# A borrower must still land on something real - the chain's last step is the raw key.
+			var borrowed:String = BUFFS_THAT_BORROW_A_CARD[buff.compcon_id]
+			assert_ne(translation.get_message(borrowed), StringName(''),
+				'%s borrows %s, and that row exists.' % [buff.compcon_id, borrowed])
+			continue
+		# Everything else owns its rows. `name` as well as `effect`: attack_roll.gd:189 titles a
+		# roll-breakdown line with buff_core.name_text(), which walks the same chain.
+		for property:String in ['name', 'effect']:
+			var key := 'gear.%s.%s' % [buff.compcon_id, property]
+			assert_ne(translation.get_message(key), StringName(''),
+				'%s carries its own %s row, so the chip cannot render a raw key.' % [buff.compcon_id, property])
+
+func test_every_licence_this_mod_owns_has_a_real_icon():
+	# UnlockTree.icon is player-facing (the licence catalog) and NOTHING else in this file could see
+	# it: the two icon guards above walk Kits, Actions and Buffs only. Found at the Sluagh frame
+	# close, 2026-09-21 (review slices 2 and 7, independently) - li_sluagh AND li_primrose had both
+	# shipped wearing res/assets/frames/placeholder/mf_placeholder.png, and no assertion anywhere
+	# could notice.
+	#
+	# The convention is vanilla's: a licence wears its own frame's sprite (li_gorgon.icon is
+	# horus_gorgon.png), which is also what li_fitzgerald already did. So this needs no new art -
+	# it is a wiring guard, and the fix for both was one ext_resource path each.
+	var licences:Array[Resource] = ModResources.load_ours(MOD_ID, &'licenses')
+	assert_false(licences.is_empty(), 'This mod owns licences, so this test has something to check.')
+	for licence:Resource in licences:
+		_assert_real_icon(licence.icon, licence.resource_path.get_file())
 
 ## Buffs that are hidden from the chip list but STILL need an icon, because something other than the
 ## status bar draws them.

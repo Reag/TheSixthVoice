@@ -10,7 +10,7 @@
 ## ONE CORE ON EACH END, EACH NAMING THE OTHER, because is_adjacent(a, b) is
 ## adjacent_characters(a).has(b) (unit_relation.gd:7-8) - one-sided. action_project_shield.gd is
 ## vanilla's precedent for the two-core-with-state shape. State PARTNER_KEY holds the partner's
-## persistent id (BuffCore.set_state refuses a Unit, buff_core.gd:139); from_gear is the NHP on both,
+## persistent id (BuffCore.set_state refuses a Unit, buff_core.gd:140); from_gear is the NHP on both,
 ## so get_owner_unit is the SLUAGH on either end - which is what the banner measures Sensors from.
 ##
 ## on_clear REFRESHES TRACKING, AND ERASES ITSELF FIRST. The Mark's soft-cover aura re-evaluates

@@ -42,6 +42,12 @@ const RIFLE_RELIABLE := 2
 const EYES_BONUS := 3
 const EYES_SELF_DAMAGE := 2
 
+## Vanilla's bare Buff.TO.TECH_IMMUNITY carrier - the Napoleon's Trueblack Aegis, `to =
+## &"tech_immunity"` and nothing else. There is no Lancer.STATUS for tech immunity:
+## UnitCondition.is_immune_to_tech reads frame.is_biological or a buff on that channel
+## (unit_condition.gd:532). test_in_triumvirate.gd carries the same constant for the ward's half.
+const TECH_IMMUNITY_BUFF := &'buff_trueblack_aegis_tech_immunity'
+
 var game:Gamemaster
 var sluagh:Unit
 var hostile:Unit
@@ -157,7 +163,16 @@ func test_the_reaction_is_on_the_kit_and_shaped_like_the_card():
 	assert_true(eyes.allow_tech and eyes.allow_basic, '"hit an enemy" - any attack.')
 	assert_true(eyes.consumes_rxn, 'A real reaction: spends the point, which is the 1/round.')
 	assert_eq(eyes.usage_group, &'action_eyes_of_night', 'Its own usage group.')
-	assert_false(eyes.show_in_tooltip(kit), 'A reaction; never a gear-bar button.')
+	# THE AUTHOR'S ORDERED CHANGE (2026-09-21), and the message was wrong independently of the
+	# polarity. show_in_tooltip governs the kit/trait CARD - tooltip_organ_kit.gd:71 is its only
+	# caller in the whole tree - not the gear bar, which drops every ActionReaction unconditionally
+	# at gear_bar.gd:145 and never consults this function. Until the override came off, nothing in
+	# the game described this reaction anywhere: the Kit ships no gear.ms_bleakshadow_gate.effect
+	# row, so the system card was the activate's row alone.
+	assert_true(eyes.show_in_tooltip(kit),
+		'DRAWN ON THE SYSTEM CARD, with its own trigger and effect rows: action.gd:350-353 returns '
+		+ 'true because this action\'s effect row is non-empty and differs from the Kit\'s, which does '
+		+ 'not exist. The gear bar still never draws it (gear_bar.gd:145).')
 
 func test_the_sluaghs_own_hit_on_a_covered_enemy_deals_three_more_and_costs_it_two():
 	SluaghFixture.cover(hostile)
@@ -230,24 +245,116 @@ func test_inexorable_formation_extends_the_sensors_the_trigger_reads():
 	assert_eq(offers(), 1, 'Now offered.')
 
 func test_an_allied_drones_hit_offers_nothing():
-	# THE FRAME'S TRIGGER CONVENTION, and the only case that pins it. "An allied CHARACTER" in a
-	# TRIGGER is is_actor() - a mech or a pilot, never a drone - the rule action_astral_guardian.gd's
-	# header sets out and the Stealing and the Hunt follow. The archetype's
-	# require_defender_to_be_character does NOT deliver it and never could: it is about the DEFENDER
-	# (action_reaction_attacked.gd:95) and says nothing at all about who fired, and Unit.is_character()
-	# is true of a drone anyway (unit.gd:116).
+	# THE MOD'S READING OF "CHARACTER", and the only case that pins it on this card. "An allied
+	# CHARACTER" in a TRIGGER is is_actor() - a mech or a pilot, never a drone - which is the same
+	# word spelled the same way in ruling 194 (the Vauban's Gravity Well), rulings 64 and 70 (a
+	# drone's shot counts as its OWNER'S) and ruling 269 (the Stealing). The canonical paragraph is
+	# in action_stealing_of_the_souls.gd's header, and every other Sluagh card follows it.
+	#
+	# THE ARCHETYPE CANNOT DELIVER IT AND NEVER COULD: require_defender_to_be_character is about the
+	# DEFENDER (action_reaction_attacked.gd:95) and says nothing at all about who fired, and
+	# Unit.is_character() is true of a drone anyway (unit.gd:116).
+	#
+	# THE SETUP ASSERTIONS ARE WHAT MAKES THE CASE DISCRIMINATE: this drone really is a drone
+	# (is_actor false) and really is a character (is_character true), so the refusal is attributable
+	# to the clause under test and not to a fixture that quietly built an object.
 	#
 	# The drone stands on ALLY_TILE, three tiles out, so the Sensors clause passes and is_actor() is
-	# the only thing left to refuse it - which is what makes deleting that line redden this case.
+	# the only thing left to refuse it - which is what makes flipping that line redden this case.
 	var drone := SluaghFixture.create_drone(game, ALLY_TILE)
+	assert_false(drone.is_actor(), 'fixture: it is NOT an actor, which is what refuses it...')
+	assert_true(drone.is_character(), '...and it IS a character, so the engine alone would admit it.')
 	SluaghFixture.arm_rifle(drone)
 	SluaghFixture.cover(hostile)
 	await SluaghFixture.open_gate(game, sluagh)
 	forget_prompts()
+	var hp_before:int = hostile.core.current.health
 	SluaghFixture.queue([D20_HITS, COVER_DIE, DAMAGE_DIE])
 	await SluaghFixture.shoot(game, drone, hostile)
 	assert_eq(offers(), 0, 'Nothing offered: a drone is a character, but it is not an ACTOR.')
+	assert_eq(hp_before - hostile.core.current.health, DAMAGE_DIE, 'Just the die - no +3.')
 	assert_eq(sluagh.current_damage(), 0, 'And the Sluagh pays nothing.')
+
+## TECH IMMUNITY KILLS THE WHOLE REACTION, not just its +3 (close review, slice 6 I-2; the branch
+## used to document the wrong gate). The Gate is TECH gear - UnitAction.is_tech is true of a Kit
+## any of whose ActionSystems sets is_tech (unit_action.gd:567-571), and the activate does - so
+## ActionReaction.check_if_prohibited (action_reaction.gd:99-111) refuses the reaction whenever the
+## triggering context.unit or context.target_unit is tech-immune. reaction_bus.gd:120 asks it inside
+## does_reaction_trigger, BEFORE triggers_on_event at :123, so the reaction never even evaluates its
+## own clauses: no prompt, no +3, and - the observable difference from the mechanism we used to
+## document - no 2 self-damage either. Buff.check_if_prohibited (buff.gd:228-239) is the gate for the
+## PAIR and the WARD, where the buff really is applied and read; here it is unreachable.
+func test_a_tech_immune_defender_offers_nothing():
+	SluaghFixture.cover(hostile)
+	SpecFactory.apply_buff(hostile, TECH_IMMUNITY_BUFF)
+	assert_true(UnitCondition.is_immune_to_tech(hostile), 'fixture: the defender is immune to tech.')
+	await SluaghFixture.open_gate(game, sluagh)
+	forget_prompts()
+	var hp_before:int = hostile.core.current.health
+	SluaghFixture.queue([D20_HITS, COVER_DIE, DAMAGE_DIE])
+	await SluaghFixture.shoot(game, sluagh, hostile)
+	assert_eq(offers(), 0, 'Nothing offered: a tech reaction is prohibited against a tech-immune defender.')
+	assert_eq(hp_before - hostile.core.current.health, DAMAGE_DIE, 'Just the die - no +3.')
+	assert_eq(sluagh.current_damage(), 0,
+		'AND NO 2 EITHER: the whole reaction is refused, not merely its bonus - which is what the branch used to say.')
+
+## DECLINING IS FREE, and until the close nothing tested it (slice 6 I-3). Ruling 1 makes the
+## reaction prompt because "a reaction the player cannot decline is not one", and the header
+## promises declining "costs neither the point nor the round". Every other case in this file lets
+## the stock responder say yes; offers() counts that a prompt HAPPENED, never that the answer was
+## honoured, so ignoring the answer altogether would redden nothing.
+##
+## THE RESPONDER IS FLIPPED IN PLACE rather than swapped for testkit/mod_choice_responder.gd (which
+## the reviewer suggested): this file's before_each already installs the stock responder, and
+## SluaghFixture.create_game_with_prompt_queues passes add_responder = false precisely so that TWO
+## responders never answer the same request - building a second game mid-test would leave both
+## listening. SpecFactory.current_responder.chosen_yesnos is vanilla's own knob for this
+## (test/gear/test_ms_armor_lock_plating.gd and test_ms_brace.gd set its siblings), and the Gate is
+## opened BEFORE the flip so the activate's own confirm still answers yes.
+func test_declining_costs_the_sluagh_neither_the_point_nor_the_round():
+	SluaghFixture.cover(hostile)
+	await SluaghFixture.open_gate(game, sluagh)
+	forget_prompts()
+	SpecFactory.current_responder.chosen_yesnos = false
+	var hp_before:int = hostile.core.current.health
+	SluaghFixture.queue([D20_HITS, COVER_DIE, DAMAGE_DIE])
+	await SluaghFixture.shoot(game, sluagh, hostile)
+	assert_eq(offers(), 1, 'The player WAS asked...')
+	assert_eq(hp_before - hostile.core.current.health, DAMAGE_DIE, '...and said no, so the enemy took just the die.')
+	assert_eq(sluagh.current_damage(), 0, 'And the Sluagh paid nothing: the return is BEFORE spend_actions.')
+
+	forget_prompts()
+	var second_before:int = hostile.core.current.health
+	SluaghFixture.queue([D20_HITS, COVER_DIE, DAMAGE_DIE])
+	await SluaghFixture.shoot_again(game, sluagh, hostile)
+	assert_eq(offers(), 1,
+		'AND THE SAME TURN\'S SECOND COVERED HIT IS STILL OFFERED: the reaction point is spent only '
+		+ 'inside UnitAction.spend (unit_action.gd:257), reached only from spend_actions - which a '
+		+ 'declined reaction never calls. test_the_bonus_is_consumed... is this line\'s mirror, where '
+		+ 'the first shot was ACCEPTED and the second reads 0.')
+	assert_eq(second_before - hostile.core.current.health, DAMAGE_DIE, 'Declined again: still just the die.')
+
+## THE +3 IS NAMED IN THE PLAYER'S BATTLE LOG, and it used to name the wrong card (slice 6 I-1).
+## attack_util.gd:307-308 stamps both bonus_source_id AND bonus_source_name =
+## bonus_damage_buff.name_text() onto the roll, and event_unit_attack_declared.gd:305-313 writes the
+## NAMES into "{unit} is dealing +{amount}{type} bonus damage against {target} from {sources}.".
+## With no row of its own the buff fell through Translate.buff to the OWNER GEAR's actions[0]
+## (translate.gd:72-75, gear_core.gd:337-339) - the ACTIVATE on this two-action Kit - so the log
+## credited "Activate Bleakshadow Gate". Vanilla's twelve bonus_damage_specific buffs carry no row
+## either and are all fine, because every one of them sits on a SINGLE-action Kit.
+##
+## THE CORE IS BUILT BY HAND because the buff is consumed inside the roll that reads it (is_onetime,
+## event_unit_attack_declared.gd:296) - there is no instant at which a test could pick it off a
+## unit. name_text() is the same read the log line makes.
+##
+## test_the_gate_chip_borrows_the_activates_card_on_purpose is the deliberate opposite one buff
+## over, and the contrast is the point: the CHIP wants the activate's card, the BONUS does not.
+func test_the_bonus_names_the_reaction_not_the_activate():
+	var core := BuffCore.create(ContentLibrary.get_buff(SluaghFixture.EYES_BONUS), gate().persistent_id)
+	assert_eq(core.get_owner_gear(), gate(), 'fixture: the core resolves the Gate as its owner gear.')
+	assert_eq(core.name_text(), 'EYES OF NIGHT', 'THE LOG LINE names the reaction...')
+	assert_ne(core.name_text(), X.tr('gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.name'),
+		'...and NOT the activate, which is what actions[0] hands any buff on this Kit with no row of its own.')
 
 func test_a_hit_on_an_uncovered_enemy_offers_nothing():
 	# NO COVER ENTRY IN THE QUEUE, and that is the case rather than an oversight: with no cover there
@@ -292,7 +399,7 @@ func test_without_the_gate_open_nothing_is_offered():
 	assert_eq(offers(), 0, 'The reaction exists only while the chip is held.')
 	assert_eq(sluagh.current_damage(), 0, 'Nothing paid.')
 
-func test_the_second_qualifying_hit_in_one_enemy_turn_offers_nothing():
+func test_the_second_qualifying_hit_in_one_turn_offers_nothing():
 	# "1/Turn" and "for the first time this turn" are BOTH the reaction point: it is restored at
 	# every unit's turn start (event_turn_start.gd:42-44), so within one turn the second offer is
 	# refused by the spent point. Draw Fire ruling 3.
@@ -490,7 +597,10 @@ func assert_every_pipe_resolves(key:String) -> void:
 func test_the_licence_grants_it_at_rank_three():
 	var license:UnlockTree = ContentLibrary.get_license_tree(SluaghFixture.LICENSE_ID)
 	assert_not_null(license, 'The licence is registered.')
-	if license == null or license.rank_3 == null: return
+	# A BARE `return` HERE WAS A SILENT PASS (close review, slice 6 M-5): the one assertion above it
+	# has already succeeded, so a missing rank 3 left the test green having asserted nothing about
+	# rank 3 at all. test_in_triumvirate.test_the_licence_grants_it_at_rank_three is the convention.
+	if license == null or license.rank_3 == null: return assert_true(false, 'fixture: the licence loaded with a rank 3.')
 	var ids:Array[String] = []
 	for kit:Kit in license.rank_3.granted_gear: ids.append(String(kit.compcon_id))
 	assert_true(ids.has('ms_bleakshadow_gate'), 'Rank 3 grants Bleakshadow Gate.')

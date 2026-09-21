@@ -239,6 +239,12 @@ func apply_a_voluntary_movement_type_buff() -> void:
 ## engine/, content/, ui/, addons/ and unpacked/ finds exactly two other_tags sites, both the
 ## Breacher's Follower Count, and neither touches this key), so this is a hand-built adversarial
 ## case, not a reachable one.
+## multiple_copies_can_stack IS LOAD-BEARING FOR THE TWO-BUFF CASES, and its absence made the
+## first attempt at them pass against the un-fixed code (measured 2026-09-21). apply_buff_alt
+## clears any buff already on the unit with the SAME compcon_id, from_gear, `to` and `until`
+## unless the buff says copies stack (unit_condition.gd:741-747) - and a hand-built Buff has an
+## EMPTY compcon_id, so a second call silently replaced the first and the merge still saw one
+## tag. With the flag set, two buffs really are two buffs.
 func apply_a_movement_type_buff_carrying_our_tag() -> void:
 	var buffed := MovementType.new()
 	buffed.other_tags = [Teleport.OWN_TAG] as Array[StringName]
@@ -247,6 +253,7 @@ func apply_a_movement_type_buff_carrying_our_tag() -> void:
 	buff.to = Buff.TO.MOVEMENT_TYPE
 	buff.hide_from_player = true
 	buff.until = Lancer.UNTIL.MANUAL
+	buff.multiple_copies_can_stack = true
 	UnitCondition.apply_buff_alt(SpecFactory.dummy_event(), unit, BuffCore.create(buff))
 
 # ---------------------------------------------------------------- the interface itself
@@ -449,6 +456,18 @@ func test_a_buffed_tag_does_not_make_a_voluntary_teleport_read_as_ours():
 	assert_false(Teleport.is_own(default_type),
 		'THE FINDING: is_own reads it as NOT ours, even though the buff\'s own other_tags smuggled the'
 		+ ' tag in - a voluntary teleport is never ours, whatever tag arrives on the merge.')
+
+	# TWO BUFFS, AND THE SINGLE erase THIS FIX USED TO BE ONLY SURVIVED ONE (close review, slice 1
+	# M-1). Array.erase removes ONE occurrence; merge_in appends other_tags wholesale with no
+	# de-duplication (movement_type.gd:96) once per movement-type buff held (:51), so N buffs give
+	# N copies and a single erase leaves N-1 standing. The helper is called a second time rather
+	# than given two tags in one resource, because two buffs is the shape the engine produces.
+	apply_a_movement_type_buff_carrying_our_tag()
+
+	var twice_buffed := Teleport.movement_type(unit)
+	assert_true(twice_buffed.voluntary, 'CONTROL: still voluntary with two of them.')
+	assert_false(Teleport.is_own(twice_buffed),
+		'AND STILL NOT OURS WITH TWO: the erase is a `while`, so every smuggled copy comes off.')
 
 func test_is_own_is_false_for_every_movement_type_we_did_not_tag():
 	# The whole point of the tag is telling OUR unpreventable Step from a HOSTILE shove, and both are
@@ -663,7 +682,7 @@ func test_move_beats_a_movement_restriction_ban_while_the_pathfinder_route_loses
 func test_forced_movement_type_is_an_involuntary_untagged_teleport_that_ignores_engagement():
 	# The third shape, and every clause of it is load-bearing somewhere:
 	#  - teleport, or Teleport.is_teleport answers false and no listener - Uncertainty Field included -
-	#    ever sees the move (teleport.gd:48-51);
+	#    ever sees the move (teleport.gd:53-56; :48-51 is its docstring);
 	#  - NOT voluntary, which is what clears the Immobilized gate (event_unit_move.gd:451 is
 	#    `if movement_type.voluntary and UnitCondition.is_immobilized(unit): return false`);
 	#  - ignore_engagement, matching our own involuntary shape and vanilla's
@@ -678,7 +697,7 @@ func test_forced_movement_type_is_an_involuntary_untagged_teleport_that_ignores_
 	assert_false(Teleport.is_own(type),
 		'THE DISTINCTION: it is NOT tagged as ours. A hostile shove is exactly the case is_own exists'
 		+ ' to answer false for, and move(unit, tile) would have tagged it - own_involuntary defaults'
-		+ ' to true there (teleport.gd:334).')
+		+ ' to true there (teleport.gd:339).')
 	assert_false(type.ignore_rxns,
 		'And it does NOT set NO_RXNS, so a Maiden\'s Blush is free to veto it - design ruling 18 says'
 		+ ' it can, and vanilla create_for_involuntary (movement_type.gd:65) would have set it.')
@@ -711,6 +730,16 @@ func test_forced_movement_type_never_carries_our_tag_even_when_a_buff_smuggles_i
 	assert_false(type.voluntary, 'CONTROL: still involuntary.')
 	assert_false(Teleport.is_own(type),
 		'THE FINDING: still not ours, even though the buff smuggled the tag into the merge.')
+
+	# AND WITH TWO OF THEM, which the single Array.erase this line used to be did NOT survive
+	# (close review, slice 1 M-1) - the same defect, in the same file, in both places. A shove
+	# read as our own unpreventable Step is the one confusion the tag exists to prevent.
+	apply_a_movement_type_buff_carrying_our_tag()
+
+	var twice_buffed := Teleport.forced_movement_type(unit)
+	assert_false(twice_buffed.voluntary, 'CONTROL: still involuntary with two of them.')
+	assert_false(Teleport.is_own(twice_buffed),
+		'AND STILL NOT OURS WITH TWO: the erase is a `while`, so every smuggled copy comes off.')
 
 # ---------------------------------------------------------------- shove
 

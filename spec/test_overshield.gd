@@ -321,10 +321,11 @@ func test_grant_refreshes_the_targets_cached_stats_immediately():
 		+ 'Unit.get_sensor_range is core + state.stat_bonus.sensor_range (unit.gd:305).')
 
 func test_increase_refreshes_the_cache_too_by_inheriting_grants():
-	# increase() IS BUILT ON grant() (overshield.gd:62), so the refresh is inherited rather than
+	# increase() IS BUILT ON grant() (overshield.gd:96), so the refresh is inherited rather than
 	# written twice - and the arithmetic is what makes that safe: increase's own amount <= 0 guard
-	# (:61) means the number it hands grant is always positive, so grant can never take its early
-	# return (:47) from this path and can never skip the refresh.
+	# (:95) means the number it hands grant is always positive, so grant can never take its early
+	# return (:78) from this path and can never skip the refresh. (Those three numbers were the SP1
+	# ones until the close: this branch added 40 lines of header above them.)
 	#
 	# PINNED SEPARATELY ANYWAY. If a later session decides to write the line into increase() as well,
 	# nothing here changes; if someone moves it OUT of grant() and into increase() only, the test

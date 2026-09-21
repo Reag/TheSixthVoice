@@ -8,10 +8,10 @@
 ## attack events queue their POST reactions (event_unit_attack.gd:123); the declared event awaits
 ## every per-target event (event_unit_attack_declared.gd:67) and only then rolls damage (:74). So a
 ## grant made here is on the unit before a single point lands, and the engine's own soak
-## (event_unit_damage.gd:214-218) spends it.
+## (event_unit_damage.gd:215-218) spends it.
 ##
 ## DAMAGE PRE IS NOT AN ALTERNATIVE and the design says why: execute_preblock recomputes
-## final_modified from incoming_amount (event_unit_damage.gd:49, :62), discarding any PRE change to
+## final_modified from incoming_amount (event_unit_damage.gd:49, :63), discarding any PRE change to
 ## context.number. PRE is for resistance-class buffs only.
 ##
 ## ActionReactionAttacked, NOT THE PLAIN ActionReaction THE PROBE USED. The probe extended the base
@@ -24,7 +24,7 @@
 ##
 ## THE THREE CLAUSES super() CANNOT EXPRESS, and they are the whole of this script's body:
 ##  - `defender != unit`. UnitRelation.are_allies is TRUE of a unit and itself
-##    (unit_relation.gd:363-364 is a bare Faction.is_ally of the two factions), so the archetype's
+##    (unit_relation.gd:364-365 is a bare Faction.is_ally of the two factions), so the archetype's
 ##    ALLIES filter happily passes the Sluagh being hit. The card says "an adjacent allied
 ##    character", meaning somebody else.
 ##    **REDUNDANT AGAINST VANILLA ADJACENCY, AND KEPT ON PURPOSE - MEASURED, SP1 Task 6.** Removing
@@ -36,16 +36,23 @@
 ##    because of the seam below: ruling 6 has this card taking a third party's widening of
 ##    adjacent_characters, and a widening that included self would make the Sluagh guard itself
 ##    against its own card. This clause is the only thing that would still refuse that.
-##  - `defender.is_actor()`. require_defender_to_be_character on the .tres is `defender.is_character()`
+##  - `defender.is_actor()`, AND IT IS A REAL NARROWING OF THE ARCHETYPE'S FLAG, not a restatement.
+##    `require_defender_to_be_character` on the .tres is `defender.is_character()`
 ##    (action_reaction_attacked.gd:95), and Unit.is_character() returns TRUE for a drone - its own
-##    comment says "active mech/pilot/drone" (unit.gd:116). Design 1.5.1's spec list says an adjacent
-##    allied DRONE gets nothing, which is also ruling 11's exclusion one trait over, so this card
-##    spells "character" the way the Stealing does: is_actor(), which is is_character() and not
-##    is_drone (:117). The archetype's flag is kept anyway - it refuses objects and markers a step
-##    earlier and costs nothing. (NOTE for a later session: the Myconid's action_halo.gd carries a
-##    docstring claiming get_all_characters() excludes drones. It does not -
-##    UnitRelation.filter_for_characters is `unit.is_character()` (unit_relation.gd:71) - so HALO
-##    really does offer a friendly drone today. Shipped content, out of scope here, recorded.)
+##    comment says "active mech/pilot/drone" (unit.gd:116). is_actor() is is_character() and not
+##    is_drone (:117), so AN ADJACENT ALLIED DRONE IS NOT GUARDED and this line is the only thing
+##    that refuses it. Delete it and `test_a_hit_on_an_adjacent_allied_drone_gets_nothing` reddens.
+##    WHY, IN ONE LINE: this is the MOD'S settled reading of "character", not this frame's local
+##    taste - ruling 194 (the Vauban's Gravity Well shelters mechs only), rulings 64 and 70 (a
+##    drone's shot counts as its owner's) and ruling 269 (the Stealing) all say the same thing, and
+##    the canonical paragraph is in
+##    mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd's header. Design
+##    1.5.1's own spec list says an adjacent allied DRONE gets nothing, and agrees.
+##    The archetype's flag is kept anyway - it refuses objects and markers a step earlier and costs
+##    nothing. (NOTE for a later session: the Myconid's action_halo.gd carries a docstring claiming
+##    get_all_characters() excludes drones. It does not - UnitRelation.filter_for_characters is
+##    `unit.is_character()` (unit_relation.gd:71) - so HALO really does offer a friendly drone today.
+##    Shipped content, out of scope here, recorded.)
 ##  - `UnitRelation.is_adjacent(unit, defender)`, and NEVER require_defender_within = 1. That export
 ##    is a radius (distance_between, :92), and ruling 6 has this card TAKING House Guard's widening,
 ##    which reaches adjacent_characters and nothing that measures a radius (memory
@@ -80,7 +87,7 @@ const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/
 
 ## Bookkeeping, not a rule the player reads twice: the core system's own effect row IS this card, and
 ## a reaction never reaches the gear bar anyway (gear_bar.gd:145). show_in_tooltip is a FUNCTION on
-## Action (action.gd:340), not an exported property, so this is the only way to set it.
+## Action (action.gd:341), not an exported property, so this is the only way to set it.
 ##
 ## IT IS ALSO WHAT KEEPS THIS ACTION OUT OF ICON_TARGETS: test_content_integrity.gd asserts an action
 ## is listed there exactly when _action_reaches_a_player_facing_surface is true, and for a reaction
@@ -99,8 +106,8 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if not Unit.is_valid(defender): return false
 	# Somebody ELSE. are_allies is true of a unit and itself.
 	if defender == unit: return false
-	# A mech or a pilot, never a drone. The .tres's require_defender_to_be_character does NOT
-	# deliver this - see the header.
+	# A mech or a pilot, never a drone - the mod's settled reading of "character" (rulings 194, 64/70
+	# and 269). The .tres's require_defender_to_be_character does NOT deliver this; see the header.
 	if not defender.is_actor(): return false
 	# The seam, ruling 6. See the header for why this is is_adjacent and not a radius, and why the
 	# Sluagh is the first argument.

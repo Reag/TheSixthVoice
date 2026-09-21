@@ -10,8 +10,13 @@
 ##
 ## ONE ENGINE GATE IS DELIBERATELY NOT REACHED AND THAT IS RECORDED, NOT FIXED (ruling 12):
 ## unit_relation.gd:256 measures a tech reaction's range off unit_core.get_sensor_range(), which is
-## FRAME-ONLY and sees no stat_bonus at all. Its only readers are the Goblin's Reactive Code and the
-## NPC Commander's Press the Attack, neither of which this frame has, so the divergence is inert here.
+## FRAME-ONLY and sees no stat_bonus at all. Three things read it, not two: the Goblin's Reactive
+## Code, the NPC Commander's Press the Attack, and - OUTSIDE THE BASE GAME - Thy Hubris' Injector
+## Drill (action_injector_drill.gd:111, which passes the drill's own WIELDER as from_unit). The
+## Sluagh ships none of the three, so the divergence is inert on the frame itself; the one real
+## consequence is cross-mod, and it is bounded: a Sluagh pilot who also holds the Thy Hubris licence
+## and equips that drill offers its free tech follow-up at BASE Sensors, i.e. short by whatever
+## Overshield the dome is holding. Recorded, accepted, not fixed (ruling 12).
 ##
 ## get_values IS CALLED WITH A BARE CONTEXT. unit_battle_state.gd:232 calls buff.get_values() with no
 ## argument, so BuffCore.get_values builds Context.create({}) and context.map falls back to X.map()

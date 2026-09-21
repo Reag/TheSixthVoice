@@ -108,6 +108,9 @@ var ally:Unit
 var shooter:Unit
 var watcher:PromptWatcher
 
+## One-shot latch for test_a_dome_emptied_during_the_prompt_spends_no_point; see its own comment.
+var _drained_the_dome:bool = false
+
 func before_each() -> void:
 	game = SluaghFixture.create_game(self)
 	sluagh = SluaghFixture.create_sluagh(game, SLUAGH_TILE)
@@ -115,6 +118,7 @@ func before_each() -> void:
 	shooter = SluaghFixture.create_hostile(game, SHOOTER_TILE)
 	SluaghFixture.arm_rifle(shooter)
 	watcher = add_child_autoqfree(PromptWatcher.new())
+	_drained_the_dome = false
 
 func after_each() -> void:
 	Dice.CHEAT_ROLL_QUEUE.clear()
@@ -240,6 +244,41 @@ func test_a_miss_against_an_adjacent_ally_does_the_same():
 	assert_eq(Overshield.current(sluagh), SHIELD,
 		'And the Sluagh KEPT its whole shield - the card spends nothing but the reaction.')
 
+func test_a_miss_on_an_adjacent_allied_drone_offers_nothing():
+	# THE DRONE CASE, WHICH NOTHING PINNED UNTIL THE CLOSE (slice 3 I-2). Both siblings on this Kit
+	# had one and the retort did not, so `defender.is_actor()` in action_mark_retort.gd could have
+	# been deleted outright with the whole suite green - the archetype's
+	# require_defender_to_be_character is is_character(), which a drone PASSES
+	# (action_reaction_attacked.gd:95, unit.gd:116).
+	#
+	# IT STATES THE MOD'S SETTLED READING OF "CHARACTER": a drone is not one in its own right.
+	# Ruling 194 (the Vauban's Gravity Well), rulings 64 and 70 (a drone's shot counts as its
+	# OWNER'S) and ruling 269 (the Stealing) are the three precedents; the canonical paragraph is in
+	# action_stealing_of_the_souls.gd's header. Both siblings on this Kit agree, one file over.
+	#
+	# THE TWO SETUP ASSERTIONS NAME THE PREDICATE, so the green is a statement of the rule rather
+	# than of the outcome: flip the script's clause to is_character() and this is the one test in
+	# the file that reddens.
+	#
+	# THE DRONE IS BUILT BEFORE arm_the_sluagh(), per SluaghFixture.equip's rule - the Mark is
+	# pressed LAST. It is NOT sheltered by the dome (the same ruling, one card over), so the incoming
+	# roll pops no soft-cover accuracy die; every entry in the queue is a 1 either way, so the
+	# alignment cannot matter.
+	var drone:Unit = SluaghFixture.create_drone(game, ADJACENT_TILE + Vector2i(0, 1))
+	await arm_the_sluagh()
+	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
+	assert_false(drone.is_actor(), '...and is NOT an actor, which is the distinction the gate uses.')
+	assert_true(UnitRelation.is_adjacent(sluagh, drone), 'fixture: and it is adjacent.')
+	var before:int = shooter.current_damage()
+
+	SluaghFixture.queue([D20_MISSES, DAMAGE_DIE])
+	await SluaghFixture.shoot(game, shooter, drone)
+
+	assert_eq(offers(), 0, 'The player was never asked...')
+	assert_eq(retort_uses_this_round(), 0, '...and nothing fired for an adjacent allied DRONE.')
+	assert_eq(shooter.current_damage(), before, 'The shooter took nothing back.')
+	assert_eq(Overshield.current(sluagh), SHIELD, 'And the dome is untouched.')
+
 func test_an_ally_two_tiles_out_offers_nothing():
 	var far:Unit = SluaghFixture.create_ally(game, TWO_OUT_TILE)
 	await arm_the_sluagh()
@@ -344,10 +383,59 @@ func test_armor_on_the_attacker_reduces_it():
 	assert_eq(shooter.current_damage() - before, SHIELD - 2,
 		'Armor 2 took two off the three - the retort carries no NO_REDUCE flag.')
 
+## Empty the Sluagh's dome the instant the retort's yes/no is RAISED, before it is answered.
+##
+## THE TIMING IS THE ENGINE'S, not a guess. SpecFactory.ChoiceBusResponder.choose_yesno opens with
+## `await get_tree().process_frame` (spec_factory.gd:508-512), so the answer lands a frame later; the
+## responder connects to on_choice_request in create_game and this watcher connects after it, so the
+## watcher's `prompt` signal fires inside the same emission, before the responder resumes. This
+## handler therefore runs in exactly the gap activate()'s own re-read exists to cover.
+##
+## IT WRITES state.overshield DIRECTLY rather than through an event, and that is deliberate: an
+## awaited event inside a choice-bus signal handler would re-enter the bus mid-request. Direct
+## assignment is what the engine's own soak does (event_unit_damage.gd:215-218), and Overshield.current
+## reads that same field (overshield.gd:32-34).
+func _drain_the_dome_on_the_first_prompt(kind:StringName, _info:Dictionary) -> void:
+	if _drained_the_dome or kind != PromptWatcher.KIND.yesno: return
+	_drained_the_dome = true
+	sluagh.state.overshield = 0
+
+func test_a_dome_emptied_during_the_prompt_spends_no_point():
+	# NOTHING IS SPENT UNTIL THE RETORT IS KNOWN TO HAVE SOMETHING TO DEAL (close review, slice 3
+	# M-2). The card's "you may" and ruling 15's "not offered at 0 Overshield" are both about never
+	# charging the player a reaction for zero damage, and the prompt is a real gap in which the dome
+	# can empty - a second attacker's hit, an ally's ability, anything.
+	#
+	# THIS TEST IS RED AGAINST THE SHIPPED ORDER as of 2026-09-21: spend_actions(activation) used to
+	# sit ABOVE the final Overshield re-read, so the point and the round went whatever the re-read
+	# then found. Moving it below the abort - Draw Fire's order exactly, action_draw_fire.gd:201-212 -
+	# is the fix, and it reddens nothing else: in every other test here the dome is unchanged across
+	# the prompt.
+	#
+	# THE OFFER ITSELF IS ASSERTED FIRST, which is what stops this passing for the boring reason. If
+	# the reaction were never offered at all (a broken gate, a missing chip) every other assertion
+	# below would also hold, and the test would say nothing about ordering.
+	await arm_the_sluagh()
+	assert_eq(sluagh.core.current.reactions, 1, 'fixture: the frame has its one reaction point.')
+	assert_eq(Overshield.current(sluagh), SHIELD, 'fixture: and a full dome when the gate runs.')
+	watcher.prompt.connect(_drain_the_dome_on_the_first_prompt)
+	var before:int = shooter.current_damage()
+
+	SluaghFixture.queue([D20_MISSES, DAMAGE_DIE])
+	await SluaghFixture.shoot(game, shooter, sluagh)
+
+	assert_eq(offers(), 1, 'It WAS offered - the dome was full when is_available_to_activate ran.')
+	assert_true(_drained_the_dome, 'fixture: and the handler really fired inside the prompt.')
+	assert_eq(Overshield.current(sluagh), 0, 'fixture: the dome was emptied across the question.')
+	assert_eq(shooter.current_damage(), before, 'Nothing was dealt...')
+	assert_eq(retort_uses_this_round(), 0, '...no round was spent...')
+	assert_eq(sluagh.core.current.reactions, 1,
+		'...and the reaction point SURVIVES. spend_actions sits below the final re-read.')
+
 func test_declining_the_prompt_deals_nothing_and_spends_nothing():
 	# "you MAY", which is why activate() calls CommonActionUtil.confirm_use and returns BEFORE
-	# spend_actions on a decline - Draw Fire's shape (action_draw_fire.gd:86-93). Declining must cost
-	# neither the point nor the round, so the Sluagh can hold the retort for a better miss.
+	# spend_actions on a decline - Draw Fire's shape (action_draw_fire.gd:205-212). Declining must
+	# cost neither the point nor the round, so the Sluagh can hold the retort for a better miss.
 	await arm_the_sluagh()
 	SpecFactory.current_responder.chosen_yesnos = false
 	var before:int = shooter.current_damage()

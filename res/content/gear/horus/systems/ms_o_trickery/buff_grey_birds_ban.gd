@@ -59,7 +59,8 @@ func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 ##    unit_relation.gd:266 inside get_tech_attacks_that_can_react_against, where closest_pair comes
 ##    from closest_tiles_between at :255 and `.to` is the tile on the TARGET's side
 ##    (Tile.get_closest_pair_between returns {from, to, distance}, tile.gd:432-436).
-##    (The design cites :262; that line is the sensor-range check one above it.)
+##    (The design cites :262; that line is the sensor-range check FOUR lines above it - :263 is the
+##    elevation test, :264 gear availability and :265 the action type.)
 func owner_is_a_legal_target(owner:Unit, context:Context) -> bool:
 	var specific := SpecificAction.from_context(context)
 	if not SpecificAction.is_valid(specific): return false

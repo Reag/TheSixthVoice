@@ -52,11 +52,23 @@
 ##     review; the controller records the ruling, this comment only states the mechanism).
 ## Closed, not open (controller ruling, Task 2 review, re-affirmed at the final review).
 ##
+## IT IS HIDDEN AND IT IS STILL NAMED IN THE BATTLE LOG (close review, slice 6 I-1; the .tres used
+## to claim "nothing ever draws this buff", which was true only of bonus_source_id). attack_util.gd
+## stamps BOTH fields on the roll - :307 the id, which has no reader outside that file, and :308
+## bonus_source_name = bonus_damage_buff.name_text(). event_unit_attack_declared.gd:305-313 then
+## writes a player-facing line from the names ("{unit} is dealing +{amount}{type} bonus damage
+## against {target} from {sources}."). With no row of its own, Translate.buff falls through to the
+## OWNER GEAR's actions[0] (translate.gd:72-75, gear_core.gd:337-339) - and on this TWO-action Kit
+## that is the ACTIVATE, so the +3 was credited to "Activate Bleakshadow Gate" rather than to EYES
+## OF NIGHT. gear.buff_eyes_of_night_bonus.name is the fix; hide_from_player stays, because the
+## chip itself must not appear on the status bar for the width of one roll.
+##
 ## can_apply_to_tech_attacks IS SET on the .tres: the card says "hit an enemy", and an invade's +3
-## inherits the attack's type - HEAT (INHERIT_TYPE, buff_damage.gd:36-37; action_attack_tech.gd:18).
+## inherits the attack's type - HEAT (INHERIT_TYPE is appended at buff_damage.gd:33; :10 is the
+## export and :36-37 are the category/flags entries. action_attack_tech.gd:18).
 ## NOTE (Task 2, measured): no tech attack can currently REACH this buff, because the reaction that
 ## applies it needs roll.pre.cover and PreAttack.create computes cover only for an ActionAttackWeapon
-## (attack_roll.gd:152-156). The flag is kept because it is the card's wording, and because the day
+## (attack_roll.gd:153-157, the clause at :154). The flag is kept because it is the card's wording, and because the day
 ## a tech attack does carry cover this buff must not silently refuse it. See the spec's
 ## test_an_invade_on_a_covered_enemy_offers_nothing_because_a_tech_attack_computes_no_cover.
 extends BuffDamage

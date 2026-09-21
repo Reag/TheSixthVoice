@@ -3,10 +3,11 @@
 # through untouched. This rewrites the declared attack in place at ATTACK_DECLARED PRE so it is
 # centred on the Sluagh instead.
 #
-# THE FOUR REFUSALS, all in rebuild() and all ruling 17's "only when a rebuild centred on the owner
-# is legal by the attacker's own targeting":
-#   - no range_pattern at all - a single-target shot, which the BAN already steers (in
-#     triggers_on_event, so the rewrite is never attempted twice on one attack);
+# THE FOUR REFUSALS - THREE IN rebuild(), THE FIRST IN triggers_on_event - all of them ruling 17's
+# "only when a rebuild centred on the owner is legal by the attacker's own targeting":
+#   - no range_pattern at all - a single-target shot, which the BAN already steers. This one is in
+#     TRIGGERS_ON_EVENT (:81-83), not in rebuild(), so the rewrite is never attempted twice on one
+#     attack;
 #   - the aim tile OUT OF THE ATTACKER'S RANGE or line of sight for this action (step 0, added as a
 #     follow-up to SP2 Task 6 - the controller found the gap: can_target_unit carries no geometry
 #     and the reach check below cannot see it, because a Blast always contains its own centre);
@@ -100,6 +101,17 @@ func activate(core:BuffCore, activation:EventCore) -> void:
 ## THE AIM TILE IS THE OWNER'S OCCUPIED TILE CLOSEST TO THE ATTACKER, not its anchor - the generous
 ## reading of "could target you" and the one a player aiming by hand picks. Draw Fire's own header
 ## (action_draw_fire.gd:289-301) records what that choice does and does not change.
+##
+## AND IT IS UNTESTABLE ON THIS FRAME, recorded at the frame close (2026-09-21) rather than chased.
+## mf_sluagh is SIZE 1 (mf_sluagh.tres:34, and the card's stat table), so occupied_tiles() is always
+## one tile and Tile.closest_possible_to is indistinguishable from owner.tile(): mutating :120 to
+## `owner.tile()` reddens nothing, and no spec can tell the two apart without a third-party size buff
+## this mod does not ship. The clause is kept because it is size-GENERAL and correct - the day a mod
+## or a future frame makes the owner size 2 it is what makes the recentre aim at the near corner -
+## but nothing in spec/ pins it, and a size-buff test would be testing another author's content.
+## Note also that closest_possible_to's tiebreaker defaults to Vector2i.ZERO rather than
+## Tile.INVALID (tile.gd:403-405), so a multi-tile tie would resolve toward the map origin. Vanilla
+## behaviour, unexercised here.
 static func rebuild(owner:Unit, triggering_context:Context, live:bool) -> bool:
 	var specific := SpecificAction.from_context(triggering_context)
 	var summary:DeclaredAttackSummary = triggering_context.resource

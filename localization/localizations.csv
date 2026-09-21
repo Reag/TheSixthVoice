@@ -309,6 +309,8 @@ gear.cp_cry_of_the_hosted_dead.action_mark_retort.effect,"As a |reaction|, when 
 gear.mw_rend_nexus.name,Rend Nexus
 gear.mw_rend_nexus.flavor,"""I call to you, O damned souls, sit and speak to me of the all the horrors we have wrought!"""
 gear.mw_rend_nexus.on_crit,"Until the end of your next turn, the next attack against you has +2 |Difficulty|."
+gear.buff_rend_nexus.name,Rend Nexus
+gear.buff_rend_nexus.effect,"The next attack against you has +2 |Difficulty|."
 gear.ms_o_trickery.name,O' Trickery
 gear.ms_o_trickery.flavor,"""And this HORUS system forces its way in, hijacking the targeting array, forcing focus onto the user's location and overriding decision points."" ""Fantastic."" ""Oh and this one brings them right next to the user."" ""Ah, surely nothing could go wrong with this."""
 gear.ms_o_trickery.action_grey_birds.name,The Flight of the Crescent of Grey Birds
@@ -318,6 +320,8 @@ gear.ms_o_trickery.action_hunt_of_the_vagrant_sowche.effect,"Your target must su
 gear.mw_nightfare_nexus.name,Nightfare Nexus
 gear.mw_nightfare_nexus.flavor,"The Nightfare nexus commands a small swarm of hypercharged magnetic drones that can tear through metal or flesh in seconds. The sheer force of their frenzy leaves thick black clouds of debris in their wake. To those in this cloud, it seems as though all light has vanished, leaving them in endless night."
 gear.mw_nightfare_nexus.on_hit,The target gains |soft cover| until the start of your next turn.
+gear.buff_nightfare_soft_cover.name,Nightfare Nexus
+gear.buff_nightfare_soft_cover.effect,"You have |soft cover| until the start of the Sluagh's next turn."
 gear.ms_twilight_swarm.name,Twilight Swarm
 gear.ms_twilight_swarm.flavor,"""Oh APEP, I can see your hunger, your bloodlust, and your anger. You have no place here you bestial thing! Their souls are mine to hold and keep and love forever!"
 gear.ms_twilight_swarm.action_damnation_of_the_host.name,Damnation of the Host
@@ -331,6 +335,7 @@ gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.effect,"Until the end 
 gear.ms_bleakshadow_gate.action_eyes_of_night.name,EYES OF NIGHT
 gear.ms_bleakshadow_gate.action_eyes_of_night.trigger,You or an allied character within |Sensors| hit an enemy benefiting from soft or hard cover for the first time this turn.
 gear.ms_bleakshadow_gate.action_eyes_of_night.effect,"The attack deals an additional +3 bonus damage and you take 2 |Energy| damage. This damage cannot be reduced in any way."
+gear.buff_eyes_of_night_bonus.name,EYES OF NIGHT
 gear.ms_the_morrigan_class_nhp.name,The Morrígan-class NHP
 gear.ms_the_morrigan_class_nhp.flavor,"""Worry not! All that hunger is gone for now ""It was here a moment and then gone again with the dawning of the day ""Back again into that bedeviled sward ""Now it is only us who remain, ""You, and me, and RA!"""
 gear.ms_the_morrigan_class_nhp.effect,Your mech gains the AI tag and the In Triumvirate quick tech action.

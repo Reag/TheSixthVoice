@@ -18,7 +18,8 @@ cover = 1
 ; (cover_calculator.gd:56-62) and of nobody else - which is also why this card can only shelter the
 ; unit it is applied to, and why it is applied to the target rather than sitting on the Sluagh.
 to = &"cover"
-; until = 6 is Lancer.UNTIL.START_OF_OWNERS_TURN (lancer.gd:46-57), whose own comment is "hangs out
+; until = 6 is Lancer.UNTIL.START_OF_OWNERS_TURN (lancer.gd:46-56, the entry itself at :51), whose
+; own comment is "hangs out
 ; until the start of the turn of the unit who placed this".
 ;
 ; "THE UNIT WHO PLACED THIS" IS THE SLUAGH, AND IT IS THE GEAR THAT DECIDES IT.

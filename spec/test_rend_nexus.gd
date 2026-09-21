@@ -101,6 +101,11 @@ func test_the_profile_matches_the_card():
 	assert_eq(shot.damage_dice, '1d3+1', 'Damage 1d3+1...')
 	assert_eq(shot.damage_type, Lancer.DAMAGE_TYPE.ENERGY, '...of ENERGY.')
 	assert_eq(shot.aim_range, 10, 'Range 10.')
+	# THREAT 1, the archetype default (action_attack_weapon.gd:16) - the card gives a Range and no
+	# Threat, and a Nexus is never a melee weapon. Added at the close (slice 3 M-4): the .tres's own
+	# header said "the spec pins the value" and no spec did, so this is the assertion that makes the
+	# comment true. Set threat = 2 in action_rend_nexus.tres and this line alone reddens.
+	assert_eq(shot.threat, 1, 'Threat 1, the archetype default the .tres deliberately leaves unwritten.')
 	assert_true(shot.tags.has(Lancer.WEAPON_TAG.SMART), 'SMART...')
 	assert_true(shot.tags.has(Lancer.WEAPON_TAG.AP), '...and AP.')
 	assert_eq(shot.tags.size(), 2, 'And nothing else.')
@@ -299,6 +304,43 @@ func test_the_card_rows_resolve():
 	assert_eq(Translate.action(kit, kit.actions[0], 'on_crit', false),
 		X.tr('gear.mw_rend_nexus.on_crit'),
 		'And Translate.action finds it from the ACTION, through the Kit-level fallback.')
+
+func test_the_chip_renders_its_own_card():
+	# THE CHIP IS VISIBLE (test_the_kit_carries_one_on_crit_effect... asserts hide_from_player false),
+	# so the player reads a tooltip body for it - tooltip_organ_buff.gd:21 is
+	# `%DescText.text = buff.effect_text()` with no blank or raw-key guard above it.
+	#
+	# UNTIL 2026-09-21 THAT BODY WAS THE LITERAL STRING `gear.mw_rend_nexus.effect` (close review,
+	# slice 3 I-1). The chip carried no rows of its own, so Translate.buff walked its whole fallback
+	# chain (translate.gd:49-79) - the buff key, the weather key, the gear-scoped buff key, the
+	# solo-action key gear.mw_rend_nexus.action_rend_nexus.effect - missed every one, and
+	# translate.gd:7-13 hands the KEY back when the last lookup misses too, because the weapon has no
+	# .effect row either (its card text is .flavor and .on_crit). The chip's TITLE was always fine:
+	# name_text() falls through to gear.mw_rend_nexus.name = "Rend Nexus".
+	#
+	# THE ROWS NOW EXIST and this is the pin on them. Delete gear.buff_rend_nexus.effect from
+	# localization/localizations.csv, rescan (op="scan", not "reimport" - memory
+	# lancer-tactics-localization-facts), and this test reddens on the begins_with line while nothing
+	# else in the suite notices.
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation, 'This mod has a compiled translation.')
+	if translation == null: return
+	for key:String in ['gear.buff_rend_nexus.name', 'gear.buff_rend_nexus.effect']:
+		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
+		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
+
+	# READ OFF A LIVE CHIP, not off the resource: effect_text() is a BuffCore call and the whole
+	# defect lived in the fallback chain, which only a placed buff walks.
+	SluaghFixture.queue([D20_CRITS])
+	await SluaghFixture.nexus_shot(game, sluagh, target)
+	assert_true(has_chip(), 'fixture: the crit armed it.')
+	var chip:BuffCore = chips()[0]
+	assert_false(chip.effect_text().begins_with('gear.'),
+		'THE FINDING: the chip\'s tooltip body is real text, not a raw localization key.')
+	assert_eq(chip.effect_text(), X.tr('gear.buff_rend_nexus.effect'),
+		'And it is the chip\'s OWN row, not anything the fallback chain reached for.')
+	assert_eq(chip.name_text(), X.tr('gear.buff_rend_nexus.name'),
+		'The title is its own row too - and it still reads "Rend Nexus", as it always did.')
 
 func test_the_licence_grants_it_at_rank_one():
 	var licence:UnlockTree = ContentLibrary.get_license_tree(SluaghFixture.LICENSE_ID)

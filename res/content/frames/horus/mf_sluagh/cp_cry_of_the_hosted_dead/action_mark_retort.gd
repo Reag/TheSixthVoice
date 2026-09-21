@@ -20,14 +20,19 @@
 ## Two clauses are added here:
 ##  - `defender == unit or UnitRelation.is_adjacent(unit, defender)`. The card covers BOTH "misses
 ##    you" and "misses an adjacent allied character", and are_allies is true of a unit and itself
-##    (unit_relation.gd:363-364) so the archetype's ALLIES filter already passes the Sluagh - what it
+##    (unit_relation.gd:364-365) so the archetype's ALLIES filter already passes the Sluagh - what it
 ##    cannot express is "or". NEVER require_defender_within: that is a radius, and ruling 6 has this
 ##    card TAKING House Guard's widening, which reaches adjacent_characters and nothing that measures
 ##    a radius. The argument order reads the SLUAGH'S buffs, which is the ruling's "direction".
 ##  - `defender.is_actor()`, for the reason every other card on this frame carries it:
 ##    require_defender_to_be_character is is_character(), and that is TRUE of a drone (unit.gd:116).
-##    It is asked only of the ADJACENT-ALLY branch: the Sluagh itself is an actor by construction, and
-##    asking it of the self case would only be a way to get the self case wrong.
+##    So A MISS ON AN ADJACENT ALLIED DRONE DOES NOT ARM THE RETORT, and this line is the only thing
+##    that refuses it - a real narrowing of the archetype's flag, not a restatement, pinned by
+##    `test_a_miss_on_an_adjacent_allied_drone_offers_nothing`. It is the MOD'S settled reading of
+##    "character" (rulings 194, 64/70 and 269), not this frame's local taste; the canonical paragraph
+##    is in mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd's header.
+##    It is asked only of the ADJACENT-ALLY branch: the Sluagh itself is an actor by construction,
+##    and asking it of the self case would only be a way to get the self case wrong.
 ##
 ## allow_tech AND allow_basic ARE SET, and both default false (action_reaction_attacked.gd:42-43).
 ## Ruling 15 says "any attack roll counts, weapon or tech", and EVERY vanilla ActionReactionAttacked
@@ -92,8 +97,9 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if not Unit.is_valid(defender): return false
 	# "misses YOU or an adjacent allied character" - the one clause the archetype cannot express.
 	if defender == unit: return true
-	# A mech or a pilot, never a drone; the .tres's require_defender_to_be_character does NOT deliver
-	# this, because Unit.is_character() is true of a drone (unit.gd:116-117).
+	# A mech or a pilot, never a drone - the mod's settled reading of "character" (rulings 194, 64/70
+	# and 269). The .tres's require_defender_to_be_character does NOT deliver this, because
+	# Unit.is_character() is true of a drone (unit.gd:116-117). See the header.
 	if not defender.is_actor(): return false
 	# The seam, ruling 6: is_adjacent, never a radius, with the SLUAGH as the first argument so it is
 	# the Sluagh's buffs that are read.
@@ -118,10 +124,19 @@ func activate(context:Context, activation:EventCore) -> void:
 	if activation.abort_when(not confirmed): return
 	if activation.abort_without_units([unit, attacker]): return
 
-	spend_actions(activation)
-	# Re-read once more: confirm_use was awaited, and a prompt is a real gap.
+	# Re-read once more: confirm_use was awaited, and a prompt is a real gap - something can have
+	# spent the dome between the question and the answer.
+	#
+	# NOTHING IS SPENT UNTIL THE RETORT IS KNOWN TO HAVE SOMETHING TO DEAL. spend_actions sits BELOW
+	# this abort, which is Draw Fire's order exactly (action_draw_fire.gd:201-212: every guard, then
+	# the confirm, then the live rebuild, and only then the spend). Above it - where this line stood
+	# until the close - a dome emptied across the prompt cost the player the point and the round for
+	# zero damage, which is the one outcome the card's "you may" and ruling 15's "not offered at 0
+	# Overshield" both exist to avoid. test_a_dome_emptied_during_the_prompt_spends_no_point is the
+	# pin; it is RED against the old order.
 	amount = Overshield.current(unit)
 	if activation.abort_when(amount <= 0): return
+	spend_actions(activation)
 	await activation.execute_event(&'event_unit_damage', {
 		unit = attacker,
 		number = amount,

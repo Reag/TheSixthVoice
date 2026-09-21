@@ -46,6 +46,10 @@ const HOSTILE_TILE := Vector2i(8, 6)
 const ALLY_TILE := Vector2i(11, 6)
 ## Beyond the rifle's Range 10 from HOSTILE_TILE, and beyond the Sluagh's own Sensors 10 as well.
 const FAR_FROM_THE_HOSTILE := Vector2i(30, 6)
+## SIX east of the hostile and five east of a Sluagh standing at ADJACENT_TO_HOSTILE - far enough
+## that an RPG's Blast 2 centred here does not already cover the Sluagh, which would make the
+## recentre a no-op at buff_grey_birds_recentre.gd:75 instead of a refusal at :166.
+const ALLY_CLEAR_OF_A_BLAST_TWO := Vector2i(14, 6)
 ## Adjacent to the hostile - what a grapple's threat 1 can reach.
 const ADJACENT_TO_HOSTILE := Vector2i(9, 6)
 
@@ -241,7 +245,7 @@ func test_a_tech_attack_is_refused_but_a_lock_on_escapes_the_channel_entirely():
 	#
 	# WHY NOT ms_scan, the plain-ActionSystem path (action_system.gd:51-52 DOES call super)? Because
 	# it cannot be probed with this fixture: action_scan also demands
-	# Scanpedia.is_anything_unscanned(target) (action_scan.gd:16), and the SLUAGH's own frame is
+	# Scanpedia.is_anything_unscanned(target) (action_scan.gd:17), and the SLUAGH's own frame is
 	# already complete in the campaign scanpedia (measured: unscanned=false for mf_sluagh,
 	# unscanned=true for the ally's mf_standard_pattern_i_everest). The scan therefore cannot target
 	# the Sluagh at all, the "could target you" clause correctly lapses, and the case would pin the
@@ -314,6 +318,13 @@ const MORTAR := &'mw_mortar'
 const THERMAL_LANCE := &'mw_thermal_lance'
 ## IPS-N Burst 1 aux CQB, 1 kinetic, aim_range 1, threat 0. `pattern = 4` (BURST), value 1.
 const BRISTLECROWN := &'mw_bristlecrown_flechette_launcher'
+## Blast 2, Range 10, LOADING + ORDNANCE, 1d6+1 explosive. `pattern = 1` (BLAST), value 2
+## (content/gear/gms/weapons/mw_rocket_propelled_grenade.tres). THE ONLY VANILLA WEAPON SHAPE THAT
+## CAN REACH THE RECENTRE'S `new_units.has(owner)` REFUSAL - see
+## test_an_ordnance_blast_is_not_dragged_onto_an_engaged_sluagh. LOADING is harmless here:
+## GearCore.is_loaded defaults to TRUE (gear_core.gd:12) and only a use clears it, so the first shot
+## always fires.
+const RPG := &'mw_rocket_propelled_grenade'
 
 ## Records the FINAL target set of every declared attack. ATTACK_DECLARED / POST, so it reads the
 ## summary AFTER any PRE rewrite - which is the thing under test. A reaction that never fires: it
@@ -488,6 +499,135 @@ func test_a_blast_is_left_alone_when_the_sluagh_is_beyond_the_weapons_range():
 	assert_false(summary.directly_attacked_tiles.has(sluagh.tile()),
 		'...and is not dragged onto a Sluagh the mortar cannot reach.')
 	assert_false(summary.all_attacked_units.has(sluagh), 'The Sluagh is not in the area either.')
+
+func test_an_ordnance_blast_is_not_dragged_onto_an_engaged_sluagh():
+	# THE `new_units.has(owner)` REFUSAL (buff_grey_birds_recentre.gd:166), AND THE ONLY CASE IN THE
+	# SUITE THAT REACHES IT. Added at the frame close (2026-09-21) for a coverage regression nobody
+	# re-measured: step 0 - the attacker's own range and LOS to the aim tile, added at :133 as a
+	# follow-up to Task 6 - now refuses all three of this file's older recentre NEGATIVES before any
+	# later clause is consulted, so Task 6's mutations 1 and 2b stopped discriminating.
+	# MEASURED, NOT ASSUMED: neutralising :166 to `if false: return false` left this file 19/19
+	# green, and so did neutralising the BURST refusal at :150.
+	#
+	# A HIDDEN SLUAGH WOULD NOT WORK, and that is worth recording because it is the obvious idea:
+	# ActionAttackWeapon.can_target_unit puts its hidden check INSIDE `if not range_pattern`
+	# (action_attack_weapon.gd:226-229), under a comment that says so outright - "we can target
+	# hidden guys just fine with AOE". So Action.can_target_unit:219 is never reached for an AoE
+	# weapon and hiding changes nothing about the refilter. Measured on 2026-09-21: a hidden Sluagh
+	# ten tiles out was dragged onto by a mortar exactly as an unhidden one is.
+	#
+	# WHAT DOES WORK IS THE ORDNANCE CLAUSE, the one other geometry-free refusal that override adds
+	# (:232-237): an ORDNANCE weapon cannot target a unit that is engaging its wielder. Every leg of
+	# that is arranged here - the RPG carries the tag, the Sluagh is stood adjacent so both ends are
+	# ENGAGED, and get_engaging_units(hostile) then holds the Sluagh. A BLAST always contains the
+	# tile it is centred on, so unlike the Thermal Lance case the pattern itself cannot drop the
+	# owner; the refilter at :162 is the only thing that can, and :166 is the only clause left to act
+	# on it.
+	#
+	# AND IT IS A CARD READING, NOT ONLY A CODE PATH: the recentre never re-aims an attack onto a
+	# unit the attacker could not legally have aimed at. Draw Fire's own copy of the clause names the
+	# same family of case (action_draw_fire.gd:402-403). No ruling says it out loud; this is where
+	# the frame records it.
+	#
+	# THE BAN LAPSES FOR THIS WEAPON AND ONLY THIS WEAPON, and that is asserted both ways rather than
+	# left implicit. owner_is_a_legal_target asks whichever action is in the context the identical
+	# can_target_unit question, so the RPG - refused by its own ordnance clause - is unbanned, while
+	# the hostile's RIFLE, which can see the adjacent Sluagh perfectly well, is still bound. Measured
+	# 2026-09-21; the first draft of this case asserted the rifle and went red for that reason. It
+	# matters because without the RPG half, "the blast stayed on the ally" could just as well be the
+	# ban having stripped the ally out of the declared area instead (action_attack.gd:172).
+	SluaghFixture.cheat_a_hit()
+	await SluaghFixture.grey_birds(game, sluagh, hostile)
+	assert_true(bound(), 'fixture: the invade landed.')
+
+	var rpg := arm(hostile, RPG)
+	SluaghFixture.step(sluagh, ADJACENT_TO_HOSTILE)
+	SluaghFixture.step(ally, ALLY_CLEAR_OF_A_BLAST_TWO)
+	SluaghFixture.track(game)
+	# THE ORDNANCE PHASE, BY HAND - vanilla's own spec idiom (test/gear/test_mw_railgun.gd:16-19).
+	# UnitAction.get_gear_unavailable_reason refuses any ordnance outside it (:146,
+	# REASON.ORDNANCE), and event_turn_start sets the flag only for the STARTING unit (:83) - which
+	# here is the SLUAGH, because the invade opened its turn and nobody has opened the hostile's.
+	# Without this line fire_at_tile aborts at event_gear_activate, the summary comes back NULL and
+	# the case returns early having asserted only its fixture: measured 2026-09-21, and it is exactly
+	# the silent-abort trap the fixture's own headers warn about.
+	hostile.state.is_firing_ordnance = true
+	var specific := SpecificAction.from_id(hostile, RPG)
+	assert_true(UnitAction.is_ordnance(specific), 'fixture: the RPG really is ORDNANCE.')
+	assert_true(UnitAction.is_gear_available(specific),
+		'fixture: and it really can be fired, so a null summary cannot hide this case.')
+	assert_true(hostile.has_status(Lancer.STATUS.ENGAGED), 'fixture: the attacker is engaged...')
+	assert_true(sluagh.has_status(Lancer.STATUS.ENGAGED), '...by the Sluagh, which is engaged too...')
+	assert_true(UnitRelation.get_engaging_units(hostile).has(sluagh),
+		'...and it is the Sluagh doing the engaging, which is the clause\'s last leg.')
+	# STEP 0 IS NOT WHAT REFUSES THIS ONE, measured rather than assumed - which is the entire point
+	# of the case, and the thing the three older negatives cannot say.
+	assert_true(UnitTargeting.get_tiles_in_range(specific).has(sluagh.tile()),
+		'AND THE SLUAGH\'S TILE IS IN THE RPG\'S RANGE, so step 0 passes and :166 is what acts.')
+	assert_false(specific.action.can_target_unit(sluagh, specific),
+		'But the ordnance clause refuses the Sluagh, so the refilter drops it out of the rebuild.')
+	assert_true(specific.action.can_target_unit(ally, specific),
+		'fixture: the BAN lapses for THIS weapon by the same clause, so the ally stays in the '
+		+ 'declared area rather than being filtered out of it.')
+	assert_false(can_target(rifle_of(hostile), ally),
+		'...while the hostile\'s RIFLE is still bound, because the ordnance clause is per-ACTION: '
+		+ 'that is how the ban and the recentre can disagree about one Sluagh on one board.')
+
+	var summary:DeclaredAttackSummary = await fire_at_tile(hostile, rpg, ALLY_CLEAR_OF_A_BLAST_TWO, 19)
+	assert_not_null(summary, 'fixture: the shot resolved and produced a summary.')
+	if summary == null: return
+	assert_true(summary.directly_attacked_tiles.has(ALLY_CLEAR_OF_A_BLAST_TWO),
+		'THE CARD STOPS AT THE ATTACKER\'S OWN TARGETING: the blast keeps the aim it was given...')
+	assert_false(summary.directly_attacked_tiles.has(sluagh.tile()),
+		'...it is not re-aimed onto a unit this weapon could not legally have been pointed at...')
+	assert_false(summary.all_attacked_units.has(sluagh), '...and the Sluagh is not in the area.')
+
+func test_a_biological_ally_escapes_the_ban_entirely():
+	# THE SECOND ENGINE-IMPOSED EXCEPTION TO RULING 4, of the same family as the Lock On escape above
+	# and recorded the same way: as a PAIR of assertions on one board, so the day the engine closes
+	# the hole the positive half reddens and the day the ban itself breaks the negative half does.
+	#
+	# WHY IT HAPPENS. The ban buff is owned by a TECH gear - both of O' Trickery's actions are
+	# ActionAttackTech, which is what makes UnitAction.is_tech true for the Kit (unit_action.gd:567-571)
+	# - so Buff.check_if_prohibited drops it out of get_buffs_to whenever the CANDIDATE is tech-immune
+	# (buff.gd:234, :238, reached from the end of does_buff_apply at unit_condition.gd:845-851). And
+	# UnitCondition.is_immune_to_tech is `frame.is_biological or has_buff_to(TECH_IMMUNITY)`
+	# (:532-533), so this is not only the Iceout drone: ANY biological unit is outside the ban and a
+	# bound enemy may shoot it freely. The card says nothing of the kind.
+	#
+	# NOT FIXABLE IN-MOD, which is why this is a pin rather than a fix: check_if_prohibited is a
+	# static on an engine `class_name` script (no extension seam), and dropping context.gear from
+	# apply_buffs to dodge it would break BuffCore.get_owner_unit (buff_core.gd:102-105), which the
+	# whole ban is built on.
+	#
+	# SECOND CONSEQUENCE, RECORDED HERE RATHER THAN PINNED: reaction_bus.gd:138 ANDs the same
+	# check_if_prohibited, and event_round_new's context carries only `map`, so it is the HOLDER test
+	# at buff.gd:236 that is live there - a bound unit that GAINS tech immunity after being bound
+	# never fires its NEW_ROUND expiry and wears the (inert) ban and its visible chip for the rest of
+	# the scene. Asking that needs a tech-immunity source this mod does not ship.
+	#
+	# is_biological IS SET THE WAY THE FIXTURE SETS is_drone (sluagh_fixture.gd:147): create_ally goes
+	# through FrameIsolation.isolate_frame, which deep-duplicates the Frame and its Statblock, so this
+	# write cannot reach the shared ContentLibrary copy.
+	var bio_ally:Unit = SluaghFixture.create_ally(game, Vector2i(ALLY_TILE.x, ALLY_TILE.y + 1))
+	bio_ally.core.frame.is_biological = true
+	bio_ally.core.full_repair()
+	SluaghFixture.track(game)
+	assert_true(UnitCondition.is_immune_to_tech(bio_ally),
+		'fixture: a biological frame is tech-immune, and that is the whole mechanism.')
+	assert_false(UnitCondition.is_immune_to_tech(ally), 'fixture: the ordinary ally is not.')
+	var rifle := rifle_of(hostile)
+	assert_true(can_target(rifle, ally), 'CONTROL: before the invade, both allies are legal targets.')
+	assert_true(can_target(rifle, bio_ally), 'CONTROL: including the biological one.')
+
+	SluaghFixture.cheat_a_hit()
+	await SluaghFixture.grey_birds(game, sluagh, hostile)
+	assert_true(bound(), 'fixture: the invade landed.')
+	assert_false(can_target(rifle, ally), 'THE CARD: the ordinary ally is banned...')
+	assert_true(can_target(rifle, bio_ally),
+		'ENGINE LIMIT: ...and the BIOLOGICAL one is not. A tech-owned buff is prohibited outright '
+		+ 'against a tech-immune candidate, so this ally is outside the card. If this ever goes red, '
+		+ 'buff.gd:238 changed and ruling 4 got stronger.')
 
 func test_without_the_ban_the_hostile_can_target_the_ally():
 	# THE CONTROL FOR THE AI CASE BELOW, and it is what makes that one mean anything: an AI that

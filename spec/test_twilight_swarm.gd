@@ -85,12 +85,12 @@ func specific(action_id:StringName) -> SpecificAction:
 # ---------------------------------------------------------------- the profile
 
 func test_the_profile_matches_the_card():
-	# EVERY NUMBER OFF THE SHEET (specs/sixth-voice/08-sluagh.md:76-85), read from the RESOURCE.
+	# EVERY NUMBER OFF THE SHEET (specs/sixth-voice/08-sluagh.md:76-83), read from the RESOURCE.
 	var kit:Kit = ContentLibrary.get_kit(SluaghFixture.TWILIGHT_SWARM)
 	assert_not_null(kit, 'ms_twilight_swarm loads as a Kit through ContentLibrary.')
 	if kit == null: return
 	# ASSERTED BEFORE THE GUARD BELOW, not after: ContentLibrary.get_kit never returns null for an
-	# unknown id - it hands back the mt_missing_mechsystem placeholder (kit.gd:13), an empty Kit -
+	# unknown id - it hands back the mt_missing_mechsystem placeholder (kit.gd:9), an empty Kit -
 	# so a guard placed first would let this test return having asserted nothing discriminating.
 	# test_nightfare_nexus.gd's RED run measured exactly that on 2026-09-21.
 	assert_false(kit.actions.is_empty(), 'fixture: the Kit carries its actions.')
@@ -346,7 +346,7 @@ func test_an_ally_beyond_sensors_cannot_be_targeted():
 	# A SUPPLIED TARGET IS FILTERED BY can_target_unit AND BY NOTHING ELSE.
 	# TargetActionUtil.ask_for_targets_alt does exactly one filter on the units it was handed:
 	# `Util.filter(supplied_units, specific.action.can_target_unit.bind(specific))`
-	# (target_action_util.gd:172). No range check, no line of sight, no get_tiles_targetable. Range is
+	# (target_action_util.gd:173; :172 is the Unit.is_valid filter one line above it). No range check, no line of sight, no get_tiles_targetable. Range is
 	# enforced ONLY on the path where the player picks - get_tiles_targetable, which is what the
 	# assertion above reads - so a target handed in directly reaches activate_for_target however far
 	# away it is standing, and the Crown duly fires.
@@ -399,31 +399,34 @@ func test_crown_cannot_target_a_hostile_or_the_sluagh_itself():
 	assert_eq(Overshield.current(hostile), 0, 'A hostile gains nothing.')
 	assert_eq(Overshield.current(sluagh), 4, 'And the Sluagh pays nothing.')
 
-func test_crown_can_crown_an_allied_drone():
-	# AUTHOR'S RULING, 2026-09-21, and it went the way the ENGINE reads the word rather than the way
-	# this frame has read it twice before - so it is pinned here rather than left to the archetype.
+func test_crown_cannot_crown_an_allied_drone():
+	# AUTHOR'S RULING, 2026-09-21 (the frame close), REVERSING THIS CARD'S OWN SP3 RULING. That one
+	# read the word the ENGINE's way and left the archetype to it; the author has since chosen the
+	# MOD'S consistency instead, frame-wide and knowingly.
 	#
 	# Unit.is_character() is `is_active() and core.frame.is_character()`, and its own comment says
-	# "active mech/pilot/drone" (unit.gd:116). A DRONE IS A CHARACTER. is_actor() is the predicate
-	# that excludes drones (:117), and it is the one SP1's Astral Guardian and SP2's Hunt use for
-	# their own readings of "character" on this same frame. The Crown does NOT follow them: the card
-	# says "an allied character", the archetype's requires_target_character means exactly
-	# is_character(), and every vanilla card phrased this way behaves the same. Excluding drones would
-	# have cost a can_target_unit override; the ruling is to have none.
+	# "active mech/pilot/drone" (unit.gd:116) - so requires_target_character
+	# (action_system_target_unit.gd:16) ADMITS a drone and cannot express this clause. is_actor()
+	# (:117) is the predicate that excludes one, and it is what ruling 194 (the Vauban's Gravity
+	# Well), rulings 64 and 70 (a drone's shot counts as its OWNER'S) and ruling 269 (the Stealing)
+	# all mean by "character". The canonical paragraph is in action_stealing_of_the_souls.gd's
+	# header. What refuses the drone here is action_crown_of_restless_dead.gd's own can_target_unit
+	# override; neutralise it and this is the one test in the file that reddens.
 	#
-	# The divergence from the Hunt's reading is recorded for the frame close rather than silently
-	# smoothed over - those two are a SEARCH and an archetype flag, not a target filter, so they may
-	# not be in conflict at all, but the question belongs on the author's desk, not in this file.
+	# ALL THREE PATHS ARE ASSERTED, because they are different code: the filter itself, the tile set
+	# the player is offered (UnitTargeting, action.gd:214), and a target handed straight to the plan
+	# (target_action_util.gd:172). The last is what says a spec or an AI cannot route round the
+	# first - and it is the only one that would show the Sluagh paying for a transfer that happened.
 	var drone := SluaghFixture.create_drone(game, ALLY_TILE)
 	await SluaghFixture.grant_overshield(sluagh, 4)
 	assert_true(drone.is_character(), 'fixture: the engine counts a drone as a character...')
 	assert_false(drone.is_actor(), '...though not as an ACTOR, which is the predicate that excludes it.')
-	assert_true(crown_can_target(drone), 'So the Crown may target an allied drone...')
-	assert_true(crown_targetable().has(ALLY_TILE), '...and its tile is offered.')
+	assert_false(crown_can_target(drone), 'So the Crown may NOT target an allied drone...')
+	assert_false(crown_targetable().has(ALLY_TILE), '...and its tile is not offered.')
 
 	await SluaghFixture.crown(game, sluagh, drone)
-	assert_eq(Overshield.current(drone), 4, 'It gains the shield...')
-	assert_eq(Overshield.current(sluagh), 0, '...and the Sluagh pays the full amount for it.')
+	assert_eq(Overshield.current(drone), 0, 'It gains nothing...')
+	assert_eq(Overshield.current(sluagh), 4, '...and the Sluagh pays nothing for it.')
 
 # ---------------------------------------------------------------- the card and the licence
 

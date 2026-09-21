@@ -122,19 +122,34 @@ func test_a_hostile_death_beyond_sensors_grants_nothing():
 	var victim:Unit = SluaghFixture.create_hostile(game, BEYOND_SENSORS_TILE)
 	assert_eq(UnitRelation.distance_between(sluagh, victim), 11, 'fixture: one past Sensors.')
 	await SluaghFixture.kill(game, victim)
+	# THE VACUITY GUARD every negative in this file now carries (close review, slice 2 M-1). Without
+	# it "nothing was granted" is satisfied by a death that never happened, and event_unit_die's POST
+	# queue is the only thing that reaches this trait at all.
+	assert_false(Unit.is_valid(victim), 'fixture: it really died.')
 	assert_eq(overshield(), 0, 'One tile past Sensors grants nothing.')
 
 func test_a_hostile_drone_death_grants_nothing():
-	# RULING 11: "deployables, drones and wrecks excluded". THIS is the case the gate's predicate
-	# hangs on, and it is why the gate asks is_actor() rather than is_character(): Unit.is_character()
-	# returns TRUE for a drone - its own comment says "active mech/pilot/drone" (unit.gd:116) - while
-	# is_actor() is is_character() and not is_drone (:117). Written as is_character(), which is what
-	# the design doc's paraphrase says, this test is the only one in the file that would fail.
+	# RULING 269: "deployables, drones and wrecks excluded", and it is THE MOD'S settled reading of
+	# "character" rather than this trait's local taste - ruling 194 (the Vauban's Gravity Well
+	# shelters allied MECHS) and rulings 64/70 (a drone's shot counts as its OWNER'S) say the same
+	# word the same way on two other frames. The canonical paragraph is in
+	# action_stealing_of_the_souls.gd's header.
+	#
+	# THIS is the case the gate's predicate hangs on, and it is why the gate asks is_actor() rather
+	# than is_character(): Unit.is_character() returns TRUE for a drone - its own comment says
+	# "active mech/pilot/drone" (unit.gd:116) - while is_actor() is is_character() and not is_drone
+	# (:117). Written as is_character(), which is what the design doc's paraphrase says and what one
+	# pass of this session's fix wave briefly shipped, this test is the only one in the file that
+	# would fail.
+	#
+	# THE TWO SETUP ASSERTIONS ARE KEPT ON PURPOSE. They say out loud WHICH predicate the gate uses,
+	# so the green below is a statement about the rule rather than only about the outcome.
 	SluaghFixture.set_grit(sluagh, GRIT)
 	var drone:Unit = SluaghFixture.create_drone(game, NEAR_TILE, Faction.AI_ENEMY)
 	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
 	assert_false(drone.is_actor(), '...and is NOT an actor, which is the distinction the gate uses.')
 	await SluaghFixture.kill(game, drone)
+	assert_false(Unit.is_valid(drone), 'fixture: it really died.')
 	assert_eq(overshield(), 0, 'A hostile DRONE dying grants nothing.')
 
 func test_a_hostile_object_death_grants_nothing():
@@ -146,12 +161,14 @@ func test_a_hostile_object_death_grants_nothing():
 	var cover:Unit = SluaghFixture.create_hostile_object(game, NEAR_TILE)
 	assert_false(cover.is_character(), 'fixture: a Jericho cover is not a character.')
 	await SluaghFixture.kill(game, cover)
+	assert_false(Unit.is_valid(cover), 'fixture: it really died.')
 	assert_eq(overshield(), 0, 'A hostile OBJECT dying grants nothing.')
 
 func test_an_allied_death_grants_nothing():
 	SluaghFixture.set_grit(sluagh, GRIT)
 	var friend:Unit = SluaghFixture.create_ally(game, NEAR_TILE)
 	await SluaghFixture.kill(game, friend)
+	assert_false(Unit.is_valid(friend), 'fixture: it really died.')
 	assert_eq(overshield(), 0, 'An ALLY dying grants nothing - the card says hostile.')
 
 func test_a_meltdown_grants():
@@ -199,7 +216,7 @@ func test_a_second_death_in_the_same_round_grants_again():
 	assert_eq(overshield(), GRIT, 'The second death in the same round grants again.')
 
 func test_a_grit_zero_pilot_grants_nothing_and_fires_no_event():
-	# Overshield.grant refuses an amount of 0 outright and fires NO event (overshield.gd:47), because
+	# Overshield.grant refuses an amount of 0 outright and fires NO event (overshield.gd:78), because
 	# event_unit_overshield always plays a popcorn and writes a battle-log line (:17-22) - so without
 	# the gate a level-0 pilot would see "now has 0 overshield" on screen for every enemy that died.
 	# The reaction ALSO refuses at the gate, Halo's shape, so it is never even offered.
