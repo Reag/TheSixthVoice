@@ -1,0 +1,20 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_the_morrigan_class_nhp/action_in_triumvirate.gd" id="1_tri"]
+
+[resource]
+script = ExtResource("1_tri")
+; QUICK (Lancer.ACTION.QUICK == 1) TECH: jammable, and exempt from the repeat-action rule on a
+; player mech (action_system.gd:44).
+action_type = 1
+is_tech = true
+; HEAT SELF 2. Rolled by UnitAction.gain_self_heat inside spend_actions (unit_action.gd:291-294);
+; action_project_shield.tres is vanilla's precedent (self_heat_dice = "1"). A flat string pops
+; nothing off the dice queue (dice.gd:22-35), which Task 4 case 2 measured.
+self_heat_dice = "2"
+; "an allied character within Sensors", split the way ActionSystemTargetUnit splits it.
+; can_target_self is LEFT at its default false and asserted anyway.
+target_range_is_sensors = true
+can_target_enemies = false
+can_target_allies = true
+requires_target_character = true

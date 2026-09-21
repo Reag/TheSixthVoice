@@ -1,0 +1,14 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_the_morrigan_class_nhp/buff_in_triumvirate_pair.gd" id="1_pair"]
+
+[resource]
+script = ExtResource("1_pair")
+; THE CHANNEL. Not in Buff.TO and not in ExportListHint.BUFF_TO - a suggestion hint, not a
+; constraint - exactly as talents' &"adjacency_range" is not. Read only by our banner.
+to = &"reag_adjacent_to"
+; until = 7 is Lancer.UNTIL.END_OF_OWNERS_NEXT_TURN (lancer.gd:52): cleared by
+; clear_owners_turn_statuses at the OWNER's turn end, the owner being the Sluagh through from_gear.
+; The engine's own warning on that line is fork 3's recorded edge.
+until = 7
+; VISIBLE (ruling 23): a chip on each end says who is paired. Its icon is SP5's.

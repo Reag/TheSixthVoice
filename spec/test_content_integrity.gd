@@ -684,6 +684,10 @@ const ICON_TARGETS := {
 	# design gives the system ONE family: {ms_bleakshadow_gate, action_activate_bleakshadow_gate,
 	# action_eyes_of_night, the Gate chip}. The Kit's own icon is SP5's.
 	&'ms_bleakshadow_gate': {&'action_activate_bleakshadow_gate': KIT},
+	# SP4 Task 4 (Sluagh). The Morrígan-class NHP. In Triumvirate is the one button the gear bar
+	# draws for it; KIT, because the design's family is {the Kit, action_in_triumvirate, the pair
+	# and ward chips}. The Kit's own icon is SP5's.
+	&'ms_the_morrigan_class_nhp': {&'action_in_triumvirate': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -852,6 +856,10 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	&'buff_nightfare_soft_cover',
 	# SP4 Task 1 (Sluagh). The Gate's chip, visible per ruling 22: the only sign the reaction is up.
 	&'buff_bleakshadow_gate',
+	# SP4 Task 4 (Sluagh). In Triumvirate's two chips, visible per ruling 23: the pair on both ends
+	# says who is paired, the ward on the ally says why attacks on it are worse.
+	&'buff_in_triumvirate_pair',
+	&'buff_in_triumvirate_ward',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

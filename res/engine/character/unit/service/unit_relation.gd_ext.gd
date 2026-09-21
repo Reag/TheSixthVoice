@@ -113,3 +113,51 @@ static func get_weapons_that_can_react_against(
 			if specific.action.requires_line_of_sight(specific) and not UnitRelation.can_see(from_unit, target_unit): continue
 			reaction_weapons.append(specific)
 	return reaction_weapons
+
+
+# ============================================================================================
+# IN TRIUMVIRATE (Sluagh, ms_the_morrigan_class_nhp). A named partner counts as adjacent.
+#
+#   "Until the end of your next turn, your chosen ally is always treated as being adjacent to you
+#    while within your Sensors, regardless of actual distance between you."
+#
+# Design specs/2026-09-20-sluagh-design.md ruling 23; spike
+# specs/2026-09-20-adjacency-override-feasibility.md section 6, verbatim with fork 2 answered as the
+# OWNER's live Sensors. super FIRST, so talents' House Guard (which also overrides this function,
+# reading &'adjacency_range') and Thy Hubris' compose in either install order - spec/test_compat.gd
+# pins both. Unit.is_valid on everything; append-if-absent (the Kraken's shape).
+#
+# REACHED FROM: a node call (UnitRelation.adjacent_characters - 37 content readers, Stabilize the
+# measured witness) and from is_adjacent, an unqualified static call ONE level down
+# (unit_relation.gd:7-8) - the depth an override is still dispatched at (this file's header).
+# get_engaging_units is also one level down but filters the widened list through
+# is_close_enough_to_engage, a radius, so engagement never widens (spike section 1).
+# spec/test_unit_relation_extension.gd pins both depths.
+# ============================================================================================
+
+## The channel buff_in_triumvirate_pair sits on, and the override below is its only reader.
+## Deliberately NOT talents' &'adjacency_range': a buff of ours on that key would make THEIR
+## override widen the Sluagh to every ally within the number, and only while talents is installed.
+const ADJACENT_TO := &'reag_adjacent_to'
+const PARTNER_KEY := 'partner'   # BuffCore.state: the partner's persistent id
+
+## super builds the vanilla list (and whatever a mod below us added); then each pair buff on THIS
+## unit names one partner, which is appended while the OWNER's Sensors still reach it.
+##
+## THE OWNER IS THE SLUAGH ON EITHER END, because both cores are from_gear the NHP
+## (buff_core.gd:102). So the Sensors test is the card's "while within YOUR Sensors" whichever end
+## is queried, and it is read LIVE - Inexorable Formation moves the Sluagh's Sensors with its
+## Overshield, so a pair that went quiet at 11 comes back when the range grows.
+static func adjacent_characters(unit:Unit) -> Array[Unit]:
+	var adjacent_units := super.adjacent_characters(unit)
+	if not Unit.is_valid(unit) or unit.map == null: return adjacent_units
+	for buff:BuffCore in UnitCondition.get_buffs_to(unit, ADJACENT_TO):
+		var partner:Unit = buff.get_linked_unit(PARTNER_KEY, unit.map)
+		if not Unit.is_valid(partner) or partner == unit: continue
+		var owner:Unit = buff.get_owner_unit(unit.map)   # the Sluagh, on either end
+		if not Unit.is_valid(owner): continue
+		# "while within your Sensors": the OWNER's live Sensors, measured to whichever end is not the owner.
+		var far_end:Unit = partner if unit == owner else unit
+		if UnitRelation.distance_between(owner, far_end) > owner.get_sensor_range(): continue
+		if not adjacent_units.has(partner): adjacent_units.append(partner)
+	return adjacent_units

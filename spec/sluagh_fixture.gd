@@ -532,10 +532,19 @@ static func equip_morrigan(unit:Unit) -> GearCore: return equip(unit, MORRIGAN)
 
 ## Press IN TRIUMVIRATE naming an ally, opening a turn for the Sluagh if it has none.
 ##
-## IT POPS ONE ENTRY off Dice.CHEAT_ROLL_QUEUE for the self-heat: nightfare_shot's and grey_birds'
-## reasoning does NOT apply here, because self_heat_dice is a live roll_string call, not the flat
-## damage-string shortcut those two ride on - VERIFY THIS in Task 4 case 2 and correct this header if
-## the heat reads wrong (fact list, self-heat mechanism).
+## THE ACTIVATION POPS NOTHING off Dice.CHEAT_ROLL_QUEUE, and that is the CORRECTED reading - this
+## header guessed one entry for the self-heat and asked to be measured. gain_self_heat calls
+## Dice.roll_string(self_heat_dice) (unit_action.gd:291-294), and roll_string on the flat string "2"
+## goes through process_dice_string, which parses it as a BONUS and returns count 0 (dice.gd:98-112),
+## so roll_dice's loop body never runs (:22-35). nightfare_shot's flat "3" and grey_birds'
+## tech-attack "2" reasoning applies here after all.
+##
+## BUT THE TURN THIS HELPER OPENS DOES POP, AND THAT IS WHAT THE FIRST MEASUREMENT CAUGHT (2026-09-21,
+## test_in_triumvirate case 2): event_turn_start's recharge loop rolls a d6 for EVERY non-basic gear
+## that is not yet recharged (event_turn_start.gd:89-91) - one entry with the Morrígan alone
+## equipped, more with a fuller loadout. So a spec that queues before calling this must either open
+## the Sluagh's turn itself first (what case 2 does) or count those rolls. The same caveat applies to
+## open_gate() and damnation() above, whose headers speak only for their own activations.
 ##
 ## DOES NOT CYCLE THE TURN, damnation()'s and open_gate()'s reasoning: a quick tech has no per-turn
 ## soft limit on a player mech.
