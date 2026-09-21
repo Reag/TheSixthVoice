@@ -318,3 +318,9 @@ gear.ms_o_trickery.action_hunt_of_the_vagrant_sowche.effect,"Your target must su
 gear.mw_nightfare_nexus.name,Nightfare Nexus
 gear.mw_nightfare_nexus.flavor,"The Nightfare nexus commands a small swarm of hypercharged magnetic drones that can tear through metal or flesh in seconds. The sheer force of their frenzy leaves thick black clouds of debris in their wake. To those in this cloud, it seems as though all light has vanished, leaving them in endless night."
 gear.mw_nightfare_nexus.on_hit,The target gains |soft cover| until the start of your next turn.
+gear.ms_twilight_swarm.name,Twilight Swarm
+gear.ms_twilight_swarm.flavor,"""Oh APEP, I can see your hunger, your bloodlust, and your anger. You have no place here you bestial thing! Their souls are mine to hold and keep and love forever!"
+gear.ms_twilight_swarm.action_damnation_of_the_host.name,Damnation of the Host
+gear.ms_twilight_swarm.action_damnation_of_the_host.effect,You gain |OVERSHIELD| equal to 1d6+|GRIT|
+gear.ms_twilight_swarm.action_crown_of_restless_dead.name,Crown of Restless Dead
+gear.ms_twilight_swarm.action_crown_of_restless_dead.effect,"An allied character within |sensors| gains |OVERSHIELD| equal to your |OVERSHIELD|, then you take that much |Energy| damage. This damage cannot be prevented in any way. You may only take this action 1/round."

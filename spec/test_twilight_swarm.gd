@@ -424,3 +424,63 @@ func test_crown_can_crown_an_allied_drone():
 	await SluaghFixture.crown(game, sluagh, drone)
 	assert_eq(Overshield.current(drone), 4, 'It gains the shield...')
 	assert_eq(Overshield.current(sluagh), 0, '...and the Sluagh pays the full amount for it.')
+
+# ---------------------------------------------------------------- the card and the licence
+
+func test_the_card_rows_resolve():
+	# Through THIS MOD'S OWN compiled artifact first, so a sibling Reag-* mod loaded in the same
+	# testkit run cannot hold this green.
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation, 'This mod has a compiled translation.')
+	if translation == null: return
+	for key:String in [
+			'gear.ms_twilight_swarm.name', 'gear.ms_twilight_swarm.flavor',
+			'gear.ms_twilight_swarm.action_damnation_of_the_host.name',
+			'gear.ms_twilight_swarm.action_damnation_of_the_host.effect',
+			'gear.ms_twilight_swarm.action_crown_of_restless_dead.name',
+			'gear.ms_twilight_swarm.action_crown_of_restless_dead.effect']:
+		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
+		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
+	assert_eq(X.tr('gear.ms_twilight_swarm.name'), 'Twilight Swarm', 'The card name.')
+
+	# X.tr KEEPS THE GLOSSARY PIPES (SP1 Task 7's finding), so these pin the pipes as well as the
+	# words. All four labels were checked against assets/localization/localizations.csv on
+	# 2026-09-21 and resolve case-insensitively: |OVERSHIELD| -> lancer.term.overshield,
+	# |GRIT| -> lancer.term.grit, |sensors| -> lancer.stat.sensor_range (whose .short is "Sensors"),
+	# |Energy| -> lancer.damagetype.energy (whose .short is "Energy"). The CASE inside the pipes is
+	# the LCP'S, not the glossary's - the localisation directive is verbatim, and this card writes
+	# "sensors" and "Energy" where SP1's own rows happened to write "Sensors" and "energy".
+	assert_eq(X.tr('gear.ms_twilight_swarm.action_damnation_of_the_host.effect'),
+		'You gain |OVERSHIELD| equal to 1d6+|GRIT|',
+		'The LCP verbatim - including its missing full stop, which is the source and not a slip here.')
+	assert_eq(X.tr('gear.ms_twilight_swarm.action_crown_of_restless_dead.effect'),
+		'An allied character within |sensors| gains |OVERSHIELD| equal to your |OVERSHIELD|, then '
+		+ 'you take that much |Energy| damage. This damage cannot be prevented in any way. You may '
+		+ 'only take this action 1/round.',
+		'The LCP verbatim, pipes added. No divergence is recorded for this card and none is wanted.')
+
+	# THE ENGINE REALLY READS THESE KEYS. Translate.action looks up
+	# gear.<kit>.<action>.effect first (translate.gd:26-29), which is where a two-action Kit has to
+	# put them - a Kit-level row would be found by BOTH actions through the fallback and each would
+	# render the other's text.
+	var kit:Kit = ContentLibrary.get_kit(SluaghFixture.TWILIGHT_SWARM)
+	if kit == null or kit.actions.size() < 2: return assert_true(false, 'fixture: the Kit loaded.')
+	assert_eq(Translate.action(kit, kit.actions[0], 'effect', false),
+		X.tr('gear.ms_twilight_swarm.action_damnation_of_the_host.effect'),
+		'Damnation finds its own row...')
+	assert_eq(Translate.action(kit, kit.actions[1], 'effect', false),
+		X.tr('gear.ms_twilight_swarm.action_crown_of_restless_dead.effect'),
+		'...and the Crown finds its own, not Damnation.')
+
+func test_the_licence_grants_it_at_rank_two():
+	var licence:UnlockTree = ContentLibrary.get_license_tree(SluaghFixture.LICENSE_ID)
+	assert_not_null(licence, 'li_sluagh loads as an UnlockTree.')
+	if licence == null: return
+	var rank_2_ids:Array[StringName] = []
+	for kit:Kit in licence.rank_2.granted_gear: rank_2_ids.append(kit.compcon_id)
+	assert_true(rank_2_ids.has(SluaghFixture.TWILIGHT_SWARM), 'Rank 2 grants Twilight Swarm...')
+	assert_true(rank_2_ids.has(SluaghFixture.NIGHTFARE_NEXUS), '...beside the Nightfare Nexus.')
+	# UnlockTree.license_name reads rank_2.granted_frames.front() (unlock_tree.gd:28-32), so a
+	# granted_gear edit that clobbered granted_frames would rename the whole licence "???".
+	assert_eq(licence.rank_2.granted_frames.size(), 1, 'And rank 2 still grants the frame itself.')
+	assert_true(licence.rank_3.granted_gear.is_empty(), 'Rank 3 is still empty, until SP4.')
