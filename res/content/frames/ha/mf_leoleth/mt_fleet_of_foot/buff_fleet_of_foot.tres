@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BuffMovementType" format=3]
+
+[ext_resource type="Script" uid="uid://bw1bv7eturuo0" path="res://engine/character/buff/archtypes/buff_movement_type.gd" id="1_movementtype"]
+[ext_resource type="Script" uid="uid://udxarj3kb6nm" path="res://engine/character/unit/movement_type.gd" id="2_type"]
+
+; ONE FLAG, AND ONLY ONE. MovementType.merge_in ORs fifteen of the sixteen behavioural booleans into
+; the mover's type (movement_type.gd:79-96 - `ignore_fall_damage` is the one it does not carry), so a
+; stray flag here silently grants the whole frame something the card never promised - `teleport` alone
+; would skip overwatch, engagement, difficult terrain AND fall damage (:102, :105, :108, :111).
+; spec/test_fleet_of_foot.gd asserts all sixteen of the others are false.
+[sub_resource type="Resource" id="Resource_fleet"]
+script = ExtResource("2_type")
+ignore_engagement = true
+
+[resource]
+script = ExtResource("1_movementtype")
+movement_type = SubResource("Resource_fleet")
+to = &"movement_type"
+hide_from_player = true
+; `until` is omitted: MANUAL is Lancer.UNTIL's own zero and this is a permanent frame trait.
+; NO icon, and NO HIDDEN_BUFFS_NEEDING_ICONS row: a MOVEMENT_TYPE buff is read only by
+; MovementType.create, which takes get_values().resource (movement_type.gd:39-41) and never touches
+; an icon. Nothing draws this chip anywhere.

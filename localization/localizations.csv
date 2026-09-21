@@ -357,3 +357,6 @@ gear.mt_toe_to_toe.action_toe_to_toe.effect,"|Skirmish| with a melee weapon that
 ,
 gear.mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.name,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 gear.mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.effect,The Leoleth makes all ranged attacks at +2 |difficulty|.
+,
+gear.mt_fleet_of_foot.name,Fleet of Foot
+gear.mt_fleet_of_foot.effect,The Leoleth does not lose any movement from becoming |Engaged|.

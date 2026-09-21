@@ -710,6 +710,8 @@ const ICON_TARGETS := {
 	# SP1 Task 3 (Leoleth). A passive trait with no action of its own, so it wears the Kit's icon and
 	# lists nothing - the mt_hole_puncher / mt_knock_em_down shape. The Kit's own icon is SP5's.
 	&'mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa': {},
+	# SP1 Task 4 (Leoleth). A passive trait with no action of its own - the mt_hole_puncher shape.
+	&'mt_fleet_of_foot': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
