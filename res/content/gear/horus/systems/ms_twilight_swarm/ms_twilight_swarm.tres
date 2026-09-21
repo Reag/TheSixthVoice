@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_twilight_swarm/action_damnation_of_the_host.tres" id="3_damnation"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_twilight_swarm/action_crown_of_restless_dead.tres" id="4_crown"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_twilight_swarm.svg" id="5_icon"]
 
 ; TWILIGHT SWARM, the Sluagh's rank-II Unique shield system (SP3 Tasks 3 and 4). BOTH ACTIONS
 ; SINCE TASK 4, in the CARD'S ORDER (specs/sixth-voice/08-sluagh.md:80-85) - which is the order
@@ -23,13 +24,11 @@
 ; is_ai() and is_nhp() FALSE as well as the two true bits, because a wrong literal (9, 21, 25) would
 ; satisfy a has-check on either bit that matters.
 ;
-; No icon_override - SP5 owes this Kit its glyph, shared with action_damnation_of_the_host as one
-; family (design section 5); the Crown gets a family of its own. The ICON_TARGETS row is what keeps
-; that debt visible as a deliberate red until then.
 [resource]
 script = ExtResource("2_kit")
 actions = Array[ExtResource("1_action")]([ExtResource("3_damnation"), ExtResource("4_crown")])
 sp_cost = 2
 system_tags = 17
 charges_max = 3
+icon_override = ExtResource("5_icon")
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_the_morrigan_class_nhp/action_in_triumvirate.tres" id="3_tri"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_the_morrigan_class_nhp.svg" id="4_icon"]
 
 [resource]
 script = ExtResource("2_kit")
@@ -21,4 +22,5 @@ sp_cost = 3
 ; id when an action names none (gear_core.gd:166-168), and with a single action there is nothing for
 ; that shared tally to lock out.
 system_tags = 13
+icon_override = ExtResource("4_icon")
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

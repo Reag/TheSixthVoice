@@ -1,9 +1,11 @@
 [gd_resource type="Resource" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/cp_cry_of_the_hosted_dead/action_mark_retort.gd" id="1_retort"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_mark_of_the_dead.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_retort")
+icon_override = ExtResource("2_icon")
 ; A usage_group PER ACTION on a Kit that carries three (unit_action.gd:167-168, the Subutai SP2
 ; lesson): without it the Mark, Astral Guardian and this would share the Kit's id as one group and
 ; lock each other out.

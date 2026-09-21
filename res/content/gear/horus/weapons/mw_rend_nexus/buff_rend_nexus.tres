@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="BuffBonus" format=3]
 
 [ext_resource type="Script" uid="uid://bav10yhc56w73" path="res://engine/character/buff/archtypes/buff_bonus.gd" id="1_bonus"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_rend_nexus.svg" id="2_icon"]
 
 ; RULING 10: Wicked Host's chip at a different value and a different clock. accuracy -2 rather than
 ; -1, and until = 1 (Lancer.UNTIL.END_OF_NEXT_TURN, lancer.gd:48) rather than MANUAL, because this
@@ -13,6 +14,7 @@
 ; which is what makes the VISIBLE_BUFFS guard deliberately red until then.
 [resource]
 script = ExtResource("1_bonus")
+icon = ExtResource("2_icon")
 bonus_subtype = &"accuracy"
 bonus_value = -2
 until = 1

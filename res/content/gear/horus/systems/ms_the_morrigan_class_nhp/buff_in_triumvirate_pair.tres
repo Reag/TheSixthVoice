@@ -1,9 +1,11 @@
 [gd_resource type="Resource" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_the_morrigan_class_nhp/buff_in_triumvirate_pair.gd" id="1_pair"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_the_morrigan_class_nhp.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_pair")
+icon = ExtResource("2_icon")
 ; THE CHANNEL. Not in Buff.TO and not in ExportListHint.BUFF_TO - a suggestion hint, not a
 ; constraint - exactly as talents' &"adjacency_range" is not. Read only by our banner.
 to = &"reag_adjacent_to"

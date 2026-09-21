@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_o_trickery/action_grey_birds.tres" id="3_greybirds"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_o_trickery/action_hunt_of_the_vagrant_sowche.tres" id="4_hunt"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_o_trickery.svg" id="5_icon"]
 
 ; O' TRICKERY, the Sluagh's rank-I Unique tech system (SP2 Task 5). system_tags = 1 is
 ; Kit.SYSTEM_TAGS.UNIQUE (kit.gd:30-31).
@@ -18,4 +19,5 @@ script = ExtResource("2_kit")
 actions = Array[ExtResource("1_action")]([ExtResource("3_greybirds"), ExtResource("4_hunt")])
 sp_cost = 3
 system_tags = 1
+icon_override = ExtResource("5_icon")
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

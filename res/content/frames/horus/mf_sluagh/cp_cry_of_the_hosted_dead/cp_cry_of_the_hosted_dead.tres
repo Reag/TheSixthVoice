@@ -7,6 +7,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/cp_cry_of_the_hosted_dead/action_mark_of_the_dead.tres" id="5_mark"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/cp_cry_of_the_hosted_dead/passive_mark_cover_aura.tres" id="6_aura"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_sluagh/cp_cry_of_the_hosted_dead/action_mark_retort.tres" id="7_retort"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_cry_of_the_hosted_dead.svg" id="8_icon"]
 
 [resource]
 script = ExtResource("1_kit")
@@ -22,3 +23,4 @@ actions = Array[ExtResource("2_action")]([ExtResource("3_guardian"), ExtResource
 ; (kit.gd:161-165).
 passives = Array[ExtResource("4_passive")]([ExtResource("6_aura")])
 is_trait = true
+icon_override = ExtResource("8_icon")

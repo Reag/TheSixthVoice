@@ -1,9 +1,11 @@
 [gd_resource type="Resource" script_class="BuffBonus" format=3]
 
 [ext_resource type="Script" uid="uid://bav10yhc56w73" path="res://engine/character/buff/archtypes/buff_bonus.gd" id="1_bonus"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_the_morrigan_class_nhp.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_bonus")
+icon = ExtResource("2_icon")
 ; "all attacks against them gain +1 difficulty": accuracy -1 on the INCOMING roll channel, which
 ; attack_roll.gd reads off the DEFENDER. buff_wicked_host.tres is the same file with is_onetime;
 ; this one is NOT one-time, because the card says ALL attacks, for the clock's length.

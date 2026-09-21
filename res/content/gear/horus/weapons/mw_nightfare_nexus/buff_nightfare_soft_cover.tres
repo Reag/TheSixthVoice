@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="BuffCover" format=3]
 
 [ext_resource type="Script" uid="uid://d0l6p3u6jopti" path="res://engine/character/buff/archtypes/buff_cover.gd" id="1_cover"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_nightfare_nexus.svg" id="2_icon"]
 
 ; THE NIGHTFARE NEXUS'S SOFT COVER (SP3 Task 1, ruling 19). Hung on the TARGET by
 ; onhit_nightfare_nexus.tres, not on the Sluagh.
@@ -10,6 +11,7 @@
 ; is this file with an icon.
 [resource]
 script = ExtResource("1_cover")
+icon = ExtResource("2_icon")
 cover = 1
 ; THE ONLY CHANNEL THE COVER PIPELINE READS. CoverCalculator.determine_cover asks
 ; UnitCondition.get_buffs_to(..., Buff.TO.COVER, ...) of the defender and of the attacker
@@ -38,8 +40,8 @@ until = 6
 ; leaves no companion chip at all, so without a visible one the shot's whole after-effect would be
 ; invisible until the player next aimed at that unit.
 ;
-; IT THEREFORE OWES AN ICON, AND SP5 OWES IT. Note that a Buff.TO.COVER buff's own icon is never drawn
-; by the ROLL BREAKDOWN - that adds the cover modifier with Icon.cover(preattack.cover)
-; (attack_roll.gd:169), not with buff_core.base.icon - so the icon this needs is the STATUS BAR'S, and
-; it belongs in VISIBLE_BUFFS rather than in HIDDEN_BUFFS_NEEDING_ICONS. Design 5 gives it the
-; weapon's own glyph family, {mw_nightfare_nexus, this chip}.
+; Note that a Buff.TO.COVER buff's own icon is never drawn by the ROLL BREAKDOWN - that adds the
+; cover modifier with Icon.cover(preattack.cover) (attack_roll.gd:169), not with buff_core.base.icon -
+; so the icon this needs is the STATUS BAR'S, and it belongs in VISIBLE_BUFFS rather than in
+; HIDDEN_BUFFS_NEEDING_ICONS. SP5 gives it the weapon's own glyph family, {mw_nightfare_nexus, this
+; chip} - the same file as the Kit's icon_override.

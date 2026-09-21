@@ -1,6 +1,7 @@
 [gd_resource type="Resource" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_o_trickery/buff_grey_birds_lifetime.gd" id="1_lifetime"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_o_trickery.svg" id="2_icon"]
 
 ; THE COMPANION CHIP. It has no `to` and no behaviour of its own - it exists so the player can see
 ; WHO is bound, because the other two buffs are hidden plumbing and the card's effect is otherwise
@@ -21,6 +22,7 @@
 ; shape (a hidden binding buff whose tooltip should read as the action that applied it).
 [resource]
 script = ExtResource("1_lifetime")
+icon = ExtResource("2_icon")
 localization_key_override = "ms_o_trickery.action_grey_birds"
 triggers_on = Array[StringName]([&"new_round"])
 trigger_timing = 0

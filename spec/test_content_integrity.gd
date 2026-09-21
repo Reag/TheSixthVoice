@@ -627,14 +627,13 @@ const ICON_TARGETS := {
 	#  - action_mark_retort (Task 8) is a reaction that DOES reach the trait card, because it has its
 	#    own effect row and show_in_tooltip is not overridden (action.gd:350-353) - the
 	#    action_draw_fire / action_uffish_gyre shape.
-	# Every icon here is SP5's, so this row is part of what keeps
-	# test_every_player_facing_kit_and_action_has_a_real_icon red until then.
-	# TWO FAMILIES ON ONE KIT, so SP5 must give them genuinely different drawings or collapse them
-	# into one family name here: the guard refuses two families on a Kit wearing the same texture
-	# (the claimed/texture_by_family loop below), because the gear bar would draw them as one button.
-	# Design section 5 currently groups the Mark, its chip, the soft-cover chip and the retort as ONE
-	# glyph family, so that is a decision SP5 owes - flagged here rather than pre-empted.
-	&'cp_cry_of_the_hosted_dead': {&'action_mark_of_the_dead': &'action_mark_of_the_dead', &'action_mark_retort': &'action_mark_retort'},
+	# SP5 COLLAPSED THE TWO FAMILIES INTO ONE: design section 5 groups the Mark, its chip, the
+	# soft-cover chip and the retort as ONE glyph family, so both actions and buff_mark_of_the_dead
+	# share action_mark_of_the_dead.svg. The guard would otherwise refuse two DIFFERENT family names
+	# wearing the same texture on one Kit (the claimed/texture_by_family loop below), because the
+	# gear bar would draw them as one button - naming both rows the same family is what tells the
+	# guard this is one button on purpose.
+	&'cp_cry_of_the_hosted_dead': {&'action_mark_of_the_dead': &'action_mark_of_the_dead', &'action_mark_retort': &'action_mark_of_the_dead'},
 	# SP2 Task 2 (Sluagh). The rank-I weapon. Its single action IS the Kit's first weapon action, so
 	# _action_reaches_a_player_facing_surface returns true for it unconditionally (:909) - the
 	# character sheet's integrated-weapon box draws it with no show_in_tooltip check at all - and it

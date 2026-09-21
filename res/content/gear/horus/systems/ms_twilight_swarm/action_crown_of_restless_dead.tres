@@ -1,6 +1,7 @@
 [gd_resource type="Resource" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_twilight_swarm/action_crown_of_restless_dead.gd" id="1_crown"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_crown_of_restless_dead.svg" id="2_icon"]
 
 ; action_type = 3 is Lancer.ACTION.FREE (lancer.gd:27), and it carries the card's "1/round" on its
 ; own: Action.get_per_round_hard_limit returns 1 for any action whose cost is FREE
@@ -25,6 +26,7 @@
 ; not an export. Ruling 3's exemption is the override in the .gd.
 [resource]
 script = ExtResource("1_crown")
+icon_override = ExtResource("2_icon")
 action_type = 3
 usage_group = &"crown_of_restless_dead"
 target_range_is_sensors = true
