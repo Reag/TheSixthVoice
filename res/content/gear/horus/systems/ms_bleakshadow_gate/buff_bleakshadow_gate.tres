@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+; A PURE MARKER: action_eyes_of_night.gd reads it through UnitCondition.has_buff and nothing else
+; reads it at all. buff_mark_of_the_dead.tres is the same file with a different clock.
+;
+; until = 1 is Lancer.UNTIL.END_OF_NEXT_TURN (lancer.gd:48). turn_count ticks at the WEARER's turn
+; start (unit_condition.gd:24) and end_turn_for_statuses clears once it reads 1 (:40-41): pressed
+; mid-turn at count 0, it survives this turn's end, the enemy's whole turn, the Sluagh's next turn
+; start, and clears at THAT turn's end. "Until the end of your next turn."
+until = 1
+; VISIBLE, per ruling 22 - it is the only thing on the board that says the Gate is open. Its `icon`
+; is SP5's, which is why test_every_visible_buff_has_a_real_icon carries one more failing assert
+; from this task on.

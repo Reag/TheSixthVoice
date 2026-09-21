@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_bleakshadow_gate/action_activate_bleakshadow_gate.tres" id="3_activate"]
+
+[resource]
+script = ExtResource("2_kit")
+; ONE action as of Task 1; Task 2 appends action_eyes_of_night. Each carries its OWN usage_group -
+; the Subutai SP2 lesson (unit_action.gd:167-168): two actions sharing the Kit's default group
+; would lock each other out.
+actions = Array[ExtResource("1_action")]([ExtResource("3_activate")])
+sp_cost = 2
+; UNIQUE = 1 (kit.gd:30). Not AI, not NHP, not SHIELD: the card carries only UNIQUE.
+system_tags = 1
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

@@ -491,3 +491,61 @@ static func damnation(game:Gamemaster, sluagh:Unit) -> void:
 static func crown(game:Gamemaster, sluagh:Unit, ally:Unit) -> void:
 	if not sluagh.state.is_taking_turn: await open_turn(game, sluagh)
 	await SpecFactory.use(game, sluagh, TWILIGHT_SWARM, CROWN_ID, ally)
+
+## SP4 Task 1. The rank-III tech system that lends the Sluagh a reaction, and the chip that says so.
+const BLEAKSHADOW_GATE := &'ms_bleakshadow_gate'
+const GATE_ACTION_ID := &'action_activate_bleakshadow_gate'
+const EYES_ID := &'action_eyes_of_night'
+const GATE_CHIP := &'buff_bleakshadow_gate'
+const EYES_BONUS := &'buff_eyes_of_night_bonus'
+
+## SP4 Task 4. The rank-III NHP and the quick tech that names a partner.
+const MORRIGAN := &'ms_the_morrigan_class_nhp'
+const TRIUMVIRATE_ID := &'action_in_triumvirate'
+const PAIR_CHIP := &'buff_in_triumvirate_pair'
+const WARD_CHIP := &'buff_in_triumvirate_ward'
+const ADJACENT_TO := &'reag_adjacent_to'
+
+## SP4 Task 1. Equip the rank-III system. equip_trickery's / equip_twilight_swarm's shape.
+static func equip_gate(unit:Unit) -> GearCore: return equip(unit, BLEAKSHADOW_GATE)
+
+## Press ACTIVATE BLEAKSHADOW GATE, opening a turn for the Sluagh if it has none.
+##
+## SpecFactory.use rather than use_solo: the Kit carries TWO actions from Task 2 on (the activate
+## and the reaction) and use_solo fires whichever is first - which IS the activate, today, but the
+## explicit id is used anyway so this helper does not silently start firing the reaction instead the
+## day the Kit's actions array is reordered.
+##
+## IT DOES NOT CYCLE THE TURN, damnation()'s choice for the same reason: a QUICK TECH action on a
+## PLAYER mech has no per-turn soft limit at all (the repeat-action rule explicitly exempts quick
+## tech, action_system.gd:44), so cycling here would hide that and would also hand the Sluagh's own
+## per-round counters back for no reason.
+##
+## POPS NOTHING off Dice.CHEAT_ROLL_QUEUE - it is not an attack and not a save, just a self-applied
+## marker buff.
+static func open_gate(game:Gamemaster, sluagh:Unit) -> void:
+	if not sluagh.state.is_taking_turn: await open_turn(game, sluagh)
+	await SpecFactory.use(game, sluagh, BLEAKSHADOW_GATE, GATE_ACTION_ID)
+
+## SP4 Task 4. Equip the rank-III NHP. equip_trickery's shape, on the Morrígan.
+static func equip_morrigan(unit:Unit) -> GearCore: return equip(unit, MORRIGAN)
+
+## Press IN TRIUMVIRATE naming an ally, opening a turn for the Sluagh if it has none.
+##
+## IT POPS ONE ENTRY off Dice.CHEAT_ROLL_QUEUE for the self-heat: nightfare_shot's and grey_birds'
+## reasoning does NOT apply here, because self_heat_dice is a live roll_string call, not the flat
+## damage-string shortcut those two ride on - VERIFY THIS in Task 4 case 2 and correct this header if
+## the heat reads wrong (fact list, self-heat mechanism).
+##
+## DOES NOT CYCLE THE TURN, damnation()'s and open_gate()'s reasoning: a quick tech has no per-turn
+## soft limit on a player mech.
+static func triumvirate(game:Gamemaster, sluagh:Unit, ally:Unit) -> void:
+	if not sluagh.state.is_taking_turn: await open_turn(game, sluagh)
+	await SpecFactory.use(game, sluagh, MORRIGAN, TRIUMVIRATE_ID, ally)
+
+## Put this mod's own soft-cover chip (SOFT_COVER_CHIP, the Mark's BuffCover) on a unit, so an attack
+## against it computes pre.cover == SOFT. Named for what a spec reads: "a covered enemy". The same
+## buff test_mark_of_the_dead.gd's aura hangs on a sheltered ally - reused here rather than declaring
+## a second SOFT cover buff, since Eyes of Night only needs SOME soft-cover source on the roll.
+static func cover(unit:Unit) -> void:
+	SpecFactory.apply_buff(unit, SOFT_COVER_CHIP)

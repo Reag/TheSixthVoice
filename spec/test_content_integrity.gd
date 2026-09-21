@@ -678,6 +678,12 @@ const ICON_TARGETS := {
 	# THE CROWN COSTS ONE MORE FAILING ASSERT UNTIL SP5, not three - a NAMED family on an icon-less
 	# action fails only _assert_real_icon(action.icon_override) at :843, the Hunt row's arithmetic.
 	&'ms_twilight_swarm': {&'action_damnation_of_the_host': KIT, &'action_crown_of_restless_dead': &'action_crown_of_restless_dead'},
+	# SP4 Task 1 (Sluagh). Bleakshadow Gate. Its activate is the one button the gear bar draws for
+	# this Kit (the reaction never reaches the gear bar - gear_bar.gd:145 - and its own
+	# show_in_tooltip returns false, so it is correctly absent from this row). KIT, because the
+	# design gives the system ONE family: {ms_bleakshadow_gate, action_activate_bleakshadow_gate,
+	# action_eyes_of_night, the Gate chip}. The Kit's own icon is SP5's.
+	&'ms_bleakshadow_gate': {&'action_activate_bleakshadow_gate': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -844,6 +850,8 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# and this one belongs in THIS table rather than in HIDDEN_BUFFS_NEEDING_ICONS. Its icon is
 	# SP5's, shared with the weapon as one family.
 	&'buff_nightfare_soft_cover',
+	# SP4 Task 1 (Sluagh). The Gate's chip, visible per ruling 22: the only sign the reaction is up.
+	&'buff_bleakshadow_gate',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
