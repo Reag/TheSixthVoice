@@ -50,6 +50,13 @@ const DAMAGE_DIE := 3
 ## What a MISS with the rifle still lands: it is Reliable 2.
 const RELIABLE := 2
 
+## FINAL REVIEW, item 3. Vanilla's bare Buff.TO.TECH_IMMUNITY carrier - the Napoleon's Trueblack
+## Aegis, `to = &"tech_immunity"` and nothing else (buff_trueblack_aegis_tech_immunity.tres). There
+## is no Lancer.STATUS for tech immunity: is_immune_to_tech reads frame.is_biological or a buff on
+## that channel (unit_condition.gd:532). The iceout drone is vanilla's other carrier and needs a
+## deployable placed on the map; this one goes straight on a unit with SpecFactory.apply_buff.
+const TECH_IMMUNITY_BUFF := &'buff_trueblack_aegis_tech_immunity'
+
 ## SP4 Task 5. A guaranteed hit that never crits, test_astral_guardian.gd's D20_HITS.
 const D20_HITS := 19
 ## SP4 Task 5. A guaranteed miss - nothing this fixture hands out has evasion below 1.
@@ -180,6 +187,65 @@ func test_the_ward_gives_every_attack_on_the_ally_one_difficulty_and_is_not_cons
 	SluaghFixture.queue([D20_HITS_ONLY_WITHOUT_THE_WARD, WORST_ACCURACY_DIE, DAMAGE_DIE])
 	await SluaghFixture.shoot(game, hostile, ally)
 	assert_eq(ally.current_damage(), DAMAGE_DIE + RELIABLE + RELIABLE, 'And the next attack is worse too.')
+
+## TECH IMMUNITY SWITCHES THE WARD OFF, AND IT IS VANILLA DOING IT (final review, item 3; the ruling
+## is PROPOSED to the author - this case pins the behaviour as it stands so a reversal is one test).
+##
+## Buff.check_if_prohibited (buff.gd:228-239) refuses any buff whose OWNER GEAR is tech - the
+## Morrígan is, through In Triumvirate's is_tech (UnitAction.is_tech, unit_action.gd:567-571) -
+## whenever the HOLDER, context.unit or context.target_unit is tech-immune. It runs on EVERY
+## get_buffs_to (unit_condition.gd:850), and attack_roll.gd:134 reads ATTACK_ROLL_INCOMING off the
+## defender with the ATTACK context, whose `unit` is the attacker. So a tech-immune shooter is
+## context.unit, the ward is prohibited for that read alone, and the shot lands as though the ally
+## were unwarded. Nothing is logged: a prohibited buff is simply absent from the list.
+##
+## THE MECHANISM IS A VANILLA BUFF, NOT A STATUS. There is no Lancer.STATUS for this;
+## UnitCondition.is_immune_to_tech (unit_condition.gd:532) reads frame.is_biological or any
+## Buff.TO.TECH_IMMUNITY buff. Vanilla's only two carriers are the Napoleon's
+## buff_trueblack_aegis_tech_immunity and the iceout drone's aura, and the drone would need a
+## deployable and a position; the Aegis buff is a bare Buff with to = &"tech_immunity", so
+## SpecFactory.apply_buff puts it straight on the shooter - test_guardian_on_the_sluagh's
+## SpecFactory.apply_buff(sluagh, &'buff_guardian') shape.
+##
+## THE NUMBERS ARE THIS FILE'S OWN AND THE TWO HALVES ARE EACH OTHER'S CONTROL - which is the whole
+## verification this case can have, because the thing a mutation would have to break is
+## Buff.check_if_prohibited itself, engine code, off limits.
+##
+## LIVENESS (an ordinary shooter, ward live): the ward's -1 makes the roll pop a difficulty die
+## (attack_roll.gd:70), queued as 6 and applied as -6, so 11 - 6 = 5 misses evasion 10 and only the
+## rifle's Reliable 2 lands. A miss is also below Astral Guardian's require_hit, so no dome.
+##
+## PROHIBITED (the same shooter, now tech-immune): the ward is absent from the read, so no accuracy
+## mod reaches the roll and roll_d6_accuracy(0) pops NOTHING (dice.gd:86-88). The same 11 HITS - and
+## a hit on the far partner is Astral Guardian's trigger, so the middle queue entry is the guardian's
+## d6 rather than a difficulty die: [11, GUARDIAN_D6, DAMAGE_DIE], exactly
+## test_astral_guardian_fires_for_the_far_partners_hit's shape. BOTH readings are asserted, and both
+## discriminate: were the ward still live here the 11 would spend GUARDIAN_D6 as its difficulty die,
+## 11 - 4 = 7 would miss, no dome would be granted and the ally's HP would take a second Reliable 2 -
+## which fails the Overshield line and the HP line alike.
+func test_a_tech_immune_attacker_ignores_the_ward():
+	var hostile := SluaghFixture.create_hostile(game, HOSTILE_TILE)
+	SluaghFixture.arm_rifle(hostile)
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(warded(ally), 'fixture: the ward is on the ally for both halves of this case.')
+
+	# LIVENESS FIRST, so the prohibited half cannot be read as the ward simply never working. A miss
+	# leaves Astral Guardian's 1/round unspent (require_hit), so the second shot still has it.
+	SluaghFixture.queue([D20_HITS_ONLY_WITHOUT_THE_WARD, WORST_ACCURACY_DIE, DAMAGE_DIE])
+	await SluaghFixture.shoot(game, hostile, ally)
+	assert_eq(ally.current_damage(), RELIABLE,
+		'Liveness: against an ordinary shooter the ward holds - 11 - 6 = 5 misses and only Reliable 2 lands.')
+	assert_eq(Overshield.current(ally), 0, 'And a miss grants no dome: the guardian is still in hand.')
+
+	SpecFactory.apply_buff(hostile, TECH_IMMUNITY_BUFF)
+	assert_true(UnitCondition.is_immune_to_tech(hostile), 'fixture: the shooter is now immune to tech.')
+	assert_true(warded(ally), 'The chip is still ON the ally - this is check_if_prohibited refusing a READ, not a buff falling off.')
+	SluaghFixture.queue([D20_HITS_ONLY_WITHOUT_THE_WARD, GUARDIAN_D6, DAMAGE_DIE])
+	await SluaghFixture.shoot(game, hostile, ally)
+	assert_eq(Overshield.current(ally), GUARDIAN_D6 - DAMAGE_DIE,
+		'THE VANILLA RULE: the ward is prohibited for a tech-immune attacker, so the same 11 HIT - the guardian granted 4 and the 3 ate into it.')
+	assert_eq(ally.current_damage(), RELIABLE,
+		'And nothing more reached HP: the hit was soaked, where a ward-shortened 7 would have missed for another Reliable 2.')
 
 func test_retargeting_a_second_ally_clears_the_first_pair():
 	var other := SluaghFixture.create_ally(game, OTHER_ALLY_TILE)
@@ -430,6 +496,47 @@ func test_the_card_rows_resolve():
 	assert_eq(Translate.action(kit, kit.actions[0], 'effect', false),
 		X.tr('gear.ms_the_morrigan_class_nhp.action_in_triumvirate.effect'), 'The action finds its own row, not the Kit\'s effect.')
 	assert_every_pipe_resolves('gear.ms_the_morrigan_class_nhp.action_in_triumvirate.effect')
+
+	# ---- THE TWO CHIPS WRITE THEIR OWN ROWS (final review, item 1) ----
+	#
+	# WITHOUT THEM BOTH CHIPS RENDERED THE SLUAGH'S TARGETING SENTENCE. Translate.buff falls through
+	# to the OWNER GEAR's actions[0] rows when a buff has none of its own (translate.gd:72-77,
+	# get_solo_action = kit.actions[0]); this Kit's actions[0] is In Triumvirate, so on the status
+	# bar (mech_info.gd:34) the ally's pair chip AND its ward chip both read "In Triumvirate" plus
+	# "Choose an allied character within Sensors..." - second-person instructions at a unit that
+	# chose nothing - and attack_roll.gd:189 titled the -1 accuracy in the roll breakdown the same
+	# way. buff_ddmr_aegis and buff_grav_amped_saves are this mod's precedent for the fix;
+	# test_grav_amped_interference.gd:336-337 is the assertion shape copied here.
+	#
+	# THE NAME IS COMPARED ANYWAY, unlike the Vauban's, and it is worth saying why it still bites:
+	# both chips' name row and the action's are all "In Triumvirate" - one card, one name - so
+	# name_text() would read the same either way TODAY. The assertion that discriminates is the
+	# get_message() one above it: the row has to EXIST in this mod's own artifact. Delete the row
+	# and the name assert stays green while that one goes red, which is the guard.
+	#
+	# buff_bleakshadow_gate is the deliberate opposite and is pinned as such in
+	# test_bleakshadow_gate.test_the_gate_chip_borrows_the_activates_card_on_purpose: there
+	# actions[0] IS the activate, so the fallback lands on the right card.
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	var action_effect:String = X.tr('gear.ms_the_morrigan_class_nhp.action_in_triumvirate.effect')
+	for chip_id:StringName in [SluaghFixture.PAIR_CHIP, SluaghFixture.WARD_CHIP]:
+		var chip:BuffCore = UnitCondition.get_buff(ally, chip_id)
+		assert_not_null(chip, 'fixture: the ally holds %s.' % chip_id)
+		if chip == null: continue
+		var name_key := 'gear.%s.name' % chip_id
+		var effect_key := 'gear.%s.effect' % chip_id
+		for key:String in [name_key, effect_key]:
+			assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
+		assert_eq(chip.name_text(), X.tr(name_key), '%s renders its OWN name row.' % chip_id)
+		assert_eq(chip.effect_text(), X.tr(effect_key), '%s renders its OWN effect row...' % chip_id)
+		assert_ne(chip.effect_text(), action_effect,
+			'...and NOT the action\'s targeting sentence, which the fallback used to hand the ally.')
+		assert_every_pipe_resolves(effect_key)
+	assert_eq(X.tr('gear.%s.effect' % SluaghFixture.WARD_CHIP), 'All attacks against you gain +1 |difficulty|.',
+		'The ward states the defender\'s half of the card, in the second person the chip is read in.')
+	assert_eq(X.tr('gear.%s.effect' % SluaghFixture.PAIR_CHIP),
+		'Always treated as adjacent to your partner while within the Sluagh\'s |Sensors|.',
+		'And the pair states the paired unit\'s half - true read from either end, which is why one row pair serves both.')
 
 ## Splitting on '|' alternates literal text (even indices) with labels (odd) - test_bleakshadow_gate.gd's
 ## idiom, copied here rather than shared, matching that file's own precedent. An unbalanced pipe

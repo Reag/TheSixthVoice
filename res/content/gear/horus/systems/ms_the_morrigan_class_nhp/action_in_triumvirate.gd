@@ -39,8 +39,15 @@ func activate_for_target(context:Context, activation:EventCore, target_unit:Unit
 
 	# THE ABORT COMES FIRST, and the order is the point: it used to sit after the clear loop, where
 	# a unit lost between targeting and here would leave the PREVIOUS pair cleared and no new pair
-	# applied - the card would have un-paired the Sluagh for nothing. Nothing is torn down until the
-	# activation is known to be good.
+	# applied - the card would have un-paired the Sluagh for nothing. NO PREVIOUS PAIR IS TORN DOWN
+	# until the activation is known to be good.
+	#
+	# THAT IS ALL IT COVERS, AND THE 2 HEAT IS ALREADY GONE (final review, item 5). The archetype's
+	# activate calls spend_actions BEFORE activate_for_target (action_system_target_unit.gd:37), and
+	# spend_actions is where UnitAction.spend_actions_gain_heat rolls self_heat_dice
+	# (unit_action.gd:229, :291-294) - so by the time this body runs the Sluagh has paid its HEAT
+	# SELF 2 and its quick action, and an abort here refunds neither. The ordering guarded below is
+	# the PREVIOUS pair's, nothing else.
 	if activation.abort_without_units([unit, target_unit]): return
 
 	# Fork 4: one partner at a time.

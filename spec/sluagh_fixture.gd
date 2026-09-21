@@ -523,6 +523,12 @@ static func equip_gate(unit:Unit) -> GearCore: return equip(unit, BLEAKSHADOW_GA
 ##
 ## POPS NOTHING off Dice.CHEAT_ROLL_QUEUE - it is not an attack and not a save, just a self-applied
 ## marker buff.
+##
+## THE TURN IT OPENS DOES POP, THOUGH, and every Eyes of Night case calls this helper before it
+## queues: event_turn_start's recharge loop rolls a d6 for each non-basic gear that is not yet
+## recharged (event_turn_start.gd:89-91), so opening the Sluagh's turn here eats one entry per such
+## item on the loadout. Harmless while the queue is filled AFTER this call (the file's own order);
+## queue first and the d20 is swallowed. triumvirate() carries the same caveat.
 static func open_gate(game:Gamemaster, sluagh:Unit) -> void:
 	if not sluagh.state.is_taking_turn: await open_turn(game, sluagh)
 	await SpecFactory.use(game, sluagh, BLEAKSHADOW_GATE, GATE_ACTION_ID)

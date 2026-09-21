@@ -32,10 +32,25 @@
 ## exactly the two cases where attacker and payer are the same unit.
 ##
 ## SO THE LIFETIME IS is_onetime ALONE, consumed at :296 by the roll that read it, and pinned by
-## test_the_bonus_is_consumed_by_the_roll_that_read_it_and_does_not_ride_the_next_shot. The one
-## path that skips :296 is :200's abort_if_level_exited, and a level exit ENDS COMBAT - the
-## un-consumed +3 outlives nothing it could apply to. Closed, not open (controller ruling, Task 2
-## review).
+## test_the_bonus_is_consumed_by_the_roll_that_read_it_and_does_not_ride_the_next_shot.
+##
+## TWO PATHS SKIP :296, NOT ONE (final review, item 2 - this header used to name only the first).
+##  1. :200's abort_if_level_exited. A level exit ENDS COMBAT: the un-consumed +3 outlives nothing
+##     it could apply to.
+##  2. THE SLUAGH DIES OF ITS OWN 2. The reaction's self-damage is queued at POST and lands before
+##     the damage roll (fact 1); if that 2 Energy structures the Sluagh to nothing,
+##     event_unit_structure.gd:76 queues event_unit_die, and event_service.gd:71 calls
+##     clear_outgoing_buffs_from_unit(..., due_to_owner_dying = true) over every other unit. This
+##     buff's from_gear is the GATE, on the Sluagh, and BuffDamage does not override
+##     is_cleared_on_owner_death (true, buff.gd:181) - so on an ALLY's shot the +3 is stripped off
+##     the ally attacker (unit_condition.gd:1015-1021) before roll_specific_bonus_damage reads the
+##     channel, and on the Sluagh's OWN shot the attack aborts on the dead attacker before the roll.
+##     Either way NOTHING LEAKS: the bonus is simply lost with its owner, which is the only outcome
+##     the lifetime has to guarantee. The card buying a +3 with a death that cancels it is a
+##     separate question - is_available_to_activate is deliberately NOT gated on the 2 being lethal,
+##     because the confirm prompt already makes it the player's call (PROPOSED to the author, final
+##     review; the controller records the ruling, this comment only states the mechanism).
+## Closed, not open (controller ruling, Task 2 review, re-affirmed at the final review).
 ##
 ## can_apply_to_tech_attacks IS SET on the .tres: the card says "hit an enemy", and an invade's +3
 ## inherits the attack's type - HEAT (INHERIT_TYPE, buff_damage.gd:36-37; action_attack_tech.gd:18).

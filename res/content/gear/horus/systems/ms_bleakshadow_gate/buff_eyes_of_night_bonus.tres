@@ -19,10 +19,19 @@ is_onetime = true
 ; Measured with until = 9: the Sluagh's own covered hit dealt 3 instead of 6 and logged no bonus line
 ; at all, and the blast case went red the same way, while every ALLY-fired case stayed green (the
 ; buff is on the ally there, the self-damage is on the Sluagh). 18/20.
-; So the lifetime is is_onetime alone, consumed at event_unit_attack_declared.gd:296. The one path
-; that skips :296 is :200's abort_if_level_exited, and a level exit ENDS COMBAT - the
-; un-consumed +3 outlives nothing it could apply to. Closed, not open (controller ruling, Task 2
-; review).
+; So the lifetime is is_onetime alone, consumed at event_unit_attack_declared.gd:296. TWO paths skip
+; :296, not one (final review, item 2 - this comment used to name only the first):
+;  1. :200's abort_if_level_exited, and a level exit ENDS COMBAT - the un-consumed +3 outlives
+;     nothing it could apply to.
+;  2. THE SLUAGH DIES OF ITS OWN 2. That self-damage is queued at POST and lands before the damage
+;     roll, so if it structures the Sluagh to nothing, event_unit_structure.gd:76 queues
+;     event_unit_die and event_service.gd:71 calls clear_outgoing_buffs_from_unit(..., true). This
+;     buff is from_gear the Gate and is_cleared_on_owner_death is the default true (buff.gd:181), so
+;     on an ALLY's shot the +3 is stripped off the ally attacker before the channel is read, and on
+;     the Sluagh's own shot the attack aborts on the dead attacker. Nothing leaks either way - the
+;     bonus is simply lost with its owner. Whether the card should refuse a lethal 2 is a separate
+;     question, PROPOSED to the author; the confirm prompt already makes it the player's call.
+; Closed, not open (controller ruling, Task 2 review, re-affirmed at the final review).
 ; HIDDEN, and in NEITHER icon table: bonus_source_id (attack_util.gd:307) has no reader outside
 ; attack_util.gd, so nothing ever draws this buff. It lives for the width of one damage roll.
 hide_from_player = true

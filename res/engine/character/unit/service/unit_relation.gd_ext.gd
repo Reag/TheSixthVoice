@@ -133,6 +133,22 @@ static func get_weapons_that_can_react_against(
 # get_engaging_units is also one level down but filters the widened list through
 # is_close_enough_to_engage, a radius, so engagement never widens (spike section 1).
 # spec/test_unit_relation_extension.gd pins both depths.
+#
+# TECH IMMUNITY SWITCHES THE WHOLE CARD OFF BEFORE THIS OVERRIDE EVER SEES A BUFF, and it is vanilla
+# doing it (final review, item 3; PROPOSED to the author). The loop below reads the pair through
+# UnitCondition.get_buffs_to, which applies Buff.check_if_prohibited on every read
+# (unit_condition.gd:850). check_if_prohibited (buff.gd:228-239) refuses any buff whose OWNER GEAR
+# is tech - the Morrígan is, through In Triumvirate's is_tech (UnitAction.is_tech,
+# unit_action.gd:567-571), and the Bleakshadow Gate is, through its activate - whenever the HOLDER,
+# context.unit or context.target_unit is tech-immune (frame.is_biological or any
+# Buff.TO.TECH_IMMUNITY buff, unit_condition.gd:532). All three of SP4's effects are reached:
+#  - the WARD: a tech-immune ATTACKER is context.unit on the read at attack_roll.gd:134, so the
+#    -1 is dropped and the shot lands as though the ward were not there;
+#  - the PAIR: a tech-immune partner on either end is not returned here, so the banner appends
+#    nothing and "always treated as adjacent" stops being true;
+#  - EYES OF NIGHT's +3: refused when the ally attacker or the DEFENDER is tech-immune.
+# There is no log line for any of it - a prohibited buff is simply absent from the read. Pinned for
+# the ward by spec/test_in_triumvirate.test_a_tech_immune_attacker_ignores_the_ward.
 # ============================================================================================
 
 ## The channel buff_in_triumvirate_pair sits on, and the override below is its only reader.

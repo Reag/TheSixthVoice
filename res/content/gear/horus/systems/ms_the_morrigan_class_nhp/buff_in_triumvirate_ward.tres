@@ -13,3 +13,22 @@ to = &"attack_roll_incoming"
 until = 7
 ; VISIBLE (ruling 23). Its icon is SP5's; BuffBonus.get_icon's difficulty-svg fallback covers the
 ; roll breakdown meanwhile, but the status bar wants a real one.
+;
+; IT HAS ROWS OF ITS OWN - gear.buff_in_triumvirate_ward.name / .effect (final review, item 1).
+; Without them Translate.buff falls through to the OWNER GEAR's actions[0] (translate.gd:72-77),
+; which on this Kit is In Triumvirate - so the warded ALLY's status chip read "In Triumvirate" plus
+; the Sluagh's whole targeting sentence ("Choose an allied character within Sensors...", in the
+; second person at a unit that chose nothing), and attack_roll.gd:189 titled the -1 accuracy in the
+; roll breakdown the same way. buff_ddmr_aegis and buff_grav_amped_saves are this mod's precedent
+; for a chip with its own two rows; test_in_triumvirate.test_the_card_rows_resolve pins both.
+;
+; TECH IMMUNITY SWITCHES THIS OFF, AND IT IS VANILLA DOING IT (final review, item 3; PROPOSED to
+; the author). Buff.check_if_prohibited (buff.gd:228-239) refuses any buff whose OWNER GEAR is tech
+; - this one's is the Morrígan, tech through In Triumvirate's is_tech (UnitAction.is_tech,
+; unit_action.gd:567-571) - whenever the HOLDER, context.unit or context.target_unit is
+; tech-immune (frame.is_biological or a Buff.TO.TECH_IMMUNITY buff, unit_condition.gd:532). It is
+; applied on EVERY get_buffs_to (unit_condition.gd:850), so all three of the card's effects go
+; quiet with no log line: a tech-immune ATTACKER ignores this ward (attack_roll.gd:134 passes the
+; attack context, whose `unit` is the attacker), a tech-immune partner's PAIR is invisible to the
+; banner, and Eyes of Night's +3 is refused when the ally attacker or the defender is tech-immune.
+; test_in_triumvirate.test_a_tech_immune_attacker_ignores_the_ward pins the first of the three.

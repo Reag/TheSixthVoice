@@ -441,6 +441,41 @@ func test_the_card_rows_resolve():
 			'gear.ms_bleakshadow_gate.action_eyes_of_night.trigger', 'gear.ms_bleakshadow_gate.action_eyes_of_night.effect']:
 		assert_every_pipe_resolves(key)
 
+## THE GATE CHIP BORROWS THE ACTIVATE'S CARD, AND THAT IS THE ARRANGEMENT (final review, item 1).
+##
+## Translate.buff falls through to the OWNER GEAR's actions[0] rows when a buff has none of its own
+## (translate.gd:72-77, get_solo_action = kit.actions[0], gear_core.gd:337-339). On this Kit
+## actions[0] IS the activate, whose rows read "Activate Bleakshadow Gate" / "Until the end of your
+## next turn, you gain the EYES OF NIGHT reaction" - which is precisely what the chip means, so
+## nothing is invented and the two sibling In Triumvirate chips' fix (rows of their own) is not
+## wanted here.
+##
+## IT IS PINNED BECAUSE THE FALLBACK IS SILENT. It SUCCEEDS whatever it lands on - no resolution
+## guard ever fires (memory lancer-tactics-buff-card-fallback) - and this Kit is the multi-action
+## shape that rule warns about: reorder kit.actions and this chip starts rendering EYES OF NIGHT's
+## trigger at a unit that has not reacted, with every other test in this file still green. So both
+## halves are asserted: the chip's own rows are ABSENT from the compiled artifact (nobody quietly
+## adds them and thinks the fallback is gone), and name_text()/effect_text() are the ACTIVATE's rows
+## rather than the reaction's. test_wicked_host.gd:107-113 is this mod's precedent for the shape.
+func test_the_gate_chip_borrows_the_activates_card_on_purpose():
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation, 'This mod has a compiled translation.')
+	if translation == null: return
+	for property:String in ['name', 'effect']:
+		assert_eq(translation.get_message('gear.%s.%s' % [SluaghFixture.GATE_CHIP, property]), StringName(''),
+			'The chip deliberately writes no %s row of its own.' % property)
+
+	await SluaghFixture.open_gate(game, sluagh)
+	var chip:BuffCore = UnitCondition.get_buff(sluagh, SluaghFixture.GATE_CHIP)
+	assert_not_null(chip, 'fixture: the Gate is open and the chip is on the Sluagh.')
+	if chip == null: return
+	assert_eq(chip.name_text(), X.tr('gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.name'),
+		'It renders the ACTIVATE\'s name...')
+	assert_eq(chip.effect_text(), X.tr('gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.effect'),
+		'...and the activate\'s effect: "Until the end of your next turn, you gain the EYES OF NIGHT reaction."')
+	assert_ne(chip.effect_text(), X.tr('gear.ms_bleakshadow_gate.action_eyes_of_night.effect'),
+		'NOT the reaction\'s card, which the fallback would render just as silently if actions[] were reordered.')
+
 ## Splitting on '|' alternates literal text (even indices) with labels (odd) - test_draw_fire.gd's
 ## _unpiped idiom. An unbalanced pipe leaves an odd count; a label the glossary does not know
 ## renders as a coloured word with no hover, which test_content_integrity.gd:162 explains.
