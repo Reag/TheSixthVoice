@@ -280,7 +280,12 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	# predicted - and SORTED, so the system comes first even though the weapon was built first.
 	assert_eq(rank_2_ids, ['ms_twilight_swarm', 'mw_nightfare_nexus'] as Array[String],
 		'Rank 2 grants exactly Twilight Swarm and the Nightfare Nexus, sorted.')
-	assert_eq(license.rank_3.granted_gear.size(), 0, 'Rank 3 grants no gear yet (SP4 fills it).')
+	var rank_3_ids:Array[String] = []
+	for kit:Kit in license.rank_3.granted_gear: rank_3_ids.append(String(kit.compcon_id))
+	rank_3_ids.sort()
+	# Task 6 completes rank 3 with the Morrígan-class NHP.
+	assert_eq(rank_3_ids, ['ms_bleakshadow_gate'] as Array[String],
+		'Rank 3 grants exactly Bleakshadow Gate, sorted.')
 
 func test_the_licence_names_itself_after_the_frame():
 	# THERE IS NO LICENCE NAME ROW, AND THAT IS THE ENGINE'S DESIGN rather than an omission.

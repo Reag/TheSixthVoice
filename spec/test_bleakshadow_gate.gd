@@ -406,3 +406,56 @@ func test_an_invade_on_a_covered_enemy_offers_nothing_because_a_tech_attack_comp
 	assert_eq(offers(), 0, 'Nothing offered: the roll computed no cover, because it is a tech attack.')
 	assert_eq(hostile.core.current.heat - heat_before, 2, 'The invade\'s own 2 heat, and no bonus.')
 	assert_eq(sluagh.current_damage(), 0, 'Nothing paid.')
+
+# ---------------------------------------------------------------- Task 3: the card text and rank 3
+
+func test_the_card_rows_resolve():
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation, 'This mod has a compiled translation.')
+	if translation == null: return
+	for key:String in [
+			'gear.ms_bleakshadow_gate.name', 'gear.ms_bleakshadow_gate.flavor',
+			'gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.name',
+			'gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.effect',
+			'gear.ms_bleakshadow_gate.action_eyes_of_night.name',
+			'gear.ms_bleakshadow_gate.action_eyes_of_night.trigger',
+			'gear.ms_bleakshadow_gate.action_eyes_of_night.effect']:
+		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
+		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
+	assert_eq(X.tr('gear.ms_bleakshadow_gate.name'), 'Bleakshadow Gate', 'The card name.')
+	assert_eq(X.tr('gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.effect'),
+		'Until the end of your next turn, you gain the EYES OF NIGHT |reaction|.', 'The LCP verbatim, one pipe.')
+	assert_eq(X.tr('gear.ms_bleakshadow_gate.action_eyes_of_night.trigger'),
+		'You or an allied character within |Sensors| hit an enemy benefiting from soft or hard cover for the first time this turn.',
+		'The trigger, verbatim. "soft or hard cover" is NOT piped (Global Constraints).')
+	assert_eq(X.tr('gear.ms_bleakshadow_gate.action_eyes_of_night.effect'),
+		'The attack deals an additional +3 bonus damage and you take 2 |Energy| damage. This damage cannot be reduced in any way.',
+		'The effect, verbatim.')
+	var kit:Kit = ContentLibrary.get_kit(SluaghFixture.BLEAKSHADOW_GATE)
+	if kit.actions.size() < 2: return assert_true(false, 'fixture: the Kit loaded with both actions.')
+	assert_eq(Translate.action(kit, kit.actions[0], 'effect', false),
+		X.tr('gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.effect'), 'The activate finds its own row...')
+	assert_eq(Translate.action(kit, kit.actions[1], 'effect', false),
+		X.tr('gear.ms_bleakshadow_gate.action_eyes_of_night.effect'), '...and the reaction its own.')
+	for key:String in ['gear.ms_bleakshadow_gate.action_activate_bleakshadow_gate.effect',
+			'gear.ms_bleakshadow_gate.action_eyes_of_night.trigger', 'gear.ms_bleakshadow_gate.action_eyes_of_night.effect']:
+		assert_every_pipe_resolves(key)
+
+## Splitting on '|' alternates literal text (even indices) with labels (odd) - test_draw_fire.gd's
+## _unpiped idiom. An unbalanced pipe leaves an odd count; a label the glossary does not know
+## renders as a coloured word with no hover, which test_content_integrity.gd:162 explains.
+func assert_every_pipe_resolves(key:String) -> void:
+	var parts := X.tr(key).split('|')
+	assert_eq(parts.size() % 2, 1, '%s: pipes are balanced.' % key)
+	for i in parts.size():
+		if i % 2 == 0: continue
+		var label:String = parts[i].split('=')[0]
+		assert_ne(GlossaryItem.find_key_from_label(label), '', '%s: |%s| is a glossary term.' % [key, label])
+
+func test_the_licence_grants_it_at_rank_three():
+	var license:UnlockTree = ContentLibrary.get_license_tree(SluaghFixture.LICENSE_ID)
+	assert_not_null(license, 'The licence is registered.')
+	if license == null or license.rank_3 == null: return
+	var ids:Array[String] = []
+	for kit:Kit in license.rank_3.granted_gear: ids.append(String(kit.compcon_id))
+	assert_true(ids.has('ms_bleakshadow_gate'), 'Rank 3 grants Bleakshadow Gate.')

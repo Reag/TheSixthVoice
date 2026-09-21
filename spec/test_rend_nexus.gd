@@ -317,4 +317,10 @@ func test_the_licence_grants_it_at_rank_one():
 	for kit:Kit in licence.rank_2.granted_gear: rank_2_ids.append(kit.compcon_id)
 	assert_false(rank_2_ids.has(SluaghFixture.REND_NEXUS),
 		'And rank 2 does NOT also grant it - this weapon is rank 1\'s alone.')
-	assert_true(licence.rank_3.granted_gear.is_empty(), 'And rank 3 is still empty, until SP4.')
+	# UPDATED, SP4 Task 3 (2026-09-21): rank 3 now grants Bleakshadow Gate, exactly as the line this
+	# replaces predicted ("until SP4"). Only the claim THIS task could break survives: the Rend
+	# Nexus did not wander into rank 3 either.
+	var rank_3_ids:Array[StringName] = []
+	for kit:Kit in licence.rank_3.granted_gear: rank_3_ids.append(kit.compcon_id)
+	assert_false(rank_3_ids.has(SluaghFixture.REND_NEXUS),
+		'And rank 3 does NOT also grant it - this weapon is rank 1\'s alone.')

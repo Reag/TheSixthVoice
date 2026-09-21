@@ -289,4 +289,9 @@ func test_the_licence_grants_it_at_rank_two():
 	# catches by its own route, but this task is the one that could cause it.
 	assert_eq(licence.rank_2.granted_frames.size(), 1, 'And rank 2 still grants the frame itself.')
 	# Only the claims THIS task could have broken; the exact sorted lists are test_sluagh_frame.gd's.
-	assert_true(licence.rank_3.granted_gear.is_empty(), 'Rank 3 is still empty, until SP4.')
+	# UPDATED, SP4 Task 3 (2026-09-21): rank 3 now grants Bleakshadow Gate, exactly as the line this
+	# replaces predicted ("until SP4"). Only the claim THIS task could break survives: the Nightfare
+	# Nexus did not wander into rank 3 either.
+	var rank_3_ids:Array[StringName] = []
+	for kit:Kit in licence.rank_3.granted_gear: rank_3_ids.append(kit.compcon_id)
+	assert_false(rank_3_ids.has(SluaghFixture.NIGHTFARE_NEXUS), 'And rank 3 does NOT also grant it.')
