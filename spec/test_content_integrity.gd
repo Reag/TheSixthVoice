@@ -677,7 +677,7 @@ const ICON_TARGETS := {
 	#
 	# THE CROWN COSTS ONE MORE FAILING ASSERT UNTIL SP5, not three - a NAMED family on an icon-less
 	# action fails only _assert_real_icon(action.icon_override) at :843, the Hunt row's arithmetic.
-	&'ms_twilight_swarm': {&'action_damnation_of_the_host': KIT},
+	&'ms_twilight_swarm': {&'action_damnation_of_the_host': KIT, &'action_crown_of_restless_dead': &'action_crown_of_restless_dead'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

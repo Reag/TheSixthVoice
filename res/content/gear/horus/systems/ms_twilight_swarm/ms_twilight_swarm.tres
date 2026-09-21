@@ -3,9 +3,10 @@
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_twilight_swarm/action_damnation_of_the_host.tres" id="3_damnation"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_twilight_swarm/action_crown_of_restless_dead.tres" id="4_crown"]
 
-; TWILIGHT SWARM, the Sluagh's rank-II Unique shield system (SP3 Task 3). Task 4 appends the Crown
-; beside Damnation, in the CARD'S ORDER (specs/sixth-voice/08-sluagh.md:80-85) - which is the order
+; TWILIGHT SWARM, the Sluagh's rank-II Unique shield system (SP3 Tasks 3 and 4). BOTH ACTIONS
+; SINCE TASK 4, in the CARD'S ORDER (specs/sixth-voice/08-sluagh.md:80-85) - which is the order
 ; the gear bar draws, so it is player-visible. ms_o_trickery.tres is the mod's own two-actions-on-one-
 ; system precedent, and vanilla's ms_aggressive_system_sync is the original: both actions are plain
 ; entries in `actions`, no variant group and no sub-menu, each taking its localisation rows from its
@@ -27,7 +28,7 @@
 ; that debt visible as a deliberate red until then.
 [resource]
 script = ExtResource("2_kit")
-actions = Array[ExtResource("1_action")]([ExtResource("3_damnation")])
+actions = Array[ExtResource("1_action")]([ExtResource("3_damnation"), ExtResource("4_crown")])
 sp_cost = 2
 system_tags = 17
 charges_max = 3
