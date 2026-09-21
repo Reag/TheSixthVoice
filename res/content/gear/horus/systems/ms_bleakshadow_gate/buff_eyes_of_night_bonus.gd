@@ -32,11 +32,10 @@
 ## exactly the two cases where attacker and payer are the same unit.
 ##
 ## SO THE LIFETIME IS is_onetime ALONE, consumed at :296 by the roll that read it, and pinned by
-## test_the_bonus_is_consumed_by_the_roll_that_read_it_and_does_not_ride_the_next_shot. The abort
-## path the review was protecting against - :200's abort_if_level_exited returning between this
-## reaction and the damage roll - is real and is NOT covered by anything here. It is recorded as an
-## open question rather than papered over, because every lifetime that would close it also has to
-## survive the Sluagh's own self-damage landing first.
+## test_the_bonus_is_consumed_by_the_roll_that_read_it_and_does_not_ride_the_next_shot. The one
+## path that skips :296 is :200's abort_if_level_exited, and a level exit ENDS COMBAT - the
+## un-consumed +3 outlives nothing it could apply to. Closed, not open (controller ruling, Task 2
+## review).
 ##
 ## can_apply_to_tech_attacks IS SET on the .tres: the card says "hit an enemy", and an invade's +3
 ## inherits the attack's type - HEAT (INHERIT_TYPE, buff_damage.gd:36-37; action_attack_tech.gd:18).
