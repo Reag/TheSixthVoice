@@ -168,7 +168,7 @@ func test_the_sluaghs_own_hit_on_a_covered_enemy_deals_three_more_and_costs_it_t
 	await SluaghFixture.shoot(game, sluagh, hostile)
 	assert_eq(offers(), 1, 'The player was asked, once, whether to open its Eyes.')
 	assert_eq(hp_before - hostile.core.current.health, DAMAGE_DIE + EYES_BONUS,
-		'THE CARD: 1 from the die plus the +3 - applied at POST and read by the same roll (Task 0).')
+		'THE CARD: 3 from the die plus the +3 - applied at POST and read by the same roll (Task 0).')
 	assert_eq(sluagh.current_damage(), EYES_SELF_DAMAGE, '...and the Sluagh took 2.')
 
 func test_held_overshield_soaks_the_two_first():
@@ -228,6 +228,26 @@ func test_inexorable_formation_extends_the_sensors_the_trigger_reads():
 	SluaghFixture.queue([D20_HITS, COVER_DIE, DAMAGE_DIE])
 	await SluaghFixture.shoot(game, ally, hostile)
 	assert_eq(offers(), 1, 'Now offered.')
+
+func test_an_allied_drones_hit_offers_nothing():
+	# THE FRAME'S TRIGGER CONVENTION, and the only case that pins it. "An allied CHARACTER" in a
+	# TRIGGER is is_actor() - a mech or a pilot, never a drone - the rule action_astral_guardian.gd's
+	# header sets out and the Stealing and the Hunt follow. The archetype's
+	# require_defender_to_be_character does NOT deliver it and never could: it is about the DEFENDER
+	# (action_reaction_attacked.gd:95) and says nothing at all about who fired, and Unit.is_character()
+	# is true of a drone anyway (unit.gd:116).
+	#
+	# The drone stands on ALLY_TILE, three tiles out, so the Sensors clause passes and is_actor() is
+	# the only thing left to refuse it - which is what makes deleting that line redden this case.
+	var drone := SluaghFixture.create_drone(game, ALLY_TILE)
+	SluaghFixture.arm_rifle(drone)
+	SluaghFixture.cover(hostile)
+	await SluaghFixture.open_gate(game, sluagh)
+	forget_prompts()
+	SluaghFixture.queue([D20_HITS, COVER_DIE, DAMAGE_DIE])
+	await SluaghFixture.shoot(game, drone, hostile)
+	assert_eq(offers(), 0, 'Nothing offered: a drone is a character, but it is not an ACTOR.')
+	assert_eq(sluagh.current_damage(), 0, 'And the Sluagh pays nothing.')
 
 func test_a_hit_on_an_uncovered_enemy_offers_nothing():
 	# NO COVER ENTRY IN THE QUEUE, and that is the case rather than an oversight: with no cover there

@@ -7,6 +7,21 @@ script = ExtResource("1_bonus")
 to = &"bonus_damage_specific"
 damage_dice = "3"
 is_onetime = true
+; NO `until`, AND `until = 9` (FINISH_DAMAGE) IS THE ONE VALUE THAT MUST NOT BE USED - MEASURED in
+; Task 2's review, not reasoned. The review was right that the ORIGINAL reason was wrong: `owner` in
+; event_unit_attack_declared.gd:204's sweep is `context.unit.get_attacker(context)` (:29), which IS
+; the attacker, an ally's shot and the Sluagh's own alike, and that sweep runs AFTER the damage
+; events at :199. But setting FINISH_DAMAGE still breaks the card, for a DIFFERENT sweep:
+; event_unit_damage.gd:76-77 clears every FINISH_DAMAGE buff ON THE DAMAGED UNIT whenever a damage
+; instance consumes resist buffs - and this reaction's own 2 ENERGY to the SLUAGH is queued at POST,
+; so it lands BEFORE the attack's damage roll. When the Sluagh is the attacker the buff is sitting on
+; the Sluagh, its own self-damage sweeps it, and roll_specific_bonus_damage finds nothing.
+; Measured with until = 9: the Sluagh's own covered hit dealt 3 instead of 6 and logged no bonus line
+; at all, and the blast case went red the same way, while every ALLY-fired case stayed green (the
+; buff is on the ally there, the self-damage is on the Sluagh). 18/20.
+; So the lifetime is is_onetime alone, consumed at event_unit_attack_declared.gd:296. The abort path
+; the review was protecting against (:200's level-exit return, between the reaction and the damage
+; roll) is real and is NOT covered - see the report's open question.
 ; HIDDEN, and in NEITHER icon table: bonus_source_id (attack_util.gd:307) has no reader outside
 ; attack_util.gd, so nothing ever draws this buff. It lives for the width of one damage roll.
 hide_from_player = true
