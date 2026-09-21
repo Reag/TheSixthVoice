@@ -4,19 +4,43 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_the_morrigan_class_nhp/action_in_triumvirate.tres" id="3_tri"]
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_the_morrigan_class_nhp.svg" id="4_icon"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="5_passive"]
+[ext_resource type="Script" uid="uid://blv61i0a1ghms" path="res://engine/character/gear_passive/passive_ai_privilege.gd" id="6_ai_privilege"]
+[ext_resource type="JSON" path="res://unpacked/Reag-TheSixthVoice/res/content/portraits/default_nhps/morrigan.json" id="7_portrait"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/barks/bark_nhp_morrigan.tres" id="8_barkset"]
+
+[sub_resource type="Resource" id="Resource_morrigan_ai"]
+script = ExtResource("6_ai_privilege")
+; THE FACE, THE NAME AND THE VOICE ARRIVE TOGETHER, from UnitPrinter.full_repair ->
+; PassiveAiPrivilege.inherit_default_nhp_settings (unit_printer.gd:79, passive_ai_privilege.gd:61-79).
+;
+; THE NAME IS GATED ON THE PORTRAIT, not on itself: the nhp_name assignment sits INSIDE the
+; `if passive.default_portrait:` branch (:66-70). A barkset with no portrait would therefore have
+; left the Morrigan speaking her own lines under whatever name the pilot already had, which is why
+; both ship in the same release rather than the barkset alone.
+;
+; Both the portrait and the name are adopted only when the pilot has nothing OR when what it has is
+; marked is_stock. morrigan.json therefore ships is_stock TRUE (the portrait editor exports false),
+; matching Thy Hubris' pestilence.json and every vanilla NHP: a player who later swaps to a
+; different NHP gets that NHP's face, instead of being stuck with this one forever.
+;
+; The barkset has no such gate and no is_stock notion - it is adopted whenever the pilot's own
+; barkset is missing, or blank and not intentionally_blank (:73-79).
+;
+; counts_against_limit and increases_limit are left at their defaults, so this stays an ordinary
+; one-per-mech AI; can_benefit_from_talents is left false, as every vanilla NHP but the Lesson of
+; Shaping leaves it.
+default_portrait = ExtResource("7_portrait")
+default_barkset = ExtResource("8_barkset")
 
 [resource]
 script = ExtResource("2_kit")
 actions = Array[ExtResource("1_action")]([ExtResource("3_tri")])
+passives = Array[ExtResource("5_passive")]([SubResource("Resource_morrigan_ai")])
 sp_cost = 3
 ; Unique 1 + AI 4 + NHP 8 = 13 (kit.gd:30): every vanilla NHP's value, and Thy Hubris' Pestilence's.
 ; is_ai() is what the one-AI limit reads (passive_ai_privilege.gd:34-52); "your mech gains the AI
 ; tag" is this line.
-;
-; NO PassiveAiPrivilege SUB-RESOURCE, unlike every vanilla NHP and the Pestilence. That passive
-; only carries a default portrait JSON and a barkset, and neither exists for the Morrígan. So
-; installing this NHP does not rename or re-portrait the pilot's NHP (:63-79). Recorded at the SP4
-; close, PROPOSED for the author.
 ;
 ; ONE ACTION, so no usage_group is needed: GearCore.get_usage_group_for_action falls back to the KIT
 ; id when an action names none (gear_core.gd:166-168), and with a single action there is nothing for
