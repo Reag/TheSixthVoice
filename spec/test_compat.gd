@@ -694,3 +694,61 @@ func test_without_the_widening_the_same_ally_two_tiles_out_gets_neither() -> voi
 	await SluaghFixture.shoot(sluagh_game, shooter, far_ally)
 	assert_eq(far_ally.current_damage(), 5,
 		'And no guardian either: the ally took the whole 5 on HP.')
+
+
+# ---------------------------------------------------------------- SP4: the Sluagh's own banner beside House Guard's
+
+## Both overrides call super first, so they compose in either install order. This case runs OUR
+## banner (In Triumvirate at six tiles) and THEIRS (House Guard at two) on the same Sluagh in the
+## same run, and asserts both are live. The registry's Sixth Voice row (compat-seams.md).
+##
+## THE TWO CASES BELOW USE THE FILE'S OWN `game` rather than a Sluagh game of their own, which is the
+## one difference from the four cases above. Those need SluaghFixture.create_game for its 30x12 map
+## (a Sensors-13 read stands units 13 tiles out); six tiles fits the Myconid fixture's 15x9 with room
+## to spare, and the Myconid standing at (4,4)-(5,5) is nothing to either assertion - neither the
+## near ally at two out nor the far partner at six is measured through it.
+func test_in_triumvirate_and_house_guard_widen_the_same_sluagh_together() -> void:
+	if skipped_without_talents(): return
+	var sluagh := SluaghFixture.create_sluagh(game, SLUAGH_TILE)
+	SluaghFixture.equip_morrigan(sluagh)
+	var near := ally(SLUAGH_TWO_OUT)
+	var far := ally(SLUAGH_TILE + Vector2i(6, 0))
+
+	assert_false(UnitRelation.is_adjacent(sluagh, near) or UnitRelation.is_adjacent(sluagh, far),
+		'Control: neither adjacent.')
+
+	widen_adjacency_on(sluagh)
+	await SluaghFixture.triumvirate(game, sluagh, far)
+
+	assert_true(UnitRelation.is_adjacent(sluagh, near),
+		'House Guard still widens with our banner installed...')
+	assert_true(UnitRelation.is_adjacent(sluagh, far),
+		'...and our banner is live with House Guard resident. Same run, same unit.')
+
+## The channels are separate: House Guard's buff does not make a Triumvirate partner, and our pair
+## buff is not a House Guard radius. Read by name, not by effect.
+##
+## THE LITERAL &'adjacency_range' RATHER THAN A CONSTANT, deliberately: this file names the third
+## party's BUFF (HOUSE_GUARD_BUFF) and its HELPER, not its channel, and a constant of ours for a
+## string they own would read as though we shipped it. The last two lines are what stop the first
+## from being vacuous - applying THEIR buff puts exactly one entry on that channel, so the name is
+## the right one, and our pair is still alone on ours.
+func test_the_two_widenings_read_different_channels() -> void:
+	if skipped_without_talents(): return
+	var sluagh := SluaghFixture.create_sluagh(game, SLUAGH_TILE)
+	SluaghFixture.equip_morrigan(sluagh)
+	var far := ally(SLUAGH_TILE + Vector2i(6, 0))
+
+	await SluaghFixture.triumvirate(game, sluagh, far)
+
+	assert_true(UnitCondition.get_buffs_to(sluagh, &'adjacency_range').is_empty(),
+		'Our pair sits on no talents channel.')
+	assert_false(UnitCondition.get_buffs_to(sluagh, SluaghFixture.ADJACENT_TO).is_empty(),
+		'It sits on ours.')
+
+	widen_adjacency_on(sluagh)
+
+	assert_eq(UnitCondition.get_buffs_to(sluagh, &'adjacency_range').size(), 1,
+		'...and that literal IS the channel talents reads: House Guard\'s own buff is the only thing on it.')
+	assert_eq(UnitCondition.get_buffs_to(sluagh, SluaghFixture.ADJACENT_TO).size(), 1,
+		'...and it never joined ours.')

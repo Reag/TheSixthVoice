@@ -171,3 +171,34 @@ func test_an_unmarked_watcher_cannot_overwatch_with_it() -> void:
 	await SpecFactory.move(game, mover, FINISH)
 	assert_eq(mover.tile(), FINISH, 'It actually moved.')
 	assert_eq(mover.current_damage(), 0, 'Vanilla behaviour is intact without the marker.')
+
+
+# ============================== the fourth banner: adjacent_characters (Sluagh SP4) ==============================
+
+const SluaghFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/sluagh_fixture.gd')
+
+## THE DISPATCH-DEPTH LINE for the adjacency banner (spike section 1). Level 0 is the node call;
+## level 1 is is_adjacent's unqualified static call into adjacent_characters (unit_relation.gd:7-8)
+## - the deepest point any vanilla path reaches this function from, so the seam is complete.
+##
+## Both depths in ONE test on purpose, unlike the Wormhole Grasp banner above, which needs a separate
+## fixture per level: here the two calls read the same list built by the same override on the same
+## unit, and the only thing that differs is which of them the engine happened to go through.
+##
+## THE GEOMETRY FITS THE 5x5 this file's before_each builds (SpecFactory.setup_gamemaster's default
+## landscape, Tile.MIN_MAP_DIMENSION) - four tiles apart, well inside the Sluagh's Sensors 10, and
+## clear of the watcher at (0,0) and the mover at (1,1).
+func test_level_0_and_1_the_adjacency_banner_is_reached_from_the_node_and_from_is_adjacent() -> void:
+	var sluagh := SluaghFixture.create_sluagh(game, Vector2i(0, 3))
+	SluaghFixture.equip_morrigan(sluagh)
+	var partner := SluaghFixture.create_ally(game, Vector2i(4, 3))
+
+	assert_eq(UnitRelation.distance_between(sluagh, partner), 4, 'Fixture: four tiles apart.')
+	assert_false(UnitRelation.adjacent_characters(sluagh).has(partner), 'Level 0, before: not listed.')
+
+	await SluaghFixture.triumvirate(game, sluagh, partner)
+
+	assert_true(UnitRelation.adjacent_characters(sluagh).has(partner),
+		'Level 0: the node call reaches the banner.')
+	assert_true(UnitRelation.is_adjacent(sluagh, partner),
+		'Level 1: is_adjacent\'s unqualified call one level down reaches it too.')

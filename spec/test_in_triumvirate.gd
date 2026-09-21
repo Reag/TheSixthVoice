@@ -18,6 +18,9 @@
 extends GutTest
 
 const SluaghFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/sluagh_fixture.gd')
+## SP4 Task 5. The shared helper every Overshield read in this mod goes through - the same preload
+## test_astral_guardian.gd and test_mark_retort.gd carry, for the one case below that reads a grant.
+const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
 
 # (No OUR_TRANSLATION const here yet: SP4 Task 6 adds the card rows and the test that reads them.)
 
@@ -43,6 +46,17 @@ const WORST_ACCURACY_DIE := 6
 const DAMAGE_DIE := 3
 ## What a MISS with the rifle still lands: it is Reliable 2.
 const RELIABLE := 2
+
+## SP4 Task 5. A guaranteed hit that never crits, test_astral_guardian.gd's D20_HITS.
+const D20_HITS := 19
+## SP4 Task 5. A guaranteed miss - nothing this fixture hands out has evasion below 1.
+const D20_MISSES := 1
+## SP4 Task 5. Astral Guardian's own d6, cheated. Chosen ABOVE the damage die so the ally ends the
+## guardian case holding Overshield and taking nothing on HP, which is two readings of one shot.
+const GUARDIAN_D6 := 4
+## SP4 Task 5. What the Sluagh holds when the Mark's retort reads its dome, and therefore what the
+## retort deals - test_mark_retort.gd's SHIELD.
+const SHIELD := 3
 
 var game:Gamemaster
 var sluagh:Unit
@@ -263,3 +277,126 @@ func test_an_allied_drone_is_a_legal_partner():
 	assert_true(action().can_target_unit(drone, specific()), 'A drone passes the filter.')
 	await SluaghFixture.triumvirate(game, sluagh, drone)
 	assert_true(adjacent_both_ways(sluagh, drone), 'And the pair works on it.')
+
+# ---------------------------------------------------------------- Task 5: what the pair reaches
+#
+# Spike section 3's list, measured on THIS frame's own readers. Every one of the Sluagh's three
+# "adjacent" effects sits on UnitRelation.is_adjacent(sluagh, x) by SP1's ruling 6 - which is why
+# In Triumvirate reaches them - and Guardian sits on a radius, which is why it does not.
+#
+# THESE ARE MEASUREMENTS, NOT TDD. Task 4 built the mechanism; what is new here is the evidence that
+# each reader is on the widened function rather than on a distance, and one of them (the cover
+# leaving) is the only assertion in the suite that can see the pair buff's on_clear self-erase.
+
+## THE AURA, IN BOTH DIRECTIONS - it arrives with the pair and it leaves with it, and nobody moves.
+##
+## ARRIVING is passive_mark_cover_aura.gd asking is_adjacent rather than a radius (SP1 Task 7's
+## override, pinned by test_compat.gd as the only test that can tell it from the default) PLUS
+## In Triumvirate calling UnitTile.update_tracking_and_statuses by hand: auras refresh from that
+## function alone (unit_tile.gd:15-24, passive_aura.gd:24) and from apply_buffs only when the OWNER
+## gear holds a PassiveAura (unit_condition.gd:713-715) - which the NHP does not.
+##
+## LEAVING is the half that needed content to be written for it, and it is the mutation target.
+## clear_buff calls on_clear BEFORE erasing the core (unit_condition.gd:979-980, with Wickworks' own
+## "comes before actually falling off... hm."), so the refresh made inside on_clear would still SEE
+## the pair and re-shelter the ally. buff_in_triumvirate_pair.on_clear therefore erases itself from
+## unit.state.buffs first. Delete that one line and this case's last assertion goes red while
+## everything else in the file stays green - measured, Task 5 Step 4.
+##
+## THE FIVE-STEP SEQUENCE is the owner's clock (END_OF_OWNERS_NEXT_TURN, with the cascade): the
+## Sluagh's turn end, the enemy's whole turn, then the Sluagh's next turn start and end. The ally
+## never takes a turn, which is deliberate - it is the arrangement the cascade exists for.
+func test_the_marks_soft_cover_reaches_the_far_partner_and_leaves_when_the_pair_expires():
+	var hostile := SluaghFixture.create_hostile(game, HOSTILE_TILE)
+	await SluaghFixture.press_mark(game, sluagh)
+	assert_false(UnitCondition.has_buff(ally, SluaghFixture.SOFT_COVER_CHIP),
+		'Control: six out, no cover from the dome.')
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(UnitCondition.has_buff(ally, SluaghFixture.SOFT_COVER_CHIP),
+		'THE MOMENT IT LANDS: the aura re-read (update_tracking_and_statuses by hand) shelters the far partner.')
+	assert_eq(CoverCalculator.determine_cover(ally, hostile).total, Lancer.COVER.SOFT,
+		'And the engine\'s own cover pipeline reads it, six tiles from the dome\'s centre.')
+
+	await SpecFactory.end_turn(game, sluagh)
+	await SpecFactory.start_turn(game, hostile)
+	await SpecFactory.end_turn(game, hostile)
+	await SpecFactory.start_turn(game, sluagh)
+	await SpecFactory.end_turn(game, sluagh)
+
+	assert_false(paired(ally), 'fixture: the pair expired.')
+	assert_false(UnitCondition.has_buff(ally, SluaghFixture.SOFT_COVER_CHIP),
+		'AND THE COVER LEFT WITH IT - the pair buff\'s on_clear erases itself and refreshes tracking. Nobody moved.')
+
+## ASTRAL GUARDIAN, a REACTION GATE rather than an aura, and therefore a second and unrelated piece
+## of code asking the same question (test_compat.gd's own reasoning for its House Guard pair).
+##
+## THE QUEUE IS [d20, the guardian's d6, the rifle's damage d6] - SluaghFixture.queue's own order,
+## because the POST reactions run at event_unit_attack.gd:123 and damage is rolled afterwards at
+## event_unit_attack_declared.gd:74. DAMAGE_DIE is 3, ABOVE the rifle's Reliable 2, so the number
+## read is the die and not the floor (attack_util.gd:141-144).
+##
+## BOTH READINGS ARE ASSERTED, and that is what makes the case immune to queue alignment: a guardian
+## that was refused pops no middle entry, so the damage die would be the 4 - landing 4 on HP and
+## leaving no Overshield, which fails both lines rather than one.
+func test_astral_guardian_fires_for_the_far_partners_hit():
+	var hostile := SluaghFixture.create_hostile(game, HOSTILE_TILE)
+	SluaghFixture.arm_rifle(hostile)
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	SluaghFixture.queue([D20_HITS, GUARDIAN_D6, DAMAGE_DIE])
+	await SluaghFixture.shoot(game, hostile, ally)
+	assert_eq(Overshield.current(ally), GUARDIAN_D6 - DAMAGE_DIE,
+		'Astral Guardian granted 4 and the hit took 3: the far partner is "adjacent" to the guardian.')
+	assert_eq(ally.current_damage(), 0, 'And the dome took the whole hit - nothing reached HP.')
+
+## THE MARK'S RETORT, the third of this frame's "adjacent" readers and the second reaction gate.
+##
+## THE OBSERVABLE IS THE ATTACKER'S HEALTH, which is what makes the Reliable 2 rifle safe here -
+## test_mark_retort.gd's own header. The shot MISSES (the retort's trigger), the ally takes the
+## floored 2 that a miss still lands, and none of that is read.
+##
+## THE QUEUE IS ALL 1s AND THE ALIGNMENT CANNOT MATTER. The Mark is up, so the far partner is
+## sheltered by the case above and the roll spends a d6 on the difficulty between the d20 and the
+## damage - [d20, difficulty d6, damage d6] - but D20_MISSES and SluaghFixture.queue's tail are both
+## 1, so every slot reads the same whichever way it lands.
+func test_the_marks_retort_fires_for_a_miss_against_the_far_partner():
+	var hostile := SluaghFixture.create_hostile(game, HOSTILE_TILE)
+	SluaghFixture.arm_rifle(hostile)
+	await SluaghFixture.grant_overshield(sluagh, SHIELD)
+	await SluaghFixture.press_mark(game, sluagh)
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	SluaghFixture.queue([D20_MISSES, D20_MISSES])
+	await SluaghFixture.shoot(game, hostile, ally)
+	assert_eq(hostile.current_damage(), SHIELD,
+		'The retort dealt the Sluagh\'s Overshield to the attacker of its far partner.')
+
+## A VANILLA READER, and the reason the seam had to be adjacent_characters rather than a rule of our
+## own: Stabilize's "clear a condition on an adjacent ally" offers the partner six tiles out without
+## knowing anything about this mod (action_stabilize.gd:282, the spike's measured witness). Recorded
+## as the card working - 37 content readers sit on that function and every one of them widens.
+func test_stabilize_offers_the_far_partners_condition():
+	SpecFactory.apply(ally, Lancer.STATUS.IMPAIRED)
+	assert_false(UnitCondition.get_ability_clearable_conditions_on(ally).is_empty(),
+		'Control: the partner carries a condition Stabilize could clear.')
+	var stabilize:Action = ContentLibrary.get_kit(&'ms_stabilize').actions[0]
+	assert_true(stabilize.has_method(&'get_adjacent_allies_with_clearable_conditions'),
+		'Control: this is Stabilize\'s own helper.')
+	assert_false(stabilize.get_adjacent_allies_with_clearable_conditions(sluagh).has(ally),
+		'Control: six out, not offered.')
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(stabilize.get_adjacent_allies_with_clearable_conditions(sluagh).has(ally),
+		'A VANILLA reader of adjacent_characters sees the pair (spike section 3). The card working, recorded.')
+
+## AND THE LINE THE WIDENING DOES NOT CROSS. Guardian scans get_units_within(attacked, 1, ...) - a
+## hard-coded 1 through distance_between (unit_relation.gd:454-457) - so a Sluagh holding Guardian
+## does not become a guardian for its far partner, however adjacent the rest of the engine thinks it
+## is. Design fork 5 accepts that, and the whole distance_between family goes with it (PassiveAura's
+## radius, get_characters_within, is_close_enough_to_engage - spike section 3).
+func test_guardian_on_the_sluagh_does_not_cover_the_far_partner():
+	var touching := SluaghFixture.create_ally(game, SLUAGH_TILE + Vector2i(1, 0))
+	SpecFactory.apply_buff(sluagh, &'buff_guardian')
+	await SluaghFixture.triumvirate(game, sluagh, ally)
+	assert_true(UnitRelation.is_adjacent(sluagh, ally), 'Liveness: the pair is up.')
+	assert_true(UnitRelation.get_guardian_units(touching).has(sluagh),
+		'Control: the Sluagh DOES guard the ally it genuinely touches, so the buff is live.')
+	assert_false(UnitRelation.get_guardian_units(ally).has(sluagh),
+		'Guardian scans get_units_within(attacked, 1) - a radius (unit_relation.gd:454-457). Never widened. Fork 5.')
