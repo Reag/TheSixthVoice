@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BuffCover" format=3]
+
+[ext_resource type="Script" uid="uid://d0l6p3u6jopti" path="res://engine/character/buff/archtypes/buff_cover.gd" id="1_cover"]
+
+[resource]
+script = ExtResource("1_cover")
+; Lancer.COVER is { NONE, SOFT, HARD } (lancer.gd:151), so HARD is 2.
+cover = 2
+; Lancer.UNTIL.END_OF_THIS_TURN is 3rd in the enum, index 2 (lancer.gd:46-48). event_turn_end ends it
+; for ALL units at :40, not only the one whose turn it is - which is the card's "the current turn".
+until = 2
+to = &"cover"
+; VISIBLE: the only sign on the token that the passive fired. It carries its OWN name and effect rows
+; rather than a localization_key_override, because the reaction that applies it is hidden and has no
+; card of its own to borrow. NO icon in SP1 - see VISIBLE_BUFFS.

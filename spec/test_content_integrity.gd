@@ -712,6 +712,14 @@ const ICON_TARGETS := {
 	&'mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa': {},
 	# SP1 Task 4 (Leoleth). A passive trait with no action of its own - the mt_hole_puncher shape.
 	&'mt_fleet_of_foot': {},
+	# SP1 Task 5 (Leoleth). HYDRAULIC EXCESS. Written here with NO action rows at all, and Tasks 6 and
+	# 10 add action_rage and action_combust. Neither action_all_systems_red nor action_rage_roll ever
+	# gets a row: both are ActionReactions whose scripts override show_in_tooltip to false, so
+	# _action_reaches_a_player_facing_surface (:1027-1030 as this file now stands) answers false and the guard asserts they are
+	# NOT listed. Design section 5 gives this Kit exactly two glyph families - ALL SYSTEMS RED and RAGE
+	# - and ALL SYSTEMS RED cannot wear one of its own for that same reason, so the Kit's own glyph IS
+	# that family. The Sluagh's Astral Guardian is the identical finding.
+	&'cp_hydraulic_excess': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -884,6 +892,11 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# says who is paired, the ward on the ally says why attacks on it are worse.
 	&'buff_in_triumvirate_pair',
 	&'buff_in_triumvirate_ward',
+	# SP1 Task 5 (Leoleth). ALL SYSTEMS RED's hard-cover chip, and the ONLY sign on the token that the
+	# passive fired - the reaction that applies it is hidden and the structure event itself says
+	# nothing about cover. It carries its own name and effect rows rather than borrowing the core
+	# Kit's, so it needs no BUFFS_THAT_BORROW_A_CARD entry.
+	&'buff_all_systems_red_cover',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

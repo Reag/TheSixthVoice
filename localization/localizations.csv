@@ -401,3 +401,8 @@ gear.mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.effect,The Leoleth makes all
 ,
 gear.mt_fleet_of_foot.name,Fleet of Foot
 gear.mt_fleet_of_foot.effect,The Leoleth does not lose any movement from becoming |Engaged|.
+,
+gear.cp_hydraulic_excess.name,Hydraulic Excess
+gear.cp_hydraulic_excess.effect,"When you would structure, you do not take any overflow damage and gain the benefits of |hard cover| until the end of the current turn."
+gear.buff_all_systems_red_cover.name,ALL SYSTEMS RED
+gear.buff_all_systems_red_cover.effect,"When you would structure, you do not take any overflow damage and gain the benefits of |hard cover| until the end of the current turn."

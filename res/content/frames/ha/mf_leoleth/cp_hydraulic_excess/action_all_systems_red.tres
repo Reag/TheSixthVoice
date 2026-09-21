@@ -1,0 +1,15 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/action_all_systems_red.gd" id="1_action"]
+
+[resource]
+script = ExtResource("1_action")
+; structured / PRE, point-free. trigger_timing = 0 is ReactionBus.TIMING.PRE; consumes_rxn false
+; makes get_per_round_hard_limit 99 (action_reaction.gd:69) so it fires on EVERY structure.
+triggers_on = Array[StringName]([&"structured"])
+trigger_timing = 0
+consumes_rxn = false
+usage_group = &"all_systems_red"
+; NO icon_override: the script overrides show_in_tooltip to false, so this action never reaches a
+; player-facing surface and test_content_integrity's icon guard does not list it
+; (_action_reaches_a_player_facing_surface, test_content_integrity.gd:1003-1006).
