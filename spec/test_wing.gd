@@ -83,18 +83,32 @@ func test_pressing_it_hangs_the_chip_and_spends_a_charge():
 	assert_true(LeolethFixture.has(leoleth, LeolethFixture.WING_CHIP), 'The chip is up.')
 	assert_eq(_gear().charges_current, 1, 'One charge spent.')
 
-func test_a_second_press_in_the_same_turn_is_refused():
-	# AUTHOR RULING, 2026-09-22 (Departure 5). A Protocol only fires in the protocol phase at the
-	# start of a turn (unit_action.gd:144 -> event_turn_start.gd:82), so nothing can apply a
-	# condition between two presses and the second charge could never buy anything the first did
-	# not. can_reapply = false takes the button away rather than letting a pilot who thought the
-	# first press had not worked spend the other charge for nothing.
+func test_a_second_press_in_the_same_round_is_refused():
+	# CORRECTED (review fix pass, 2026-09-22). The prior comment and assertion blamed can_reapply /
+	# is_available_to_activate (action_system_apply_buff.gd:36) for this refusal - FALSE, and the
+	# task's own mutation 5 proved it: removing can_reapply = false from the .tres left this test
+	# green. The real chain, traced against live 1.4.3 source:
+	#   - Lancer.ACTION_COST[Lancer.ACTION.PROTOCOL] is 0, i.e. ACTION_COST_FREE (lancer.gd:27-39).
+	#   - Action.get_per_round_hard_limit therefore returns 1 for this action (action.gd:156-158):
+	#     a free-cost action is naturally 1/round.
+	#   - UnitAction.is_under_per_round_limit (unit_action.gd:170-175) fails on the second press in
+	#     the same round.
+	#   - UnitAction.get_gear_unavailable_reason returns REASON.PER_ROUND at unit_action.gd:148, an
+	#     elif branch that runs BEFORE the is_available_to_activate check at :156 - so can_reapply is
+	#     never even consulted on this path.
+	#
+	# can_reapply = false STAYS on the .tres (AUTHOR RULING, 2026-09-22) as a SECOND lock, but it
+	# guards a different door: it only bites if something raises the round cap via a
+	# Buff.TO.ACTION_PER_ROUND buff (unit_action.gd:173-174). Nothing in this mod grants one, so NO
+	# TEST HERE PINS can_reapply - the author accepted that gap knowingly. Do not mistake this test
+	# for coverage of that line.
 	await LeolethFixture.press_wing(game, leoleth)
 	assert_eq(_gear().charges_current, 1, 'fixture: the first press spent one charge.')
 	await LeolethFixture.press_wing(game, leoleth)
 	assert_eq(_gear().charges_current, 1,
-		'The second press in the same turn spends nothing: is_available_to_activate refuses it '
-		+ 'while the chip from this gear is held (action_system_apply_buff.gd:35).')
+		'The second press in the same round spends nothing: UnitAction.is_under_per_round_limit '
+		+ 'refuses it once the engine\'s natural 1/round cap on a free-cost action is used up '
+		+ '(unit_action.gd:148, :170-175).')
 	assert_true(LeolethFixture.has(leoleth, LeolethFixture.WING_CHIP),
 		'And the chip the first press hung is untouched.')
 

@@ -17,7 +17,7 @@
 ; charge can never buy anything the first did not. Leaving the button lit would only invite a pilot
 ; who thought the first press had not worked into spending the other charge for nothing.
 ; is_available_to_activate refuses it while the chip from this gear is held
-; (action_system_apply_buff.gd:35, which needs apply_only_to_self as well). action_rage.tres carries
+; (action_system_apply_buff.gd:36, which needs apply_only_to_self as well). action_rage.tres carries
 ; the same line on this frame for a kindred reason.
 ;
 ; NO usage_group: this Kit has exactly one action, and a groupless action falls back to the KIT's
