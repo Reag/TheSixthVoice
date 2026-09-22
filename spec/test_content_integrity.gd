@@ -938,6 +938,11 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# companion buff_rage_reach_reliable is deliberately absent, the same one-mechanic-one-chip rule
 	# buff_reinforcement_blast_reduction and buff_fungal_network_armor_reduction follow.
 	&'buff_rage_reach',
+	# SP1 Task 11 (Leoleth). Bulwark's chip on the Leoleth. Its partner buff_bulwark_penalty, on each
+	# hostile, is deliberately HIDDEN - the Mark's soft cover is the precedent, plumbing beside a
+	# visible signal chip. FLAGGED J: ruling 13 leaves the hostile-side chip's visibility to the
+	# author on sight.
+	&'buff_rage_bulwark',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -1204,6 +1209,11 @@ const HIDDEN_BUFFS_NEEDING_ICONS:Array[StringName] = [
 	# BuffBonus's difficulty-svg fallback never runs there and a null leaves a blank beside the -2.
 	# Its icon is SP5's, so this row is what makes this test deliberately red until then.
 	&'buff_aaaa_difficulty',
+	# SP1 Task 11 (Leoleth). Bulwark's penalty is hidden on each hostile, but attack_roll.gd:189 draws
+	# it in the roll breakdown regardless, from buff_core.base.icon RAW rather than through
+	# Buff.get_icon() - so BuffBonus's difficulty-svg fallback never runs there and a null leaves a
+	# blank beside the -1. Its icon is SP5's.
+	&'buff_bulwark_penalty',
 ]
 
 func test_every_hidden_buff_that_is_still_drawn_has_a_real_icon():

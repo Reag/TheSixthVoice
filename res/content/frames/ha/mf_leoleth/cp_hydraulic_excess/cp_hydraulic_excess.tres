@@ -7,6 +7,8 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/action_rage_roll.tres" id="5_rageroll"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/action_reach_reliable.tres" id="6_reach"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/action_combust.tres" id="7_combust"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="8_passive"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/passive_bulwark_aura.tres" id="9_bulwarkaura"]
 
 [resource]
 script = ExtResource("2_kit")
@@ -14,6 +16,10 @@ script = ExtResource("2_kit")
 ; miss-shortfall reaction, then the hidden action the roll can OFFER. Task 11 adds the Bulwark aura
 ; to `passives`. Task 13 pins the result.
 actions = Array[ExtResource("1_action")]([ExtResource("3_asr"), ExtResource("4_rage"), ExtResource("5_rageroll"), ExtResource("6_reach"), ExtResource("7_combust")])
+; THE AURA BEING ON THIS KIT IS LOAD-BEARING BEYOND ITS OWN EFFECT: UnitCondition.apply_buffs re-runs
+; every aura when the applying gear's Kit has_passive_type(PassiveAura) (unit_condition.gd:703-715),
+; and the RAGE roll applies the Bulwark chip FROM this Kit - so the dome goes up in the same event.
+passives = Array[ExtResource("8_passive")]([ExtResource("9_bulwarkaura")])
 is_trait = true
 ; NO icon_override in SP1. SP5 gives this Kit the ALL SYSTEMS RED glyph: design section 5 asks for
 ; exactly two families on this core system, and the RAGE family is worn by action_rage and

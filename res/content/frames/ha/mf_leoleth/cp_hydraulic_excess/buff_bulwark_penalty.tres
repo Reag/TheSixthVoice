@@ -1,0 +1,18 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/buff_bulwark_penalty.gd" id="1_penalty"]
+
+[resource]
+script = ExtResource("1_penalty")
+bonus_subtype = &"accuracy"
+bonus_value = -1
+to = &"attack_roll"
+hide_from_player = true
+; NO `until`: the AURA owns this buff's lifetime - PassiveAura.update_unit strips it the moment the
+; aura stops being active or the unit leaves range (passive_aura.gd:55-59). A lifetime here would be a
+; second, competing clock.
+;
+; HIDDEN, and flagged J for the author (ruling 13 leaves it "on sight"): the Leoleth's own chip is the
+; signal, and the Mark's soft cover is this mod's precedent for plumbing beside a visible chip. It is
+; STILL drawn in the roll breakdown - attack_roll.gd:189 passes buff_core.base.icon RAW - which is why
+; it is listed in HIDDEN_BUFFS_NEEDING_ICONS. NO icon in SP1.
