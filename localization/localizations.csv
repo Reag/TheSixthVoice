@@ -525,3 +525,6 @@ gear.ms_jormungandr_class_nhp.action_automatic_retaliation.trigger,You take dama
 gear.ms_jormungandr_class_nhp.action_automatic_retaliation.effect,"Attack the closest character within |Threat| - hostile or allied - with a non-|Superheavy| |melee| attack. If several are tied for closest, one of them is chosen at random."
 gear.buff_arc.name,A.R.C Active
 gear.buff_arc.effect,"JÖRMUNGANDR retaliates against the first hostile to damage you each round, you deal +1d6 bonus damage on a successful |melee| attack against |Slowed| or |Impaired| targets, and every attack you make costs you 1 |heat|."
+gear.wm_greenlight_projection.name,GreenLight Projection
+gear.wm_greenlight_projection.flavor,Split the sun with thy furious blows!
+gear.wm_greenlight_projection.effect,"Choose one |melee| weapon: 1/round, after you hit a character with this weapon, you take 1 |Burn| and the target takes 3 |Burn|."

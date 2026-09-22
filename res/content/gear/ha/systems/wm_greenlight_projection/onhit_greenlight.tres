@@ -1,0 +1,11 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/wm_greenlight_projection/onhit_greenlight.gd" id="1_onhit"]
+
+; apply_on = 1 is OnHitEffect.STAGE.ON_HIT (on_hit_effect.gd:9) - "after you HIT a character".
+; Everything else is left at its export default: no statuses, no buffs, no save_to_avoid,
+; no require_consume_lock. The whole card is the script's own on_hit, because the burn is DAMAGE and
+; the archetype only knows how to apply statuses and buffs declaratively.
+[resource]
+script = ExtResource("1_onhit")
+apply_on = 1

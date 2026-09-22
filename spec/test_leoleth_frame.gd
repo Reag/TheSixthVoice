@@ -256,8 +256,9 @@ func test_the_licence_grants_exactly_the_rank_one_and_two_gear_and_nothing_else_
 		'Rank 2 grants exactly the Thermal Death Axe and the ZIP Type Engine, once each, in sheet order.')
 	var rank_3:Array = license.rank_3.granted_gear.map(
 		func(kit:Kit) -> StringName: return kit.compcon_id)
-	assert_eq(rank_3, [LeolethFixture.JORMUNGANDR_ID] as Array,
-		'Rank 3 grants the Jörmungandr-Class NHP; GreenLight Projection joins it in SP4 Task 3.')
+	assert_eq(rank_3, [LeolethFixture.JORMUNGANDR_ID, LeolethFixture.GREENLIGHT_ID] as Array,
+		'Rank 3 grants exactly the Jörmungandr-Class NHP and GreenLight Projection, once each, in '
+		+ 'sheet order.')
 
 func test_the_licence_names_itself_after_the_frame():
 	# THERE IS NO LICENCE NAME ROW, AND THAT IS THE ENGINE'S DESIGN rather than an omission.

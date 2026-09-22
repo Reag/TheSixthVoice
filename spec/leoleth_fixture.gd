@@ -501,6 +501,24 @@ static func press_arc_deactivate(game:Gamemaster, leoleth:Unit) -> void:
 	if not leoleth.state.is_taking_turn: await open_turn(game, leoleth)
 	await SpecFactory.use(game, leoleth, JORMUNGANDR_ID, ARC_DEACTIVATE)
 
+## GreenLight Projection (design ruling 18). A MELEE weapon mod, UNIQUE, SP 2, whose whole ability
+## is a 1/round on-hit burn.
+const GREENLIGHT_ID := &'wm_greenlight_projection'
+## The key its own GearCore's per-round counter is written under. Named here so the spec asserts the
+## same string the production script increments.
+const GREENLIGHT_USAGE_KEY := &'greenlight'
+
+## Fit GreenLight to a weapon the unit ALREADY carries, and re-apply the passive buffs the way
+## spawning would - primrose_fixture.fit_ddmr's shape verbatim.
+##
+## EQUIP EVERY WEAPON FIRST: equip_system calls full_repair(), which empties every equipped gear's
+## state dictionary, so a mod fitted before a later equip loses the round counter this card is built
+## on.
+static func fit_greenlight(unit:Unit, weapon:GearCore) -> GearCore:
+	unit.core.loadout.equip_weapon_mod(GREENLIGHT_ID, weapon)
+	SpecFactory.apply_passive_buffs(unit)
+	return unit.get_gear(GREENLIGHT_ID)
+
 ## Does this unit still hold a reaction point? UnitAction.can_take_reactions is what
 ## ActionReaction.is_available_to_activate asks (action_reaction.gd:52-53), so a spec that wants to
 ## say "the point is spent" must say it the same way rather than reading the raw counter.

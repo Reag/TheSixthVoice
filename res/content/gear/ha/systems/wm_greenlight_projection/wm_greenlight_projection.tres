@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="2_passive"]
+[ext_resource type="Script" uid="uid://ch8avblisp8j1" path="res://engine/character/gear_passive/passive_weapon_mod.gd" id="3_weaponmod"]
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="4_onhiteffect"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/wm_greenlight_projection/onhit_greenlight.tres" id="5_onhit"]
+
+; GREENLIGHT PROJECTION, the Leoleth's rank-III weapon mod (SP4 Task 3, design ruling 18).
+; wm_ddmr.tres' shape with a different filter and no applied_buffs: the DDMR hangs a chip through
+; applied_buffs AND an on-hit effect, and this card is only the second of those.
+;
+; allowed_sizes lists ALL FOUR (Lancer.WEAPON_SIZE { AUX, MAIN, HEAVY, SUPERHEAVY, NONE },
+; lancer.gd:104) because the sheet does - unlike the DDMR, which takes only Heavy and Superheavy.
+; Writing every size rather than leaving the array empty is deliberate: an empty array means "no
+; specification" to PassiveWeaponMod, which happens to admit the same four today but would silently
+; admit a fifth if the enum ever grew, and it says nothing to a reader about what the card allows.
+;
+; allowed_types is the ONE filter this card has (Lancer.WEAPON_TYPE { CQB, CANNON, MELEE, RIFLE,
+; LAUNCHER, NEXUS }, lancer.gd:107 - MELEE is 2), and it is what refuses a Main-sized rifle.
+[sub_resource type="Resource" id="Resource_greenlight"]
+script = ExtResource("3_weaponmod")
+allowed_sizes = Array[int]([0, 1, 2, 3])
+allowed_types = Array[int]([2])
+on_hit_effects = Array[ExtResource("4_onhiteffect")]([ExtResource("5_onhit")])
+
+[resource]
+script = ExtResource("1_kit")
+passives = Array[ExtResource("2_passive")]([SubResource("Resource_greenlight")])
+sp_cost = 2
+; system_tags 1 is UNIQUE (kit.gd:30), off the sheet's Tags line.
+system_tags = 1
+; NO icon_override in SP4 - SP5's glyph pass covers it.
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"
