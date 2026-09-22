@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="3_buff"]
 [ext_resource type="Script" uid="uid://dy4kg537rc55e" path="res://engine/character/gear_passive/passive_buff_applicator.gd" id="4_applicator"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/buff_aaaa_difficulty.tres" id="5_difficulty"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.svg" id="6_icon"]
 
 ; apply_at_the_start_of_combat defaults TRUE (passive_buff_applicator.gd:7) and
 ; reapply_at_the_start_of_each_turn defaults FALSE (:8). Neither is written: the chip is permanent
@@ -18,5 +19,6 @@ applied_buffs = Array[ExtResource("3_buff")]([ExtResource("5_difficulty")])
 script = ExtResource("2_kit")
 passives = Array[ExtResource("1_passive")]([SubResource("Resource_applicator")])
 is_trait = true
-; NO icon_override in SP1. The trait has no action of its own, so SP5 gives it one glyph and this
-; Kit's ICON_TARGETS row stays `{}`.
+; SP5: a cracked targeting reticle, inside the shared ring register - the ranged accuracy penalty
+; made literal. The trait has no action of its own, so this Kit's ICON_TARGETS row stays `{}`.
+icon_override = ExtResource("6_icon")

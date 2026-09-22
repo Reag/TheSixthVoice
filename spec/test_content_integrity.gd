@@ -804,6 +804,18 @@ const ICON_TARGETS := {
 	# engaging IS the system - and action_zip_disengage wears its own struck-through variant, so on
 	# and off differ at a glance. Both assertions here are GREEN from this task.
 	&'ms_zip_type_engine': {&'action_zip_engage': KIT, &'action_zip_disengage': &'action_zip_disengage'},
+	# SP4 Task 2 (Leoleth). The Jormungandr-Class NHP. All three actions are KIT rows: design ruling
+	# 17 gives the Kit, both protocols and the real reaction ONE glyph (an ouroboros, drawn as its
+	# own register exception rather than a silhouette inside the standard ring - see
+	# gen_leoleth_icons.py). buff_arc reuses the identical texture and is listed in VISIBLE_BUFFS
+	# below; buff_arc_bonus is hidden bookkeeping (the A.R.C. shows one chip, not two) and carries no
+	# row anywhere. This row and the Kit's own icon_override are SP5's.
+	&'ms_jormungandr_class_nhp': {
+		&'action_arc_activate': KIT, &'action_arc_deactivate': KIT, &'action_automatic_retaliation': KIT,
+	},
+	# SP4 Task 3 (Leoleth). GreenLight Projection. A weapon mod with no actions at all - the
+	# wm_ripper_mod / wm_ddmr shape - so nothing but the Kit's own icon is ever shown. SP5's.
+	&'wm_greenlight_projection': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1010,6 +1022,10 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	&'buff_wing',
 	# SP3 Task 2 (Leoleth). The only on-map signal that the engine is on; its fx is the other.
 	&'buff_zip_type_engine',
+	# SP4 Task 2 (Leoleth). The A.R.C. chip - the only sign the Jormungandr-Class NHP's systems are
+	# active at all. buff_arc_bonus, its hidden +1d6 half, is deliberately absent - one card, one
+	# chip.
+	&'buff_arc',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

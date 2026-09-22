@@ -1,6 +1,7 @@
 [gd_resource type="Resource" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/buff_rage_hatred.gd" id="1_hatred"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/buff_rage_hatred.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_hatred")
@@ -17,4 +18,6 @@ triggers_on = Array[StringName]([&"damage"])
 trigger_timing = 1
 ; Lancer.UNTIL.START_OF_TURN (lancer.gd:46-48) - the RAGE table's "until the start of your next turn".
 until = 3
-; VISIBLE - one of the six face chips - and NO icon in SP1. No `to`: this buff is purely a trigger.
+; VISIBLE - one of the six face chips. No `to`: this buff is purely a trigger. SP5: the RAGE flame
+; in its Hatred tint (deep crimson, the darkest of the six).
+icon = ExtResource("2_icon")

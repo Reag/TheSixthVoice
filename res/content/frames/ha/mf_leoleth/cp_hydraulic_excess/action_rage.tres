@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
 [ext_resource type="Script" uid="uid://cm50wdj5g8syg" path="res://engine/character/gear_action/archtypes/action_system_apply_buff.gd" id="2_applybuff"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/buff_rage.tres" id="3_ragechip"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_rage.svg" id="4_icon"]
 
 [resource]
 script = ExtResource("2_applybuff")
@@ -18,5 +19,7 @@ consumes_cp = true
 ; Its OWN usage group. A groupless action falls back to the KIT's compcon_id (gear_core.gd:166-168),
 ; which would make this protocol share one tally with Combust, the roll and ALL SYSTEMS RED.
 usage_group = &"rage"
-; NO icon_override in SP1. SP5 gives this action the RAGE glyph family, which action_combust shares
-; (design section 5: the six effect chips wear RAGE's glyph in six tints).
+; SP5 gives this action the RAGE glyph (a single jagged flame, inside the shared ring register),
+; which action_combust shares - the identical texture, per the family rule - and which the six
+; buff_rage* chips reuse in six tints.
+icon_override = ExtResource("4_icon")

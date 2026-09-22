@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="BuffWeaponTypeBonus" format=3]
 
 [ext_resource type="Script" uid="uid://bqmx1sop25c44" path="res://engine/character/buff/archtypes/buff_weapon_type_bonus.gd" id="1_bonus"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/buff_rage_reach.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_bonus")
@@ -14,8 +15,10 @@ to = &"action_range"
 ; Lancer.UNTIL.START_OF_TURN (lancer.gd:46-48).
 until = 3
 ; VISIBLE, and it carries the WHOLE card line for this face - the Reliable companion beside it is
-; hidden, because two chips for one line would read as two effects. NO icon in SP1.
+; hidden, because two chips for one line would read as two effects. SP5: the RAGE flame in its Reach
+; tint (green).
 ;
 ; RECORDED, AS THE DDMR'S OWN ROW RECORDS IT: the character sheet shows PRINTED threat (memory
 ; character-sheet-shows-printed-threat), so the +1 is live in targeting and in the range widget and
 ; NOT on the sheet.
+icon = ExtResource("2_icon")

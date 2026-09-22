@@ -9,6 +9,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/action_combust.tres" id="7_combust"]
 [ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="8_passive"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/passive_bulwark_aura.tres" id="9_bulwarkaura"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_hydraulic_excess.svg" id="10_icon"]
 
 [resource]
 script = ExtResource("2_kit")
@@ -21,8 +22,10 @@ actions = Array[ExtResource("1_action")]([ExtResource("3_asr"), ExtResource("4_r
 ; and the RAGE roll applies the Bulwark chip FROM this Kit - so the dome goes up in the same event.
 passives = Array[ExtResource("8_passive")]([ExtResource("9_bulwarkaura")])
 is_trait = true
-; NO icon_override in SP1. SP5 gives this Kit the ALL SYSTEMS RED glyph: design section 5 asks for
-; exactly two families on this core system, and the RAGE family is worn by action_rage and
-; action_combust (Tasks 6 and 10). ALL SYSTEMS RED cannot wear a glyph of its own - its action
-; overrides show_in_tooltip to false, so ICON_TARGETS refuses to list it - so the KIT's own glyph IS
-; that family. (The Sluagh's frame close found the same thing about Astral Guardian.)
+; SP5 gives this Kit the ALL SYSTEMS RED glyph (a warning triangle, inside the shared ring
+; register): design section 5 asks for exactly two families on this core system, and the RAGE
+; family is worn by action_rage and action_combust (Tasks 6 and 10). ALL SYSTEMS RED cannot wear a
+; glyph of its own - its action overrides show_in_tooltip to false, so ICON_TARGETS refuses to list
+; it - so the KIT's own glyph IS that family. (The Sluagh's frame close found the same thing about
+; Astral Guardian.)
+icon_override = ExtResource("10_icon")

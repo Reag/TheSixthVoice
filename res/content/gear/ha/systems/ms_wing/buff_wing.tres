@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bw1bv7eturuo0" path="res://engine/character/buff/archtypes/buff_movement_type.gd" id="1_movementtype"]
 [ext_resource type="Script" uid="uid://udxarj3kb6nm" path="res://engine/character/unit/movement_type.gd" id="2_type"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_wing.svg" id="3_icon"]
 
 ; TWO FLAGS, AND ONLY TWO - the reasoning buff_fleet_of_foot.tres records on this same frame.
 ; MovementType.merge_in ORs sixteen of the seventeen behavioural booleans into the mover's type
@@ -21,9 +22,8 @@ ignore_difficult = true
 free_climb = true
 
 ; VISIBLE, unlike Fleet of Foot's permanent hidden one: this chip is the only signal that the suite
-; is running THIS TURN, and the pilot has to know whether the charge is still buying anything. Its
-; icon is SP5's, which makes it one more failing assert inside the already-red
-; test_every_visible_buff_has_a_real_icon.
+; is running THIS TURN, and the pilot has to know whether the charge is still buying anything. SP5:
+; reuses the Kit's own wing glyph.
 ;
 ; until = 2 is Lancer.UNTIL.END_OF_THIS_TURN (lancer.gd:48) - "for the rest of the turn". Note that
 ; END_OF_THIS_TURN is cleared for ALL units at ANY unit's turn end (event_turn_end.gd:40); with the
@@ -34,3 +34,4 @@ movement_type = SubResource("Resource_wing")
 to = &"movement_type"
 until = 2
 log_on_application = true
+icon = ExtResource("3_icon")

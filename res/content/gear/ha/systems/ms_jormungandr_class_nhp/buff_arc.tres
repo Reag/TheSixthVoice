@@ -1,6 +1,7 @@
 [gd_resource type="Resource" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_jormungandr_class_nhp/buff_arc.gd" id="1_arc"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_jormungandr_class_nhp.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_arc")
@@ -14,5 +15,7 @@ trigger_timing = 1
 ; until the player begins to deactivate it - nothing else ends it, which is exactly why
 ; test_the_chip_survives_a_turn_start_when_the_protocol_was_never_pressed is the stamp's control.
 ; No `to`: this buff is purely a trigger; the +1d6 channel is buff_arc_bonus.
-; VISIBLE, and NO icon in SP4 - SP5 gives the two protocols and the retaliation one glyph family.
+; VISIBLE. SP5 gives this chip the same ouroboros glyph as the Kit and its two protocols and
+; reaction - one glyph family, per design ruling 17.
 log_on_application = true
+icon = ExtResource("2_icon")

@@ -9,6 +9,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_jormungandr_class_nhp/action_automatic_retaliation.tres" id="7_retaliation"]
 [ext_resource type="JSON" path="res://unpacked/Reag-TheSixthVoice/res/content/portraits/default_nhps/jormungandr.json" id="8_portrait"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/barks/bark_nhp_jormungandr.tres" id="9_barkset"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_jormungandr_class_nhp.svg" id="10_icon"]
 
 [sub_resource type="Resource" id="Resource_jormungandr_ai"]
 script = ExtResource("4_ai_privilege")
@@ -40,5 +41,9 @@ sp_cost = 3
 ; Unique 1 + AI 4 + NHP 8 = 13 (kit.gd:30): every vanilla NHP's value, the Morrigan's, and Thy
 ; Hubris' Pestilence's. is_ai() is what the one-AI limit reads.
 system_tags = 13
-; NO icon_override in SP4 - SP5's glyph family covers the Kit, the two protocols and the reaction.
+; SP5: an ouroboros (the World Serpent biting its own tail), replacing the shared register's ring
+; entirely rather than sitting inside it - the frame's one deliberate exception (icon-glyph-families
+; memory; the Sluagh's Hunt/Crown precedent for the same kind of exception). All three actions are
+; KIT rows - the Kit, both protocols and the reaction all wear this one glyph (design ruling 17).
+icon_override = ExtResource("10_icon")
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

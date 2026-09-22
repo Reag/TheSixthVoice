@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="Buff" format=3]
 
 [ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/buff_rage_bulwark.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_buff")
@@ -9,4 +10,5 @@ script = ExtResource("1_buff")
 ; (attack_roll.gd:134).
 ; Lancer.UNTIL.START_OF_TURN (lancer.gd:46-48) - the RAGE table's "until the start of your next turn".
 until = 3
-; VISIBLE - one of the six face chips - and NO icon in SP1.
+; VISIBLE - one of the six face chips. SP5: the RAGE flame in its Bulwark tint (silver/armour).
+icon = ExtResource("2_icon")

@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://bhirgicgi66th" path="res://engine/gamemaster/map/terrain/terrain_data.gd" id="4_terraindata"]
 [ext_resource type="Script" uid="uid://c0yv6pnw2be6l" path="res://engine/character/gear_action/resources/range_pattern.gd" id="5_rangepattern"]
 [ext_resource type="PackedScene" path="res://unpacked/Reag-TheSixthVoice/res/content/fx_endless/gear/fxe_reag_shattered_ground.tscn" id="6_fxe"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_decimate_terrain.svg" id="7_icon"]
 
 ; BLAST 1 (Lancer.AOE_TYPE.BLAST == 1, lancer.gd:96-100), centred on the crater itself - the Maar's
 ; own shape. BLAST rather than BURST for the Maar's reason: BURST covers the origin's whole FOOTPRINT
@@ -37,4 +38,8 @@ fxe = ExtResource("6_fxe")
 script = ExtResource("1_kit")
 passives = Array[ExtResource("2_passive")]([SubResource("Resource_zone")])
 is_trait = true
-; NO icon_override in SP1.
+; SP5: a jagged crater fissure. A MARKER's Kit icon is drawn on nothing today, but the icon guard
+; checks every Kit unconditionally, so this still needs a real one (measured against the live guard,
+; 2026-09-22; the Vauban's mt_maar_terrain.svg is the same shape). Shared with mt_decimate_expiry -
+; the crater and its own expiry timer are one mechanic, not two pictures.
+icon_override = ExtResource("7_icon")

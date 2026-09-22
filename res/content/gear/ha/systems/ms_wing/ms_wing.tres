@@ -3,15 +3,18 @@
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_wing/action_enhanced_movement_suite.tres" id="3_suite"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_wing.svg" id="4_icon"]
 
 ; W.I.N.G, the Leoleth's rank-I system (SP2 Task 2). system_tags = 1 is UNIQUE and charges_max = 2 is
 ; the card's LIMITED 2 - ms_hull_break_thrusters.tres is the in-mod shape for both.
 ;
-; NO icon_override in SP2.
+; SP5: a fan of three feathers, inside the shared ring register. action_enhanced_movement_suite is a
+; KIT row (one Kit, one action) and carries no icon_override of its own.
 [resource]
 script = ExtResource("2_kit")
 actions = Array[ExtResource("1_action")]([ExtResource("3_suite")])
 sp_cost = 2
 system_tags = 1
 charges_max = 2
+icon_override = ExtResource("4_icon")
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="Buff" format=3]
 
 [ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/buff_rage.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_buff")
@@ -9,4 +10,8 @@ script = ExtResource("1_buff")
 ; spelling of "for the rest of the scene".
 ; VISIBLE, and it is the only sign on the token that the core power is running. It carries its own
 ; name and effect rows - the whole RAGE table - so it needs no BUFFS_THAT_BORROW_A_CARD entry.
-; NO icon in SP1.
+; SP5: the RAGE flame, in its base/neutral tint - the member of the six-chip contact sheet the other
+; five are read against. Not the same texture as action_rage.svg: buffs are not family-constrained
+; the way ICON_TARGETS rows are, and the engine has no per-buff tint, so "six tints" means six
+; separate files, not one shared resource recoloured at runtime.
+icon = ExtResource("2_icon")

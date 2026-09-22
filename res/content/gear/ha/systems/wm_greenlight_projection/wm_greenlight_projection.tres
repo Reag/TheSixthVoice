@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://ch8avblisp8j1" path="res://engine/character/gear_passive/passive_weapon_mod.gd" id="3_weaponmod"]
 [ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="4_onhiteffect"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/wm_greenlight_projection/onhit_greenlight.tres" id="5_onhit"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/wm_greenlight_projection.svg" id="6_icon"]
 
 ; GREENLIGHT PROJECTION, the Leoleth's rank-III weapon mod (SP4 Task 3, design ruling 18).
 ; wm_ddmr.tres' shape with a different filter and no applied_buffs: the DDMR hangs a chip through
@@ -30,5 +31,7 @@ passives = Array[ExtResource("2_passive")]([SubResource("Resource_greenlight")])
 sp_cost = 2
 ; system_tags 1 is UNIQUE (kit.gd:30), off the sheet's Tags line.
 system_tags = 1
-; NO icon_override in SP4 - SP5's glyph pass covers it.
+; SP5: an ignition burst, inside the shared ring register - a weapon mod with no actions, so nothing
+; but the Kit's own icon is ever drawn.
+icon_override = ExtResource("6_icon")
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

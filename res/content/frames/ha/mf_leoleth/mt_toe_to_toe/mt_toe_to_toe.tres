@@ -3,9 +3,13 @@
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/mt_toe_to_toe/action_toe_to_toe.tres" id="3_toetotoe"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_toe_to_toe.svg" id="4_icon"]
 
 [resource]
 script = ExtResource("2_kit")
 actions = Array[ExtResource("1_action")]([ExtResource("3_toetotoe")])
 is_trait = true
-; NO icon_override in SP1.
+; SP5: an impact-burst star, inside the frame's shared ring register. action_toe_to_toe is a KIT
+; row (design section 5: the trait and its Skirmish reaction share one glyph) and carries no
+; icon_override of its own.
+icon_override = ExtResource("4_icon")

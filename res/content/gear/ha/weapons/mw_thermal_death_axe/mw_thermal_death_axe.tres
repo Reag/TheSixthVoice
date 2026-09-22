@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_thermal_death_axe/action_tda_standard.tres" id="3_standard"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_thermal_death_axe/action_tda_thunderous.tres" id="4_thunderous"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_thermal_death_axe/action_tda_recharge.tres" id="5_recharge"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_thermal_death_axe.svg" id="6_icon"]
 
 ; THE THERMAL DEATH AXE, the Leoleth's rank-II Heavy Melee weapon (SP3 Task 1). SP 1, LIMITED 1
 ; (charges_max = 1), three actions: the two profiles (one usage group) and the hidden recharge.
@@ -16,10 +17,13 @@
 ; "can be destroyed even if it has no charges remaining" is NOT here - a .tres cannot carry it. It is
 ; the whitelist in res/engine/character/unit/service/unit_printer.gd_ext.gd, keyed on this file's id.
 ;
-; NO icon_override in SP3.
+; SP5: a crescent axe blade on a diagonal haft, inside the shared ring register - the Standard
+; profile. action_tda_standard is a KIT row and carries no icon_override of its own;
+; action_tda_thunderous wears its own intensified variant, mw_thermal_death_axe_thunderous.svg.
 [resource]
 script = ExtResource("2_kit")
 actions = Array[ExtResource("1_action")]([ExtResource("3_standard"), ExtResource("4_thunderous"), ExtResource("5_recharge")])
 sp_cost = 1
 charges_max = 1
+icon_override = ExtResource("6_icon")
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

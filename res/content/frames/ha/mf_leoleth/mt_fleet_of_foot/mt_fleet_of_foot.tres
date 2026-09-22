@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="3_buff"]
 [ext_resource type="Script" uid="uid://dy4kg537rc55e" path="res://engine/character/gear_passive/passive_buff_applicator.gd" id="4_applicator"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/mt_fleet_of_foot/buff_fleet_of_foot.tres" id="5_fleet"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_fleet_of_foot.svg" id="6_icon"]
 
 [sub_resource type="Resource" id="Resource_applicator"]
 script = ExtResource("4_applicator")
@@ -14,4 +15,5 @@ applied_buffs = Array[ExtResource("3_buff")]([ExtResource("5_fleet")])
 script = ExtResource("2_kit")
 passives = Array[ExtResource("1_passive")]([SubResource("Resource_applicator")])
 is_trait = true
-; NO icon_override in SP1.
+; SP5: two forward chevrons, inside the shared ring register.
+icon_override = ExtResource("6_icon")

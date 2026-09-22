@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="BuffCover" format=3]
 
 [ext_resource type="Script" uid="uid://d0l6p3u6jopti" path="res://engine/character/buff/archtypes/buff_cover.gd" id="1_cover"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_hydraulic_excess.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_cover")
@@ -12,4 +13,6 @@ until = 2
 to = &"cover"
 ; VISIBLE: the only sign on the token that the passive fired. It carries its OWN name and effect rows
 ; rather than a localization_key_override, because the reaction that applies it is hidden and has no
-; card of its own to borrow. NO icon in SP1 - see VISIBLE_BUFFS.
+; card of its own to borrow. SP5 reuses the ALL SYSTEMS RED family's own texture - the chip IS that
+; family, the same as the Kit's own icon.
+icon = ExtResource("2_icon")

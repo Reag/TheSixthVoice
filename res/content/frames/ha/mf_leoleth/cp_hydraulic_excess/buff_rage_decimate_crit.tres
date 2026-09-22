@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="BuffDamage" format=3]
 
 [ext_resource type="Script" uid="uid://cq0gb4by4uruk" path="res://engine/character/buff/archtypes/buff_damage.gd" id="1_damage"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/buff_rage_decimate_crit.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_damage")
@@ -18,4 +19,5 @@ until = 3
 ; inherit_type_from_attack and can_apply_to_tech_attacks are left at their EXPORT DEFAULTS
 ; (buff_damage.gd:10-11: true and false), which are exactly ruling 9. Written nowhere, asserted in
 ; the spec.
-; VISIBLE - one of the six face chips - and NO icon in SP1.
+; VISIBLE - one of the six face chips. SP5: the RAGE flame in its Decimate tint (fire/crater tone).
+icon = ExtResource("2_icon")
