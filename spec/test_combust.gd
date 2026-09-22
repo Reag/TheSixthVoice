@@ -88,6 +88,63 @@ func combust() -> Action:
 		if action.get_id() == LeolethFixture.COMBUST_ID: return action
 	return null
 
+# ------------------------------------------------- the hotbar (playtest 2026-09-22)
+
+func specific_combust() -> SpecificAction:
+	return SpecificAction.from_id(leoleth, LeolethFixture.CORE_ID, LeolethFixture.COMBUST_ID)
+
+func test_combust_is_not_activatable_with_no_rage_at_all():
+	# THE PLAYTEST BUG, 2026-09-22: the author had a permanent Combust button on the hotbar with RAGE
+	# never pressed, and pressing it ran the whole card - blast 1, 2d6 Kinetic and Prone on a failed
+	# Hull save - at will, once a round.
+	#
+	# Combust is the ONLY action on cp_hydraulic_excess that is neither an ActionReaction nor a
+	# protocol, so it is the only one that reaches gear_bar.collect_gear_actions' admission test
+	# (gear_bar.gd:143-150). It had hide_if_disabled unset and no is_available_to_activate override,
+	# and that method defaults to TRUE (action.gd:175-176) - so the button was drawn and the action
+	# was genuinely available. Nothing else on this frame leaked, which is why only this face did.
+	var specific := specific_combust()
+	assert_true(SpecificAction.is_valid(specific), 'fixture: the Combust specific resolves.')
+	if not SpecificAction.is_valid(specific): return
+	assert_false(UnitCondition.has_buff(leoleth, LeolethFixture.RAGE_CHIP),
+		'fixture: RAGE was never pressed.')
+	assert_false(UnitAction.can_activate_gear(specific),
+		'Combust cannot be activated with no RAGE - it is not a player-initiated action.')
+	assert_eq(UnitAction.get_gear_unavailable_reason(specific), UnitAction.REASON.SPECIFIC,
+		'...and the refusal comes from is_available_to_activate, not from a cost or a charge.')
+
+func test_combust_is_not_activatable_while_rage_is_up_on_another_face():
+	# RAGE ALONE IS NOT THE GATE. The window is face 4 being RESOLVED, not the protocol being held -
+	# so a Leoleth mid-scene on Swift must not be able to reach for Combust either.
+	await LeolethFixture.rage(game, leoleth, 2)
+	assert_true(UnitCondition.has_buff(leoleth, LeolethFixture.RAGE_CHIP), 'fixture: RAGE is up...')
+	var specific := specific_combust()
+	if not SpecificAction.is_valid(specific): return
+	assert_false(UnitAction.can_activate_gear(specific),
+		'...and Combust is still refused, because this turn rolled Swift.')
+
+func test_the_button_is_hidden_and_not_merely_greyed():
+	# BOTH HALVES ARE LOAD-BEARING, and this pins the pair. gear_bar.gd:146 drops an action only when
+	# hide_if_disabled is set AND the gear is unavailable; with the availability override alone the
+	# button would still be drawn on the bar, just greyed out, which is not what the card describes.
+	var action := combust()
+	assert_not_null(action, 'fixture: the action resolves.')
+	if action == null: return
+	assert_true(action.hide_if_disabled,
+		'hide_if_disabled is set, so gear_bar drops the button rather than greying it.')
+	assert_false(action.is_situationally_activated,
+		'And NOT via is_situationally_activated, which would tell the engine it is usable by another unit.')
+
+func test_the_window_is_shut_again_after_a_face_four_resolves():
+	# THE OFFER OPENS THE WINDOW AND MUST SHUT IT. If it leaked, the button would come back for the
+	# rest of the scene the first time the Leoleth ever rolled a 4 - a subtler version of the same bug.
+	aim_at(BLAST_CENTRE)
+	await LeolethFixture.rage(game, leoleth, 4, [SAVE_FAILS, D6, D6])
+	var specific := specific_combust()
+	if not SpecificAction.is_valid(specific): return
+	assert_false(UnitAction.can_activate_gear(specific),
+		'The window is shut again once the face has resolved.')
+
 # ---------------------------------------------------------------- the wiring
 
 func test_the_action_is_wired_as_ruling_12_says():

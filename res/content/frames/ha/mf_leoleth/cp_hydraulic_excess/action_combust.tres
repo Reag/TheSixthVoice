@@ -39,6 +39,12 @@ save_to_avoid = true
 save_type = 0
 ; Lancer.ACTION.FREE is 3 (lancer.gd:27).
 action_type = 3
+; THE HOTBAR BUTTON IS REMOVED BY THIS LINE PLUS the script's is_available_to_activate, and it takes
+; BOTH: gear_bar.collect_gear_actions drops an action only when hide_if_disabled is set AND the gear
+; is currently unavailable (gear_bar.gd:146). With the override alone the button would still be
+; drawn, just greyed. Combust is offered by the RAGE roll through choose_and_use and is never meant
+; to be pressed from the bar at all - see the script's header.
+hide_if_disabled = true
 usage_group = &"combust"
 ; SP5 gives this action the SAME texture as action_rage.tres's icon_override - the family rule
 ; requires literal identity, not just two files that look alike, so this points at the exact same

@@ -32,7 +32,41 @@ extends ActionSystemApplyStatus
 
 const BLAST_DAMAGE := '2d6'
 
+## Set by action_rage_roll.offer_combust for the length of the offer and cleared straight after, so
+## this action is activatable ONLY while face 4 is actually being resolved. It lives HERE, on the
+## action it gates, and the roll preloads this script to read it - one source of truth rather than
+## the Vauban's duplicated FIELD_STATE_KEY (action_grav_amped_interference.gd:73 and
+## action_grav_amped_shock.gd:101), which is two strings that must be kept in step by hand.
+##
+## A String, NOT a StringName. GearCore.state is a plain Dictionary and get_state does no
+## normalising, so a StringName key would never match a String one - the Vauban's own note at
+## action_grav_amped_interference.gd:45-46 is about exactly that trap.
+const OFFER_STATE_KEY := 'combust_offered'
+
 func show_in_tooltip(_kit:Kit) -> bool: return false
+
+## NOT A PLAYER-INITIATED ACTION, and before this override it was one. Combust is the only action on
+## cp_hydraulic_excess that is neither an ActionReaction nor a protocol, so it is the only one that
+## reaches gear_bar.collect_gear_actions' admission test (gear_bar.gd:143-150) - and with
+## hide_if_disabled unset and is_available_to_activate defaulting to true (action.gd:175-176) it had
+## a permanent hotbar button that ran the whole card with no RAGE anywhere. Reported from playtest
+## 2026-09-22.
+##
+## PAIRED WITH hide_if_disabled = true IN THE .tres. Together they are what removes the button:
+## gear_bar drops an action only when hide_if_disabled is set AND the gear is unavailable. Returning
+## false here without that flag would leave the button on the bar, merely greyed out.
+##
+## WHY NOT A FLAT `return false`, which would read more simply: the legitimate offer would refuse
+## too. event_gear_activate.gd:50 ends in UnitAction.can_activate_gear, which consults this very
+## method (unit_action.gd:156 -> REASON.SPECIFIC), and choose_and_use reaches that same re-check. The
+## window has to be open while the roll is resolving face 4 and shut the rest of the time.
+##
+## WHY NOT is_situationally_activated, which also hides it: that flag means "usable by a unit other
+## than the one holding it" (action.gd:45-46) and it is read by the AI decider (ai_action_decider.gd:75)
+## and the kit card (kit.gd:229). It would hide the button by telling the engine something untrue.
+func is_available_to_activate(_unit:Unit, gear:GearCore) -> bool:
+	if not GearCore.is_valid(gear): return false
+	return bool(gear.get_state(OFFER_STATE_KEY, false))
 
 ## "All CHARACTERS at least partially within the area" - is_actor(), the mod-wide rule (ruling 22).
 func can_target_unit(potential_target:Unit, specific:SpecificAction) -> bool:

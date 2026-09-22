@@ -28,6 +28,8 @@
 extends ActionReactionSelf
 
 const Terrain := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/terrain/terrain.gd')
+## Preloaded for OFFER_STATE_KEY alone - the one string this file and Combust must agree on.
+const CombustAction := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/action_combust.gd')
 
 const RAGE_CHIP := &'buff_rage'
 
@@ -160,13 +162,28 @@ func offer_combust(context:Context, activation:EventCore) -> void:
 	# gear.get_solo_action(), which on a multi-action Kit is not this one.
 	var combust := SpecificAction.from_id(unit, &'cp_hydraulic_excess', &'action_combust')
 	if not SpecificAction.is_valid(combust): return
-	if UnitTargeting.get_tiles_targetable(combust).is_empty(): return
+
+	# OPEN COMBUST'S WINDOW. It is unavailable at every other moment, which is what keeps it off the
+	# hotbar - see action_combust.is_available_to_activate. The flag has to go up BEFORE
+	# get_tiles_targetable, because targeting refuses an unavailable action, and it is cleared on
+	# every path out of here including the two early returns below.
+	var gear:GearCore = combust.gear
+	if not GearCore.is_valid(gear): return
+	gear.set_state(CombustAction.OFFER_STATE_KEY, true)
+
+	if UnitTargeting.get_tiles_targetable(combust).is_empty():
+		gear.set_state(CombustAction.OFFER_STATE_KEY, false)
+		return
 	await CommonActionUtil.choose_and_use(
 		activation,
 		SpecificAction.from_context(context),
 		[combust] as Array[SpecificAction],
 		CommonActionUtil.choose_and_use_no_spend,
 	)
+	# SHUT IT AGAIN, on every path - a cancelled targeting screen returns here just as a committed one
+	# does. GDScript has no finally, so this is the single exit point and the two returns above each
+	# carry their own clear.
+	gear.set_state(CombustAction.OFFER_STATE_KEY, false)
 
 ## SWIFT (ruling 10): "You may immediately Boost as a free action."
 ##
