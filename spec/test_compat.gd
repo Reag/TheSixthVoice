@@ -20,6 +20,7 @@ const MaidensBlushFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/mai
 const VaubanFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/vauban_fixture.gd')
 const PrimroseFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/primrose_fixture.gd')
 const SluaghFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/sluagh_fixture.gd')
+const LeolethFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/leoleth_fixture.gd')
 ## Read-only here: the Mark's retort case asserts the dome is untouched between its two halves.
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
 
@@ -90,6 +91,24 @@ const SLUAGH_D20_MISSES := 1
 # would have to consult is the TARGET's, not the Primrose's), and which duplicated
 # test_house_guard_still_widens_adjacency_with_our_unit_relation_extender_installed above tile for
 # tile. The liveness assertion now runs on the target and on a HOSTILE - see that test's header.
+
+# ---- Leoleth (SP1 Task 13): the STRUCTURE seam ----
+# The resident talents mod replaces event_unit_structure's `execute` WHOLESALE for its reroll buffs
+# and never calls super. ALL SYSTEMS RED hooks execute_preblock instead, which the resident leaves
+# alone. Task 0's probe measured that with a knockoff reaction (spec/test_spike_structured_pre_under_talents.gd,
+# frozen); this re-states it against the PRODUCTION reaction on the real frame.
+const STRUCTURE_SCRIPT := 'res://content/events/event_unit_structure.gd'
+const TALENTS_STRUCTURE_EXTENSION := 'res://unpacked/%s/res/content/events/event_unit_structure.gd_ext.gd' % TALENTS_MOD
+## The one method the resident ADDS. Its presence on the LIVE script is what proves the replacement is
+## installed in this run, rather than merely present on disk.
+const TALENTS_STRUCTURE_METHOD := &'make_structure_check_with_rerolls'
+## The method the whole ruling hangs on: the resident must NOT define it.
+const PREBLOCK := &'execute_preblock'
+
+const LEOLETH_TILE := Vector2i(4, 6)
+## 13 against 8 HP and armor 1 leaves the bar at -4; the structure check's ONE d6 is cheated to 6,
+## which is IMPAIRED - the only outcome with no gear prompt and no second die.
+const LEOLETH_BIG_HIT := 13
 
 var game:Gamemaster
 var myconid:Unit
@@ -810,3 +829,167 @@ func test_the_two_widenings_read_different_channels() -> void:
 		'...and that literal IS the channel talents reads: House Guard\'s own buff is the only thing on it.')
 	assert_eq(UnitCondition.get_buffs_to(sluagh, SluaghFixture.ADJACENT_TO).size(), 1,
 		'...and it never joined ours.')
+
+
+# ===================== THE STRUCTURE SEAM (Leoleth, ALL SYSTEMS RED) =====================
+
+## Every method visible on a script, base scripts included.
+func method_names(script:Script) -> Array[StringName]:
+	var names:Array[StringName] = []
+	for method:Dictionary in script.get_script_method_list(): names.append(StringName(method.name))
+	return names
+
+## Only the methods a script DEFINES ITSELF, which is what "does not override it" means.
+## get_script_method_list() returns the INHERITED ones too, so this reads the source instead - copied
+## verbatim from spec/test_spike_structured_pre_under_talents.gd, where it was measured against the
+## live resident.
+func own_method_names(script:Script) -> Array[StringName]:
+	var names:Array[StringName] = []
+	var regex := RegEx.new()
+	regex.compile('(?m)^func\\s+(\\w+)\\s*\\(')
+	for found:RegExMatch in regex.search_all(script.source_code): names.append(StringName(found.get_string(1)))
+	return names
+
+## True when the talents mod's structure replacement is actually LIVE in this run. Announce the skip
+## rather than passing quietly - the same pairing skipped_without_talents() above uses, and for the
+## same measured reason (pass_test alone does not print at the default log level).
+func skipped_without_talents_structure() -> bool:
+	var live:Script = load(STRUCTURE_SCRIPT)
+	if live != null and method_names(live).has(TALENTS_STRUCTURE_METHOD): return false
+	var message := 'SKIPPED: %s is not resident, so the STRUCTURED PRE seam is unmeasured here. Restore the residency set with restore-links.ps1.' % TALENTS_MOD
+	gut.p(message)
+	pass_test(message)
+	return true
+
+## THE RULING, STRUCTURALLY. The resident replaces `execute` and defines no `execute_preblock` of its
+## own, so vanilla's STRUCTURED PRE await (event_unit_structure.gd:33-34) still runs under it. A
+## resident update that starts overriding the preblock reddens this BEFORE it can silently retire
+## ALL SYSTEMS RED.
+func test_the_talents_replacement_still_leaves_the_structure_preblock_alone() -> void:
+	if skipped_without_talents_structure(): return
+	var extension:Script = load(TALENTS_STRUCTURE_EXTENSION)
+	assert_not_null(extension, 'The resident\'s extension loads from its unpacked path.')
+	if extension == null: return
+	var own := own_method_names(extension)
+	assert_true(own.has(&'execute'),
+		'LIVENESS: the resident really does replace execute - the seam the registry records.')
+	assert_false(own.has(PREBLOCK),
+		'THE RULING: it defines no %s of its own, so vanilla\'s STRUCTURED PRE await still runs.' % PREBLOCK)
+
+## THE RULING, BEHAVIOURALLY, AGAINST THE PRODUCTION REACTION. Task 0's probe measured a knockoff on a
+## dummy; this is the real Leoleth with the real cp_hydraulic_excess, under the real resident.
+func test_a_structured_leoleth_takes_no_overflow_with_the_talents_mod_resident() -> void:
+	if skipped_without_talents_structure(): return
+	var leoleth:Unit = LeolethFixture.create_leoleth(game, LEOLETH_TILE)
+	assert_eq(leoleth.core.current.health, leoleth.get_health_max(), 'fixture: full HP.')
+	await LeolethFixture.structure(game, leoleth, LEOLETH_BIG_HIT)
+	assert_eq(leoleth.core.current.structure, 3, 'LIVENESS: it really structured.')
+	assert_eq(leoleth.core.current.health, leoleth.get_health_max(),
+		'And the new bar is EXACTLY full under the resident\'s replacement - no overflow carried.')
+
+## And the other half of the card, under the resident: the hard-cover chip.
+func test_a_structured_leoleth_gains_hard_cover_with_the_talents_mod_resident() -> void:
+	if skipped_without_talents_structure(): return
+	var leoleth:Unit = LeolethFixture.create_leoleth(game, LEOLETH_TILE)
+	var shooter:Unit = LeolethFixture.create_hostile(game, Vector2i(12, 6))
+	assert_eq(CoverCalculator.determine_cover(leoleth, shooter).total, Lancer.COVER.NONE,
+		'fixture: no cover in the open.')
+	await LeolethFixture.structure(game, leoleth, LEOLETH_BIG_HIT)
+	assert_true(LeolethFixture.has(leoleth, LeolethFixture.ASR_COVER_CHIP), 'The chip landed...')
+	assert_eq(CoverCalculator.determine_cover(leoleth, shooter).total, Lancer.COVER.HARD,
+		'...and the cover pipeline reads HARD off it, with the resident live.')
+
+
+# ===================== THE unit_printer SEAM (Leoleth, Thermal Death Axe) =====================
+# The resident gavstarb-ssc_emperor extends unit_printer.gd (full_repair, super-calling) and so do we
+# (get_destructable_gear, super-calling). Ruled at design: super-first whitelists compose in any
+# install order. This pins that BOTH extensions are in the live chain in one run AND our override
+# still answers under it.
+#
+# IDENTIFIED BY SOURCE, NOT BY PATH, which Task 0's probe measured: ModLoader installs each extension
+# with take_over_path, so only the MOST-DERIVED script in the chain has a resource_path at all - and
+# it is the VANILLA path - while every script beneath it reports "". The idiom below is
+# spec/test_spike_unit_printer_seam.gd's live_chain()/chain_has_source(), copied.
+const SSC_EMPEROR_MOD := 'gavstarb-ssc_emperor'
+## A line only OUR extension's source carries.
+const OUR_PRINTER_MARKER := 'THERMAL DEATH AXE (Leoleth, mw_thermal_death_axe)'
+## A line only the resident's source carries: the frame id its full_repair override branches on.
+const EMPEROR_PRINTER_MARKER := 'mf_emperor'
+
+func live_printer_chain() -> Array[Script]:
+	var chain:Array[Script] = []
+	var script:Script = UnitPrinter.get_script()
+	while script != null:
+		chain.append(script)
+		script = script.get_base_script()
+	return chain
+
+func printer_chain_has_source(needle:String) -> bool:
+	return live_printer_chain().any(func(script:Script) -> bool: return script.source_code.contains(needle))
+
+## Announce the skip rather than passing quietly - the pairing every guarded case in this file uses.
+func skipped_without_emperor_printer() -> bool:
+	if printer_chain_has_source(EMPEROR_PRINTER_MARKER): return false
+	var message := 'SKIPPED: %s is not resident, so the unit_printer seam is unmeasured against a co-extender. Restore the residency set with restore-links.ps1.' % SSC_EMPEROR_MOD
+	gut.p(message)
+	pass_test(message)
+	return true
+
+func test_the_empty_axe_is_still_destructible_with_the_emperor_extender_in_the_chain() -> void:
+	if skipped_without_emperor_printer(): return
+	assert_true(printer_chain_has_source(OUR_PRINTER_MARKER), 'LIVENESS: ours is in the same chain.')
+	var leoleth:Unit = LeolethFixture.create_leoleth(game, LEOLETH_TILE)
+	var axe:GearCore = LeolethFixture.arm_axe(leoleth)
+	assert_true(GearCore.is_valid(axe), 'fixture: the axe is equipped.')
+	axe.charges_current = 0
+	assert_true(UnitPrinter.get_destructable_gear([axe]).has(axe),
+		'THE RULING: super-first whitelists compose - the empty axe is offered with the resident co-extending the file.')
+
+## The other half of "compose": the resident's own override still runs under ours. Read structurally,
+## because its effect (an mf_emperor health correction) needs an Emperor and a pilot to show.
+func test_both_extensions_are_in_one_chain_and_vanilla_is_its_root() -> void:
+	if skipped_without_emperor_printer(): return
+	assert_true(printer_chain_has_source(OUR_PRINTER_MARKER), 'Ours is in the chain...')
+	assert_true(printer_chain_has_source(EMPEROR_PRINTER_MARKER), '...the resident is in the same chain...')
+	# THE YEAR IS DELIBERATELY NOT MATCHED: every modkit release re-stamps the per-file copyright line,
+	# so baking 2026 in would turn this into a release-day red that says nothing about the seam.
+	var root_header:String = live_printer_chain().back().source_code.get_slice('\n', 0)
+	assert_true(root_header.begins_with('# Copyright (c) ') and root_header.contains('Wickworks'),
+		'...and vanilla is its root, so every super() call still lands (%d scripts deep).' % live_printer_chain().size())
+
+# ------------------------------------------------- and a co-extender of the SAME FUNCTION
+# The Emperor cases above put a second extension on the FILE; this one puts a second extension on the
+# FUNCTION. Reag-ThyHubris' unit_printer.gd_ext.gd whitelists mw_injector_drill in its own
+# get_destructable_gear override, super-first and by kit id, exactly as ours whitelists the axe
+# (unpacked/Reag-ThyHubris/res/engine/character/unit/service/unit_printer.gd_ext.gd:27-35). Both mods
+# load in every testkit run, so the composition is measurable here and nowhere else.
+#
+# THIS IS THE RULING, not an accident of install order: each override calls super() FIRST and then
+# APPENDS its own kit to whatever came back, so the two whitelists union whichever mod ModLoader
+# installed first. The negative control is one test up - mw_stub_cannon, which neither mod
+# whitelists, stays refused (spec/test_thermal_death_axe.gd's vanilla-limited case).
+const THY_HUBRIS_MOD := 'Reag-ThyHubris'
+## The Draugr's weapon, whose card says the same thing ours does: destructible with no charges left.
+const INJECTOR_DRILL := &'mw_injector_drill'
+
+func skipped_without_the_drill() -> bool:
+	if ContentLibrary.get_kit(INJECTOR_DRILL) != null: return false
+	var message := 'SKIPPED: %s is not loaded, so the get_destructable_gear whitelist is unmeasured against a same-function co-extender.' % THY_HUBRIS_MOD
+	gut.p(message)
+	pass_test(message)
+	return true
+
+func test_two_mods_whitelisting_the_same_function_compose_rather_than_cancel() -> void:
+	if skipped_without_the_drill(): return
+	var leoleth:Unit = LeolethFixture.create_leoleth(game, LEOLETH_TILE)
+	var axe:GearCore = LeolethFixture.arm_axe(leoleth)
+	var drill:GearCore = LeolethFixture.equip(leoleth, INJECTOR_DRILL)
+	assert_true(GearCore.is_valid(axe), 'fixture: the axe is equipped.')
+	assert_true(GearCore.is_valid(drill), 'fixture: and so is the other mod\'s drill.')
+	if not (GearCore.is_valid(axe) and GearCore.is_valid(drill)): return
+	axe.charges_current = 0
+	drill.charges_current = 0
+	assert_false(axe.has_charges_left(), 'fixture: both are empty...')
+	assert_false(drill.has_charges_left(), '...which is the only state either whitelist is for.')
+	assert_eq(UnitPrinter.get_destructable_gear([axe, drill]).size(), 2,
+		'THE RULING: super-first whitelists UNION - both mods\' weapons are offered in one run.')

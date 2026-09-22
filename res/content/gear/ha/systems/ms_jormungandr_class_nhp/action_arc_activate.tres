@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="ActionSystemApplyBuff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Script" uid="uid://cm50wdj5g8syg" path="res://engine/character/gear_action/archtypes/action_system_apply_buff.gd" id="2_applybuff"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_jormungandr_class_nhp/buff_arc.tres" id="3_chip"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_jormungandr_class_nhp/buff_arc_bonus.tres" id="4_bonus"]
+
+; AUTOMATIC RETALIATION CORE, the activation protocol. BOTH buffs are applied here, from this one
+; GearCore, which is what lets buff_arc's deactivation clear the pair with a single
+; clear_buffs_owned_by call.
+;
+; can_reapply FALSE is the availability gate (action_system_apply_buff.gd:36): pressing again while
+; the chip is held would re-hang a chip we already have. hide_if_disabled then takes the button off
+; the bar while the A.R.C. runs, so only one of the pair ever shows - vanilla's Retractable Profile
+; shape, and the ZIP Type Engine's.
+[resource]
+script = ExtResource("2_applybuff")
+buffs = Array[ExtResource("1_buff")]([ExtResource("3_chip"), ExtResource("4_bonus")])
+apply_range = 0
+apply_only_to_self = true
+can_apply_to_self = true
+can_reapply = false
+; Lancer.ACTION is { NONE, QUICK, FULL, FREE, PROTOCOL, RXN } (lancer.gd:27), so PROTOCOL is 4.
+action_type = 4
+; ITS OWN usage group. A groupless action falls back to the KIT id (gear_core.gd:166-168), which
+; would make this protocol share one tally with the deactivation AND with the retaliation - and the
+; retaliation's tally IS its 1/round.
+usage_group = &"arc_activate"
+hide_if_disabled = true
+; NO icon_override in SP4: SP5 gives the two protocols and the retaliation one glyph family.
+metadata/_custom_type_script = "uid://cm50wdj5g8syg"

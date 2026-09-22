@@ -1,0 +1,24 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_thermal_death_axe/action_tda_recharge.gd" id="1_recharge"]
+
+; end_turn / PRE, point-free - Toe To Toe's four lines minus counts_as_free_action (this is not an
+; action the player takes). trigger_timing = 0 is ReactionBus.TIMING.PRE. Hidden via the script's
+; show_in_tooltip, so it never reaches ICON_TARGETS.
+;
+; NO usage_group of its own: nothing here is ever spent, so nothing is tallied.
+;
+; CORRECTED AT THE FRAME CLOSE, 2026-09-22. This used to add "and sharing the weapon's group
+; would count the recharge against the turn's one Skirmish". It would not, in either direction.
+; The recharge never reaches UnitAction.spend at all - it calls no spend_actions(), and
+; event_gear_activate.gd:79-80 only calls activate() - so it increments nothing; and
+; Action.get_per_turn_soft_limit returns 99 for any action whose discounted cost is free
+; (action.gd:161-163), which an RXN-cost action is, so a spent Skirmish could not refuse it
+; either. The choice is still right, just not for that reason. Note also that an EMPTY
+; usage_group is not "no group": it resolves to the kit id (gear_core.gd:166-168), which is what
+; keeps it distinct from the two profiles' shared &"thermal_death_axe" group.
+[resource]
+script = ExtResource("1_recharge")
+triggers_on = Array[StringName]([&"end_turn"])
+trigger_timing = 0
+consumes_rxn = false

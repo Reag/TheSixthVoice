@@ -1,0 +1,25 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://vi3dfs5ql3lg" path="res://engine/character/gear_action/action_attack_weapon.gd" id="1_attack"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_thermal_death_axe_thunderous.svg" id="2_icon"]
+
+; THE THUNDEROUS PROFILE: "You may spend 1 charge to use the 'Thunderous' profile when making an
+; attack." NO SCRIPT, on purpose: Action.consumes_charges defaults TRUE (action.gd:108), and the two
+; engine reads of it - unit_action.gd:153 (refuse at zero, REASON.NO_CHARGES) and :274 (spend one on
+; use) - are exactly the card. The design's is_available_to_activate override would only restate :153.
+;
+; damage_type = 1 is ENERGY; tags [&"ap"] is the vanilla form (action_annihilator.tres:28). Same
+; size, type, threat, heat and usage_group as Standard. SP5: the axe blade intensified - vanilla's
+; cp_m35_mjolnir_cannon -> _spin_up shape - a named family of its own, distinct from the Kit's icon.
+[resource]
+script = ExtResource("1_attack")
+damage_type = 1
+damage_dice = "2d6+2"
+weapon_size = 2
+weapon_type = 2
+aim_range = 0
+threat = 2
+tags = Array[StringName]([&"ap"])
+self_heat_dice = "1"
+usage_group = &"thermal_death_axe"
+icon_override = ExtResource("2_icon")

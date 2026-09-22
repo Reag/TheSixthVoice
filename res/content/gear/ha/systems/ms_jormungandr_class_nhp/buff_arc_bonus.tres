@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BuffDamage" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_jormungandr_class_nhp/buff_arc_bonus.gd" id="1_bonus"]
+
+[resource]
+script = ExtResource("1_bonus")
+damage_dice = "1d6"
+require_hit = true
+; BONUS_DAMAGE_SPECIFIC: see the script header - require_hit is only honoured on this channel.
+to = &"bonus_damage_specific"
+; inherit_type_from_attack and can_apply_to_tech_attacks are left at their EXPORT DEFAULTS
+; (buff_damage.gd:10-11: true and false), which are exactly the card: bonus damage of the weapon's
+; own type, and nothing at all for a tech attack. Written nowhere, asserted in the spec.
+; `until` is omitted (MANUAL): its lifetime is the chip's, and buff_arc clears both together.
+; HIDDEN - the A.R.C. shows ONE chip on the bar, not two for one card.
+hide_from_player = true

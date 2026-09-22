@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="BarkSet" format=3]
+
+[ext_resource type="Script" uid="uid://c0y2qrcbe5qxw" path="res://engine/dialogue/bark/bark_set.gd" id="1_barkset"]
+
+[resource]
+script = ExtResource("1_barkset")
+; EMPTY BY DESIGN, exactly like bark_nhp_morrigan.tres and Thy Hubris' bark_nhp_pestilence.tres. A
+; BarkSet carries no lines: `custom` is for straight-text overrides and `probabilities` for
+; per-incident odds, and JÖRMUNGANDR needs neither. Its 38 lines are the
+; bark.nhp_jormungandr.<incident>.<N> rows in localization/localizations.csv, which
+; get_possible_bark_keys_for discovers by counting N upward from 1 until a key has no translation
+; (bark_set.gd:168-186). So the lines are data, not resource state, and the numbering must stay
+; GAPLESS or everything after the gap is invisible.
+;
+; THE FILENAME IS THE KEY, WHICH IS WHY IT IS ASCII. strip_prefix(compcon_id) is the middle segment
+; of every key the engine builds (:180), and compcon_id is the file's own basename. The author's
+; table writes `bark.nhp_Jörmungandr`; honouring that literally would have meant a diaeresis in a
+; filename passing through the resource-group globs and the mod zip. The diaeresis lives in the
+; DISPLAY row instead - bark.nhp_jormungandr renders "NHP JÖRMUNGANDR" - which is how the Morrígan
+; ships as bark.nhp_morrigan / "NHP Morrígan".
+;
+; The author's stated odds for every incident match BarkSet.BARKS' defaults exactly
+; (bark_set.gd:10-28), so `probabilities` is left empty rather than restating them.
+;
+; is_nhp marks this a co-pilot voice rather than a pilot personality preset; it is what the barkset
+; picker filters on.
+is_nhp = true

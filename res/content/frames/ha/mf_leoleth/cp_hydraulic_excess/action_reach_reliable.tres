@@ -1,0 +1,35 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/action_reach_reliable.gd" id="1_action"]
+
+[resource]
+script = ExtResource("1_action")
+; attack / POST. trigger_timing = 1 is ReactionBus.TIMING.POST, and POST is the ONLY timing that
+; carries a resolved AttackRoll in the triggering context (action_reaction_attacked.gd:105-112
+; asserts exactly that), which is what require_miss reads.
+triggers_on = Array[StringName]([&"attack"])
+trigger_timing = 1
+; consumes_rxn false: this is not a reaction the player spends, and it makes
+; get_per_round_hard_limit 99 (action_reaction.gd:69) so every missed swing pays out, not the first
+; one of the round.
+consumes_rxn = false
+usage_group = &"reach_reliable"
+; ActionReactionAttacked.UNIT_ROLE.ATTACKER is 1: the Leoleth SWUNG, it was not swung at.
+require_unit_to_be = 1
+require_miss = true
+; NOT require_hit and NOT require_crit - a Reliable payout is the miss case by definition.
+;
+; NO CHARACTER CLAUSE. require_defender_to_be_character defaults TRUE, and the engine's own Reliable
+; has no such clause - a missed swing at a Jericho cover still pays out. Set false deliberately so
+; the top-up behaves like the thing it is topping up.
+require_defender_to_be_character = false
+; Lancer.WEAPON_TYPE.MELEE is 2 (lancer.gd:107). This filter IS UnitAction.is_melee_weapon
+; (unit_action.gd:549-553), spelled declaratively.
+weapon_types = Array[int]([2])
+; allow_basic stays FALSE, matching buff_rage_reach_reliable: the card says "your melee weapons", and
+; a basic ram or grapple gets neither the tag nor the shortfall.
+allow_tech = false
+; NO icon_override: the script overrides show_in_tooltip to false, so this action never reaches a
+; player-facing surface and test_content_integrity's icon guard asserts it is NOT in ICON_TARGETS
+; (_action_reaches_a_player_facing_surface) - the same treatment action_all_systems_red and
+; action_rage_roll get.

@@ -1,0 +1,46 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/action_combust.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://c0yv6pnw2be6l" path="res://engine/character/gear_action/resources/range_pattern.gd" id="2_rangepattern"]
+[ext_resource type="Script" uid="uid://df1yicp7kbf3x" path="res://engine/character/gear_action/resources/target_requirements.gd" id="3_reqs"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_rage.svg" id="4_icon"]
+
+; Lancer.AOE_TYPE.BLAST is 1 (lancer.gd:96-100).
+[sub_resource type="Resource" id="Resource_blast1"]
+script = ExtResource("2_rangepattern")
+pattern = 1
+value = 1
+
+; THE OVERRIDE IS WHERE THE BLAST LIVES. ActionSystemApplyStatus has its own `range_pattern` export
+; and NOTHING READS IT: activate calls get_range_pattern_for_targets (:59) -> Action's
+; get_target_requirements(specific).range_pattern (action.gd:204-206), and this archetype's
+; get_target_requirements (:22-27) builds a fresh TargetRequirements without copying it.
+; can_target_empty_tiles: the card says choose an AREA, not a target.
+[sub_resource type="Resource" id="Resource_reqs"]
+script = ExtResource("3_reqs")
+count = 1
+range_pattern = SubResource("Resource_blast1")
+can_target_empty_tiles = true
+
+[resource]
+script = ExtResource("1_action")
+target_requirements_override = SubResource("Resource_reqs")
+applied_statuses = Array[StringName]([&"prone"])
+; Lancer.UNTIL.MANUAL is the enum's own zero, so `apply_until` is written explicitly here rather than
+; omitted - the archetype's DEFAULT is END_OF_NEXT_TURN (action_system_apply_status.gd:6), not MANUAL.
+apply_until = 0
+apply_to_sensors = true
+; FALSE, against ruling 12's letter - see the script's header. With it true this action becomes
+; self-only and never picks a tile.
+apply_to_self = false
+save_to_avoid = true
+; Lancer.HASE is { HULL, AGI, SYS, ENG } (lancer.gd:142), so HULL is 0 - the export's own default,
+; written anyway so a reader does not have to know it.
+save_type = 0
+; Lancer.ACTION.FREE is 3 (lancer.gd:27).
+action_type = 3
+usage_group = &"combust"
+; SP5 gives this action the SAME texture as action_rage.tres's icon_override - the family rule
+; requires literal identity, not just two files that look alike, so this points at the exact same
+; res:// path.
+icon_override = ExtResource("4_icon")

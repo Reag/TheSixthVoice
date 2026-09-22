@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.8.1'
+const EXPECTED_VERSION := '0.9.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -240,6 +240,54 @@ const VAUBAN_LOCALIZATION_ROWS:Array[String] = [
 
 func test_the_vaubans_unguarded_rows_resolve():
 	for key:String in VAUBAN_LOCALIZATION_ROWS:
+		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+
+## The Leoleth's localization rows. Only the first is unreachable the way the Vauban pair above is:
+## `gear.mt_decimate_terrain.name` belongs to a MARKER's trait Kit, and no surface a spec in this mod
+## can reach renders its card at all - exactly the Vauban's mt_maar_terrain case, and for the same
+## reason. Everything below it is belt-and-braces consistency with the per-sub-project pattern this
+## file keeps (each sub-project's own spec, e.g. test_thunder_sword.gd, test_wing.gd, already reads
+## the same keys off this mod's own compiled artifact), not a last line of defence.
+##
+## frame.dep_decimate.name is NOT here: spec/test_decimate.gd reads it off this mod's own compiled
+## artifact, which is the stronger check.
+const LEOLETH_LOCALIZATION_ROWS:Array[String] = [
+	'gear.mt_decimate_terrain.name',
+	# SP2 Task 1. The Thunder Sword's rows. Belt-and-braces with test_thunder_sword.gd's own
+	# resolution assertions, the per-sub-project pattern this file keeps.
+	'gear.mw_thunder_sword.name',
+	'gear.mw_thunder_sword.flavor',
+	'gear.mw_thunder_sword.on_hit',
+	'gear.buff_thunder_sword.name',
+	'gear.buff_thunder_sword.effect',
+	# SP2 Task 2. W.I.N.G's rows.
+	'gear.ms_wing.name',
+	'gear.ms_wing.flavor',
+	'gear.ms_wing.action_enhanced_movement_suite.name',
+	'gear.ms_wing.action_enhanced_movement_suite.effect',
+	'gear.buff_wing.name',
+	'gear.buff_wing.effect',
+	# SP3 Task 1. The Thermal Death Axe's rows.
+	'gear.mw_thermal_death_axe.name',
+	'gear.mw_thermal_death_axe.flavor',
+	'gear.mw_thermal_death_axe.effect',
+	'gear.mw_thermal_death_axe.action_tda_standard.name',
+	'gear.mw_thermal_death_axe.action_tda_thunderous.name',
+	'gear.mw_thermal_death_axe.action_tda_recharge.log',
+	# SP3 Task 2. The ZIP Type Engine's rows - the Kit, both toggle actions and the chip.
+	'gear.ms_zip_type_engine.name',
+	'gear.ms_zip_type_engine.flavor',
+	'gear.ms_zip_type_engine.effect',
+	'gear.ms_zip_type_engine.action_zip_engage.name',
+	'gear.ms_zip_type_engine.action_zip_engage.effect',
+	'gear.ms_zip_type_engine.action_zip_disengage.name',
+	'gear.ms_zip_type_engine.action_zip_disengage.effect',
+	'gear.buff_zip_type_engine.name',
+	'gear.buff_zip_type_engine.effect',
+]
+
+func test_the_leoleths_unguarded_rows_resolve():
+	for key:String in LEOLETH_LOCALIZATION_ROWS:
 		assert_ne(tr(key), key, '%s resolves to real text.' % key)
 
 ## The Rend Axe's three rows (SP2 Task 1, Primrose). Unlike the three lists above, these ARE also
@@ -701,6 +749,73 @@ const ICON_TARGETS := {
 	# draws for it; KIT, because the design's family is {the Kit, action_in_triumvirate, the pair
 	# and ward chips}. The Kit's own icon is SP5's.
 	&'ms_the_morrigan_class_nhp': {&'action_in_triumvirate': KIT},
+	# SP1 Task 2 (Leoleth). Toe To Toe's reaction wears the KIT's glyph rather than a family of its
+	# own: design section 5's icon family for this trait is "the trait and its Skirmish reaction share
+	# one glyph", and the icon directive spells that as KIT - absence, not duplication. Both the row
+	# and the Kit's own icon_override are SP5's, so this row's two assertions are part of deliberate
+	# red #2 until then.
+	&'mt_toe_to_toe': {&'action_toe_to_toe': KIT},
+	# SP1 Task 3 (Leoleth). A passive trait with no action of its own, so it wears the Kit's icon and
+	# lists nothing - the mt_hole_puncher / mt_knock_em_down shape. The Kit's own icon is SP5's.
+	&'mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa': {},
+	# SP1 Task 4 (Leoleth). A passive trait with no action of its own - the mt_hole_puncher shape.
+	&'mt_fleet_of_foot': {},
+	# SP1 Tasks 5, 6 and 10 (Leoleth). HYDRAULIC EXCESS. action_combust shares the SAME family name as
+	# action_rage - design section 5 gives this Kit exactly two glyph
+	# families, ALL SYSTEMS RED and RAGE, and the six effect chips wear RAGE's glyph in six tints.
+	# Combust needs a row despite being "hidden": _action_reaches_a_player_facing_surface returns true
+	# for anything that is not an ActionReaction and is not is_situationally_activated, and Combust is
+	# an ActionSystem. is_situationally_activated is deliberately NOT set - it means "usable by a unit
+	# other than the one it is on" (action.gd:45-46) and would put Combust into UnitAction's
+	# situational-action scan (unit_action.gd:38-50), which is not what it is.
+	# None of action_all_systems_red, action_rage_roll or action_reach_reliable ever gets a row: all
+	# three are ActionReactions
+	# whose scripts override show_in_tooltip to false, so _action_reaches_a_player_facing_surface
+	# (:1027-1030 as this file now stands) answers false and the guard asserts they are NOT listed.
+	# ALL SYSTEMS RED therefore cannot wear a glyph of its own and the KIT's own icon is that family,
+	# exactly as the Sluagh's frame close found for Astral Guardian.
+	&'cp_hydraulic_excess': {&'action_rage': &'action_rage', &'action_combust': &'action_rage'},
+	# SP1 Task 7 (Leoleth). The Decimate crater's two trait Kits. Neither carries a player-pressable
+	# action: the terrain zone has no actions at all, and the expiry's one action is a hidden reaction
+	# whose script overrides show_in_tooltip to false. So both rows are `{}` and only the Kits' own
+	# icons are checked - and a MARKER's Kit icon is drawn on nothing today, which is why SP5 owes this
+	# frame no new glyph for either.
+	&'mt_decimate_terrain': {},
+	&'mt_decimate_expiry': {},
+	# SP2 Task 1 (Leoleth). The Thunder Sword. KIT, not a named family: the Kit has exactly one
+	# action, so design section 5's "one glyph for the weapon" is absence rather than a texture
+	# written twice - the icon-sharing rule (icon-sharing.md section 5). Both the row's assertions
+	# and the Kit's own icon_override are SP5's, so this row is part of deliberate red #2 until then.
+	&'mw_thunder_sword': {&'action_thunder_sword': KIT},
+	# SP2 Task 2 (Leoleth). W.I.N.G. KIT, not a named family: one Kit, one action, so the glyph is
+	# the Kit's and the action inherits it (icon-sharing.md section 5 - KIT is absence, not
+	# duplication). Both assertions are SP5's to turn green.
+	&'ms_wing': {&'action_enhanced_movement_suite': KIT},
+	# SP3 Task 1 (Leoleth). The Thermal Death Axe. Two profiles: Standard is the weapon itself (KIT),
+	# Thunderous is a named family of its own - the Mjolnir's chamber-rounds shape, the same picture
+	# intensified, to be drawn by SP5 as mw_thermal_death_axe_thunderous.svg. The recharge reaction
+	# hides from tooltips and reaches no player-facing surface, so it has no row. Both assertions
+	# and the Kit's own icon_override are SP5's - deliberate red #1 grows by FOUR asserts, measured:
+	# the Kit's own, the Thunderous row's own, and TWO for the KIT row (the inherit claim and the
+	# fallback-resolves claim).
+	&'mw_thermal_death_axe': {&'action_tda_standard': KIT, &'action_tda_thunderous': &'action_tda_thunderous'},
+	# SP3 Task 2 (Leoleth). The ZIP Type Engine ships its glyphs IN SP3 at the author's ask. Two
+	# families: {Kit, action_zip_engage (KIT), buff_zip_type_engine} wear ms_zip_type_engine.svg -
+	# engaging IS the system - and action_zip_disengage wears its own struck-through variant, so on
+	# and off differ at a glance. Both assertions here are GREEN from this task.
+	&'ms_zip_type_engine': {&'action_zip_engage': KIT, &'action_zip_disengage': &'action_zip_disengage'},
+	# SP4 Task 2 (Leoleth). The Jormungandr-Class NHP. All three actions are KIT rows: design ruling
+	# 17 gives the Kit, both protocols and the real reaction ONE glyph (an ouroboros, drawn as its
+	# own register exception rather than a silhouette inside the standard ring - see
+	# gen_leoleth_icons.py). buff_arc reuses the identical texture and is listed in VISIBLE_BUFFS
+	# below; buff_arc_bonus is hidden bookkeeping (the A.R.C. shows one chip, not two) and carries no
+	# row anywhere. This row and the Kit's own icon_override are SP5's.
+	&'ms_jormungandr_class_nhp': {
+		&'action_arc_activate': KIT, &'action_arc_deactivate': KIT, &'action_automatic_retaliation': KIT,
+	},
+	# SP4 Task 3 (Leoleth). GreenLight Projection. A weapon mod with no actions at all - the
+	# wm_ripper_mod / wm_ddmr shape - so nothing but the Kit's own icon is ever shown. SP5's.
+	&'wm_greenlight_projection': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -873,6 +988,44 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# says who is paired, the ward on the ally says why attacks on it are worse.
 	&'buff_in_triumvirate_pair',
 	&'buff_in_triumvirate_ward',
+	# SP1 Task 5 (Leoleth). ALL SYSTEMS RED's hard-cover chip, and the ONLY sign on the token that the
+	# passive fired - the reaction that applies it is hidden and the structure event itself says
+	# nothing about cover. It carries its own name and effect rows rather than borrowing the core
+	# Kit's, so it needs no BUFFS_THAT_BORROW_A_CARD entry.
+	&'buff_all_systems_red_cover',
+	# SP1 Task 6 (Leoleth). The RAGE chip: the only sign on the token that the core power is running
+	# for the rest of the scene. It carries the whole table as its own effect row.
+	&'buff_rage',
+	# SP1 Task 7 (Leoleth). Decimate's crit chip - the first of RAGE's six face chips, each of which is
+	# the only on-token sign of which face came up this turn.
+	&'buff_rage_decimate_crit',
+	# SP1 Task 8 (Leoleth). Swift's evasion chip - the second face chip, and the only on-token sign
+	# that this turn's roll was a 2 (the free Boost leaves nothing behind but a bigger move pool).
+	&'buff_rage_swift',
+	# SP1 Task 9 (Leoleth). Reach's threat chip - the VISIBLE half of a two-buff card line. Its hidden
+	# companion buff_rage_reach_reliable is deliberately absent, the same one-mechanic-one-chip rule
+	# buff_reinforcement_blast_reduction and buff_fungal_network_armor_reduction follow.
+	&'buff_rage_reach',
+	# SP1 Task 11 (Leoleth). Bulwark's chip on the Leoleth. Its partner buff_bulwark_penalty, on each
+	# hostile, is deliberately HIDDEN - the Mark's soft cover is the precedent, plumbing beside a
+	# visible signal chip. FLAGGED J: ruling 13 leaves the hostile-side chip's visibility to the
+	# author on sight.
+	&'buff_rage_bulwark',
+	# SP1 Task 12 (Leoleth). Hatred's chip - the last of RAGE's six faces.
+	&'buff_rage_hatred',
+	# SP2 Task 1 (Leoleth). The Thunder Sword's on-hit chip. Visible because it is the target's only
+	# warning that moving will cost it, and the only place the 5-point clock is legible at all.
+	&'buff_thunder_sword',
+	# SP2 Task 2 (Leoleth). The movement chip. Visible because it is the only signal that the suite
+	# is running this turn, and the pilot has to know whether the spent charge is still buying
+	# anything - Fleet of Foot's permanent sibling is hidden for exactly the opposite reason.
+	&'buff_wing',
+	# SP3 Task 2 (Leoleth). The only on-map signal that the engine is on; its fx is the other.
+	&'buff_zip_type_engine',
+	# SP4 Task 2 (Leoleth). The A.R.C. chip - the only sign the Jormungandr-Class NHP's systems are
+	# active at all. buff_arc_bonus, its hidden +1d6 half, is deliberately absent - one card, one
+	# chip.
+	&'buff_arc',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -1050,6 +1203,13 @@ const BUFFS_THAT_BORROW_A_CARD := {
 	&'buff_wicked_host': 'gear.mt_wicked_host.effect',
 	&'buff_weak_computer': 'gear.mt_weak_computer.effect',
 	&'buff_gravity_well': 'gear.mt_gravity_well.effect',
+	# ADDED AT THE LEOLETH FRAME CLOSE, 2026-09-22, and the Leoleth's own new name guard is what
+	# found it: the 43 As chip is the fourth instance of the trait-chip case directly above, and SP1
+	# simply never added its row. Same reasoning exactly - mt_aaaa... carries no actions at all, so
+	# there is no sibling action for either fallback to land on by mistake, and the trait's own rows
+	# are what the chip should say. It renders the trait's 43-character name in the roll breakdown
+	# beside the -2, which is the card's own name for itself and deliberate.
+	&'buff_aaaa_difficulty': 'gear.mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.effect',
 }
 
 func test_every_visible_buff_renders_real_text_rather_than_a_raw_key():
@@ -1087,6 +1247,77 @@ func test_every_visible_buff_renders_real_text_rather_than_a_raw_key():
 			var key := 'gear.%s.%s' % [buff.compcon_id, property]
 			assert_ne(translation.get_message(key), StringName(''),
 				'%s carries its own %s row, so the chip cannot render a raw key.' % [buff.compcon_id, property])
+
+func test_every_drawn_buff_names_itself_deliberately():
+	# THE SIBLING OF BUFFS_THAT_BORROW_A_CARD, FOR THE OTHER PROPERTY. That table and its guard were
+	# added at the Sluagh close and reason entirely about `.effect` - where the chain dead-ends and
+	# renders a RAW KEY, which is loud once you look. The `.name` chain is worse, because it does not
+	# dead-end: its last step before the raw key is owner_gear.get_solo_action(), which is
+	# `kit.actions[0]` REGARDLESS of how many actions the Kit has (gear_core.gd:337-339). So a
+	# nameless buff on a multi-action Kit renders a DIFFERENT ABILITY'S NAME and resolves
+	# successfully. No raw key, no blank, nothing for the Sluagh's guard to catch.
+	#
+	# FOUND AT THE LEOLETH FRAME CLOSE, 2026-09-22. buff_bulwark_penalty sits on cp_hydraulic_excess,
+	# whose actions[0] is ALL SYSTEMS RED, and attack_roll.gd:189 titles a roll-breakdown line with
+	# buff_core.name_text() - so every hostile under Bulwark read "ALL SYSTEMS RED -1" against its
+	# allies. Two more on the same frame (buff_rage_reach_reliable, buff_arc_bonus) were one draw
+	# site away from the same thing.
+	#
+	# THE INVARIANT: a buff that something DRAWS must name itself deliberately, by exactly one of
+	# three means - its own flat row, a localization_key_override, or a listed borrow. Being nameless
+	# and letting the chain choose is not one of them. A mod-wide audit at the close found no other
+	# instance: every other drawn buff already does one of the three, and the four that looked
+	# exposed on shipped frames turned out to be three overrides plus the Gate's reviewed borrow.
+	#
+	# A BORROW IS CHECKED FOR BOTH PROPERTIES HERE. BUFFS_THAT_BORROW_A_CARD maps to an `.effect`
+	# key; the name half is that key with `.effect` swapped for `.name`. Asserting it exists is what
+	# makes "the borrowed card is the right card" a claim about the TITLE too, not only the body -
+	# which is the gap that let this defect through in the first place.
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation,
+		'This mod has a compiled translation (run the headless --import if this is a fresh clone).')
+	if translation == null: return
+
+	var by_id := {}
+	for buff:Buff in ModResources.load_ours(MOD_ID, &'buffs'): by_id[buff.compcon_id] = buff
+
+	# Everything the game draws a NAME for: every visible chip, plus the hidden ones the roll
+	# breakdown titles anyway. Same population as the two icon guards above, for the same reason.
+	var drawn:Array[StringName] = []
+	for buff:Buff in by_id.values():
+		if not buff.hide_from_player: drawn.append(buff.compcon_id)
+	for buff_id:StringName in HIDDEN_BUFFS_NEEDING_ICONS:
+		if not drawn.has(buff_id): drawn.append(buff_id)
+	assert_false(drawn.is_empty(), 'There are drawn buffs, so this test has something to check.')
+
+	for buff_id:StringName in drawn:
+		assert_true(by_id.has(buff_id), "%s is one of this mod's buffs." % buff_id)
+		if not by_id.has(buff_id): continue
+		var buff:Buff = by_id[buff_id]
+
+		# 1. Its own flat row. Translate.buff resolves this on its FIRST branch (translate.gd:57-58)
+		#    and never walks the chain at all.
+		if translation.get_message('gear.%s.name' % buff_id) != StringName(''): continue
+
+		# 2. An override - the same claim, made in the buff's own file where a reader finds it. It
+		#    still has to point at a row that EXISTS: translate.gd:51-52 returns on the override with
+		#    `return_key_if_blank` false, so a bogus one renders BLANK rather than a raw key.
+		if not buff.localization_key_override.is_empty():
+			var override_key := 'gear.%s.name' % buff.localization_key_override
+			assert_ne(translation.get_message(override_key), StringName(''),
+				'%s overrides its name onto %s, and that row exists.' % [buff_id, override_key])
+			continue
+
+		# 3. A listed borrow, checked by a human - and now checked for the title as well as the body.
+		if BUFFS_THAT_BORROW_A_CARD.has(buff_id):
+			var borrowed_name:String = str(BUFFS_THAT_BORROW_A_CARD[buff_id]).replace('.effect', '.name')
+			assert_ne(translation.get_message(borrowed_name), StringName(''),
+				'%s borrows its name from %s, and that row exists.' % [buff_id, borrowed_name])
+			continue
+
+		fail_test(('%s is drawn, has no name row, no localization_key_override and no '
+			+ 'BUFFS_THAT_BORROW_A_CARD entry - so Translate.buff falls through to its Kit\'s '
+			+ 'actions[0] and it renders some OTHER ability\'s name, silently.') % buff_id)
 
 func test_every_licence_this_mod_owns_has_a_real_icon():
 	# UnlockTree.icon is player-facing (the licence catalog) and NOTHING else in this file could see
@@ -1133,6 +1364,17 @@ const HIDDEN_BUFFS_NEEDING_ICONS:Array[StringName] = [
 	# visible; the reasoning is in action_biting_retort.gd's DIFFICULTY_BUFF docstring. Its icon is
 	# SP5's, so this row is what makes this test deliberately red until then.
 	&'buff_biting_retort_difficulty',
+	# SP1 Task 3 (Leoleth). The 43 As' chip is hidden - a permanent chip on the token would be noise
+	# beside a trait card that says the same thing - but attack_roll.gd:189 draws it in the roll
+	# breakdown regardless, passing buff_core.base.icon RAW rather than through Buff.get_icon(), so
+	# BuffBonus's difficulty-svg fallback never runs there and a null leaves a blank beside the -2.
+	# Its icon is SP5's, so this row is what makes this test deliberately red until then.
+	&'buff_aaaa_difficulty',
+	# SP1 Task 11 (Leoleth). Bulwark's penalty is hidden on each hostile, but attack_roll.gd:189 draws
+	# it in the roll breakdown regardless, from buff_core.base.icon RAW rather than through
+	# Buff.get_icon() - so BuffBonus's difficulty-svg fallback never runs there and a null leaves a
+	# blank beside the -1. Its icon is SP5's.
+	&'buff_bulwark_penalty',
 ]
 
 func test_every_hidden_buff_that_is_still_drawn_has_a_real_icon():

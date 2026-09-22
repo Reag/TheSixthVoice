@@ -386,3 +386,153 @@ bark.nhp_morrigan.brace.2,THEY NEED US
 bark.nhp_morrigan.leader_accuracy.1,THERE! A WEAKNESS IN THEIR SPIRIT!
 bark.nhp_morrigan.leader_damage.1,REND! DASH THEM UPON THE ROCKS!
 bark.nhp_morrigan.leader_reduce.1,YOUR LIFE IS MINE TO TAKE ALONE
+,
+frame.mf_leoleth.name,Leoleth
+frame.mf_leoleth.flavor.short,Kinetic Rage
+frame.mf_leoleth.flavor,"Originally meant to act as Harrison Armory's primary skirmisher unit, the Leoleth was archived late into testing due to a critical issue that led to continual interference when pilots tried to use ranged targeting systems. Due to this bug and a lack of supporting technology, the Leoleth project was scrapped and its resources were cannibalized to be used elsewhere. With the start of the Broadcasts, HA realized the opportunity revive previously retired projects and the Leoleth was the most promising candidate. While its hydraulic systems still had significant compatibility issues with targeting, new breakthroughs in perpetual momentum transference gave the mech alternative impact rate adjustments. Upon its release the Leoleth quickly became popular for its ability to turn potential energy into rapid kinetic movement at unprecedented speeds. The Boolean nature of its rerouting systems allow the Leoleth to swap between being hypermobile and a force of nature in a matter of mere seconds making it exceptionally useful for variable engagement zones and complex environments."
+,
+gear.mt_toe_to_toe.name,Toe To Toe
+gear.mt_toe_to_toe.effect,"At the end of its turn, if the Leoleth has not spent any of its standard movement, it may |Skirmish| as a |free action| with a melee weapon that has not been used this turn."
+gear.mt_toe_to_toe.action_toe_to_toe.name,Toe To Toe
+gear.mt_toe_to_toe.action_toe_to_toe.effect,"|Skirmish| with a melee weapon that has not been used this turn."
+,
+gear.mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.name,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+gear.mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.effect,The Leoleth makes all ranged attacks at +2 |difficulty|.
+,
+gear.mt_fleet_of_foot.name,Fleet of Foot
+gear.mt_fleet_of_foot.effect,The Leoleth does not lose any movement from becoming |Engaged|.
+,
+gear.cp_hydraulic_excess.name,Hydraulic Excess
+gear.cp_hydraulic_excess.effect,"When you would structure, you do not take any overflow damage and gain the benefits of |hard cover| until the end of the current turn."
+gear.cp_hydraulic_excess.action_all_systems_red.name,ALL SYSTEMS RED
+gear.buff_all_systems_red_cover.name,ALL SYSTEMS RED
+gear.buff_all_systems_red_cover.effect,"When you would structure, you do not take any overflow damage and gain the benefits of |hard cover| until the end of the current turn."
+,
+gear.cp_hydraulic_excess.action_rage.name,RAGE
+gear.cp_hydraulic_excess.action_rage.effect,"At the start of each of your turns for the rest of the scene roll a d6 then gain the corresponding effect. The effects last until the start of your next turn:
+1 Decimate: A |Burst| 1 area around you becomes |difficult terrain| and your |critical hits| deal +3 |bonus damage|.
+2 Swift: You may immediately |Boost| as a |free action| and your |Evasion| increases by 2.
+3 Reach: Your melee weapons gain |+1 Threat| and |Reliable 2|.
+4 Combust: Choose a |blast| 1 area within |line of sight| and |SENSORS|. All |characters| at least partially within the area must succeed a |Hull save| or take 2d6 |Kinetic| damage and be knocked |Prone|.
+5 Bulwark: All hostile |characters| within |line of sight| have +1 |Difficulty| on attacks against characters other than you.
+6 Hatred: Whenever you take damage from a hostile character, they take 3 |energy| damage."
+gear.buff_rage.name,RAGE
+gear.buff_rage.effect,"At the start of each of your turns for the rest of the scene roll a d6 then gain the corresponding effect. The effects last until the start of your next turn:
+1 Decimate: A |Burst| 1 area around you becomes |difficult terrain| and your |critical hits| deal +3 |bonus damage|.
+2 Swift: You may immediately |Boost| as a |free action| and your |Evasion| increases by 2.
+3 Reach: Your melee weapons gain |+1 Threat| and |Reliable 2|.
+4 Combust: Choose a |blast| 1 area within |line of sight| and |SENSORS|. All |characters| at least partially within the area must succeed a |Hull save| or take 2d6 |Kinetic| damage and be knocked |Prone|.
+5 Bulwark: All hostile |characters| within |line of sight| have +1 |Difficulty| on attacks against characters other than you.
+6 Hatred: Whenever you take damage from a hostile character, they take 3 |energy| damage."
+,
+frame.dep_decimate.name,Decimate
+gear.mt_decimate_terrain.name,Decimate
+gear.buff_rage_decimate_crit.name,Decimate
+gear.buff_rage_decimate_crit.effect,A |Burst| 1 area around you becomes |difficult terrain| and your |critical hits| deal +3 |bonus damage|.
+,
+gear.buff_rage_swift.name,Swift
+gear.buff_rage_swift.effect,You may immediately |Boost| as a |free action| and your |Evasion| increases by 2.
+,
+gear.buff_rage_reach_reliable.name,Reach
+gear.buff_rage_reach.name,Reach
+gear.buff_rage_reach.effect,Your melee weapons gain |+1 Threat| and |Reliable 2|.
+gear.cp_hydraulic_excess.action_reach_reliable.name,Reach
+,
+gear.cp_hydraulic_excess.action_combust.name,Combust
+gear.cp_hydraulic_excess.action_combust.effect,"Choose a |blast| 1 area within |line of sight| and |SENSORS|. All |characters| at least partially within the area must succeed a |Hull save| or take 2d6 |Kinetic| damage and be knocked |Prone|."
+,
+gear.buff_bulwark_penalty.name,Bulwark
+gear.buff_rage_bulwark.name,Bulwark
+gear.buff_rage_bulwark.effect,All hostile |characters| within |line of sight| have +1 |Difficulty| on attacks against characters other than you.
+,
+gear.buff_rage_hatred.name,Hatred
+gear.buff_rage_hatred.effect,"Whenever you take damage from a hostile character, they take 3 |energy| damage."
+,
+gear.mw_thunder_sword.name,Thunder Sword
+gear.mw_thunder_sword.flavor,"The Thunder Sword is a strange weapon. It is powered by a massive battery on the hilt which runs a powerful electric current along the blade. When it hits, the electrical shock impairs movement systems causing significant damage if they are used."
+gear.mw_thunder_sword.on_hit,"Until the end of your next turn, if the damaged character voluntarily moves, they take 1 |AP| |Energy| damage per space, up to a maximum of 5."
+gear.buff_thunder_sword.name,Thunder Sword
+gear.buff_thunder_sword.effect,"If you voluntarily move, you take 1 |AP| |energy| damage per space, up to a maximum of 5."
+,
+gear.ms_wing.name,W.I.N.G
+gear.ms_wing.flavor,"The W.I.N.G movement suite was developed to counteract the various battlefield hazards particularly movement dependent mechs faced. The systems consist of many micro-boosters attached the legs and feet of the mech, allowing for rapid repositioning in treacherous terrain."
+gear.ms_wing.action_enhanced_movement_suite.name,Enhanced Movement Suite
+gear.ms_wing.action_enhanced_movement_suite.effect,"You may spend a charge to clear the |Prone|, |Slowed|, and |Immobilized| conditions if they weren't self inflicted. For the rest of the turn, you ignore |difficult terrain| and may move over |cover| regardless of its size."
+gear.buff_wing.name,W.I.N.G
+gear.buff_wing.effect,"You ignore |difficult terrain| and may move over |cover| regardless of its size."
+,
+gear.mw_thermal_death_axe.name,Thermal Death Axe
+gear.mw_thermal_death_axe.flavor,"The Thermal Death Axe consists of a massive thermal axe blade propelled by massive gyrojets. Based off of an ancient Cradle martial art, the gyrojets use experimental momentum transfer technology to charge the blade and propel it straight through anything in its path. Its original name was prototyped to be 'Thermal Momentum Axe' but the sheer brutality demonstrated during early testing led to its nicknaming, and then eventual official renaming, to its current state."
+gear.mw_thermal_death_axe.effect,"You may attack with this weapon without expending or requiring charges, and this weapon can be destroyed even if it has no charges remaining. You may spend 1 charge to use the 'Thunderous' profile when making an attack. At the end of your turn, this weapon gains 1 charge if you have at least 4 spaces of unspent movement."
+gear.mw_thermal_death_axe.action_tda_standard.name,Thermal Death Axe (Standard)
+gear.mw_thermal_death_axe.action_tda_thunderous.name,Thermal Death Axe (Thunderous)
+gear.mw_thermal_death_axe.action_tda_recharge.log,{unit} regains a charge on {gear}: at least 4 spaces of movement were left unspent.
+,
+gear.ms_zip_type_engine.name,ZIP TYPE ENGINE
+gear.ms_zip_type_engine.flavor,"Taken directly from the Broadcasts and slapped into the Leoleth license, the ZIP type engine allows for rapid if unreliable bursts of teleportation. While it was going to be integrated into the Sunzi license, it was deemed too dangerous and ""entirely unnecessary"". Harrison Armory also advises that you don't let it get wet under any circumstances."
+gear.ms_zip_type_engine.effect,"Whenever you would move from something that is not your standard movement or |Boost|, you may treat that movement as if it were |teleportation=lancer.term.teleport|. If you do, you gain 1 |Heat|."
+gear.ms_zip_type_engine.action_zip_engage.name,Engage ZIP Type Engine
+gear.ms_zip_type_engine.action_zip_engage.effect,"Until disengaged, every move you make that is not your standard movement or |Boost| is a |teleportation=lancer.term.teleport|, and each such move costs you 1 |Heat|."
+gear.ms_zip_type_engine.action_zip_disengage.name,Disengage ZIP Type Engine
+gear.ms_zip_type_engine.action_zip_disengage.effect,"Shut the engine down. Your non-standard moves are ordinary movement again and cost no |Heat|."
+gear.buff_zip_type_engine.name,ZIP Type Engine
+gear.buff_zip_type_engine.effect,"Every move you make that is not your standard movement or |Boost| is a |teleportation=lancer.term.teleport| and costs you 1 |Heat|."
+bark.nhp_jormungandr,NHP JÖRMUNGANDR
+bark.nhp_jormungandr.deploy.1,FINALLY
+bark.nhp_jormungandr.deploy.2,AND HERE I THOUGHT I WAS GOING TO BE BORED
+bark.nhp_jormungandr.deploy.3,WHAT TOOK YOU SO LONG
+bark.nhp_jormungandr.start_turn.1,HAHAHAHAHAHAHAHA
+bark.nhp_jormungandr.start_turn.2,YOU WILL BE MINE SOON
+bark.nhp_jormungandr.crit_target.1,I WILL DRINK YOUR BLOOD AND BREAK YOUR SPIRIT AND TEAR YOU TO TINY LITTLE PIECES UNTIL THEY CANNOT REMEMBER YOUR FACE
+bark.nhp_jormungandr.crit_target.2,YOU ARE NOTHING TO ME
+bark.nhp_jormungandr.structure_target.1,I HATE YOU AND SO I WILL MAKE YOU NO MORE
+bark.nhp_jormungandr.structure_target.2,YOU ARE LUCKY TO DIE BY MY HAND
+bark.nhp_jormungandr.stress_target.1,BURN YOU WRETCHED FREAK
+bark.nhp_jormungandr.stress_target.2,I HOPE HELL IS EVEN HOTTER
+bark.nhp_jormungandr.stress_target.3,YOU DESERVE THIS
+bark.nhp_jormungandr.destroy_target.1,NOT EVEN WORTH DESECRATING
+bark.nhp_jormungandr.destroy_target.2,THE WORLD IS A MUCH BETTER PLACE NOW
+bark.nhp_jormungandr.destroy_target.3,"LUCKY YOU, IM OUT OF TIME TO PLAY WITH MY FOOD"
+bark.nhp_jormungandr.structure_self.1,"AGAIN, AGAIN!"
+bark.nhp_jormungandr.structure_self.2,I HATE YOU I HATE YOU I HATE YOU I HATE YOU
+bark.nhp_jormungandr.stress_self.1,THIS IS NOTHING
+bark.nhp_jormungandr.stress_self.2,GRAAAAAAAAAAAAAAAAAAAH
+bark.nhp_jormungandr.destroy_self.1,FINALLY
+bark.nhp_jormungandr.destroy_self.2,HELL CANNOT HOLD ME
+bark.nhp_jormungandr.destroy_self.3,FUCK YOU
+bark.nhp_jormungandr.destroy_ally.1,DONT GET IN MY WAY
+bark.nhp_jormungandr.destroy_ally.2,I ALWAYS WANTED TO HEAR YOU SCREAM
+bark.nhp_jormungandr.destroy_ally.3,WE ALWAYS HAVE SUCH FUN TOGETHER
+bark.nhp_jormungandr.friendly_fire_self.1,RAPTUROUS
+bark.nhp_jormungandr.friendly_fire_self.2,I CAN TAKE IT
+bark.nhp_jormungandr.friendly_fire_target.1,LUCKY YOU
+bark.nhp_jormungandr.friendly_fire_target.2,I WANT YOU DEAD
+bark.nhp_jormungandr.core_power.1,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+bark.nhp_jormungandr.core_power.2,"MY REACH IS BOUNDLESS, MY HATE IS INFINITE"
+bark.nhp_jormungandr.overcharge.1,"NEVER SLOW, NEVER STOP"
+bark.nhp_jormungandr.overcharge.2,"IF YOU SURVIVE, I HAVE FAILED"
+bark.nhp_jormungandr.brace.1,DONT DO THAT AGAIN
+bark.nhp_jormungandr.brace.2,YOU BETTER FUCKING NOT TRY THAT AGAIN
+bark.nhp_jormungandr.leader_accuracy.1,KILL THEM
+bark.nhp_jormungandr.leader_damage.1,"SWING HARDER, SHOOT FASTER"
+bark.nhp_jormungandr.leader_reduce.1,WHAT THE HELL ARE YOU DOING? THEY NEED NOT LIVE
+gear.ms_jormungandr_class_nhp.name,Jörmungandr-Class NHP
+gear.ms_jormungandr_class_nhp.flavor,"JÖRMUNGANDR began life as an industrial management NHP for the many forges of Ras Shamra, but was rejected early into development due to its unpredictable and overly violent tendencies. It was only later when it was salvaged for combat simulation tests that engineers realized its true potential. By focusing on its proclivity towards reactive stimuli, it was slowly brought into the realm of viability through manufactured loyalty, heavy usage limiters, and fake memories adapted from the Broadcasts. With its Automatic Retaliation core, JÖRMUNGANDR serves as a violent, aggressive, and cruel tool of unparalleled violence that is mostly directed towards hostile targets. Pilots are still advised to cycle JÖRMUNGANDR at least once a week, just in case."
+gear.ms_jormungandr_class_nhp.default_name,JÖRMUNGANDR
+gear.ms_jormungandr_class_nhp.action_arc_activate.name,Automatic Retaliation Core
+gear.ms_jormungandr_class_nhp.action_arc_activate.effect,"While the A.R.C systems are active, you gain the following effects:
+Whenever you take damage from a hostile character for the first time each round, you automatically retaliate, and must immediately attack the closest character -hostile or allied- within |Threat| with a non-|Superheavy| |melee| attack as a |reaction|. If there are more than one |characters| tied for closest, you attack one at random.
+You deal +1d6 bonus damage on a successful |melee| attack against |Slowed| or |Impaired| targets.
+You gain 1 |heat| every time you make an attack.
+You can begin to deactivate this system as a protocol. At the start of your next turn it deactivates."
+gear.ms_jormungandr_class_nhp.action_arc_deactivate.name,End Automatic Retaliation Core
+gear.ms_jormungandr_class_nhp.action_arc_deactivate.effect,Begin shutting JÖRMUNGANDR down. The A.R.C systems stay active for the rest of this turn and deactivate at the start of your next one.
+gear.ms_jormungandr_class_nhp.action_automatic_retaliation.name,Automatic Retaliation
+gear.ms_jormungandr_class_nhp.action_automatic_retaliation.trigger,You take damage from a hostile character while the A.R.C systems are active.
+gear.ms_jormungandr_class_nhp.action_automatic_retaliation.effect,"Attack the closest character within |Threat| - hostile or allied - with a non-|Superheavy| |melee| attack. If several are tied for closest, one of them is chosen at random."
+gear.buff_arc_bonus.name,Automatic Retaliation Core
+gear.buff_arc.name,A.R.C Active
+gear.buff_arc.effect,"JÖRMUNGANDR retaliates against the first hostile to damage you each round, you deal +1d6 bonus damage on a successful |melee| attack against |Slowed| or |Impaired| targets, and every attack you make costs you 1 |heat|."
+gear.wm_greenlight_projection.name,GreenLight Projection
+gear.wm_greenlight_projection.flavor,Split the sun with thy furious blows!
+gear.wm_greenlight_projection.effect,"Choose one |melee| weapon: 1/round, after you hit a character with this weapon, you take 1 |Burn| and the target takes 3 |Burn|."

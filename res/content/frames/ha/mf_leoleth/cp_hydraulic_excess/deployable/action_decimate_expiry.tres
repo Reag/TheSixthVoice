@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/deployable/action_decimate_expiry.gd" id="1_action"]
+
+[resource]
+script = ExtResource("1_action")
+triggers_on = Array[StringName]([&"new_turn"])
+trigger_timing = 0
+consumes_rxn = false
+usage_group = &"decimate_expiry"

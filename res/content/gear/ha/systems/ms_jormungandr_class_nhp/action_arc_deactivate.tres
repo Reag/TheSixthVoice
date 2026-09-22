@@ -1,0 +1,12 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_jormungandr_class_nhp/action_arc_deactivate.gd" id="1_deactivate"]
+
+; "You can begin to deactivate this system as a protocol." A PROTOCOL (Lancer.ACTION 4), available
+; only while the chip is held, with hide_if_disabled so the bar shows the activation OR this one and
+; never both. It stamps the chip; buff_arc switches the system off at the next turn start.
+[resource]
+script = ExtResource("1_deactivate")
+action_type = 4
+usage_group = &"arc_deactivate"
+hide_if_disabled = true

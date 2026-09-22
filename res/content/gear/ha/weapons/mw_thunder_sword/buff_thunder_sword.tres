@@ -1,0 +1,24 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_thunder_sword/buff_thunder_sword.gd" id="1_chip"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_thunder_sword.svg" id="2_icon"]
+
+; VISIBLE, deliberately: it is the target's only warning that moving is about to cost it, and there
+; is nowhere else the "up to a maximum of 5" clock is legible. SP5: reuses the Kit's own blade glyph.
+;
+; until = 7 is Lancer.UNTIL.END_OF_OWNERS_NEXT_TURN (lancer.gd:52) - THE LEOLETH'S clock, because the
+; card says "the end of YOUR next turn". Vanilla's Barricade uses 1 (END_OF_NEXT_TURN), which is the
+; holder's, and copying it would be the natural and wrong move. The clear runs from
+; content/events/event_turn_end.gd:62 at the OWNER's turn end and skips a core whose turn_count is
+; still 0 (unit_condition.gd:62), so the chip correctly survives the turn it was applied in.
+;
+; trigger_timing is OMITTED: ReactionBus.TIMING.POST is the Buff default (buff.gd:139), which is what
+; ruling 19 asks for, and buff_drag_down_barricade.tres omits it for the same reason.
+; multiple_copies_can_stack is OMITTED: false is the default (buff.gd:131), and it is what makes a
+; second hit reset the counter - see the script header.
+[resource]
+script = ExtResource("1_chip")
+until = 7
+triggers_on = Array[StringName]([&"step"])
+log_on_application = true
+icon = ExtResource("2_icon")

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BuffDamage" format=3]
+
+[ext_resource type="Script" uid="uid://cq0gb4by4uruk" path="res://engine/character/buff/archtypes/buff_damage.gd" id="1_damage"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/buff_rage_decimate_crit.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_damage")
+; "3" IS A STRING AND IT ROLLS NOTHING. Dice.process_dice_string("3") takes the neither-d-nor-plus
+; branch (dice.gd:112-113) and returns count 0, so Dice.roll_dice loops zero times and pops no entry
+; off the cheat queue - which is what keeps every damage assertion in spec/test_decimate.gd readable.
+damage_dice = "3"
+require_crit = true
+; BONUS_DAMAGE_SPECIFIC, not plain bonus_damage: require_crit is honoured only against an AttackRoll
+; in context.object (buff_damage.gd:20, :26), and plain bonus damage has no roll to ask.
+to = &"bonus_damage_specific"
+; Lancer.UNTIL.START_OF_TURN is index 3 (lancer.gd:46-48): the holder's next turn start, which
+; handle_starting_unit clears at event_turn_start.gd:76 - before the NEW_TURN POST roll at :56.
+until = 3
+; inherit_type_from_attack and can_apply_to_tech_attacks are left at their EXPORT DEFAULTS
+; (buff_damage.gd:10-11: true and false), which are exactly ruling 9. Written nowhere, asserted in
+; the spec.
+; VISIBLE - one of the six face chips. SP5: the RAGE flame in its Decimate tint (fire/crater tone).
+icon = ExtResource("2_icon")

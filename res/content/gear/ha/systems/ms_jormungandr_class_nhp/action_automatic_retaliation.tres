@@ -1,0 +1,19 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_jormungandr_class_nhp/action_automatic_retaliation.gd" id="1_rxn"]
+
+; A REAL reaction: consumes_rxn is left at its export DEFAULT of true (action_reaction.gd:12), which
+; is what makes the card's "as a reaction" cost a point AND what gives it "for the first time each
+; round" for nothing (get_per_round_hard_limit, :69).
+;
+; trigger_timing 1 is ReactionBus.TIMING.POST - the number has to be final before "whenever you take
+; damage" can be asked. At PRE, event_unit_damage.gd:55 has written only a PRELIMINARY reduction.
+;
+; ITS OWN usage group, and this is the load-bearing one on the Kit: that tally IS the 1/round, so
+; sharing it with either protocol would let a single press spend the whole round.
+[resource]
+script = ExtResource("1_rxn")
+triggers_on = Array[StringName]([&"damage"])
+trigger_timing = 1
+usage_group = &"automatic_retaliation"
+emit_text_popcorn_on_use = true
