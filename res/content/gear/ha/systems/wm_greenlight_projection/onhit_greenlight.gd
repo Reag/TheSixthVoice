@@ -38,9 +38,13 @@
 ## changes nothing about when a VALID hit spends its round. What it fixes: if attacked_unit dies
 ## between the roll and this effect running, super(...) now returns true and the round is refused
 ## WITHOUT being spent - previously the increment ran first and the round was gone for a hit that
-## never actually landed. THIS PATTERN WAS INHERITED VERBATIM FROM onhit_ddmr.gd, which still
-## increments before its own super call; changing the DDMR's shipped content is out of scope here (it
-## is another frame's shipped mod) - report to the author whether it wants the same move.
+## never actually landed. THIS PATTERN WAS INHERITED VERBATIM FROM onhit_ddmr.gd, which was left
+## unchanged at this close as another frame's shipped content and REORDERED THE SAME WAY the same day
+## (`dc9eb2c`), with a direct-call spec of its own - so the two files agree again and neither is the
+## odd one out. The safety argument is NOT transferable on its own, though: it holds for both of these
+## only because neither .tres sets save_to_avoid or require_consume_lock, and with either of those set
+## super can refuse a VALID hit, at which point moving the increment past it changes the card. Check
+## those two exports before making this move on a third effect.
 ##
 ## increment_action_usage's SECOND ARGUMENT IS FALSE, matching onhit_ddmr.gd: it gates only the
 ## uses_this_turn tally (gear_core.gd:171-181), and the per-ROUND counter this gate reads is written
