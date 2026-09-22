@@ -542,3 +542,13 @@ gear.wm_greenlight_projection.effect,"Choose one |melee| weapon: 1/round, after 
 frame.mf_naga.name,Naga
 frame.mf_naga.flavor.short,Shimmering Havoc
 frame.mf_naga.flavor,"The Broadcasts started small, a couple frequencies spewing numbers, sites on the omninet that spit out poems, half written books, or puzzles. As they ramped up and actual pieces of technology came through, most of the initial output was abandoned, cast by the wayside, and forgotten. But not everyone forgot. A small group of devotees unearthed a complicated chain of puzzles, buried deep in the labyrinthine depths of forgotten chatrooms, articles, and servers. For years they toiled away, spending their lives in pursuit of whatever ultimate secret that was just beyond reach. At first they were almost all disappointed. At the end of it all was just another piece of hardware, just the fabrication for another machine of war. However, in the years since, they discovered something rather curious, every single person that had worked on that final puzzle, no matter how small a contribution, had all ceased to age. Almost immediately, Union jumped to put as many as they could through an extensive battery of tests to find the cause of this newfound longevity. What they found were nanites, smaller than before, each one replicated from natural detritus and repurposed to support their charge. Unfortunately, their creation remained to be a secret that remained within whatever fabrications had been unearthed. Thus was the Naga pattern group born, harnessing the power of these new nanites, it has established itself as a versatile option for those who want to protect their allies and wreak havoc upon those who think they can get away."
+,
+gear.mt_wire_slither.name,Wire Slither
+gear.mt_wire_slither.effect,"1/round, when the Naga takes a Tech Action, it may immediately move two spaces. This movement ignores |engagement| and doesn't provoke reactions."
+gear.mt_wire_slither.action_wire_slither.name,Wire Slither
+gear.mt_wire_slither.action_wire_slither.effect,"Immediately move two spaces. This movement ignores |engagement| and doesn't provoke reactions."
+,
+gear.mt_advanced_targeting_calculations.name,Advanced Targeting Calculations
+gear.mt_advanced_targeting_calculations.effect,"The Naga's Smart weapons Critically Hit on an attack roll of 18 or higher rather than 20."
+gear.buff_advanced_targeting_calculations.name,Advanced Targeting Calculations
+gear.buff_advanced_targeting_calculations.effect,"The Naga's Smart weapons Critically Hit on an attack roll of 18 or higher rather than 20."

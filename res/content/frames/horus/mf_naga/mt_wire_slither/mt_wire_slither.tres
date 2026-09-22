@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_naga/mt_wire_slither/action_wire_slither.tres" id="3_slither"]
+
+; WIRE SLITHER: one trait Kit, one action - the unit_action POST reaction that offers the 2-tile
+; move (ruling 6; the action's own header has the seam). No icon yet - SP5's; the trait and its
+; reaction share ONE glyph (the icon directive), so the reaction carries no icon_override of its own
+; and inherits this Kit's (a KIT row in test_content_integrity.gd's ICON_TARGETS).
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("3_slither")])
+is_trait = true

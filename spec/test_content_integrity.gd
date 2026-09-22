@@ -816,6 +816,15 @@ const ICON_TARGETS := {
 	# SP4 Task 3 (Leoleth). GreenLight Projection. A weapon mod with no actions at all - the
 	# wm_ripper_mod / wm_ddmr shape - so nothing but the Kit's own icon is ever shown. SP5's.
 	&'wm_greenlight_projection': {},
+	# SP1 Task 2 (Naga). Wire Slither's reaction wears the KIT's glyph: the icon directive gives a
+	# trait and the reaction it creates ONE glyph, and that is spelled KIT - absence, not duplication
+	# (mt_toe_to_toe's row). The Kit's own icon is SP5's; this row is part of the deliberate red
+	# until then.
+	&'mt_wire_slither': {&'action_wire_slither': KIT},
+	# SP1 Task 3 (Naga). A passive trait with no action of its own - the mt_fleet_of_foot shape. Its
+	# VISIBLE chip, buff_advanced_targeting_calculations, is listed in VISIBLE_BUFFS below and wears
+	# the trait's own glyph (ruling 2). The Kit's own icon is SP5's.
+	&'mt_advanced_targeting_calculations': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1031,6 +1040,10 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# active at all. buff_arc_bonus, its hidden +1d6 half, is deliberately absent - one card, one
 	# chip.
 	&'buff_arc',
+	# SP1 Task 3 (Naga). Advanced Targeting Calculations' chip - VISIBLE by ruling 2, with the
+	# trait's own icon: the frame's signature rule, and a trait the player cannot see reads as "does
+	# nothing" (the Leoleth close's rule). Metastatic Paralysis hides its twin; this one does not.
+	&'buff_advanced_targeting_calculations',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

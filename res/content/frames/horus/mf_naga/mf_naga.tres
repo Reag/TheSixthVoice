@@ -8,6 +8,8 @@
 [ext_resource type="Resource" uid="uid://dj0bl2ve85q5o" path="res://content/mounts/mount_heavy.tres" id="6_mountheavy"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/horus/mf_naga/mf_naga.png" id="9_sprite"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_naga/mt_wire_slither/mt_wire_slither.tres" id="10_wireslither"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_naga/mt_advanced_targeting_calculations/mt_advanced_targeting_calculations.tres" id="11_atc"]
 [ext_resource type="Resource" uid="uid://cqqeh2x4p5yi4" path="res://content/frames/shared/mt_exposed_reactor.tres" id="12_exposedreactor"]
 
 ; DERIVED FROM THE SPRITE ART, NOT LEFT AS THE PLACEHOLDER GRAYS (the Vauban's SP5 ruling, re-run
@@ -50,14 +52,14 @@ activations = 1
 script = ExtResource("1_frame")
 default_color_scheme = SubResource("Resource_colorscheme")
 sprites = Array[Texture2D]([ExtResource("9_sprite")])
-; FILLED IN SHEET ORDER, ONE TASK AT A TIME. Task 1 lands only the vanilla Exposed Reactor (the
-; sheet's third trait, referenced from content/frames/shared/, never authored); Task 2 inserts
-; mt_wire_slither ahead of it, Task 3 mt_advanced_targeting_calculations between the two, and the
-; core task appends cp_shimmering_veil last, so the final order is the sheet's. An ext_resource
+; FILLED IN SHEET ORDER, ONE TASK AT A TIME. Task 1 landed only the vanilla Exposed Reactor (the
+; sheet's third trait, referenced from content/frames/shared/, never authored); Tasks 2 and 3 put
+; mt_wire_slither and mt_advanced_targeting_calculations ahead of it, and the core task appends
+; cp_shimmering_veil last, so the final order is the sheet's. An ext_resource
 ; pointing at a file that does not exist yet would make this WHOLE resource fail to parse, taking
 ; the frame out of ContentLibrary with no error a player would ever see - which is why each entry
 ; lands only once its own files do. test_naga_frame.gd pins the order at the close of SP1.
-traits = Array[ExtResource("8_kit")]([ExtResource("12_exposedreactor")])
+traits = Array[ExtResource("8_kit")]([ExtResource("10_wireslither"), ExtResource("11_atc"), ExtResource("12_exposedreactor")])
 mount_types = Array[ExtResource("4_mounttype")]([ExtResource("5_mountflex"), ExtResource("6_mountheavy")])
 stat = SubResource("Resource_statblock")
 role_primary = 1
