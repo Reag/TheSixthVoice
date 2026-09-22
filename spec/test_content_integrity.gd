@@ -834,6 +834,9 @@ const ICON_TARGETS := {
 		&'action_salvation_upon_the_wicked': &'action_salvation_upon_the_wicked',
 		&'action_blood_of_the_creature': &'action_blood_of_the_creature',
 	},
+	# SP2 Task 1 (Naga). The Shimmering Blade: one Kit, one profile, so KIT (the Thunder Sword's row).
+	# The Thrown sub-menu wears the engine's own throw.svg. The Kit's icon is SP5's.
+	&'mw_shimmering_blade': {&'action_shimmering_blade': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

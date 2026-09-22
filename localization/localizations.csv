@@ -563,3 +563,6 @@ gear.cp_shimmering_veil.action_salvation_relock.name,SALVATION UPON THE WICKED
 gear.cp_shimmering_veil.action_blood_of_the_creature.name,THE BLOOD OF THE CREATURE THAT BRINGS ABOUT THE BEGINNING OF DAYS
 gear.cp_shimmering_veil.action_blood_of_the_creature.trigger,"1/round, when you or an allied character within sensors consume |Lock On|"
 gear.cp_shimmering_veil.action_blood_of_the_creature.effect,"You may take 1 |heat| to have the triggering character gain 1 |OVERSHIELD| and move 3 spaces. This movement ignores |engagement| and doesn't provoke reactions."
+gear.mw_shimmering_blade.name,Shimmering Blade
+gear.mw_shimmering_blade.flavor,"""Bleed and crack oh shrivelous thing, weep your tears of joy and pain, for they sate my hunger till the end of time"""
+gear.mw_shimmering_blade.on_crit,"Gain 2 |Overshield|, your target must succeed on a |Systems save| or become |Slowed| until the end of their next turn."

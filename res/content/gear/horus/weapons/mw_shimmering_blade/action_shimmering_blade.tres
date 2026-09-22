@@ -1,0 +1,19 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://vi3dfs5ql3lg" path="res://engine/character/gear_action/action_attack_weapon.gd" id="1_attack"]
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="2_onhiteffect"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_shimmering_blade/onhit_shimmering_blade.tres" id="3_onhit"]
+
+; Main (1) Melee (2), 1d6 Kinetic (0), Threat 1, THROWN 5 and SMART in the card's order. Smart is what
+; makes Advanced Targeting Calculations crit it on an 18 (ruling 3) and what rolls it against E-DEF.
+[resource]
+script = ExtResource("1_attack")
+damage_type = 0
+damage_dice = "1d6"
+weapon_size = 1
+weapon_type = 2
+aim_range = 0
+threat = 1
+tags = Array[StringName]([&"thrown", &"smart"])
+thrown = 5
+on_hit_effects = Array[ExtResource("2_onhiteffect")]([ExtResource("3_onhit")])
