@@ -405,3 +405,20 @@ static func arm_thunder_sword(unit:Unit) -> GearCore: return equip(unit, THUNDER
 ## test_thunder_sword.gd never has to ask which weapon is in hand.
 static func swing_sword(game:Gamemaster, attacker:Unit, target:Unit) -> void:
 	await swing(game, attacker, target, THUNDER_SWORD_ID)
+
+## W.I.N.G (design ruling 20). UNIQUE, LIMITED 2, one Protocol.
+const WING_ID := &'ms_wing'
+const WING_ACTION := &'action_enhanced_movement_suite'
+const WING_CHIP := &'buff_wing'
+
+static func arm_wing(unit:Unit) -> GearCore: return equip(unit, WING_ID)
+
+## Press the Enhanced Movement Suite protocol, opening the turn if it is not already open.
+##
+## THE TURN IS LOAD-BEARING, exactly as it is for press_rage: unit_action.gd:144 refuses a PROTOCOL
+## unless unit.state.is_using_protocols, which only event_turn_start opens (event_turn_start.gd:82).
+## SpecFactory.use() rather than use_solo() so the action is named rather than "whichever is first",
+## which costs nothing today and survives a second action being added to the Kit.
+static func press_wing(game:Gamemaster, leoleth:Unit) -> void:
+	if not leoleth.state.is_taking_turn: await open_turn(game, leoleth)
+	await SpecFactory.use(game, leoleth, WING_ID, WING_ACTION)

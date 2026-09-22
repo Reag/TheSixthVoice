@@ -235,17 +235,21 @@ func test_the_licence_grants_the_frame_at_rank_two_and_nowhere_else():
 	assert_true(license.rank_1.granted_frames.is_empty(), 'rank_1 grants no frame.')
 	assert_true(license.rank_3.granted_frames.is_empty(), 'rank_3 grants no frame.')
 
-func test_the_licence_grants_no_gear_at_any_rank_yet():
-	# SP2 fills rank 1 (Thunder Sword and W.I.N.G), SP3 rank 2 (Thermal Death Axe and the ZIP Type
-	# Engine) and SP4 rank 3 (the Joermungandr-class NHP and GreenLight Projection). Asserted as EXACT
-	# empty lists rather than "does not contain ours": the natural mistake when copying li_sluagh.tres
-	# is to carry over ITS granted_gear entries, and those are ids this mod really does ship. Each of
-	# the three lines below goes red exactly once, in the sub-project that fills that rank.
+func test_the_licence_grants_exactly_the_rank_one_gear_and_nothing_else_yet():
+	# SP2 filled rank 1 with the two rank-I items, in sheet order. SP3 fills rank 2 (Thermal Death
+	# Axe, ZIP Type Engine) and SP4 rank 3 (the Joermungandr-class NHP, GreenLight Projection).
+	# Asserted as EXACT lists rather than "contains ours": the natural mistake when copying
+	# li_sluagh.tres is to carry over ITS granted_gear entries, and those are ids this mod really
+	# does ship. The two empty lines below each go red exactly once, in the sub-project that fills
+	# that rank.
 	var license := _license()
 	assert_not_null(license, 'fixture: the licence loads.')
 	if license == null: return
 	if license.rank_1 == null or license.rank_2 == null or license.rank_3 == null: return
-	assert_eq(license.rank_1.granted_gear.size(), 0, 'Rank 1 grants no gear yet (SP2 fills it).')
+	var rank_1:Array = license.rank_1.granted_gear.map(
+		func(kit:Kit) -> StringName: return kit.compcon_id)
+	assert_eq(rank_1, [LeolethFixture.THUNDER_SWORD_ID, LeolethFixture.WING_ID] as Array,
+		'Rank 1 grants exactly the Thunder Sword and W.I.N.G, once each, in sheet order.')
 	assert_eq(license.rank_2.granted_gear.size(), 0, 'Rank 2 grants no gear yet (SP3 fills it).')
 	assert_eq(license.rank_3.granted_gear.size(), 0, 'Rank 3 grants no gear yet (SP4 fills it).')
 

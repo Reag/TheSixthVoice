@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="BuffMovementType" format=3]
+
+[ext_resource type="Script" uid="uid://bw1bv7eturuo0" path="res://engine/character/buff/archtypes/buff_movement_type.gd" id="1_movementtype"]
+[ext_resource type="Script" uid="uid://udxarj3kb6nm" path="res://engine/character/unit/movement_type.gd" id="2_type"]
+
+; TWO FLAGS, AND ONLY TWO - the reasoning buff_fleet_of_foot.tres records on this same frame.
+; MovementType.merge_in ORs fifteen of the seventeen behavioural booleans into the mover's type
+; (movement_type.gd:79-96), so a stray flag here silently grants the frame something the card never
+; promised. spec/test_wing.gd asserts all fifteen others are false.
+;
+; free_climb IS THE READING OF "may move over cover regardless of its size", and it is a RECORDED
+; DIVERGENCE (ruling 20): it is the only movement flag that touches climbing at all
+; (pathfinder.gd:774, halving the climb multiplier from 2 to 1), and the engine has no notion of
+; "cover you may not climb". So the Leoleth climbs everything at half price rather than being
+; exempted from a size rule that does not exist.
+[sub_resource type="Resource" id="Resource_wing"]
+script = ExtResource("2_type")
+ignore_difficult = true
+free_climb = true
+
+; VISIBLE, unlike Fleet of Foot's permanent hidden one: this chip is the only signal that the suite
+; is running THIS TURN, and the pilot has to know whether the charge is still buying anything. Its
+; icon is SP5's, which makes it one more failing assert inside the already-red
+; test_every_visible_buff_has_a_real_icon.
+;
+; until = 2 is Lancer.UNTIL.END_OF_THIS_TURN (lancer.gd:48) - "for the rest of the turn". Note that
+; END_OF_THIS_TURN is cleared for ALL units at ANY unit's turn end (event_turn_end.gd:40); with the
+; chip applied inside the Leoleth's own protocol phase, the first turn end it meets is its own.
+[resource]
+script = ExtResource("1_movementtype")
+movement_type = SubResource("Resource_wing")
+to = &"movement_type"
+until = 2
+log_on_application = true

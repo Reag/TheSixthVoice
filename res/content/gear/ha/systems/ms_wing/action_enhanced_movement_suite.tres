@@ -1,0 +1,33 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_wing/action_enhanced_movement_suite.gd" id="2_suite"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_wing/buff_wing.tres" id="3_chip"]
+
+; Lancer.ACTION is { NONE, QUICK, FULL, FREE, PROTOCOL, RXN } (lancer.gd:27), so PROTOCOL is 4.
+;
+; consumes_charges is OMITTED: true is the Action default (action.gd:107), and it is both halves of
+; "spend a charge" - unit_action.gd:153 refuses the press with REASON.NO_CHARGES when the Kit is
+; empty, and :274 spends one when it is not.
+;
+; can_reapply FALSE (AUTHOR RULING, 2026-09-22), and the reason is the action type rather than
+; thrift. A Protocol can only be activated in the protocol phase at the start of a turn
+; (unit_action.gd:144 gates on is_using_protocols, opened only by event_turn_start.gd:82), so there
+; is no window between two presses in which a non-self-inflicted condition could arrive - the second
+; charge can never buy anything the first did not. Leaving the button lit would only invite a pilot
+; who thought the first press had not worked into spending the other charge for nothing.
+; is_available_to_activate refuses it while the chip from this gear is held
+; (action_system_apply_buff.gd:35, which needs apply_only_to_self as well). action_rage.tres carries
+; the same line on this frame for a kindred reason.
+;
+; NO usage_group: this Kit has exactly one action, and a groupless action falls back to the KIT's
+; compcon_id (gear_core.gd:166-168), which is the right tally when there is nothing to share it with.
+;
+; NO icon_override in SP2.
+[resource]
+script = ExtResource("2_suite")
+buffs = Array[ExtResource("1_buff")]([ExtResource("3_chip")])
+apply_only_to_self = true
+can_apply_to_self = true
+can_reapply = false
+action_type = 4

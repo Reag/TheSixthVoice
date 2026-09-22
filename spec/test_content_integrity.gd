@@ -256,6 +256,12 @@ const LEOLETH_LOCALIZATION_ROWS:Array[String] = [
 	'gear.mw_thunder_sword.on_hit',
 	'gear.buff_thunder_sword.name',
 	'gear.buff_thunder_sword.effect',
+	# SP2 Task 2. W.I.N.G's rows.
+	'gear.ms_wing.name',
+	'gear.ms_wing.action_enhanced_movement_suite.name',
+	'gear.ms_wing.action_enhanced_movement_suite.effect',
+	'gear.buff_wing.name',
+	'gear.buff_wing.effect',
 ]
 
 func test_the_leoleths_unguarded_rows_resolve():
@@ -759,6 +765,10 @@ const ICON_TARGETS := {
 	# written twice - the icon-sharing rule (icon-sharing.md section 5). Both the row's assertions
 	# and the Kit's own icon_override are SP5's, so this row is part of deliberate red #2 until then.
 	&'mw_thunder_sword': {&'action_thunder_sword': KIT},
+	# SP2 Task 2 (Leoleth). W.I.N.G. KIT, not a named family: one Kit, one action, so the glyph is
+	# the Kit's and the action inherits it (icon-sharing.md section 5 - KIT is absence, not
+	# duplication). Both assertions are SP5's to turn green.
+	&'ms_wing': {&'action_enhanced_movement_suite': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -959,6 +969,10 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# SP2 Task 1 (Leoleth). The Thunder Sword's on-hit chip. Visible because it is the target's only
 	# warning that moving will cost it, and the only place the 5-point clock is legible at all.
 	&'buff_thunder_sword',
+	# SP2 Task 2 (Leoleth). The movement chip. Visible because it is the only signal that the suite
+	# is running this turn, and the pilot has to know whether the spent charge is still buying
+	# anything - Fleet of Foot's permanent sibling is hidden for exactly the opposite reason.
+	&'buff_wing',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
