@@ -27,11 +27,16 @@
 #
 # Why an extension and not a Kit property: Kit has no "destructible while empty" export and the
 # base game is off limits. Design: specs/2026-09-21-leoleth-design.md ruling 15.
+#
+# BINDING FANGS (Naga, mw_binding_fangs) joined the list at Naga SP3 - its card carries the same
+# sentence, "this weapon can be destroyed (due to critical damage or other effects) even if it has
+# no charges remaining". One id appended, nothing else changed (specs/2026-09-22-naga-design.md
+# ruling 14); spec/test_binding_fangs.gd and spec/test_compat.gd pin it.
 # ============================================================================================
 extends "res://engine/character/unit/service/unit_printer.gd"
 
 ## Kits whose rules text says they stay destructible with no charges left.
-const DESTRUCTIBLE_WHILE_EMPTY:Array[StringName] = [&'mw_thermal_death_axe']
+const DESTRUCTIBLE_WHILE_EMPTY:Array[StringName] = [&'mw_thermal_death_axe', &'mw_binding_fangs']
 
 static func get_destructable_gear(gear_list:Array[GearCore]) -> Array[GearCore]:
 	var destructable_gear := super.get_destructable_gear(gear_list)

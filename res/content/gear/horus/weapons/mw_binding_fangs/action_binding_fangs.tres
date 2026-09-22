@@ -1,0 +1,19 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_binding_fangs/action_binding_fangs.gd" id="1_attack"]
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="2_onhiteffect"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_binding_fangs/onhit_binding_fangs.tres" id="3_onhit"]
+
+; Auxiliary (0) Melee (2), 1d3 Kinetic (0, omitted), Threat 1, THROWN 5, SMART, SEEKING in the card's
+; order. LIMITED 2 is the Kit's charges_max - kit.gd:79 draws the tag from it. "1d3" is a vanilla dice
+; string (mw_pistol.tres).
+[resource]
+script = ExtResource("1_attack")
+damage_dice = "1d3"
+weapon_size = 0
+weapon_type = 2
+aim_range = 0
+threat = 1
+tags = Array[StringName]([&"thrown", &"smart", &"seeking"])
+thrown = 5
+on_hit_effects = Array[ExtResource("2_onhiteffect")]([ExtResource("3_onhit")])

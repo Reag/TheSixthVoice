@@ -21,6 +21,7 @@ const VaubanFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/vauban_fi
 const PrimroseFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/primrose_fixture.gd')
 const SluaghFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/sluagh_fixture.gd')
 const LeolethFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/leoleth_fixture.gd')
+const NagaFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/naga_fixture.gd')
 ## Read-only here: the Mark's retort case asserts the dome is untouched between its two halves.
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
 
@@ -944,6 +945,20 @@ func test_the_empty_axe_is_still_destructible_with_the_emperor_extender_in_the_c
 	axe.charges_current = 0
 	assert_true(UnitPrinter.get_destructable_gear([axe]).has(axe),
 		'THE RULING: super-first whitelists compose - the empty axe is offered with the resident co-extending the file.')
+
+## Naga SP3 (design ruling 14) put a SECOND id on the same whitelist - Binding Fangs, whose card says
+## the axe's sentence word for word. Same override, same chain, so the same ruling; pinned by name so
+## a whitelist that ever loses the Fangs goes red here as well as in test_binding_fangs.gd.
+func test_the_empty_binding_fangs_are_destructible_with_the_emperor_extender_in_the_chain() -> void:
+	if skipped_without_emperor_printer(): return
+	var naga:Unit = NagaFixture.create_naga(game, LEOLETH_TILE)
+	var fangs:GearCore = NagaFixture.equip(naga, &'mw_binding_fangs')
+	assert_true(GearCore.is_valid(fangs), 'fixture: the Fangs are equipped.')
+	if not GearCore.is_valid(fangs): return
+	fangs.charges_current = 0
+	assert_false(fangs.has_charges_left(), 'fixture: and empty.')
+	assert_true(UnitPrinter.get_destructable_gear([fangs]).has(fangs),
+		'THE RULING, extended: the empty Fangs are offered with the resident co-extending the file.')
 
 ## The other half of "compose": the resident's own override still runs under ours. Read structurally,
 ## because its effect (an mf_emperor health correction) needs an Emperor and a pilot to show.
