@@ -51,7 +51,8 @@ func test_the_kit_is_registered_with_the_cards_stats():
 	if kit == null: return
 	assert_eq(kit.sp_cost, 2, 'SP 2.')
 	assert_eq(kit.charges_max, 2, 'LIMITED 2.')
-	assert_eq(kit.system_tags, 1, 'UNIQUE (Lancer.SYSTEM_TAG bit 0).')
+	assert_eq(kit.system_tags, 1, 'UNIQUE (Kit.SYSTEM_TAGS.UNIQUE, kit.gd:30).')
+	assert_true(kit.is_unique(), 'UNIQUE via the accessor the game actually reads (kit.gd:53).')
 	assert_eq(kit.actions.size(), 1, 'One action: the protocol.')
 
 func test_the_action_is_a_protocol_that_spends_a_charge():
@@ -63,7 +64,7 @@ func test_the_action_is_a_protocol_that_spends_a_charge():
 	assert_eq(action.get_action_type(SpecificAction.create(leoleth, _gear(), action)),
 		Lancer.ACTION.PROTOCOL, 'A Protocol (Lancer.ACTION 4).')
 	assert_true(action.consumes_charges(SpecificAction.create(leoleth, _gear(), action)),
-		'It spends a charge - the Action default (action.gd:107), left unset in the .tres.')
+		'It spends a charge - the Action default (action.gd:108), left unset in the .tres.')
 
 func test_the_card_text_renders_rather_than_a_raw_key():
 	assert_eq(X.tr('gear.ms_wing.name'), 'W.I.N.G', 'The Kit names itself.')
@@ -140,20 +141,29 @@ func test_the_chip_is_visible_and_carries_only_two_flags():
 	assert_eq(buff.until, Lancer.UNTIL.END_OF_THIS_TURN, 'UNTIL 2.')
 	assert_eq(buff.to, Buff.TO.MOVEMENT_TYPE, 'A MOVEMENT_TYPE buff.')
 
-	# TWO FLAGS AND ONLY TWO - the reasoning buff_fleet_of_foot.tres records. merge_in ORs fifteen of
-	# the seventeen booleans into the mover's type (movement_type.gd:79-96), so a stray flag here
-	# silently grants the frame something the card never promised.
+	# TWO FLAGS AND ONLY TWO - the reasoning buff_fleet_of_foot.tres records. merge_in ORs sixteen of
+	# the seventeen booleans into the mover's type (movement_type.gd:79-96; ignore_fall_damage is the
+	# one it does not carry), so a stray flag here silently grants the frame something the card never
+	# promised. The loop below checks the other fifteen of the seventeen are false - fifteen is the
+	# length of THIS false-list, a different number from the sixteen merge_in ORs.
 	var movement_type:MovementType = buff.movement_type
 	assert_not_null(movement_type, 'It carries a MovementType sub-resource.')
 	if movement_type == null: return
 	assert_true(movement_type.ignore_difficult, 'ignore_difficult.')
 	assert_true(movement_type.free_climb, 'free_climb.')
+	# movement_type.get(flag) on a misspelled name returns null, and assert_false(null) PASSES - so a
+	# typo here would silently unpin a flag with a green suite. Check each name is actually a declared
+	# property first (the get_script_property_list() idiom test_terrain.gd uses for the same reason),
+	# so a rename or typo fails LOUDLY instead of passing by accident.
+	var declared_property_names:Array = []
+	for property:Dictionary in movement_type.get_property_list(): declared_property_names.append(property.name)
 	for flag:String in [
 		'spend_move', 'voluntary', 'ignore_rxns', 'ignore_engagement', 'ignore_dangerous',
 		'flying', 'hovering', 'teleport', 'straight_line', 'must_move_max_possible',
 		'can_break_interiors', 'can_move_through_enemies', 'cannot_move_uphill', 'jump_downhill',
 		'ignore_fall_damage',
 	]:
+		assert_true(declared_property_names.has(flag), '%s is a real MovementType property.' % flag)
 		assert_false(movement_type.get(flag), '%s is NOT set.' % flag)
 
 # ---------------------------------------------------------------- the movement half

@@ -454,6 +454,6 @@ gear.buff_thunder_sword.effect,"If you voluntarily move, you take 1 |AP| |energy
 gear.ms_wing.name,W.I.N.G
 gear.ms_wing.flavor,"The W.I.N.G movement suite was developed to counteract the various battlefield hazards particularly movement dependent mechs faced. The systems consist of many micro-boosters attached the legs and feet of the mech, allowing for rapid repositioning in treacherous terrain."
 gear.ms_wing.action_enhanced_movement_suite.name,Enhanced Movement Suite
-gear.ms_wing.action_enhanced_movement_suite.effect,"You may spend a charge to clear the |Prone|, |Slowed|, and |Immobilized| conditions if they weren't self inflicted. For the rest of the turn, you ignore |difficult terrain| and may move over cover regardless of its size."
+gear.ms_wing.action_enhanced_movement_suite.effect,"You may spend a charge to clear the |Prone|, |Slowed|, and |Immobilized| conditions if they weren't self inflicted. For the rest of the turn, you ignore |difficult terrain| and may move over |cover| regardless of its size."
 gear.buff_wing.name,W.I.N.G
-gear.buff_wing.effect,"You ignore |difficult terrain| and may move over cover regardless of its size."
+gear.buff_wing.effect,"You ignore |difficult terrain| and may move over |cover| regardless of its size."

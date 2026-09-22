@@ -6,7 +6,7 @@
 
 ; SCRIPT-LESS, on the ENGINE's own OnHitEffect - onhit_rend_nexus.tres is the in-mod precedent.
 ; Nothing here needs code: apply_statuses_and_buffs sends the buff to the ATTACKED unit with
-; context.gear as its source (on_hit_effect.gd:84-87), which is both halves of ruling 19's "to the
+; context.gear as its source (on_hit_effect.gd:88), which is both halves of ruling 19's "to the
 ; TARGET, from_gear the sword".
 ;
 ; apply_on is OMITTED: STAGE.ON_HIT is the export's own default (on_hit_effect.gd:12) and ON_HIT is

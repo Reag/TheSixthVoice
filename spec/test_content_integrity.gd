@@ -242,9 +242,12 @@ func test_the_vaubans_unguarded_rows_resolve():
 	for key:String in VAUBAN_LOCALIZATION_ROWS:
 		assert_ne(tr(key), key, '%s resolves to real text.' % key)
 
-## The Leoleth's one unguarded row (SP1 Task 7). `gear.mt_decimate_terrain.name` belongs to a MARKER's
-## trait Kit, and no surface a spec in this mod can reach renders its card at all - exactly the
-## Vauban's mt_maar_terrain case above, and for the same reason.
+## The Leoleth's localization rows. Only the first is unreachable the way the Vauban pair above is:
+## `gear.mt_decimate_terrain.name` belongs to a MARKER's trait Kit, and no surface a spec in this mod
+## can reach renders its card at all - exactly the Vauban's mt_maar_terrain case, and for the same
+## reason. Everything below it is belt-and-braces consistency with the per-sub-project pattern this
+## file keeps (each sub-project's own spec, e.g. test_thunder_sword.gd, test_wing.gd, already reads
+## the same keys off this mod's own compiled artifact), not a last line of defence.
 ##
 ## frame.dep_decimate.name is NOT here: spec/test_decimate.gd reads it off this mod's own compiled
 ## artifact, which is the stronger check.
@@ -253,11 +256,13 @@ const LEOLETH_LOCALIZATION_ROWS:Array[String] = [
 	# SP2 Task 1. The Thunder Sword's rows. Belt-and-braces with test_thunder_sword.gd's own
 	# resolution assertions, the per-sub-project pattern this file keeps.
 	'gear.mw_thunder_sword.name',
+	'gear.mw_thunder_sword.flavor',
 	'gear.mw_thunder_sword.on_hit',
 	'gear.buff_thunder_sword.name',
 	'gear.buff_thunder_sword.effect',
 	# SP2 Task 2. W.I.N.G's rows.
 	'gear.ms_wing.name',
+	'gear.ms_wing.flavor',
 	'gear.ms_wing.action_enhanced_movement_suite.name',
 	'gear.ms_wing.action_enhanced_movement_suite.effect',
 	'gear.buff_wing.name',

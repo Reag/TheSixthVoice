@@ -6,7 +6,7 @@
 
 ; Lancer.ACTION is { NONE, QUICK, FULL, FREE, PROTOCOL, RXN } (lancer.gd:27), so PROTOCOL is 4.
 ;
-; consumes_charges is OMITTED: true is the Action default (action.gd:107), and it is both halves of
+; consumes_charges is OMITTED: true is the Action default (action.gd:108), and it is both halves of
 ; "spend a charge" - unit_action.gd:153 refuses the press with REASON.NO_CHARGES when the Kit is
 ; empty, and :274 spends one when it is not.
 ;

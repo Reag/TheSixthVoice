@@ -4,9 +4,11 @@
 [ext_resource type="Script" uid="uid://udxarj3kb6nm" path="res://engine/character/unit/movement_type.gd" id="2_type"]
 
 ; TWO FLAGS, AND ONLY TWO - the reasoning buff_fleet_of_foot.tres records on this same frame.
-; MovementType.merge_in ORs fifteen of the seventeen behavioural booleans into the mover's type
-; (movement_type.gd:79-96), so a stray flag here silently grants the frame something the card never
-; promised. spec/test_wing.gd asserts all fifteen others are false.
+; MovementType.merge_in ORs sixteen of the seventeen behavioural booleans into the mover's type
+; (movement_type.gd:79-96; ignore_fall_damage is the one it does not carry), so a stray flag here
+; silently grants the frame something the card never promised. This resource sets two of those
+; seventeen (ignore_difficult, free_climb); spec/test_wing.gd asserts the other fifteen are false -
+; fifteen is the length of that false-list, a different number from the sixteen merge_in ORs.
 ;
 ; free_climb IS THE READING OF "may move over cover regardless of its size", and it is a RECORDED
 ; DIVERGENCE (ruling 20): it is the only movement flag that touches climbing at all

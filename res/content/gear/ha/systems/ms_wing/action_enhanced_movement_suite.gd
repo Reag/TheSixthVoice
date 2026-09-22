@@ -8,7 +8,7 @@
 # chip is the archetype's own `buffs` array and the only code here is the three status clears.
 #
 # apply_additional_effect IS THE ARCHETYPE'S OWN OVERRIDE POINT (action_system_apply_buff.gd:167),
-# called once per target from apply_buffs_to_targets (:160) - and with apply_only_to_self the one
+# called once per target from apply_buffs_to_targets (:158) - and with apply_only_to_self the one
 # target is always the Leoleth. It runs AFTER the buff is applied, where the card words it the other
 # way round; the two are independent (a MOVEMENT_TYPE buff reads no statuses, and clearing a status
 # reads no buffs), so the order is not observable and no spec asserts one.
