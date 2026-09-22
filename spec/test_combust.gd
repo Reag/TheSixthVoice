@@ -191,6 +191,60 @@ func test_the_rows_resolve():
 		'Our own artifact carries the action\'s name row - it is logged and popcorned when it fires.')
 	assert_eq(X.tr('gear.cp_hydraulic_excess.action_combust.name'), 'Combust', 'Named off the table.')
 
+# ---------------------------------------------------------------- the face chip
+
+func test_face_four_hangs_a_chip_of_its_own():
+	# RULING 25 (2026-09-22, author on playtest). SP1 gave face 4 no chip on the reasoning that
+	# Combust is an action rather than a lasting effect - which is true of the MECHANIC and wrong for
+	# the PLAYER: five faces put a named picture on the token and this one put nothing, so a 4 read as
+	# "RAGE fired and did nothing" the moment the targeting screen closed. The chip is purely
+	# cosmetic - no `to`, no triggers, no statuses - and exists so all six faces answer "which mode am
+	# I in?" the same way.
+	#
+	# IT OUTLIVES THE BLAST ON PURPOSE. The area attack resolves inside the roll; the chip lasts to
+	# the start of the next turn like the other five, saying "this turn's face was Combust" rather
+	# than "a Combust is pending".
+	aim_at(BLAST_CENTRE)
+	await LeolethFixture.rage(game, leoleth, LeolethFixture.FACE_COMBUST, [SAVE_PASSES] as Array[int])
+	assert_true(LeolethFixture.has(leoleth, LeolethFixture.COMBUST_CHIP),
+		'A 4 leaves the Combust chip on the token.')
+	var chip:BuffCore = UnitCondition.get_buff(leoleth, LeolethFixture.COMBUST_CHIP)
+	assert_not_null(chip, 'fixture: the chip is readable.')
+	if chip == null: return
+	assert_eq(chip.base.until, Lancer.UNTIL.START_OF_TURN,
+		'until = START_OF_TURN - the same lifetime as the other five face chips.')
+	assert_eq(chip.base.to, Buff.TO.NONE,
+		'And it does nothing: no `to`, so nothing in the engine ever reads it.')
+	assert_true(chip.base.triggers_on.is_empty(), 'No triggers either.')
+	assert_true(chip.base.applies_statuses.is_empty(), 'And it applies no statuses.')
+	assert_false(chip.base.hide_from_player, 'It is VISIBLE - being seen is its whole job.')
+
+func test_the_combust_chip_is_replaced_by_the_next_turns_face():
+	# The chip is a mode indicator, so two of them must never be readable at once.
+	aim_at(BLAST_CENTRE)
+	await LeolethFixture.rage(game, leoleth, LeolethFixture.FACE_COMBUST, [SAVE_PASSES] as Array[int])
+	assert_true(LeolethFixture.has(leoleth, LeolethFixture.COMBUST_CHIP), 'fixture: face 4 is up.')
+	await SpecFactory.end_turn(game, leoleth)
+	LeolethFixture.queue([LeolethFixture.FACE_HATRED])
+	await SpecFactory.start_turn(game, leoleth)
+	assert_false(LeolethFixture.has(leoleth, LeolethFixture.COMBUST_CHIP), 'A 6 clears it...')
+	assert_true(LeolethFixture.has(leoleth, LeolethFixture.HATRED_CHIP), '...and hangs its own.')
+
+func test_the_combust_chip_rows_resolve():
+	# THE CARD'S OWN FACE-4 LINE, VERBATIM - the same string gear.buff_rage_reach.effect and the four
+	# other face chips carry, lifted out of the RAGE table rather than written fresh.
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation, 'This mod has a compiled translation.')
+	if translation == null: return
+	for key:String in ['gear.buff_rage_combust.name', 'gear.buff_rage_combust.effect']:
+		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
+	assert_eq(X.tr('gear.buff_rage_combust.name'), 'Combust', 'Named off the table.')
+	assert_eq(X.tr('gear.buff_rage_combust.effect'),
+		'Choose a |blast| 1 area within |line of sight| and |SENSORS|. All |characters| at least '
+		+ 'partially within the area must succeed a |Hull save| or take 2d6 |Kinetic| damage and be '
+		+ 'knocked |Prone|.',
+		'And it carries the table\'s face-4 row, word for word.')
+
 # ---------------------------------------------------------------- the blast
 
 func test_a_character_that_fails_the_save_takes_2d6_and_is_knocked_prone():

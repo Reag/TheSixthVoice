@@ -19,6 +19,25 @@ consumes_cp = true
 ; Its OWN usage group. A groupless action falls back to the KIT's compcon_id (gear_core.gd:166-168),
 ; which would make this protocol share one tally with Combust, the roll and ALL SYSTEMS RED.
 usage_group = &"rage"
+; RULING 24 (2026-09-22, author on playtest). The card reads "at the start of each of your turns", and
+; SP1 built exactly that - so the turn you PRESSED the protocol in got no face at all: that turn's
+; NEW_TURN POST had already passed, and was gated off anyway because the chip did not exist yet. The
+; designer's intent is that pressing RAGE resolves a face on the spot. The card text is untouched;
+; this is an engine divergence recorded as a ruling.
+;
+; kickstart_sibling_action is vanilla's own hook and needs no script here: once the buffs have landed,
+; ActionSystemApplyBuff queues an event_gear_activate for the named sibling action on THIS Kit, with
+; AS_FREEBIE, at Priority.ACTIVATE.early_followup (action_system_apply_buff.gd:133-141). That is the
+; same activation shape ReactionBus uses to fire a reaction (reaction_bus.gd:54-59), so
+; action_rage_roll.activate runs exactly as it does at a turn start. Its triggers_on_event gate is
+; not consulted on a direct activation, which is harmless: buff_rage has just been applied, so the
+; gate would pass. It is also not blocked by the reaction economy - ActionReaction's
+; is_available_to_activate returns true immediately when consumes_rxn is false
+; (action_reaction.gd:50), and the roll sets consumes_rxn = false.
+;
+; THE ROLL IS ADDED, NOT MOVED. The face chip is until = START_OF_TURN, so the next turn start clears
+; it and rolls again - press on turn N, face on turn N, a fresh face on turn N+1.
+kickstart_sibling_action = &"action_rage_roll"
 ; SP5 gives this action the RAGE glyph (a single jagged flame, inside the shared ring register),
 ; which action_combust shares - the identical texture, per the family rule - and which the six
 ; buff_rage* chips reuse in six tints.

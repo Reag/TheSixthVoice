@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/buff_rage_combust.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_buff")
+; RAGE's SIXTH face chip, and the ONLY one that does nothing at all (ruling 25, 2026-09-22).
+;
+; SP1 deliberately gave face 4 no chip: Combust is an action, not a lasting effect, so there was
+; nothing for a buff to carry. That is true of the MECHANIC and wrong for the PLAYER. Five faces put
+; a named, tinted picture on the token saying which mode RAGE is in; the sixth put nothing, so a
+; rolled 4 read as "RAGE fired and did nothing" the moment the targeting screen closed - and worse,
+; indistinguishable from a roll that had not happened.
+;
+; NO `to`, NO triggers, NO statuses, NO applies_statuses. Nothing in the engine ever reads this
+; resource; it exists to be SEEN, and its spec asserts each of those absences so a later edit cannot
+; quietly give it an effect the card does not grant.
+;
+; Lancer.UNTIL.START_OF_TURN is index 3 (lancer.gd:46-48) - the same lifetime as the other five face
+; chips, and that is deliberate even though the blast itself resolved inside the roll. It says "this
+; turn's face was Combust", not "a Combust is pending"; a shorter lifetime would leave the token
+; blank again for most of the turn, which is the whole complaint this chip answers.
+until = 3
+; VISIBLE. SP5's RAGE flame in a Combust tint (violet) - the one hue the other five leave unclaimed,
+; and it has to read clearly apart from Decimate's orange-red and Hatred's crimson in particular,
+; because all three are damage faces and the tint is all that separates them on a token.
+icon = ExtResource("2_icon")

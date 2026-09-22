@@ -1006,6 +1006,11 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# companion buff_rage_reach_reliable is deliberately absent, the same one-mechanic-one-chip rule
 	# buff_reinforcement_blast_reduction and buff_fungal_network_armor_reduction follow.
 	&'buff_rage_reach',
+	# RULING 25 (Leoleth, 2026-09-22). Combust's chip - the sixth face chip, added after SP1 had
+	# closed. It is the only one in this table that does NOTHING: no `to`, no triggers, no statuses.
+	# It is here because five faces named themselves on the token and the sixth said nothing at all,
+	# so a rolled 4 was indistinguishable from a roll that never happened.
+	&'buff_rage_combust',
 	# SP1 Task 11 (Leoleth). Bulwark's chip on the Leoleth. Its partner buff_bulwark_penalty, on each
 	# hostile, is deliberately HIDDEN - the Mark's soft cover is the precedent, plumbing beside a
 	# visible signal chip. FLAGGED J: ruling 13 leaves the hostile-side chip's visibility to the

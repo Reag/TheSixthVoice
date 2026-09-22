@@ -138,6 +138,63 @@ func test_pressing_the_protocol_holds_the_chip_for_the_scene():
 	await SpecFactory.start_turn(game, leoleth)
 	assert_true(LeolethFixture.has(leoleth, LeolethFixture.RAGE_CHIP), 'And it survives a turn cycle.')
 
+func test_pressing_the_protocol_rolls_a_face_immediately():
+	# RULING 24 (2026-09-22, author on playtest). The card says "at the start of each of your turns",
+	# and SP1 built exactly that: the protocol hung its chip and the turn it was pressed in got
+	# nothing at all, because the NEW_TURN POST roll for that turn had already passed (and was gated
+	# off, there being no chip yet). The designer's intent is that pressing RAGE resolves a face on
+	# the spot. THE CARD TEXT IS UNCHANGED - this is an engine divergence recorded as a ruling, not a
+	# rewrite of Bel's row.
+	#
+	# WIRED DECLARATIVELY, with no script on the protocol: ActionSystemApplyBuff already ships
+	# kickstart_sibling_action, which queues an event_gear_activate for a named sibling action on the
+	# same Kit with AS_FREEBIE once the buffs have landed (action_system_apply_buff.gd:133-141). That
+	# is the SAME activation shape ReactionBus itself uses to fire a reaction (reaction_bus.gd:54-59),
+	# so action_rage_roll's own activate() runs unchanged. Three vanilla Kits use the hook
+	# (action_hive_frenzy, both cloaking fields), all of them to kickstart an aura; this is the first
+	# use of it on a reaction, which is why the shape is asserted here rather than assumed.
+	#
+	# THE QUEUE IS EXPLICIT rather than left to LeolethFixture.press_rage's default, so that this test
+	# still says something if that default ever moves.
+	assert_false(LeolethFixture.has(leoleth, LeolethFixture.HATRED_CHIP), 'fixture: no face chip yet.')
+	await LeolethFixture.open_turn(game, leoleth)
+	LeolethFixture.queue([LeolethFixture.FACE_HATRED])
+	await SpecFactory.use(game, leoleth, LeolethFixture.CORE_ID, LeolethFixture.RAGE_ID)
+	assert_true(LeolethFixture.has(leoleth, LeolethFixture.RAGE_CHIP),
+		'The protocol still holds its own chip for the scene.')
+	assert_true(LeolethFixture.has(leoleth, LeolethFixture.HATRED_CHIP),
+		'And face 6 resolved inside the same press - no waiting for the next turn.')
+
+func test_the_protocol_is_wired_to_kickstart_the_roll():
+	# The declarative half of the test above: a chip that arrived some other way would satisfy the
+	# behavioural assertion, and the id is a string the engine resolves silently
+	# (gear.get_action returns null and the hook is skipped, with no warning).
+	var action := action_by_id(LeolethFixture.RAGE_ID)
+	assert_not_null(action, 'fixture: the protocol is on the Kit.')
+	if not (action is ActionSystemApplyBuff): return
+	assert_eq(action.kickstart_sibling_action, LeolethFixture.RAGE_ROLL_ID,
+		'It kickstarts the roll by id - ruling 24.')
+	assert_not_null(core_gear().get_action(action.kickstart_sibling_action),
+		'And that id resolves on this very Kit, which is the only place the hook looks.')
+
+func test_the_press_time_roll_does_not_cost_the_turn_its_own_start_roll():
+	# "AT THE START OF EACH OF YOUR TURNS" SURVIVES RULING 24. The press-time roll is an ADDITION,
+	# not a replacement: the face it grants is until = START_OF_TURN, so the next turn start clears it
+	# at event_turn_start.gd:76 and rolls a fresh one at :56. A player who presses RAGE on turn N
+	# therefore gets a face on turn N and a different face on turn N+1.
+	await LeolethFixture.open_turn(game, leoleth)
+	LeolethFixture.queue([LeolethFixture.FACE_HATRED])
+	await SpecFactory.use(game, leoleth, LeolethFixture.CORE_ID, LeolethFixture.RAGE_ID)
+	assert_true(LeolethFixture.has(leoleth, LeolethFixture.HATRED_CHIP), 'fixture: face 6 at the press.')
+
+	await SpecFactory.end_turn(game, leoleth)
+	LeolethFixture.queue([LeolethFixture.FACE_BULWARK])
+	await SpecFactory.start_turn(game, leoleth)
+	assert_false(LeolethFixture.has(leoleth, LeolethFixture.HATRED_CHIP),
+		'The press-time face is gone at the next turn start...')
+	assert_true(LeolethFixture.has(leoleth, LeolethFixture.BULWARK_CHIP),
+		'...and the turn start rolled its own.')
+
 func test_pressing_the_protocol_spends_the_core_power():
 	await LeolethFixture.open_turn(game, leoleth)
 	assert_true(leoleth.core.has_core_power, 'fixture: the core power is available.')

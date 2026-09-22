@@ -1,6 +1,14 @@
 # RAGE's turn-start roll (ruling 7): a hidden, point-free ActionReactionSelf on new_turn at POST that
 # rolls a d6 and grants that face's effect, for as long as the buff_rage chip is held.
 #
+# IT ALSO RUNS THE MOMENT THE PROTOCOL IS PRESSED (ruling 24, 2026-09-22). action_rage.tres names this
+# action in kickstart_sibling_action, so ActionSystemApplyBuff queues an event_gear_activate for it
+# once buff_rage has landed - the same activation shape ReactionBus uses (reaction_bus.gd:54-59), so
+# everything below runs unchanged. NOTHING HERE NEEDED CHANGING FOR THAT, and nothing here should
+# assume a turn start: triggers_on_event is not consulted on a direct activation, and `activate` reads
+# only context.unit and context.gear, both of which the kickstart supplies. See action_rage.tres for
+# why the card's "at the start of each of your turns" is still the printed text.
+#
 # POST, NOT PRE, AND THAT IS THE WHOLE TIMING. event_turn_start awaits the NEW_TURN PRE reactions at
 # :14; `execute` then runs handle_starting_unit at :39, which calls UnitCondition.new_turn_for_statuses
 # at :76 - the function that CLEARS START_OF_TURN buffs; only afterwards, at :56, is the NEW_TURN POST
@@ -10,9 +18,9 @@
 # THE FACES ARE A TABLE, AND FIVE OF THEM ARE JUST A BUFF. FACE_CHIPS is written COMPLETE at SP1 Task
 # 6, naming ids that Tasks 7, 8, 9, 11 and 12 create one at a time; ContentLibrary.get_buff returns
 # null for one that does not exist yet and this script skips it, so a face starts working the moment
-# its .tres lands and no edit to this file is needed. Face 4 (Combust) has NO chip - it is an action,
-# not a lasting effect - and faces 1, 2 and 4 additionally need something a buff cannot say, which is
-# what apply_face_effect is for.
+# its .tres lands and no edit to this file is needed. Faces 1, 2, 3 and 4 additionally need something
+# a buff cannot say, which is what apply_face_effect is for. (Face 4 had no chip at all until ruling
+# 25; the one it has now is cosmetic, so its whole effect is still apply_face_effect's.)
 #
 # THE d6 GOES THROUGH Dice.roll_d6, which is roll_and_sum({count = 1, dietype = 6}) (dice.gd:90-91),
 # so Dice.CHEAT_ROLL_QUEUE feeds it and a spec can fix the face. It is the FIRST pop of the new turn:
@@ -23,8 +31,8 @@
 # NO INVENTED STRINGS. The battle-log row is vanilla's own battle.generic_roll.log
 # (assets/localization/localizations.csv:489, "Rolled {dice}: [b]{result}[/b]"), the die pops through
 # effect_bus.play_d6, and the popcorn is the face chip's OWN name_text() - a row this mod writes.
-# action_step_of_mist_and_thunder.gd:72-77 is the same three lines. Face 4 has no chip and therefore
-# no popcorn of its own; Combust's activation logs itself.
+# action_step_of_mist_and_thunder.gd:72-77 is the same three lines. Since ruling 25 face 4 popcorns
+# too, off its own chip's name row, and Combust's activation still logs itself afterwards.
 extends ActionReactionSelf
 
 const Terrain := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/terrain/terrain.gd')
@@ -33,12 +41,15 @@ const CombustAction := preload('res://unpacked/Reag-TheSixthVoice/res/content/fr
 
 const RAGE_CHIP := &'buff_rage'
 
-## face -> the standalone buff that face grants. Face 4 (Combust) is deliberately absent: it is an
-## action, not a chip.
+## face -> the standalone buff that face grants. ALL SIX FACES ARE HERE since ruling 25 (2026-09-22);
+## SP1 left face 4 out on the reasoning that Combust is an action rather than a lasting effect, which
+## is true of the mechanic and wrong for the player - see buff_rage_combust.tres. That chip is purely
+## cosmetic, so the whole of face 4's EFFECT is still apply_face_effect's business.
 const FACE_CHIPS:Dictionary[int, StringName] = {
 	1: &'buff_rage_decimate_crit',
 	2: &'buff_rage_swift',
 	3: &'buff_rage_reach',
+	4: &'buff_rage_combust',
 	5: &'buff_rage_bulwark',
 	6: &'buff_rage_hatred',
 }

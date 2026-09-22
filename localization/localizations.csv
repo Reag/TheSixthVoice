@@ -440,6 +440,8 @@ gear.cp_hydraulic_excess.action_reach_reliable.name,Reach
 ,
 gear.cp_hydraulic_excess.action_combust.name,Combust
 gear.cp_hydraulic_excess.action_combust.effect,"Choose a |blast| 1 area within |line of sight| and |SENSORS|. All |characters| at least partially within the area must succeed a |Hull save| or take 2d6 |Kinetic| damage and be knocked |Prone|."
+gear.buff_rage_combust.name,Combust
+gear.buff_rage_combust.effect,"Choose a |blast| 1 area within |line of sight| and |SENSORS|. All |characters| at least partially within the area must succeed a |Hull save| or take 2d6 |Kinetic| damage and be knocked |Prone|."
 ,
 gear.buff_bulwark_penalty.name,Bulwark
 gear.buff_rage_bulwark.name,Bulwark

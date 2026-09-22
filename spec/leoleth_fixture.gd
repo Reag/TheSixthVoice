@@ -71,6 +71,9 @@ const DECIMATE_CHIP := &'buff_rage_decimate_crit'
 const SWIFT_CHIP := &'buff_rage_swift'
 const REACH_CHIP := &'buff_rage_reach'
 const REACH_RELIABLE_BUFF := &'buff_rage_reach_reliable'
+## Face 4's chip, added 2026-09-22 by ruling 25. SP1 shipped five face chips because Combust is an
+## action rather than a lasting effect; the author ruled on playtest that all six faces must show.
+const COMBUST_CHIP := &'buff_rage_combust'
 const BULWARK_CHIP := &'buff_rage_bulwark'
 const BULWARK_PENALTY := &'buff_bulwark_penalty'
 const HATRED_CHIP := &'buff_rage_hatred'
@@ -298,8 +301,21 @@ static func cheat_a_miss() -> void: queue([1])
 ## unit.state.is_using_protocols, which only event_turn_start opens (event_turn_start.gd:82). The
 ## stock ChoiceBusResponder answers the confirm prompt ActionSystemApplyBuff raises
 ## (spec_factory.gd:376, chosen_yesnos defaults true).
-static func press_rage(game:Gamemaster, leoleth:Unit) -> void:
+##
+## THE PRESS ITSELF NOW ROLLS A d6 (ruling 24, 2026-09-22): the protocol kickstarts action_rage_roll,
+## so pressing it pops one die and resolves that face on the spot. `press_face` is queued here so no
+## caller gets a RANDOM one - an unqueued Dice.roll_d6 is a real roll, which would make every spec
+## downstream of a press nondeterministic.
+##
+## THE DEFAULT IS HATRED BECAUSE IT IS THE QUIET FACE. Faces 1-4 each do something to the board - a
+## crater, a free Boost, a second buff, a targeting screen - and face 5 hangs a penalty on every
+## hostile in line of sight. Face 6 is a chip and a DAMAGE POST trigger, so on a Leoleth that is not
+## being hit during the press turn it leaves nothing behind, and it expires at the very next turn
+## start, which rage() opens before any test looks at anything. Pass a face explicitly when the press
+## turn itself is the subject.
+static func press_rage(game:Gamemaster, leoleth:Unit, press_face:int = FACE_HATRED) -> void:
 	await open_turn(game, leoleth)
+	queue([press_face])
 	await SpecFactory.use(game, leoleth, CORE_ID, RAGE_ID)
 
 ## Hold RAGE if it is not already held, then open a FRESH turn with the d6 landing on `face`.
@@ -316,7 +332,10 @@ static func press_rage(game:Gamemaster, leoleth:Unit) -> void:
 ##
 ## THE PROTOCOL IS PRESSED IN A DIFFERENT TURN FROM THE ONE THAT ROLLS, on purpose: RAGE applies its
 ## chip at NEW_TURN POST of every turn AFTER the press, and pressing inside the turn under test would
-## make "the previous face's chip is gone" untestable.
+## make "the previous face's chip is gone" untestable. SINCE RULING 24 THE PRESS ROLLS TOO, which
+## makes the separation load-bearing rather than merely tidy: press_rage takes its own quiet face,
+## end_turn/start_turn expires it, and the queue below is assigned AFTER the press, so nothing the
+## press consumed can reach the roll under test.
 static func rage(game:Gamemaster, leoleth:Unit, face:int, tail:Array[int] = []) -> void:
 	if not UnitCondition.has_buff(leoleth, RAGE_CHIP): await press_rage(game, leoleth)
 	await SpecFactory.end_turn(game, leoleth)
