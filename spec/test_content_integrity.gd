@@ -729,7 +729,8 @@ const ICON_TARGETS := {
 	# SP1 Tasks 5 and 6 (Leoleth). HYDRAULIC EXCESS. Task 10 adds action_combust to this dictionary,
 	# sharing the SAME family name as action_rage - design section 5 gives this Kit exactly two glyph
 	# families, ALL SYSTEMS RED and RAGE, and the six effect chips wear RAGE's glyph in six tints.
-	# Neither action_all_systems_red nor action_rage_roll ever gets a row: both are ActionReactions
+	# None of action_all_systems_red, action_rage_roll or action_reach_reliable ever gets a row: all
+	# three are ActionReactions
 	# whose scripts override show_in_tooltip to false, so _action_reaches_a_player_facing_surface
 	# (:1027-1030 as this file now stands) answers false and the guard asserts they are NOT listed.
 	# ALL SYSTEMS RED therefore cannot wear a glyph of its own and the KIT's own icon is that family,
@@ -928,6 +929,10 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# SP1 Task 8 (Leoleth). Swift's evasion chip - the second face chip, and the only on-token sign
 	# that this turn's roll was a 2 (the free Boost leaves nothing behind but a bigger move pool).
 	&'buff_rage_swift',
+	# SP1 Task 9 (Leoleth). Reach's threat chip - the VISIBLE half of a two-buff card line. Its hidden
+	# companion buff_rage_reach_reliable is deliberately absent, the same one-mechanic-one-chip rule
+	# buff_reinforcement_blast_reduction and buff_fungal_network_armor_reduction follow.
+	&'buff_rage_reach',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

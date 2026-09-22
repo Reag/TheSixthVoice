@@ -81,13 +81,14 @@ func activate(context:Context, activation:EventCore) -> void:
 
 	await apply_face_effect(face, context, activation)
 
-## OVERRIDE POINT for the three faces a buff cannot express: Decimate lays terrain (Task 7), Swift
-## queues a free Boost (Task 8) and Combust offers an action (Task 10). Faces 3, 5 and 6 are entirely
-## their chip and never reach here.
+## OVERRIDE POINT for the faces a buff alone cannot express: Decimate lays terrain (Task 7), Swift
+## queues a free Boost (Task 8), Reach hangs a SECOND buff (Task 9) and Combust offers an action
+## (Task 10). Faces 5 and 6 are entirely their chip and never reach here.
 func apply_face_effect(face:int, context:Context, activation:EventCore) -> void:
 	match face:
 		1: await lay_the_crater(context, activation)
 		2: await boost_for_free(context, activation)
+		3: hang_the_reliable_companion(context, activation)
 
 ## DECIMATE (ruling 8): "A Burst 1 area around you becomes difficult terrain."
 ##
@@ -109,6 +110,19 @@ func lay_the_crater(context:Context, activation:EventCore) -> void:
 	if decimate_deployable == null: return
 	var laid:Unit = await Terrain.lay(activation, SpecificAction.from_context(context), unit.tile(), decimate_deployable)
 	if laid == null: return # the spawn did not land; nothing to do and nothing to say
+
+## REACH's second buff (ruling 11). Buff.to is a single StringName (buff.gd:123) and the card's two
+## halves are read at two different keys - Buff.TO.ACTION_RANGE by threat_distance
+## (action_attack_weapon.gd:187-190) and Buff.TO.WEAPON_TAG by get_weapon_tags (:169) - so one Buff
+## cannot carry both. The threat half is the VISIBLE chip in FACE_CHIPS and carries the whole card
+## line; this is its hidden companion.
+##
+## NULL IS SKIPPED for the same reason the chip lookup above skips one: a player whose install is
+## missing a resource gets the half that loaded rather than an error.
+func hang_the_reliable_companion(context:Context, activation:EventCore) -> void:
+	var companion:Buff = ContentLibrary.get_buff(&'buff_rage_reach_reliable')
+	if companion == null: return
+	apply_buffs(activation, context.unit, [companion] as Array[Buff])
 
 ## SWIFT (ruling 10): "You may immediately Boost as a free action."
 ##

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/buff_rage_reach_reliable.gd" id="1_reliable"]
+
+[resource]
+script = ExtResource("1_reliable")
+; Lancer.WEAPON_TYPE.MELEE is 2 (lancer.gd:107).
+weapon_types = Array[int]([2])
+added_tag = &"reliable"
+; The TARGET value, not the amount added: the script returns maxi(0, this - printed).
+added_tag_value = 2
+to = &"weapon_tag"
+; Lancer.UNTIL.START_OF_TURN (lancer.gd:46-48) - the same lifetime as the visible chip.
+until = 3
+hide_from_player = true
+; NO icon and NO HIDDEN_BUFFS_NEEDING_ICONS row: get_weapon_tags reads category_str and number
+; (action_attack_weapon.gd:169-172) and nothing anywhere draws a WEAPON_TAG buff's icon.
