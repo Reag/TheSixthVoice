@@ -51,7 +51,6 @@ const TARGET_TILE := Vector2i(6, 4)   # 2 out: inside Threat 2, outside Threat 1
 const ADJACENT_TILE := Vector2i(5, 4) # 1 out: inside a Threat 1 blade's reach too
 ## Out of reach of any melee weapon, which is what shuts Toe To Toe's offer for the recharge cases.
 const FAR_TILE := Vector2i(16, 4)
-const USAGE_GROUP := &'thermal_death_axe'
 
 ## The card's number, literally: "at least 4 spaces of unspent movement".
 const UNSPENT_SPACES_REQUIRED := 4
@@ -134,7 +133,7 @@ func test_the_standard_profile_is_a_heavy_melee_kinetic_swing():
 	assert_eq(action.threat, 2, 'Threat 2.')
 	assert_eq(action.self_heat_dice, '1', 'HEAT SELF 1.')
 	assert_true(action.tags.is_empty(), 'No tags on Standard.')
-	assert_eq(action.usage_group, USAGE_GROUP, 'Shares the usage group.')
+	assert_eq(action.usage_group, LeolethFixture.TDA_USAGE_GROUP, 'Shares the usage group.')
 	assert_false(action.consumes_charges(_specific(LeolethFixture.TDA_STANDARD)),
 		'"without expending or requiring charges".')
 
@@ -149,7 +148,7 @@ func test_the_thunderous_profile_is_a_heavy_melee_energy_ap_swing():
 	assert_eq(action.threat, 2, 'Threat 2.')
 	assert_eq(action.self_heat_dice, '1', 'HEAT SELF 1.')
 	assert_eq(action.tags, [&'ap'] as Array[StringName], 'AP.')
-	assert_eq(action.usage_group, USAGE_GROUP, 'Shares the usage group.')
+	assert_eq(action.usage_group, LeolethFixture.TDA_USAGE_GROUP, 'Shares the usage group.')
 	assert_true(action.consumes_charges(_specific(LeolethFixture.TDA_THUNDEROUS)),
 		'"spend 1 charge to use" - the Action default, no script.')
 
@@ -163,6 +162,11 @@ func test_the_recharge_is_a_hidden_end_turn_pre_reaction():
 	assert_eq(action.trigger_timing, ReactionBus.TIMING.PRE, 'PRE - before speed is zeroed.')
 	assert_false(action.consumes_rxn, 'Point-free.')
 	assert_false(action.show_in_tooltip(axe.kit), 'Hidden: the Kit\'s effect row IS the card.')
+	# CHARGE-FREE, and it is load-bearing rather than tidy: ReactionBus asks can_activate_gear
+	# BEFORE triggers_on_event (reaction_bus.gd:119-124), so the Action default of true would have
+	# unit_action.gd:153 refuse this reaction with REASON.NO_CHARGES in the only state it exists for.
+	assert_false(action.consumes_charges(SpecificAction.create(leoleth, axe, action)),
+		'It spends no charge - which is also the only way it can ever fire on an empty axe.')
 
 func test_the_card_text_renders_rather_than_a_raw_key():
 	for key:String in [
