@@ -841,6 +841,16 @@ const ICON_TARGETS := {
 	# section 5 leaves it to the author whether Ping and Hypnotize share one glyph. The clear action is
 	# SITUATIONAL, so it reaches no player-facing surface of this Kit and has no row. SP5's.
 	&'ms_wide_gaze_networks': {&'action_ping': &'action_ping', &'action_hypnotize': &'action_hypnotize'},
+	# SP3 Task 1 (Naga). Binding Fangs: one Kit, one profile, so KIT (the Blade's row). SP5's.
+	&'mw_binding_fangs': {&'action_binding_fangs': KIT},
+	# SP3 Task 2 (Naga). Green Tide: one Kit, one action, so KIT. SP5's.
+	&'ms_green_tide': {&'action_charging_swarm': KIT},
+	# SP3 Task 2 (Naga). The greenwash swarm's two trait Kits, on the MARKER dep_green_tide - the
+	# Decimate crater's pair. Neither carries a player-facing action: the surge and the expiry both
+	# override show_in_tooltip to false (a marker is never selected, so no card draws them). Only the
+	# Kits' own icons are checked, and a marker's Kit icon is drawn on nothing today.
+	&'mt_green_tide': {},
+	&'mt_green_tide_expiry': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

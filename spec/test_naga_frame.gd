@@ -211,7 +211,8 @@ func test_the_licence_grants_its_gear_rank_by_rank():
 	# EXACT lists, not "contains ours": each line goes red exactly once, in the sub-project that
 	# fills that rank (SP2 rank 1, SP3 rank 2, SP4 rank 3), and that sub-project rewrites this test
 	# the way test_sluagh_frame.gd's own rewrite did. Strings, not StringNames: Array[StringName]
-	# .sort() orders by the interned pointer, not the text. Rank 1 rewritten at SP2 Task 2.
+	# .sort() orders by the interned pointer, not the text. Rank 1 rewritten at SP2 Task 2, rank 2 at
+	# SP3.
 	var license := _license()
 	assert_not_null(license, 'fixture: the licence loads.')
 	if license == null: return
@@ -221,7 +222,11 @@ func test_the_licence_grants_its_gear_rank_by_rank():
 	rank_1.sort()
 	assert_eq(rank_1, ['ms_wide_gaze_networks', 'mw_shimmering_blade'] as Array[String],
 		'Rank 1 grants the Shimmering Blade and Wide Gaze Networks, and nothing else.')
-	assert_true(license.rank_2.granted_gear.is_empty(), 'Rank 2 grants no gear until SP3.')
+	var rank_2:Array[String] = []
+	for kit:Kit in license.rank_2.granted_gear: rank_2.append(String(kit.compcon_id))
+	rank_2.sort()
+	assert_eq(rank_2, ['ms_green_tide', 'mw_binding_fangs'] as Array[String],
+		'Rank 2 grants Binding Fangs and Green Tide, and nothing else.')
 	assert_true(license.rank_3.granted_gear.is_empty(), 'Rank 3 grants no gear until SP4.')
 
 func test_the_licence_names_itself_after_the_frame():

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_green_tide/deployable/action_green_tide_surge.gd" id="1_surge"]
+
+; The Barbarossa's action_apocalypse_burn.tres pointed at ALLIES (ruling 16). Range 1 around the
+; size-1 marker is the Blast 1. step + new_turn at POST (the default timing), entering and starting a
+; turn within. can_only_affect_a_unit_once_per_round is the per-ally record the script writes;
+; can_trigger_any_number_of_times_per_round lifts the ZONE-wide 1/round the archetype would otherwise
+; claim (action_reaction_on_coming_within.gd:44-45) - the card limits each ally, not the swarm.
+; consumes_rxn = false: the reaction spent is the ALLY's, by hand, not the marker's.
+[resource]
+script = ExtResource("1_surge")
+triggers_on_coming_within_range = 1
+triggers_on_enemies = false
+when_start_turn_within = true
+can_only_affect_a_unit_once_per_round = true
+can_trigger_any_number_of_times_per_round = true
+triggers_on = Array[StringName]([&"step", &"new_turn"])
+consumes_rxn = false
+usage_group = &"green_tide_surge"
+emit_text_popcorn_on_use = true

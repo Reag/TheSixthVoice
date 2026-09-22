@@ -591,3 +591,10 @@ Br1ghtG0T: YOU CANNOT HIDE
 [transcript ends]"
 gear.mw_binding_fangs.effect,"You may attack with this weapon without expending or requiring charges, and this weapon can be destroyed (due to critical damage or other effects) even if it has no charges remaining."
 gear.mw_binding_fangs.on_hit,"You may expend a charge. If you do, you take 1 |Heat|, and the target becomes |Locked On|."
+gear.ms_green_tide.name,Green Tide
+gear.ms_green_tide.flavor,"""And nothing from you shall doth fade, for you are strange enough neath my hands in that callous foaming twirl"""
+gear.ms_green_tide.action_charging_swarm.name,Charging Swarm
+gear.ms_green_tide.action_charging_swarm.effect,"A |Blast 1| area within |sensors| becomes coated in a greenwash swarm. Until the start of your next turn, allied characters that start their turn at least partially within the area or move into it for the first time in a round, may immediately move up to their |speed| as a |reaction|. This movement is not affected by |Slowed| or |Immobilized|."
+gear.mt_green_tide.name,Charging Swarm
+gear.mt_green_tide.action_green_tide_surge.name,Charging Swarm
+gear.mt_green_tide.action_green_tide_surge.effect,"Until the start of your next turn, allied characters that start their turn at least partially within the area or move into it for the first time in a round, may immediately move up to their |speed| as a |reaction|. This movement is not affected by |Slowed| or |Immobilized|."
