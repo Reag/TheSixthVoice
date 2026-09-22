@@ -1,0 +1,19 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_thermal_death_axe/action_tda_standard.gd" id="1_standard"]
+
+; weapon_size = 2 is HEAVY and weapon_type = 2 is MELEE (lancer.gd:104, :107). damage_type OMITTED:
+; KINETIC is 0, the default. "1d6+2" is the vanilla form (mw_tactical_melee_weapon.tres:8). threat
+; is the archetype export (action_attack_weapon.gd:16). HEAT SELF 1 is self_heat_dice, a STRING.
+;
+; usage_group is SHARED with action_tda_thunderous: one Skirmish per turn whichever profile swings
+; (gear_core.gd:183-188 tallies per group). NO icon_override in SP3 - SP5 draws the axe.
+[resource]
+script = ExtResource("1_standard")
+damage_dice = "1d6+2"
+weapon_size = 2
+weapon_type = 2
+aim_range = 0
+threat = 2
+self_heat_dice = "1"
+usage_group = &"thermal_death_axe"

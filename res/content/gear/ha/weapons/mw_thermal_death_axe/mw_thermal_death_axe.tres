@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_thermal_death_axe/action_tda_standard.tres" id="3_standard"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_thermal_death_axe/action_tda_thunderous.tres" id="4_thunderous"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_thermal_death_axe/action_tda_recharge.tres" id="5_recharge"]
+
+; THE THERMAL DEATH AXE, the Leoleth's rank-II Heavy Melee weapon (SP3 Task 1). SP 1, LIMITED 1
+; (charges_max = 1), three actions: the two profiles (one usage group) and the hidden recharge.
+;
+; THIS KIT HAS A gear.mw_thermal_death_axe.effect ROW, unlike the Thunder Sword: the card carries an
+; Effect paragraph of its own, and the recharge reaction is hidden, so the Kit row is the only place
+; that text can live (Thy Hubris' mw_injector_drill.tres is the same shape).
+;
+; "can be destroyed even if it has no charges remaining" is NOT here - a .tres cannot carry it. It is
+; the whitelist in res/engine/character/unit/service/unit_printer.gd_ext.gd, keyed on this file's id.
+;
+; NO icon_override in SP3.
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("3_standard"), ExtResource("4_thunderous"), ExtResource("5_recharge")])
+sp_cost = 1
+charges_max = 1
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

@@ -235,7 +235,7 @@ func test_the_licence_grants_the_frame_at_rank_two_and_nowhere_else():
 	assert_true(license.rank_1.granted_frames.is_empty(), 'rank_1 grants no frame.')
 	assert_true(license.rank_3.granted_frames.is_empty(), 'rank_3 grants no frame.')
 
-func test_the_licence_grants_exactly_the_rank_one_gear_and_nothing_else_yet():
+func test_the_licence_grants_exactly_the_rank_one_and_two_gear_and_nothing_else_yet():
 	# SP2 filled rank 1 with the two rank-I items, in sheet order. SP3 fills rank 2 (Thermal Death
 	# Axe, ZIP Type Engine) and SP4 rank 3 (the Joermungandr-class NHP, GreenLight Projection).
 	# Asserted as EXACT lists rather than "contains ours": the natural mistake when copying
@@ -250,7 +250,10 @@ func test_the_licence_grants_exactly_the_rank_one_gear_and_nothing_else_yet():
 		func(kit:Kit) -> StringName: return kit.compcon_id)
 	assert_eq(rank_1, [LeolethFixture.THUNDER_SWORD_ID, LeolethFixture.WING_ID] as Array,
 		'Rank 1 grants exactly the Thunder Sword and W.I.N.G, once each, in sheet order.')
-	assert_eq(license.rank_2.granted_gear.size(), 0, 'Rank 2 grants no gear yet (SP3 fills it).')
+	var rank_2:Array = license.rank_2.granted_gear.map(
+		func(kit:Kit) -> StringName: return kit.compcon_id)
+	assert_eq(rank_2, [LeolethFixture.TDA_ID] as Array,
+		'Rank 2 grants exactly the Thermal Death Axe so far (Task 2 appends the ZIP Type Engine).')
 	assert_eq(license.rank_3.granted_gear.size(), 0, 'Rank 3 grants no gear yet (SP4 fills it).')
 
 func test_the_licence_names_itself_after_the_frame():

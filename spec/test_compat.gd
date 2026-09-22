@@ -898,3 +898,58 @@ func test_a_structured_leoleth_gains_hard_cover_with_the_talents_mod_resident() 
 	assert_true(LeolethFixture.has(leoleth, LeolethFixture.ASR_COVER_CHIP), 'The chip landed...')
 	assert_eq(CoverCalculator.determine_cover(leoleth, shooter).total, Lancer.COVER.HARD,
 		'...and the cover pipeline reads HARD off it, with the resident live.')
+
+
+# ===================== THE unit_printer SEAM (Leoleth, Thermal Death Axe) =====================
+# The resident gavstarb-ssc_emperor extends unit_printer.gd (full_repair, super-calling) and so do we
+# (get_destructable_gear, super-calling). Ruled at design: super-first whitelists compose in any
+# install order. This pins that BOTH extensions are in the live chain in one run AND our override
+# still answers under it.
+#
+# IDENTIFIED BY SOURCE, NOT BY PATH, which Task 0's probe measured: ModLoader installs each extension
+# with take_over_path, so only the MOST-DERIVED script in the chain has a resource_path at all - and
+# it is the VANILLA path - while every script beneath it reports "". The idiom below is
+# spec/test_spike_unit_printer_seam.gd's live_chain()/chain_has_source(), copied.
+const SSC_EMPEROR_MOD := 'gavstarb-ssc_emperor'
+## A line only OUR extension's source carries.
+const OUR_PRINTER_MARKER := 'THERMAL DEATH AXE (Leoleth, mw_thermal_death_axe)'
+## A line only the resident's source carries: the frame id its full_repair override branches on.
+const EMPEROR_PRINTER_MARKER := 'mf_emperor'
+
+func live_printer_chain() -> Array[Script]:
+	var chain:Array[Script] = []
+	var script:Script = UnitPrinter.get_script()
+	while script != null:
+		chain.append(script)
+		script = script.get_base_script()
+	return chain
+
+func printer_chain_has_source(needle:String) -> bool:
+	return live_printer_chain().any(func(script:Script) -> bool: return script.source_code.contains(needle))
+
+## Announce the skip rather than passing quietly - the pairing every guarded case in this file uses.
+func skipped_without_emperor_printer() -> bool:
+	if printer_chain_has_source(EMPEROR_PRINTER_MARKER): return false
+	var message := 'SKIPPED: %s is not resident, so the unit_printer seam is unmeasured against a co-extender. Restore the residency set with restore-links.ps1.' % SSC_EMPEROR_MOD
+	gut.p(message)
+	pass_test(message)
+	return true
+
+func test_the_empty_axe_is_still_destructible_with_the_emperor_extender_in_the_chain() -> void:
+	if skipped_without_emperor_printer(): return
+	assert_true(printer_chain_has_source(OUR_PRINTER_MARKER), 'LIVENESS: ours is in the same chain.')
+	var leoleth:Unit = LeolethFixture.create_leoleth(game, LEOLETH_TILE)
+	var axe:GearCore = LeolethFixture.arm_axe(leoleth)
+	assert_true(GearCore.is_valid(axe), 'fixture: the axe is equipped.')
+	axe.charges_current = 0
+	assert_true(UnitPrinter.get_destructable_gear([axe]).has(axe),
+		'THE RULING: super-first whitelists compose - the empty axe is offered with the resident co-extending the file.')
+
+## The other half of "compose": the resident's own override still runs under ours. Read structurally,
+## because its effect (an mf_emperor health correction) needs an Emperor and a pilot to show.
+func test_both_extensions_are_in_one_chain_and_vanilla_is_its_root() -> void:
+	if skipped_without_emperor_printer(): return
+	assert_true(printer_chain_has_source(OUR_PRINTER_MARKER), 'Ours is in the chain...')
+	assert_true(printer_chain_has_source(EMPEROR_PRINTER_MARKER), '...the resident is in the same chain...')
+	assert_true(live_printer_chain().back().source_code.begins_with('# Copyright (c) 2026 Wickworks'),
+		'...and vanilla is its root, so every super() call still lands (%d scripts deep).' % live_printer_chain().size())

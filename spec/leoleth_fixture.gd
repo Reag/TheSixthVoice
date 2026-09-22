@@ -422,3 +422,31 @@ static func arm_wing(unit:Unit) -> GearCore: return equip(unit, WING_ID)
 static func press_wing(game:Gamemaster, leoleth:Unit) -> void:
 	if not leoleth.state.is_taking_turn: await open_turn(game, leoleth)
 	await SpecFactory.use(game, leoleth, WING_ID, WING_ACTION)
+
+## ------------------------------------------------------------------ SP3: rank II
+## The Thermal Death Axe (design ruling 15). Heavy MELEE, LIMITED 1, two profiles on one usage group.
+const TDA_ID := &'mw_thermal_death_axe'
+const TDA_STANDARD := &'action_tda_standard'
+const TDA_THUNDEROUS := &'action_tda_thunderous'
+const TDA_RECHARGE := &'action_tda_recharge'
+## The Kit's shared usage group: one Skirmish per turn whichever profile swings.
+const TDA_USAGE_GROUP := &'thermal_death_axe'
+
+## The vanilla LIMITED weapon that must stay NON-destructible at zero charges (the extension is
+## exact). mw_stub_cannon: an AUX CANNON, LIMITED 6 (content/gear/ha/weapons/mw_stub_cannon.tres:31)
+## - Thy Hubris' test_injector_drill.gd uses the same control, equipped the same way.
+const STUB_CANNON := &'mw_stub_cannon'
+
+static func arm_axe(unit:Unit) -> GearCore: return equip(unit, TDA_ID)
+
+## Swing one PROFILE of the axe, cycling the attacker's turn first exactly as swing() does.
+## SpecFactory.use rather than use_solo: the Kit carries three actions and use_solo fires the first.
+static func swing_axe(game:Gamemaster, attacker:Unit, target:Unit, profile:StringName = TDA_STANDARD) -> void:
+	if attacker.state.is_taking_turn: await SpecFactory.end_turn(game, attacker)
+	await SpecFactory.start_turn(game, attacker)
+	await SpecFactory.use(game, attacker, TDA_ID, profile, target)
+
+## A second swing inside the SAME turn, with no cycle. AS_FREEBIE bypasses the per-turn soft limit
+## (the shoot_again() reasoning); pair it with an assertion that the swing really happened.
+static func swing_axe_again(game:Gamemaster, attacker:Unit, target:Unit, profile:StringName = TDA_STANDARD) -> void:
+	await SpecFactory.use(game, attacker, TDA_ID, profile, target, [Action.FLAG.AS_FREEBIE])

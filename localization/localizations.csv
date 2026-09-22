@@ -457,3 +457,10 @@ gear.ms_wing.action_enhanced_movement_suite.name,Enhanced Movement Suite
 gear.ms_wing.action_enhanced_movement_suite.effect,"You may spend a charge to clear the |Prone|, |Slowed|, and |Immobilized| conditions if they weren't self inflicted. For the rest of the turn, you ignore |difficult terrain| and may move over |cover| regardless of its size."
 gear.buff_wing.name,W.I.N.G
 gear.buff_wing.effect,"You ignore |difficult terrain| and may move over |cover| regardless of its size."
+,
+gear.mw_thermal_death_axe.name,Thermal Death Axe
+gear.mw_thermal_death_axe.flavor,"The Thermal Death Axe consists of a massive thermal axe blade propelled by massive gyrojets. Based off of an ancient Cradle martial art, the gyrojets use experimental momentum transfer technology to charge the blade and propel it straight through anything in its path. Its original name was prototyped to be 'Thermal Momentum Axe' but the sheer brutality demonstrated during early testing led to its nicknaming, and then eventual official renaming, to its current state."
+gear.mw_thermal_death_axe.effect,"You may attack with this weapon without expending or requiring charges, and this weapon can be destroyed even if it has no charges remaining. You may spend 1 charge to use the 'Thunderous' profile when making an attack. At the end of your turn, this weapon gains 1 charge if you have at least 4 spaces of unspent movement."
+gear.mw_thermal_death_axe.action_tda_standard.name,Thermal Death Axe (Standard)
+gear.mw_thermal_death_axe.action_tda_thunderous.name,Thermal Death Axe (Thunderous)
+gear.mw_thermal_death_axe.action_tda_recharge.log,{unit} regains a charge on {gear}: at least 4 spaces of movement were left unspent.

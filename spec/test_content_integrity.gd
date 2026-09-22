@@ -267,6 +267,13 @@ const LEOLETH_LOCALIZATION_ROWS:Array[String] = [
 	'gear.ms_wing.action_enhanced_movement_suite.effect',
 	'gear.buff_wing.name',
 	'gear.buff_wing.effect',
+	# SP3 Task 1. The Thermal Death Axe's rows.
+	'gear.mw_thermal_death_axe.name',
+	'gear.mw_thermal_death_axe.flavor',
+	'gear.mw_thermal_death_axe.effect',
+	'gear.mw_thermal_death_axe.action_tda_standard.name',
+	'gear.mw_thermal_death_axe.action_tda_thunderous.name',
+	'gear.mw_thermal_death_axe.action_tda_recharge.log',
 ]
 
 func test_the_leoleths_unguarded_rows_resolve():
@@ -774,6 +781,12 @@ const ICON_TARGETS := {
 	# the Kit's and the action inherits it (icon-sharing.md section 5 - KIT is absence, not
 	# duplication). Both assertions are SP5's to turn green.
 	&'ms_wing': {&'action_enhanced_movement_suite': KIT},
+	# SP3 Task 1 (Leoleth). The Thermal Death Axe. Two profiles: Standard is the weapon itself (KIT),
+	# Thunderous is a named family of its own - the Mjolnir's chamber-rounds shape, the same picture
+	# intensified, to be drawn by SP5 as mw_thermal_death_axe_thunderous.svg. The recharge reaction
+	# hides from tooltips and reaches no player-facing surface, so it has no row. Both assertions
+	# and the Kit's own icon_override are SP5's - deliberate red #1 grows by three asserts.
+	&'mw_thermal_death_axe': {&'action_tda_standard': KIT, &'action_tda_thunderous': &'action_tda_thunderous'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
