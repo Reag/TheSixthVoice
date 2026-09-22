@@ -1,0 +1,16 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="1_onhit"]
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="2_buff"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_thunder_sword/buff_thunder_sword.tres" id="3_chip"]
+
+; SCRIPT-LESS, on the ENGINE's own OnHitEffect - onhit_rend_nexus.tres is the in-mod precedent.
+; Nothing here needs code: apply_statuses_and_buffs sends the buff to the ATTACKED unit with
+; context.gear as its source (on_hit_effect.gd:84-87), which is both halves of ruling 19's "to the
+; TARGET, from_gear the sword".
+;
+; apply_on is OMITTED: STAGE.ON_HIT is the export's own default (on_hit_effect.gd:12) and ON_HIT is
+; the card's stage. apply_buffs_to_self is OMITTED: false is the default, and false is the target.
+[resource]
+script = ExtResource("1_onhit")
+buffs = Array[ExtResource("2_buff")]([ExtResource("3_chip")])

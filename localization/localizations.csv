@@ -444,3 +444,9 @@ gear.buff_rage_bulwark.effect,All hostile |characters| within |line of sight| ha
 ,
 gear.buff_rage_hatred.name,Hatred
 gear.buff_rage_hatred.effect,"Whenever you take damage from a hostile character, they take 3 |energy| damage."
+,
+gear.mw_thunder_sword.name,Thunder Sword
+gear.mw_thunder_sword.flavor,"The Thunder Sword is a strange weapon. It is powered by a massive battery on the hilt which runs a powerful electric current along the blade. When it hits, the electrical shock impairs movement systems causing significant damage if they are used."
+gear.mw_thunder_sword.on_hit,"Until the end of your next turn, if the damaged character voluntarily moves, they take 1 |AP| |Energy| damage per space, up to a maximum of 5."
+gear.buff_thunder_sword.name,Thunder Sword
+gear.buff_thunder_sword.effect,"If you voluntarily move, you take 1 |AP| |energy| damage per space, up to a maximum of 5."

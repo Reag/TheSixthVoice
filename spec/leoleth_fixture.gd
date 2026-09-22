@@ -390,3 +390,18 @@ static func marker(game:Gamemaster) -> Unit:
 ## Shorthand every ability spec uses: does this unit hold this chip, from any source?
 static func has(unit:Unit, buff_id:StringName) -> bool:
 	return UnitCondition.has_buff(unit, buff_id)
+
+## ------------------------------------------------------------------ SP2: rank I
+## The Thunder Sword (design ruling 19). A MAIN MELEE weapon, Threat 1, whose whole ability is the
+## on-hit chip.
+const THUNDER_SWORD_ID := &'mw_thunder_sword'
+const THUNDER_SWORD_ACTION := &'action_thunder_sword'
+const THUNDER_SWORD_CHIP := &'buff_thunder_sword'
+
+static func arm_thunder_sword(unit:Unit) -> GearCore: return equip(unit, THUNDER_SWORD_ID)
+
+## Swing the Thunder Sword, cycling the attacker's turn first, exactly as swing() does - and it IS
+## swing(), which takes a kit id for precisely this reason. Named separately so a reader of
+## test_thunder_sword.gd never has to ask which weapon is in hand.
+static func swing_sword(game:Gamemaster, attacker:Unit, target:Unit) -> void:
+	await swing(game, attacker, target, THUNDER_SWORD_ID)

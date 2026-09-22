@@ -250,6 +250,12 @@ func test_the_vaubans_unguarded_rows_resolve():
 ## artifact, which is the stronger check.
 const LEOLETH_LOCALIZATION_ROWS:Array[String] = [
 	'gear.mt_decimate_terrain.name',
+	# SP2 Task 1. The Thunder Sword's rows. Belt-and-braces with test_thunder_sword.gd's own
+	# resolution assertions, the per-sub-project pattern this file keeps.
+	'gear.mw_thunder_sword.name',
+	'gear.mw_thunder_sword.on_hit',
+	'gear.buff_thunder_sword.name',
+	'gear.buff_thunder_sword.effect',
 ]
 
 func test_the_leoleths_unguarded_rows_resolve():
@@ -748,6 +754,11 @@ const ICON_TARGETS := {
 	# frame no new glyph for either.
 	&'mt_decimate_terrain': {},
 	&'mt_decimate_expiry': {},
+	# SP2 Task 1 (Leoleth). The Thunder Sword. KIT, not a named family: the Kit has exactly one
+	# action, so design section 5's "one glyph for the weapon" is absence rather than a texture
+	# written twice - the icon-sharing rule (icon-sharing.md section 5). Both the row's assertions
+	# and the Kit's own icon_override are SP5's, so this row is part of deliberate red #2 until then.
+	&'mw_thunder_sword': {&'action_thunder_sword': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -945,6 +956,9 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	&'buff_rage_bulwark',
 	# SP1 Task 12 (Leoleth). Hatred's chip - the last of RAGE's six faces.
 	&'buff_rage_hatred',
+	# SP2 Task 1 (Leoleth). The Thunder Sword's on-hit chip. Visible because it is the target's only
+	# warning that moving will cost it, and the only place the 5-point clock is legible at all.
+	&'buff_thunder_sword',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
