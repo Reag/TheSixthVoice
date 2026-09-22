@@ -474,3 +474,42 @@ gear.ms_zip_type_engine.action_zip_disengage.name,Disengage ZIP Type Engine
 gear.ms_zip_type_engine.action_zip_disengage.effect,"Shut the engine down. Your non-standard moves are ordinary movement again and cost no |Heat|."
 gear.buff_zip_type_engine.name,ZIP Type Engine
 gear.buff_zip_type_engine.effect,"Every move you make that is not your standard movement or |Boost| is a |teleportation=lancer.term.teleport| and costs you 1 |Heat|."
+bark.nhp_jormungandr,NHP JÖRMUNGANDR
+bark.nhp_jormungandr.deploy.1,FINALLY
+bark.nhp_jormungandr.deploy.2,AND HERE I THOUGHT I WAS GOING TO BE BORED
+bark.nhp_jormungandr.deploy.3,WHAT TOOK YOU SO LONG
+bark.nhp_jormungandr.start_turn.1,HAHAHAHAHAHAHAHA
+bark.nhp_jormungandr.start_turn.2,YOU WILL BE MINE SOON
+bark.nhp_jormungandr.crit_target.1,I WILL DRINK YOUR BLOOD AND BREAK YOUR SPIRIT AND TEAR YOU TO TINY LITTLE PIECES UNTIL THEY CANNOT REMEMBER YOUR FACE
+bark.nhp_jormungandr.crit_target.2,YOU ARE NOTHING TO ME
+bark.nhp_jormungandr.structure_target.1,I HATE YOU AND SO I WILL MAKE YOU NO MORE
+bark.nhp_jormungandr.structure_target.2,YOU ARE LUCKY TO DIE BY MY HAND
+bark.nhp_jormungandr.stress_target.1,BURN YOU WRETCHED FREAK
+bark.nhp_jormungandr.stress_target.2,I HOPE HELL IS EVEN HOTTER
+bark.nhp_jormungandr.stress_target.3,YOU DESERVE THIS
+bark.nhp_jormungandr.destroy_target.1,NOT EVEN WORTH DESECRATING
+bark.nhp_jormungandr.destroy_target.2,THE WORLD IS A MUCH BETTER PLACE NOW
+bark.nhp_jormungandr.destroy_target.3,"LUCKY YOU, IM OUT OF TIME TO PLAY WITH MY FOOD"
+bark.nhp_jormungandr.structure_self.1,"AGAIN, AGAIN!"
+bark.nhp_jormungandr.structure_self.2,I HATE YOU I HATE YOU I HATE YOU I HATE YOU
+bark.nhp_jormungandr.stress_self.1,THIS IS NOTHING
+bark.nhp_jormungandr.stress_self.2,GRAAAAAAAAAAAAAAAAAAAH
+bark.nhp_jormungandr.destroy_self.1,FINALLY
+bark.nhp_jormungandr.destroy_self.2,HELL CANNOT HOLD ME
+bark.nhp_jormungandr.destroy_self.3,FUCK YOU
+bark.nhp_jormungandr.destroy_ally.1,DONT GET IN MY WAY
+bark.nhp_jormungandr.destroy_ally.2,I ALWAYS WANTED TO HEAR YOU SCREAM
+bark.nhp_jormungandr.destroy_ally.3,WE ALWAYS HAVE SUCH FUN TOGETHER
+bark.nhp_jormungandr.friendly_fire_self.1,RAPTUROUS
+bark.nhp_jormungandr.friendly_fire_self.2,I CAN TAKE IT
+bark.nhp_jormungandr.friendly_fire_target.1,LUCKY YOU
+bark.nhp_jormungandr.friendly_fire_target.2,I WANT YOU DEAD
+bark.nhp_jormungandr.core_power.1,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+bark.nhp_jormungandr.core_power.2,"MY REACH IS BOUNDLESS, MY HATE IS INFINITE"
+bark.nhp_jormungandr.overcharge.1,"NEVER SLOW, NEVER STOP"
+bark.nhp_jormungandr.overcharge.2,"IF YOU SURVIVE, I HAVE FAILED"
+bark.nhp_jormungandr.brace.1,DONT DO THAT AGAIN
+bark.nhp_jormungandr.brace.2,YOU BETTER FUCKING NOT TRY THAT AGAIN
+bark.nhp_jormungandr.leader_accuracy.1,KILL THEM
+bark.nhp_jormungandr.leader_damage.1,"SWING HARDER, SHOOT FASTER"
+bark.nhp_jormungandr.leader_reduce.1,WHAT THE HELL ARE YOU DOING? THEY NEED NOT LIVE

@@ -1,0 +1,91 @@
+{
+	"body_height": 0,
+	"body_size": "big",
+	"colors": {
+		"accessory_other_primary": {
+			"tone": "palette_hologram_05"
+		},
+		"accessory_other_secondary": {
+			"tone": "palette_hologram_03"
+		},
+		"bg_primary": {
+			"base": "2a3b51ff",
+			"tone": "tone_standard"
+		},
+		"body_texture": {
+			"base": "333333ff",
+			"tone": "tone_standard"
+		},
+		"clothing_inner_primary": {
+			"tone": "palette_hologram_05"
+		},
+		"clothing_inner_secondary": {
+			"tone": "palette_hologram_01"
+		},
+		"clothing_outer_primary": {
+			"base": "a88c5fff",
+			"tone": "tone_standard"
+		},
+		"clothing_outer_secondary": {
+			"base": "abababff",
+			"tone": "tone_standard"
+		},
+		"hair": {
+			"base": "333333ff",
+			"tone": "tone_standard"
+		},
+		"head_texture": {
+			"base": "333333ff",
+			"tone": "tone_standard"
+		},
+		"iris": {
+			"tone": "palette_hologram_02"
+		},
+		"nhp_color": {
+			"base": "791e17ff",
+			"tone": "tone_standard"
+		},
+		"skin": {
+			"tone": "palette_hologram_01"
+		}
+	},
+	"compat_version": 19,
+	"is_nhp": true,
+	"is_stock": true,
+	"offsets": {},
+	"slices": {
+		"background": "solid_dark",
+		"beard": "blank",
+		"body": "body",
+		"body_texture": "tattoogeo1",
+		"clothing_inner": "military_shirt",
+		"ears": "b_typical_2",
+		"eyebrows": "angry_thick",
+		"eyes": "cat",
+		"hair": "shapeup2",
+		"head": "round",
+		"head_texture": "scar1",
+		"mouth": "frown",
+		"nose": "normal"
+	},
+	"token": {
+		"colors": {
+			"0": {
+				"base": "6e6e6eff",
+				"tone": "tone_standard"
+			},
+			"1": {
+				"base": "6e6e6eff",
+				"tone": "tone_standard"
+			},
+			"2": {
+				"base": "e3c55cff",
+				"tone": "tone_standard"
+			},
+			"3": {
+				"tone": "tone_standard"
+			}
+		},
+		"frame_id": "bod_human"
+	}
+}
