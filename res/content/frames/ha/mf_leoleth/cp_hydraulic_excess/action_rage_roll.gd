@@ -89,6 +89,7 @@ func apply_face_effect(face:int, context:Context, activation:EventCore) -> void:
 		1: await lay_the_crater(context, activation)
 		2: await boost_for_free(context, activation)
 		3: hang_the_reliable_companion(context, activation)
+		4: await offer_combust(context, activation)
 
 ## DECIMATE (ruling 8): "A Burst 1 area around you becomes difficult terrain."
 ##
@@ -123,6 +124,38 @@ func hang_the_reliable_companion(context:Context, activation:EventCore) -> void:
 	var companion:Buff = ContentLibrary.get_buff(&'buff_rage_reach_reliable')
 	if companion == null: return
 	apply_buffs(activation, context.unit, [companion] as Array[Buff])
+
+## COMBUST (ruling 12): "Choose a blast 1 area within line of sight and SENSORS."
+##
+## Offered rather than fired, because the card says CHOOSE. CommonActionUtil.choose_and_use supplies
+## AS_FREEBIE and TARGETS_ARE_MANDATORY itself (common_action_util.gd:693-696) and, with exactly one
+## option and a player-controlled unit, picks it without raising a menu (:658-659) - so what the
+## player sees is Combust's own targeting screen, which they can back out of.
+##
+## NOT OFFERED AT ALL WHEN NOTHING IS IN RANGE: an empty targeting screen is not a choice. Toe To Toe
+## uses the same UnitTargeting guard for the same reason (action_predator_prey_concepts.gd:36 is the
+## vanilla precedent). NO SPEC EXERCISES THIS BRANCH, AND THAT IS RECORDED RATHER THAN CONTRIVED:
+## Combust's TargetRequirements sets can_target_empty_tiles (the card picks an AREA, not a unit), so
+## get_tiles_targetable keeps every in-range in-LOS tile (unit_targeting.gd:84-87) and is empty only
+## for a unit that is effectively off the map. The guard is a safety net for a future variant, not a
+## live clause - unlike Toe To Toe's, where a weapon's requirements leave the flag false and the list
+## really does empty out.
+##
+## choose_and_use_no_spend: this reaction costs nothing, so there is nothing to defer.
+func offer_combust(context:Context, activation:EventCore) -> void:
+	var unit:Unit = context.unit
+	# from_id takes a KIT id and, optionally, an ACTION id (specific_action.gd:68-76). Both are given
+	# here, because the core Kit carries five actions and the one-argument form returns
+	# gear.get_solo_action(), which on a multi-action Kit is not this one.
+	var combust := SpecificAction.from_id(unit, &'cp_hydraulic_excess', &'action_combust')
+	if not SpecificAction.is_valid(combust): return
+	if UnitTargeting.get_tiles_targetable(combust).is_empty(): return
+	await CommonActionUtil.choose_and_use(
+		activation,
+		SpecificAction.from_context(context),
+		[combust] as Array[SpecificAction],
+		CommonActionUtil.choose_and_use_no_spend,
+	)
 
 ## SWIFT (ruling 10): "You may immediately Boost as a free action."
 ##

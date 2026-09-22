@@ -436,3 +436,5 @@ gear.buff_rage_swift.effect,You may immediately |Boost| as a |free action| and y
 gear.buff_rage_reach.name,Reach
 gear.buff_rage_reach.effect,Your melee weapons gain |+1 Threat| and |Reliable 2|.
 gear.cp_hydraulic_excess.action_reach_reliable.name,Reach
+,
+gear.cp_hydraulic_excess.action_combust.name,Combust

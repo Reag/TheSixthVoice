@@ -726,16 +726,21 @@ const ICON_TARGETS := {
 	&'mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa': {},
 	# SP1 Task 4 (Leoleth). A passive trait with no action of its own - the mt_hole_puncher shape.
 	&'mt_fleet_of_foot': {},
-	# SP1 Tasks 5 and 6 (Leoleth). HYDRAULIC EXCESS. Task 10 adds action_combust to this dictionary,
-	# sharing the SAME family name as action_rage - design section 5 gives this Kit exactly two glyph
+	# SP1 Tasks 5, 6 and 10 (Leoleth). HYDRAULIC EXCESS. action_combust shares the SAME family name as
+	# action_rage - design section 5 gives this Kit exactly two glyph
 	# families, ALL SYSTEMS RED and RAGE, and the six effect chips wear RAGE's glyph in six tints.
+	# Combust needs a row despite being "hidden": _action_reaches_a_player_facing_surface returns true
+	# for anything that is not an ActionReaction and is not is_situationally_activated, and Combust is
+	# an ActionSystem. is_situationally_activated is deliberately NOT set - it means "usable by a unit
+	# other than the one it is on" (action.gd:45-46) and would put Combust into UnitAction's
+	# situational-action scan (unit_action.gd:38-50), which is not what it is.
 	# None of action_all_systems_red, action_rage_roll or action_reach_reliable ever gets a row: all
 	# three are ActionReactions
 	# whose scripts override show_in_tooltip to false, so _action_reaches_a_player_facing_surface
 	# (:1027-1030 as this file now stands) answers false and the guard asserts they are NOT listed.
 	# ALL SYSTEMS RED therefore cannot wear a glyph of its own and the KIT's own icon is that family,
 	# exactly as the Sluagh's frame close found for Astral Guardian.
-	&'cp_hydraulic_excess': {&'action_rage': &'action_rage'},
+	&'cp_hydraulic_excess': {&'action_rage': &'action_rage', &'action_combust': &'action_rage'},
 	# SP1 Task 7 (Leoleth). The Decimate crater's two trait Kits. Neither carries a player-pressable
 	# action: the terrain zone has no actions at all, and the expiry's one action is a hidden reaction
 	# whose script overrides show_in_tooltip to false. So both rows are `{}` and only the Kits' own
