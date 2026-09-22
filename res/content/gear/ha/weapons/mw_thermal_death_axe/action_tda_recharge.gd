@@ -15,8 +15,28 @@
 # which happens to be the same number on this frame today, and would not be on a Leoleth carrying a
 # speed bonus.
 #
-# Fires beside Toe To Toe on the same trigger and timing; order does not matter, because a free
-# Skirmish does not touch current.speed. spec/test_thermal_death_axe.gd runs both in one end_turn.
+# FIRES BESIDE TOE TO TOE ON THE SAME TRIGGER AND TIMING - AND IN PRODUCTION THE TRAIT SWINGS FIRST.
+# END_TURN PRE reactions are COLLECTED in one pass and only then executed: EventCore's
+# execute_reaction_events takes the whole block list back from reaction_bus.trigger_occurred and
+# awaits it afterwards (event_core.gd:52-55), so every gate below is evaluated BEFORE any reaction in
+# the batch has run. The collection order is loadout.reactions_by_trigger, built by walking
+# get_reactions() (loadout_core.gd:291-296), which filters get_all_gear() - attacks, systems, TRAITS,
+# then MOUNTS (:511-518). A Heavy Melee weapon is MOUNTED in play and Toe To Toe is a frame TRAIT, so
+# the free Skirmish is collected and swung before this reaction is executed.
+#
+# THE GATE IS THEREFORE THE SPEED CLAUSE AND NOTHING ELSE. A charge check here would be read against
+# the axe as it stood BEFORE the Skirmish: a FULL axe would never be collected at all, Toe To Toe
+# would then swing Thunderous and spend the charge, and the turn would end empty - while the card
+# says the weapon gains one. Simultaneous end-of-turn effects resolve in the player's order, and
+# Skirmish-then-recharge is the faithful reading of that.
+#
+# THE CAP MOVES TO activate(), where it is read AFTER the swing. Returning early there costs nothing:
+# event_gear_activate's execute just calls activate (:79-80), its post-activation block is gated on
+# the usage tally actually MOVING (:100-104), and log_usage is reached only from UnitAction.spend
+# (unit_action.gd:233) - which this action never reaches, because it has no spend_actions() call. So
+# a recharge that fires on a full axe spends nothing and writes no battle-log line.
+#
+# spec/test_thermal_death_axe.gd runs both reactions in one end_turn, in both collection orders.
 #
 # THE CAP is get_max_charges (gear_core.gd:235-246) rather than kit.charges_max, so a Limited bonus
 # (an Engineer pilot) or a max_charges_override is honoured.
@@ -48,25 +68,24 @@ func show_in_tooltip(_kit:Kit) -> bool: return false
 ## Nothing here is spent (there is no spend_actions call), so false is also simply the truth.
 func consumes_charges(_specific:SpecificAction) -> bool: return false
 
-func get_required_triggering_context() -> Array[Context.PROP]:
-	return [Context.PROP.unit]
-
+## get_required_triggering_context is NOT overridden here: ActionReactionSelf's own returns
+## [Context.PROP.unit] already (action_reaction_self.gd:8-9), and a byte-identical copy only invites
+## the two to drift apart.
 func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> bool:
 	if not super.triggers_on_event(unit, gear, triggering_event): return false
 	if not Unit.is_valid(unit) or not GearCore.is_valid(gear): return false
-	# "if you have at least 4 spaces of unspent movement" - ruling 2's pooled budget.
-	if unit.core.current.speed < UNSPENT_SPACES_REQUIRED: return false
-	# "gains 1 charge": nothing to gain when it is already full, and a reaction that fires to do
-	# nothing would still write a log line.
-	return gear.charges_current < gear.get_max_charges(unit.core)
+	# "if you have at least 4 spaces of unspent movement" - ruling 2's pooled budget, and the ONLY
+	# clause here. The cap is deliberately NOT read at collection time; see the header.
+	return unit.core.current.speed >= UNSPENT_SPACES_REQUIRED
 
 func activate(context:Context, activation:EventCore) -> void:
 	var unit:Unit = context.unit
 	var gear:GearCore = context.gear
 	if not Unit.is_valid(unit) or not GearCore.is_valid(gear): return
-	# Re-checked rather than trusted: recheck_trigger_before_execution is false on the .tres, so the
-	# gate above ran when the reaction was COLLECTED and another END_TURN PRE reaction could have
-	# run in between.
+	# THE CAP, READ HERE AND NOWHERE ELSE - see the header. The gate above ran when the whole END_TURN
+	# PRE batch was COLLECTED, before Toe To Toe's free Skirmish had a chance to empty this weapon, so
+	# a full axe at collection time can be an empty one by now. "Gains 1 charge" has nothing to add
+	# only when the axe is still full at THIS moment.
 	if gear.charges_current >= gear.get_max_charges(unit.core): return
 	gear.charges_current += 1
 	battle_log.log_gear(LOG_KEY, unit, gear)

@@ -469,8 +469,8 @@ gear.ms_zip_type_engine.name,ZIP TYPE ENGINE
 gear.ms_zip_type_engine.flavor,"Taken directly from the Broadcasts and slapped into the Leoleth license, the ZIP type engine allows for rapid if unreliable bursts of teleportation. While it was going to be integrated into the Sunzi license, it was deemed too dangerous and ""entirely unnecessary"". Harrison Armory also advises that you don't let it get wet under any circumstances."
 gear.ms_zip_type_engine.effect,"Whenever you would move from something that is not your standard movement or |Boost|, you may treat that movement as if it were |teleportation=lancer.term.teleport|. If you do, you gain 1 |Heat|."
 gear.ms_zip_type_engine.action_zip_engage.name,Engage ZIP Type Engine
-gear.ms_zip_type_engine.action_zip_engage.effect,"Until disengaged, every move that is not your standard movement or |Boost| is a |teleportation=lancer.term.teleport|, and each such move costs you 1 |Heat|."
+gear.ms_zip_type_engine.action_zip_engage.effect,"Until disengaged, every move you make that is not your standard movement or |Boost| is a |teleportation=lancer.term.teleport|, and each such move costs you 1 |Heat|."
 gear.ms_zip_type_engine.action_zip_disengage.name,Disengage ZIP Type Engine
 gear.ms_zip_type_engine.action_zip_disengage.effect,"Shut the engine down. Your non-standard moves are ordinary movement again and cost no |Heat|."
 gear.buff_zip_type_engine.name,ZIP Type Engine
-gear.buff_zip_type_engine.effect,"Every move that is not your standard movement or |Boost| is a |teleportation=lancer.term.teleport| and costs you 1 |Heat|."
+gear.buff_zip_type_engine.effect,"Every move you make that is not your standard movement or |Boost| is a |teleportation=lancer.term.teleport| and costs you 1 |Heat|."

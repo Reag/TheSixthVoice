@@ -188,6 +188,10 @@ func test_f_our_extension_is_in_the_live_autoloads_script_chain() -> void:
 	if ours == null: return
 	assert_true(chain_has_source('THERMAL DEATH AXE (Leoleth, mw_thermal_death_axe)'),
 		'Our unit_printer.gd_ext.gd is in the live chain (%d scripts deep).' % live_chain().size())
-	assert_true(live_chain().back().source_code.begins_with('# Copyright (c) 2026 Wickworks'),
+	# THE YEAR IS DELIBERATELY NOT MATCHED (test_compat.gd's idiom): every modkit release re-stamps the
+	# per-file copyright line, so baking 2026 in would turn this into a release-day red that says
+	# nothing at all about the seam.
+	var root_header:String = live_chain().back().source_code.get_slice('\n', 0)
+	assert_true(root_header.begins_with('# Copyright (c) ') and root_header.contains('Wickworks'),
 		'Vanilla is the root of the chain.')
 	assert_true(live_chain().size() >= 2, 'At least vanilla plus ours.')

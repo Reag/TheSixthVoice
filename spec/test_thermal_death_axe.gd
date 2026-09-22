@@ -99,6 +99,9 @@ func _under_per_turn_limit(profile:StringName) -> bool:
 	return UnitAction.is_under_per_turn_limit(_specific(profile))
 
 ## Open the Leoleth's turn with a hit queued: [d20 19, then `damage` dice], no RAGE (never pressed).
+##
+## THE TURN START ITSELF POPS NOTHING on this frame - no Kit here declares recharge_on and RAGE is
+## never pressed - so whatever the queue holds when this returns is what the swing will draw from.
 func _open_turn_with_hit(damage_dice:Array[int]) -> void:
 	if leoleth.state.is_taking_turn: await SpecFactory.end_turn(game, leoleth)
 	var rolls:Array[int] = [19]
@@ -198,6 +201,9 @@ func test_standard_swings_at_zero_charges_and_spends_none():
 	axe.charges_current = 0
 	assert_true(_available(LeolethFixture.TDA_STANDARD), '"without requiring charges".')
 	await _open_turn_with_hit([3])
+	# READ, NOT HARD-CODED: queue() lays the given rolls plus a tail whose length is the fixture's
+	# business, so a literal here would go red the day that tail changes and say nothing about the axe.
+	var dice_before:int = Dice.CHEAT_ROLL_QUEUE.size()
 	var hp := target.core.current.health
 	await SpecFactory.use(game, leoleth, LeolethFixture.TDA_ID, LeolethFixture.TDA_STANDARD, target)
 	assert_eq(target.core.current.health, hp - 5, 'It landed: 3 + 2 kinetic against armor 0.')
@@ -207,8 +213,8 @@ func test_standard_swings_at_zero_charges_and_spends_none():
 	# and sums the first N or the highest N of the pooled rolls (:256-257). So 1d6+2 costs a d20 and
 	# two d6. HEAT SELF "1" costs nothing at all: process_dice_string parses a bare number as a
 	# BONUS with count 0 (dice.gd:112-113), and roll_dice loops count times.
-	# queue() lays 2 rolls plus a 60-long tail of 1s, so 62 - 3 = 59 is "nothing else rolled".
-	assert_eq(Dice.CHEAT_ROLL_QUEUE.size(), 59, 'Only the d20 and the two damage-column d6 were popped.')
+	assert_eq(Dice.CHEAT_ROLL_QUEUE.size(), dice_before - 3,
+		'Only the d20 and the two damage-column d6 were popped.')
 
 func test_thunderous_is_refused_at_zero_charges():
 	axe.charges_current = 0
@@ -350,6 +356,34 @@ func test_a_full_axe_does_not_overflow():
 	await SpecFactory.end_turn(game, leoleth)
 	assert_eq(axe.charges_current, 1, 'Capped at charges_max.')
 
+## The recharge's gate, polled against a real END_TURN event core - test_toe_to_toe.gd's gate_open()
+## idiom, and here for a second reason on top of its own: this reaction's cap lives in activate(),
+## which returns QUIETLY, so no outcome assertion can tell "the gate refused to collect it" from "it
+## was collected and had nothing to do".
+func _recharge_gate_open() -> bool:
+	var action := _recharge()
+	if action == null: return false
+	return action.triggers_on_event(leoleth, axe, EventCore.create(&'event_turn_end', {unit = leoleth}))
+
+func test_the_recharge_gate_reads_speed_alone_and_not_the_charge():
+	# WHY THE CAP CANNOT BE A CLAUSE HERE. Every END_TURN PRE reaction is COLLECTED in one pass and
+	# only then executed (event_core.gd:52-55), and in production Toe To Toe is collected first - it
+	# is a frame TRAIT and a Heavy Melee weapon is MOUNTED, which is get_all_gear()'s order
+	# (loadout_core.gd:291-296, :511-518). So a cap read HERE is read against the axe as it stood
+	# before the free Skirmish: a full axe would never be collected, the Skirmish would spend the
+	# charge, and the turn would end empty. The cap moved into activate(); the gate is the card's
+	# movement clause and nothing else.
+	_silence_toe_to_toe()
+	await SpecFactory.start_turn(game, leoleth)
+	assert_eq(axe.charges_current, 1, 'fixture: the axe is FULL.')
+	assert_eq(leoleth.core.current.speed, leoleth.get_speed_max(), 'fixture: nothing is spent.')
+	assert_true(_recharge_gate_open(),
+		'A full axe is still COLLECTED - the charge it holds now says nothing about the charge it will hold.')
+
+	await LeolethFixture.walk(game, leoleth, LEOLETH_TILE + Vector2i(0, 1)) # one step: 4 -> 3
+	assert_eq(leoleth.core.current.speed, 3, 'fixture: one space spent.')
+	assert_false(_recharge_gate_open(), 'And three is still not "at least 4".')
+
 func test_the_recharge_is_logged():
 	# The battle log is the ONLY player-facing trace of a hidden reaction, so it is read off the bus
 	# rather than only asserted to resolve: an unresolved key would reach the player as the raw key
@@ -370,9 +404,15 @@ func test_the_recharge_is_logged():
 		'The recharge announced itself in the battle log, in real text: %s' % [lines])
 
 func test_the_recharge_fires_beside_toe_to_toe_in_the_same_end_turn():
-	# THE DESIGN'S "order does not matter" CLAIM (ruling 15), measured. Two END_TURN PRE reactions on
-	# one unit: Toe To Toe's free Skirmish and this recharge. A Skirmish never touches current.speed,
-	# so whichever runs first the other still sees what it needs.
+	# TWO END_TURN PRE REACTIONS ON ONE UNIT, IN THE **RECHARGE-FIRST** ORDER. Which order this is, is
+	# not a detail: the batch is collected in get_all_gear() order - attacks, systems, TRAITS, mounts
+	# (loadout_core.gd:291-296, :511-518) - and arm_axe equips the axe as a SYSTEM, so here the
+	# recharge is collected and executed BEFORE the trait's free Skirmish. The production order is the
+	# other one (a Heavy Melee weapon is MOUNTED), and
+	# test_a_mounted_full_axe_recharges_after_toe_to_toe_swings_thunderous measures that.
+	#
+	# In this order the two are genuinely independent, which is what this case pins: a Skirmish never
+	# touches current.speed, so the recharge's gate reads the same number either way.
 	#
 	# THE BLADE, NOT THE AXE, is what Toe To Toe offers here, and that is arranged rather than hoped:
 	# the axe is swung first, which puts 1 on its usage group and takes BOTH its profiles out of
@@ -392,6 +432,112 @@ func test_the_recharge_fires_beside_toe_to_toe_in_the_same_end_turn():
 
 	assert_lt(target.core.current.health, hp, 'Toe To Toe\'s free Skirmish landed...')
 	assert_eq(axe.charges_current, 1, '...and the recharge fired in the same PRE block.')
+
+## Answers Toe To Toe's weapon-pick menu with a NAMED profile instead of the first one.
+##
+## THE STOCK RESPONDER CANNOT DO THIS, and its knob for multiple choices is the wrong knob.
+## CommonActionUtil.choose_and_use raises a ChoiceBus.TYPE.gear request whenever a player-controlled
+## unit has more than one option (common_action_util.gd:658-676), and SpecFactory's
+## ChoiceBusResponder.choose_gear answers it with request.params.array[0], unconditionally
+## (spec_factory.gd:518-525). array[0] is Standard, because eligible_attacks walks kit.actions in
+## order. chosen_multiple_choice_index belongs to ChoiceBus.TYPE.brochure (spec_factory.gd:527-533)
+## and is never consulted for a gear pick.
+##
+## So the test switches the stock responder's gear branch off -
+## `SpecFactory.current_responder.choose_gears = false`, the same idiom test_bleakshadow_gate.gd and
+## test_compat.gd use for yesnos and plans - and adds one of these instead. It waits a frame and
+## stays silent if something else already answered, exactly as testkit/tile_set_answerer.gd does.
+class ProfilePicker:
+	extends Node
+	static var choice_bus:ChoiceBus = load('res://engine/choices/choice_bus.tres')
+
+	## The action id to pick out of the menu.
+	var wanted:StringName = &''
+	## Read back by the test: a menu really was raised and this profile really was in it.
+	var picked:bool = false
+
+	func _ready() -> void:
+		choice_bus.on_choice_request.connect(_on_request)
+
+	func _on_request(request:ChoiceRequest) -> void:
+		if request.type != ChoiceBus.TYPE.gear: return
+		await get_tree().process_frame
+		if request.resolved: return # something else answered first
+		for option in request.params.array:
+			if not (option is SpecificAction): continue
+			if option.action.get_id() != wanted: continue
+			picked = true
+			request.send_response({object = option})
+			return
+		request.abort()
+
+func test_a_mounted_full_axe_recharges_after_toe_to_toe_swings_thunderous():
+	# THE PRODUCTION ORDER, AND THE BUG THE FINAL REVIEW FOUND. On a Leoleth in play the axe sits on a
+	# MOUNT, and mounts are the LAST entry of get_all_gear() (loadout_core.gd:511-518) while Toe To Toe
+	# is a frame TRAIT, one entry earlier. reaction_bus.trigger_occurred walks that order (:291-296),
+	# EventCore collects the whole END_TURN PRE batch before executing any of it (event_core.gd:52-55),
+	# and so the free Skirmish resolves BEFORE this reaction does.
+	#
+	# With the cap in the gate, a FULL axe was never collected at all; Toe To Toe then swung Thunderous,
+	# spent the charge, and the turn ended empty - against a card that says the weapon gains one. The
+	# gate now reads speed only and the cap is applied at activation, after the swing.
+	#
+	# THE SYSTEM COPY IS REMOVED FIRST, on purpose: before_each equips the axe through arm_axe, which
+	# files it under the frame's integrated weapons - one entry BEFORE traits - and that copy would
+	# reproduce the old recharge-first order and hide the whole point of this case.
+	leoleth.core.unequip_system(LeolethFixture.TDA_ID)
+	SpecFactory.apply_passive_buffs(leoleth) # unequip_system full_repairs; put the frame's buffs back
+	assert_false(GearCore.is_valid(leoleth.get_gear(LeolethFixture.TDA_ID)),
+		'fixture: the integrated copy is gone, so only the mounted one can answer.')
+
+	var mounted:GearCore = null
+	for mount:MountCore in leoleth.core.loadout.mounts:
+		mounted = mount.equip_primary(LeolethFixture.TDA_ID)
+		if GearCore.is_valid(mounted): break
+	assert_true(GearCore.is_valid(mounted), 'fixture: the axe mounts on one of the frame\'s mounts.')
+	if not GearCore.is_valid(mounted): return
+	# MOUNTED, not integrated - which IS the ordering claim, so it is asserted rather than assumed.
+	assert_true(leoleth.core.loadout.mounts.any(func(mount:MountCore) -> bool:
+		return mount.get_gear().has(mounted)), 'fixture: it is reachable through the mounts...')
+	assert_false(leoleth.core.loadout.attacks.has(mounted), '...and it is not an integrated attack...')
+	assert_false(leoleth.core.loadout.systems.has(mounted), '...nor a system.')
+	# FILLING A SLOT BY HAND DOES NOT REFRESH THE REACTION INDEX. reactions_by_trigger is rebuilt only
+	# by regenerate_caches (loadout_core.gd:291-296), which production reaches through
+	# regenerate_derived_gear (:275) every time the mech is printed or repaired after the mech editor
+	# put the weapon on the mount. A spec that writes into slot_primary itself has to say so, or the
+	# mounted axe's reaction is simply not in the batch and this case passes/fails for that reason.
+	leoleth.core.loadout.regenerate_caches()
+	mounted.charges_current = mounted.get_max_charges(leoleth.core)
+	assert_eq(mounted.charges_current, 1, 'fixture: and it is FULL, which is the state that broke.')
+
+	# THE ORDERING CLAIM ITSELF, read off the index the bus walks (reaction_bus.gd:50-52).
+	var batch:Array = leoleth.core.loadout.reactions_by_trigger.get(ReactionBus.TRIGGER.END_TURN, [])
+	var toe:GearCore = leoleth.get_gear(LeolethFixture.TOE_TO_TOE_ID)
+	assert_gt(batch.find(toe), -1, 'fixture: Toe To Toe is in the END_TURN batch...')
+	assert_gt(batch.find(mounted), -1, '...and so is the mounted axe.')
+	assert_lt(batch.find(toe), batch.find(mounted),
+		'The TRAIT is collected before the MOUNT, which is the production order this case exists for.')
+
+	await LeolethFixture.open_turn(game, leoleth)
+	assert_eq(leoleth.core.current.speed, leoleth.get_speed_max(),
+		'fixture: nothing moved, so both reactions\' gates are open.')
+
+	var picker := ProfilePicker.new()
+	picker.wanted = LeolethFixture.TDA_THUNDEROUS
+	add_child_autoqfree(picker)
+	SpecFactory.current_responder.choose_gears = false
+
+	# A hit: d20, then 2d6 for the hit column and 2d6 for the crit column (attack_util.gd:250-257).
+	# queue() tails with 1s, so [19, 6, 6, 6] lands 6 + 6 + 2 = 14 ENERGY on a 200 HP dummy.
+	LeolethFixture.queue([19, 6, 6, 6])
+	var hp := target.core.current.health
+	await SpecFactory.end_turn(game, leoleth)
+
+	assert_true(picker.picked, 'LIVENESS: the two-entry menu was raised and Thunderous was taken out of it.')
+	assert_eq(target.core.current.health, hp - 14,
+		'The free Skirmish swung THUNDEROUS: 6 + 6 + 2 Energy, armor 0.')
+	assert_eq(mounted.charges_current, 1,
+		'And the axe is full again - the Skirmish spent the charge, the recharge gave it back.')
 
 # ---------------------------------------------------------------- destructible at zero
 

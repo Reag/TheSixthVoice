@@ -1,4 +1,5 @@
-# Script extension on the UnitRelation autoload - the mod's FIRST extension of an autoload.
+# Script extension on the UnitRelation autoload - the mod's FIRST extension of an autoload
+# (unit_printer.gd_ext.gd is the second).
 #
 # A .gd_ext.gd's PATH is its declaration, so every rule this mod ever needs inside unit_relation.gd
 # has to live in this one file, each under its own banner. Keep them fenced; anything added later

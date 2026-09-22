@@ -956,3 +956,40 @@ func test_both_extensions_are_in_one_chain_and_vanilla_is_its_root() -> void:
 	var root_header:String = live_printer_chain().back().source_code.get_slice('\n', 0)
 	assert_true(root_header.begins_with('# Copyright (c) ') and root_header.contains('Wickworks'),
 		'...and vanilla is its root, so every super() call still lands (%d scripts deep).' % live_printer_chain().size())
+
+# ------------------------------------------------- and a co-extender of the SAME FUNCTION
+# The Emperor cases above put a second extension on the FILE; this one puts a second extension on the
+# FUNCTION. Reag-ThyHubris' unit_printer.gd_ext.gd whitelists mw_injector_drill in its own
+# get_destructable_gear override, super-first and by kit id, exactly as ours whitelists the axe
+# (unpacked/Reag-ThyHubris/res/engine/character/unit/service/unit_printer.gd_ext.gd:27-35). Both mods
+# load in every testkit run, so the composition is measurable here and nowhere else.
+#
+# THIS IS THE RULING, not an accident of install order: each override calls super() FIRST and then
+# APPENDS its own kit to whatever came back, so the two whitelists union whichever mod ModLoader
+# installed first. The negative control is one test up - mw_stub_cannon, which neither mod
+# whitelists, stays refused (spec/test_thermal_death_axe.gd's vanilla-limited case).
+const THY_HUBRIS_MOD := 'Reag-ThyHubris'
+## The Draugr's weapon, whose card says the same thing ours does: destructible with no charges left.
+const INJECTOR_DRILL := &'mw_injector_drill'
+
+func skipped_without_the_drill() -> bool:
+	if ContentLibrary.get_kit(INJECTOR_DRILL) != null: return false
+	var message := 'SKIPPED: %s is not loaded, so the get_destructable_gear whitelist is unmeasured against a same-function co-extender.' % THY_HUBRIS_MOD
+	gut.p(message)
+	pass_test(message)
+	return true
+
+func test_two_mods_whitelisting_the_same_function_compose_rather_than_cancel() -> void:
+	if skipped_without_the_drill(): return
+	var leoleth:Unit = LeolethFixture.create_leoleth(game, LEOLETH_TILE)
+	var axe:GearCore = LeolethFixture.arm_axe(leoleth)
+	var drill:GearCore = LeolethFixture.equip(leoleth, INJECTOR_DRILL)
+	assert_true(GearCore.is_valid(axe), 'fixture: the axe is equipped.')
+	assert_true(GearCore.is_valid(drill), 'fixture: and so is the other mod\'s drill.')
+	if not (GearCore.is_valid(axe) and GearCore.is_valid(drill)): return
+	axe.charges_current = 0
+	drill.charges_current = 0
+	assert_false(axe.has_charges_left(), 'fixture: both are empty...')
+	assert_false(drill.has_charges_left(), '...which is the only state either whitelist is for.')
+	assert_eq(UnitPrinter.get_destructable_gear([axe, drill]).size(), 2,
+		'THE RULING: super-first whitelists UNION - both mods\' weapons are offered in one run.')
