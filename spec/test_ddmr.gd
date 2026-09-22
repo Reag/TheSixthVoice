@@ -49,12 +49,32 @@
 # whole 1/round gate silently never engages (every hit would then either always chip or never chip,
 # depending which way the null read fails).
 #
-# WHY THE INCREMENT HAPPENS BEFORE super(stage, ...): should_abort's own base body
-# (on_hit_effect.gd:54-73) only rolls a save_to_avoid, which this OnHitEffect does not use (no
-# save_to_avoid on onhit_ddmr.tres) - so there is no "roll a save first, spend second" ordering
-# question here the way ruling 10's Slowed effect has one. The increment is placed before the round
-# check's own early return so a card that already used its round this turn is refused WITHOUT ever
-# touching the counter a second time.
+# WHY THE INCREMENT HAPPENS AFTER super(stage, ...) - REORDERED 2026-09-22, AND THE ORIGINAL
+# REASONING HERE WAS WRONG. This header used to argue the increment could go first because
+# should_abort's base body "only rolls a save_to_avoid, which this OnHitEffect does not use". The
+# save half of that is true; the rest is not. on_hit_effect.gd:55 - the first line of the base body,
+# above the save - is a validity check on TWO units, `Unit.is_valid(attacked_unit) or not
+# Unit.is_valid(activation.context.unit)`, and onhit_ddmr.gd's override only ever redid the SECOND.
+# Nothing in the override looks at attacked_unit at all, so super was the only thing between a dead
+# target and the chip - and the increment ran before it.
+#
+# THE RACE THAT COST. Unit.is_valid reads is_alive (unit.gd:86, cleared at unit.gd:133), so a target
+# that dies between the attack roll and this effect running - to simultaneous damage from any other
+# source in the same resolution - makes super return true. apply_on_hits' `continue`
+# (on_hit_effect.gd:42-46) then skips apply_statuses_and_buffs, so buff_ddmr_aegis is never applied,
+# and with the old ordering the Primrose's 1/round was spent anyway for a chip it never received.
+# test_a_dead_target_does_not_spend_the_round below is that case, driven directly.
+#
+# AND IT CHANGES NOTHING FOR A HIT THAT LANDS. onhit_ddmr.tres sets neither save_to_avoid nor
+# require_consume_lock, so with both units valid super falls straight through to `return false`:
+# there is no "roll a save first, spend second" ordering question the way ruling 10's Slowed effect
+# has one, and no lock gate that could refuse a valid hit after the counter had already moved.
+# test_the_counter_is_written_under_the_key_the_card_is_named_for below is the regression pin on
+# that half. The ROUND CHECK itself stays above super, so a round already spent is still refused
+# without touching the counter a second time.
+#
+# THE SIBLING: onhit_greenlight.gd (wm_greenlight_projection, Leoleth rank III) inherited this
+# file's original ordering verbatim and was reordered first, at the Leoleth close on 2026-09-22.
 #
 # WHY increment_action_usage's SECOND ARGUMENT IS false: it gates only the uses_this_turn tally
 # (gear_core.gd:171-181); the per-round counter this gate reads (uses_this_round, via
@@ -115,6 +135,11 @@ const PrimroseFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/primros
 const DDMR := &'wm_ddmr'
 const FALCATA := &'mw_acrasial_falcata'
 const AEGIS_BUFF := &'buff_ddmr_aegis'
+## onhit_ddmr.gd's USAGE_KEY, transcribed. DELIBERATELY A SECOND COPY OF THE STRING rather than a
+## reference to the script's own const: the gate reads and writes this one key on the mod's GearCore,
+## and if its reader and its writer ever drifted apart the card would become unlimited in silence.
+## A literal here is what makes that drift a red test instead of a shrug.
+const USAGE_KEY := &'ddmr'
 
 ## The card's numbers, transcribed once so a typo in the .tres reads as a number and not as a vague
 ## "feels wrong".
@@ -126,6 +151,10 @@ const THREAT_WITH_CARESS := 4
 const MAP_SIZE := Vector2i(15, 9)
 const PRIMROSE_TILE := Vector2i(4, 4)
 const ADJACENT := Vector2i(5, 4)
+## Somewhere else on the map entirely, for the throwaway unit test_a_dead_target_does_not_spend_the_round
+## kills. Deliberately NOT adjacent: nothing ever swings at it, and putting it out of threat range of
+## both other units keeps it from being collected by anything this file's other mechanisms reach for.
+const AWAY := Vector2i(9, 7)
 
 ## The one die not pinned to 1: the accuracy/difficulty die. Dice.roll_d6_accuracy(-1) rolls one d6,
 ## takes the max and multiplies by signi(count) (dice.gd:86-88), so a 6 here reads back as
@@ -446,6 +475,103 @@ func test_an_unconsumed_chip_is_gone_at_the_start_of_the_primroses_next_turn() -
 	assert_eq(chip_count(), 0,
 		'THE CLAIM: until = START_OF_OWNERS_TURN (6) cleared it even though nothing ever attacked the '
 		+ 'Primrose to consume it (event_turn_start.gd:77, BuffCore.is_unit_owner at buff_core.gd:97-100).')
+
+
+# ============================== THE COUNTER ITSELF ==============================
+#
+# THE TWO TESTS BELOW ARE THE 2026-09-22 REORDER'S OWN PAIR - see this file's header for the bug.
+# Every test above reads the gate through the CHIP, which is the right level for a card but cannot
+# separate "the round was refused" from "the round was spent and the chip was dropped anyway": both
+# read as chip_count() == 0. These two read the counter on the GearCore directly, which is the only
+# place that distinction exists.
+
+## The DDMR's OnHitEffect, off the registered Kit rather than by loading onhit_ddmr.tres from a path.
+## Going through the Kit is the point: it proves the effect the engine would actually fire is the one
+## under test, and a passive that stopped carrying it reads as a null here instead of as a green test
+## against an orphaned resource on disk.
+func ddmr_on_hit_effect() -> OnHitEffect:
+	var kit:Kit = ContentLibrary.get_kit(DDMR)
+	if kit == null or kit.compcon_id != DDMR: return null
+	var passives:Array = kit.get_passives(PassiveWeaponMod)
+	if passives.is_empty(): return null
+	var mod:PassiveWeaponMod = passives.front()
+	if mod.on_hit_effects.is_empty(): return null
+	return mod.on_hit_effects.front()
+
+func test_the_counter_is_written_under_the_key_the_card_is_named_for() -> void:
+	# THE REGRESSION PIN ON THE REORDER'S OTHER HALF: moving the increment past super(...) must not
+	# stop a NORMAL hit spending its round. onhit_ddmr.tres carries neither save_to_avoid nor
+	# require_consume_lock, so with both units valid super's body falls straight through to
+	# `return false` (on_hit_effect.gd:55-74) and the increment below it still runs - but that is a
+	# claim about a resource's export flags, and this is the measurement of it.
+	var weapon := PrimroseFixture.equip_heavy_melee(primrose)
+	var mod := PrimroseFixture.fit_ddmr(primrose, weapon)
+	assert_true(GearCore.is_valid(mod), 'fixture: the mod is fitted.')
+	if not GearCore.is_valid(mod): return
+	assert_eq(mod.get_uses_this_round_alt(USAGE_KEY), 0, 'Nothing spent before the first hit.')
+
+	PrimroseFixture.cheat_a_hit()
+	await PrimroseFixture.attack(game, primrose, PrimroseFixture.HEAVY_MELEE, hostile)
+	assert_gt(hostile.current_damage(), 0, 'VACUITY GUARD: the hit really landed.')
+	assert_eq(chip_count(), 1, 'fixture: and it raised the chip.')
+
+	assert_eq(mod.get_uses_this_round_alt(USAGE_KEY), 1,
+		'THE CLAIM: exactly one use recorded on the MOD\'S OWN GearCore, under the key onhit_ddmr.gd '
+		+ 'writes - so a valid hit still spends its round with the increment below super(...).')
+	assert_eq(mod.get_uses_this_turn_alt(USAGE_KEY), 0,
+		'increment_action_usage\'s second argument is FALSE (gear_core.gd:173-176): nothing in this '
+		+ 'mechanism reads a per-TURN count under this key, and writing one would be a third counter '
+		+ 'nobody reads.')
+
+## FIX (2026-09-22): onhit_ddmr.gd's should_abort used to increment the round counter BEFORE calling
+## super(...), and super (on_hit_effect.gd:55) is the only thing in the whole chain that checks
+## attacked_unit - the override checks activation.context.unit and never the target. So a target that
+## died between the attack roll and this effect running spent the Primrose's 1/round for a chip that
+## was then never applied, because apply_on_hits' `continue` (on_hit_effect.gd:42-46) skips
+## apply_statuses_and_buffs on an abort.
+##
+## DRIVEN DIRECTLY, NOT THROUGH AN ATTACK, and that is not laziness. The window is between the roll
+## and the on-hit effect inside ONE resolution, reachable in play only by simultaneous damage from a
+## second source - there is no fixture call that lands a hit and kills the target in that exact gap,
+## and anything that faked it through the event queue would be testing the fake. A direct call to
+## should_abort is the same entry point apply_on_hits uses at on_hit_effect.gd:44, with the one
+## variable under test set by hand.
+##
+## is_alive = false IS THE ENGINE'S OWN SIGNAL, not a stand-in: Unit.is_valid reads it at unit.gd:86
+## and Unit's own death path clears it at unit.gd:133. Passing a bare `null` would abort too, but for
+## a different reason (is_instance_valid), and would say nothing about a real corpse.
+func test_a_dead_target_does_not_spend_the_round() -> void:
+	var weapon := PrimroseFixture.equip_heavy_melee(primrose)
+	var mod := PrimroseFixture.fit_ddmr(primrose, weapon)
+	assert_true(GearCore.is_valid(mod), 'fixture: the mod is fitted.')
+	if not GearCore.is_valid(mod): return
+
+	var effect := ddmr_on_hit_effect()
+	assert_not_null(effect, 'fixture: the registered wm_ddmr Kit still carries its OnHitEffect.')
+	if effect == null: return
+
+	var corpse := PrimroseFixture.create_dummy(game, AWAY)
+	var activation:EventCore = SpecFactory.dummy_event({unit = primrose})
+	assert_true(Unit.is_valid(corpse), 'fixture: the target is valid to start with...')
+	corpse.is_alive = false
+	assert_false(Unit.is_valid(corpse), '...and reads as invalid once it is dead (unit.gd:86).')
+
+	var aborted:bool = await effect.should_abort(OnHitEffect.STAGE.ON_HIT, activation, corpse)
+	assert_true(aborted,
+		'THE CLAIM, first half: super(...) refuses the effect outright for a target that died between '
+		+ 'the roll and this call.')
+	assert_eq(mod.get_uses_this_round_alt(USAGE_KEY), 0,
+		'THE CLAIM, second half - AND THE WHOLE FIX: because the increment now runs AFTER that call, '
+		+ 'the refused hit did NOT spend the round. Before the 2026-09-22 reorder this read 1.')
+
+	# THE PROOF THAT THE 0 ABOVE IS WORTH SOMETHING: a counter nobody could ever spend would also read
+	# 0 here. The round has to still be genuinely available to a real hit.
+	PrimroseFixture.cheat_a_hit()
+	await PrimroseFixture.attack(game, primrose, PrimroseFixture.HEAVY_MELEE, hostile)
+	assert_gt(hostile.current_damage(), 0, 'VACUITY GUARD: the real hit landed.')
+	assert_eq(chip_count(), 1,
+		'The dead target never spent the round, so a real hit in the same round still chips...')
+	assert_eq(mod.get_uses_this_round_alt(USAGE_KEY), 1, '...and THAT is the hit that spends it.')
 
 
 # ============================== THE CARD TEXT ==============================
