@@ -87,6 +87,7 @@ func activate(context:Context, activation:EventCore) -> void:
 func apply_face_effect(face:int, context:Context, activation:EventCore) -> void:
 	match face:
 		1: await lay_the_crater(context, activation)
+		2: await boost_for_free(context, activation)
 
 ## DECIMATE (ruling 8): "A Burst 1 area around you becomes difficult terrain."
 ##
@@ -108,3 +109,36 @@ func lay_the_crater(context:Context, activation:EventCore) -> void:
 	if decimate_deployable == null: return
 	var laid:Unit = await Terrain.lay(activation, SpecificAction.from_context(context), unit.tile(), decimate_deployable)
 	if laid == null: return # the spawn did not land; nothing to do and nothing to say
+
+## SWIFT (ruling 10): "You may immediately Boost as a free action."
+##
+## AUTOMATIC. The Berserker's Aggression is the shape - event_gear_activate with AS_FREEBIE and
+## SKIP_PLAYER_DECISIONS (action_aggression_berserker.gd:38-45) - AWAITED rather than queued, because
+## the card says "immediately" and a queued activation would land after the rest of this roll
+## (action_the_lesson_of_the_held_image.gd:37-44 is the awaited form). TARGETS_ARE_MANDATORY is
+## dropped: a Boost has no target.
+##
+## SKIP_PLAYER_DECISIONS IS LOAD-BEARING: action_boost.activate opens with
+## CommonActionUtil.confirm_use (action_boost.gd:19-20), which returns true without asking exactly
+## when that flag is present (common_action_util.gd:330). Without it the player is asked a yes/no in
+## the middle of their own turn-start roll, six times a scene, for an effect with no downside.
+##
+## AS_FREEBIE IS WHAT MAKES IT FREE: UnitAction.spend wraps the whole action/boost/reaction block in
+## `if not as_freebie` (unit_action.gd:242-265), and has_normal_boost = false is inside it (:264-265).
+##
+## AND can_boost IS STILL CHECKED. UnitAction.can_activate_gear asks is_gear_available at :112, BEFORE
+## the freebie short-circuit at :114, and ms_boost's is_available_to_activate is
+## UnitAction.can_boost (action_boost.gd:15-16). A Slowed or Immobilized Leoleth simply does not
+## Boost, which ruling 10 accepts. The chip has already been applied by the caller either way.
+func boost_for_free(context:Context, activation:EventCore) -> void:
+	var unit:Unit = context.unit
+	var boost := SpecificAction.from_id(unit, &'ms_boost')
+	if not SpecificAction.is_valid(boost): return
+	if not UnitAction.can_activate_gear(boost, true): return
+	await activation.execute_event(&'event_gear_activate', {
+		unit = unit,
+		gear = boost.gear,
+		action = boost.action,
+		flags = [Action.FLAG.AS_FREEBIE, Action.FLAG.SKIP_PLAYER_DECISIONS],
+		event = activation, # tell the activation which reaction sent it
+	})

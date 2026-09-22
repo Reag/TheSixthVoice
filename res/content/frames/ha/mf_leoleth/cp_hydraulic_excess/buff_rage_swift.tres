@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/buff_rage_swift.gd" id="1_swift"]
+
+[resource]
+script = ExtResource("1_swift")
+to = &"statblock"
+; Lancer.UNTIL.START_OF_TURN (lancer.gd:46-48).
+until = 3
+; VISIBLE - one of the six face chips - and NO icon in SP1.

@@ -429,3 +429,6 @@ frame.dep_decimate.name,Decimate
 gear.mt_decimate_terrain.name,Decimate
 gear.buff_rage_decimate_crit.name,Decimate
 gear.buff_rage_decimate_crit.effect,A |Burst| 1 area around you becomes |difficult terrain| and your |critical hits| deal +3 |bonus damage|.
+,
+gear.buff_rage_swift.name,Swift
+gear.buff_rage_swift.effect,You may immediately |Boost| as a |free action| and your |Evasion| increases by 2.

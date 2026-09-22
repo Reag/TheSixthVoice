@@ -925,6 +925,9 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# SP1 Task 7 (Leoleth). Decimate's crit chip - the first of RAGE's six face chips, each of which is
 	# the only on-token sign of which face came up this turn.
 	&'buff_rage_decimate_crit',
+	# SP1 Task 8 (Leoleth). Swift's evasion chip - the second face chip, and the only on-token sign
+	# that this turn's roll was a 2 (the free Boost leaves nothing behind but a bigger move pool).
+	&'buff_rage_swift',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
