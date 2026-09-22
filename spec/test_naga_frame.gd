@@ -207,16 +207,20 @@ func test_the_licence_grants_the_frame_at_rank_two_and_nowhere_else():
 	assert_true(license.rank_1.granted_frames.is_empty(), 'rank_1 grants no frame.')
 	assert_true(license.rank_3.granted_frames.is_empty(), 'rank_3 grants no frame.')
 
-func test_the_licence_grants_no_gear_at_any_rank_yet():
+func test_the_licence_grants_its_gear_rank_by_rank():
 	# EXACT lists, not "contains ours": each line goes red exactly once, in the sub-project that
 	# fills that rank (SP2 rank 1, SP3 rank 2, SP4 rank 3), and that sub-project rewrites this test
-	# the way test_sluagh_frame.gd's own rewrite did. Strings, not StringNames, when it grows:
-	# Array[StringName].sort() orders by the interned pointer, not the text.
+	# the way test_sluagh_frame.gd's own rewrite did. Strings, not StringNames: Array[StringName]
+	# .sort() orders by the interned pointer, not the text. Rank 1 rewritten at SP2 Task 2.
 	var license := _license()
 	assert_not_null(license, 'fixture: the licence loads.')
 	if license == null: return
 	if license.rank_1 == null or license.rank_2 == null or license.rank_3 == null: return
-	assert_true(license.rank_1.granted_gear.is_empty(), 'Rank 1 grants no gear until SP2.')
+	var rank_1:Array[String] = []
+	for kit:Kit in license.rank_1.granted_gear: rank_1.append(String(kit.compcon_id))
+	rank_1.sort()
+	assert_eq(rank_1, ['ms_wide_gaze_networks', 'mw_shimmering_blade'] as Array[String],
+		'Rank 1 grants the Shimmering Blade and Wide Gaze Networks, and nothing else.')
 	assert_true(license.rank_2.granted_gear.is_empty(), 'Rank 2 grants no gear until SP3.')
 	assert_true(license.rank_3.granted_gear.is_empty(), 'Rank 3 grants no gear until SP4.')
 
