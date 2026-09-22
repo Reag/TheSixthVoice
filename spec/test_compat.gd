@@ -951,5 +951,8 @@ func test_both_extensions_are_in_one_chain_and_vanilla_is_its_root() -> void:
 	if skipped_without_emperor_printer(): return
 	assert_true(printer_chain_has_source(OUR_PRINTER_MARKER), 'Ours is in the chain...')
 	assert_true(printer_chain_has_source(EMPEROR_PRINTER_MARKER), '...the resident is in the same chain...')
-	assert_true(live_printer_chain().back().source_code.begins_with('# Copyright (c) 2026 Wickworks'),
+	# THE YEAR IS DELIBERATELY NOT MATCHED: every modkit release re-stamps the per-file copyright line,
+	# so baking 2026 in would turn this into a release-day red that says nothing about the seam.
+	var root_header:String = live_printer_chain().back().source_code.get_slice('\n', 0)
+	assert_true(root_header.begins_with('# Copyright (c) ') and root_header.contains('Wickworks'),
 		'...and vanilla is its root, so every super() call still lands (%d scripts deep).' % live_printer_chain().size())

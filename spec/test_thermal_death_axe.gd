@@ -266,6 +266,47 @@ func test_the_two_profiles_share_one_use_per_turn():
 	assert_true(_available(LeolethFixture.TDA_THUNDEROUS),
 		'The repeat-action rule and nothing else: the charge is still there.')
 
+# ---------------------------------------------------------------- the free-Skirmish offer
+
+## Toe To Toe's reaction off the LIVE frame's gear, exactly as spec/test_toe_to_toe.gd reaches it.
+func _toe_to_toe() -> ActionReactionSelf:
+	var gear:GearCore = leoleth.get_gear(LeolethFixture.TOE_TO_TOE_ID)
+	if not GearCore.is_valid(gear): return null
+	for action:Action in gear.kit.actions:
+		if action.get_id() == LeolethFixture.TOE_TO_TOE_ACTION: return action
+	return null
+
+## What the free Skirmish would put in its pick menu right now, as ACTION ids rather than Kit ids -
+## the whole question here is which PROFILE of one Kit is offered.
+func _toe_to_toe_offer() -> Array[StringName]:
+	var ids:Array[StringName] = []
+	var action := _toe_to_toe()
+	if action == null: return ids
+	for specific:SpecificAction in action.eligible_attacks(leoleth): ids.append(specific.action.get_id())
+	return ids
+
+func test_toe_to_toe_offers_only_the_profiles_that_can_actually_swing():
+	# THE AXE IS THE FIRST WEAPON ON THIS FRAME WITH A PROFILE THAT CAN BE INDIVIDUALLY UNAVAILABLE,
+	# and Toe To Toe's eligible_attacks is what fills the pick menu. Its melee / QUICK / usage-group /
+	# reach clauses all pass for an EMPTY Thunderous, so without an availability clause the end of the
+	# turn raises a two-entry menu whose second entry the engine then refuses: choosing it reaches
+	# event_gear_activate.gd:46-50, which logs [ Gear not available ] reason : NO_CHARGES and drops the
+	# free Skirmish altogether. The offer has to agree with UnitAction about what can swing.
+	assert_not_null(_toe_to_toe(), 'fixture: the frame carries Toe To Toe.')
+	if _toe_to_toe() == null: return
+	await LeolethFixture.open_turn(game, leoleth)
+	assert_eq(leoleth.core.current.speed, leoleth.get_speed_max(),
+		'fixture: nothing moved, so the gate itself is open.')
+
+	axe.charges_current = 1
+	var charged := _toe_to_toe_offer()
+	assert_true(charged.has(LeolethFixture.TDA_STANDARD), 'Charged: Standard is offered...')
+	assert_true(charged.has(LeolethFixture.TDA_THUNDEROUS), '...and so is Thunderous.')
+
+	axe.charges_current = 0
+	assert_eq(_toe_to_toe_offer(), [LeolethFixture.TDA_STANDARD] as Array[StringName],
+		'Empty: exactly Standard - Thunderous cannot swing, so it is not offered.')
+
 # ---------------------------------------------------------------- the recharge
 
 func test_a_turn_ending_with_four_unspent_spaces_regains_the_charge():
@@ -320,7 +361,10 @@ func test_the_recharge_is_logged():
 	Action.battle_log.on_log_text.connect(collect)
 	await SpecFactory.start_turn(game, leoleth)
 	await SpecFactory.end_turn(game, leoleth)
-	Action.battle_log.on_log_text.disconnect(collect)
+	# UNCONDITIONAL, and before the assertions: the bus is an autoload that outlives this test, so a
+	# lambda left connected by an early assertion failure would keep appending into a freed test's
+	# array for the rest of the run.
+	if Action.battle_log.on_log_text.is_connected(collect): Action.battle_log.on_log_text.disconnect(collect)
 	assert_eq(axe.charges_current, 1, 'fixture: it recharged.')
 	assert_true(lines.any(func(text:String) -> bool: return text.contains('regains a charge on')),
 		'The recharge announced itself in the battle log, in real text: %s' % [lines])
@@ -359,7 +403,7 @@ func test_the_axe_is_destructible_at_zero_charges():
 	assert_true(UnitPrinter.get_destructable_gear([axe]).has(axe),
 		'"can be destroyed even if it has no charges remaining" - only the extension can say so.')
 	assert_true(LoadoutCore.get_destructable_gear([axe]).has(axe),
-		'And through LoadoutCore, the structure check\'s mount-less entry (event_unit_structure.gd:177).')
+		'And the override survives LoadoutCore\'s delegation to UnitPrinter (loadout_core.gd:575-576).')
 
 func test_an_empty_axe_on_a_mount_is_offered_by_the_structure_checks_production_entry():
 	# DEPARTURE from the brief's single assertion. arm_axe equips the axe as an INTEGRATED system -

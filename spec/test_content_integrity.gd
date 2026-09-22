@@ -785,7 +785,9 @@ const ICON_TARGETS := {
 	# Thunderous is a named family of its own - the Mjolnir's chamber-rounds shape, the same picture
 	# intensified, to be drawn by SP5 as mw_thermal_death_axe_thunderous.svg. The recharge reaction
 	# hides from tooltips and reaches no player-facing surface, so it has no row. Both assertions
-	# and the Kit's own icon_override are SP5's - deliberate red #1 grows by three asserts.
+	# and the Kit's own icon_override are SP5's - deliberate red #1 grows by FOUR asserts, measured:
+	# the Kit's own, the Thunderous row's own, and TWO for the KIT row (the inherit claim and the
+	# fallback-resolves claim).
 	&'mw_thermal_death_axe': {&'action_tda_standard': KIT, &'action_tda_thunderous': &'action_tda_thunderous'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.

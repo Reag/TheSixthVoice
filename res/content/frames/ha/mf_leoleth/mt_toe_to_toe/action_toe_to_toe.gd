@@ -57,7 +57,7 @@ func activate(context:Context, activation:EventCore) -> void:
 		CommonActionUtil.choose_and_use_no_spend,
 	)
 
-## Every Skirmish this unit could make right now, by the card's four clauses. PUBLIC so
+## Every Skirmish this unit could make right now, by the card's five clauses. PUBLIC so
 ## spec/test_toe_to_toe.gd can read the offer at its source: the pick menu is a ChoiceBus.TYPE.gear
 ## request that testkit/prompt_watcher.gd does not report, and with one eligible weapon no menu is
 ## raised at all.
@@ -78,6 +78,14 @@ func eligible_attacks(unit:Unit) -> Array[SpecificAction]:
 			if action.get_action_type(specific) != Lancer.ACTION.QUICK: continue
 			# "has not been used this turn", per USAGE GROUP (gear_core.gd:183-188).
 			if weapon.get_uses_this_turn(action) > 0: continue
+			# AND THE ENGINE HAS TO AGREE THIS PROFILE CAN SWING, or the menu offers an entry that
+			# event_gear_activate.gd:46-50 then refuses with "[ Gear not available ]" and the free
+			# Skirmish is simply lost. as_freebie = true is the form choose_and_use will use
+			# (common_action_util.gd:693-696): it skips the per-turn limit at unit_action.gd:114, which
+			# the usage-group clause above already covers, while every blanket refusal in
+			# get_gear_unavailable_reason (:131-160) still applies - including REASON.NO_CHARGES at :153,
+			# which is what an empty Thermal Death Axe's Thunderous profile answers.
+			if not UnitAction.is_gear_available(specific, true): continue
 			# And it has to be able to reach something, or this is an empty targeting screen at the
 			# end of every turn (action_predator_prey_concepts.gd:36's filter).
 			if UnitTargeting.get_tiles_targetable(specific).is_empty(): continue
