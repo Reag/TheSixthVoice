@@ -20,6 +20,7 @@ const MaidensBlushFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/mai
 const VaubanFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/vauban_fixture.gd')
 const PrimroseFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/primrose_fixture.gd')
 const SluaghFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/sluagh_fixture.gd')
+const LeolethFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/leoleth_fixture.gd')
 ## Read-only here: the Mark's retort case asserts the dome is untouched between its two halves.
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
 
@@ -90,6 +91,24 @@ const SLUAGH_D20_MISSES := 1
 # would have to consult is the TARGET's, not the Primrose's), and which duplicated
 # test_house_guard_still_widens_adjacency_with_our_unit_relation_extender_installed above tile for
 # tile. The liveness assertion now runs on the target and on a HOSTILE - see that test's header.
+
+# ---- Leoleth (SP1 Task 13): the STRUCTURE seam ----
+# The resident talents mod replaces event_unit_structure's `execute` WHOLESALE for its reroll buffs
+# and never calls super. ALL SYSTEMS RED hooks execute_preblock instead, which the resident leaves
+# alone. Task 0's probe measured that with a knockoff reaction (spec/test_spike_structured_pre_under_talents.gd,
+# frozen); this re-states it against the PRODUCTION reaction on the real frame.
+const STRUCTURE_SCRIPT := 'res://content/events/event_unit_structure.gd'
+const TALENTS_STRUCTURE_EXTENSION := 'res://unpacked/%s/res/content/events/event_unit_structure.gd_ext.gd' % TALENTS_MOD
+## The one method the resident ADDS. Its presence on the LIVE script is what proves the replacement is
+## installed in this run, rather than merely present on disk.
+const TALENTS_STRUCTURE_METHOD := &'make_structure_check_with_rerolls'
+## The method the whole ruling hangs on: the resident must NOT define it.
+const PREBLOCK := &'execute_preblock'
+
+const LEOLETH_TILE := Vector2i(4, 6)
+## 13 against 8 HP and armor 1 leaves the bar at -4; the structure check's ONE d6 is cheated to 6,
+## which is IMPAIRED - the only outcome with no gear prompt and no second die.
+const LEOLETH_BIG_HIT := 13
 
 var game:Gamemaster
 var myconid:Unit
@@ -810,3 +829,72 @@ func test_the_two_widenings_read_different_channels() -> void:
 		'...and that literal IS the channel talents reads: House Guard\'s own buff is the only thing on it.')
 	assert_eq(UnitCondition.get_buffs_to(sluagh, SluaghFixture.ADJACENT_TO).size(), 1,
 		'...and it never joined ours.')
+
+
+# ===================== THE STRUCTURE SEAM (Leoleth, ALL SYSTEMS RED) =====================
+
+## Every method visible on a script, base scripts included.
+func method_names(script:Script) -> Array[StringName]:
+	var names:Array[StringName] = []
+	for method:Dictionary in script.get_script_method_list(): names.append(StringName(method.name))
+	return names
+
+## Only the methods a script DEFINES ITSELF, which is what "does not override it" means.
+## get_script_method_list() returns the INHERITED ones too, so this reads the source instead - copied
+## verbatim from spec/test_spike_structured_pre_under_talents.gd, where it was measured against the
+## live resident.
+func own_method_names(script:Script) -> Array[StringName]:
+	var names:Array[StringName] = []
+	var regex := RegEx.new()
+	regex.compile('(?m)^func\\s+(\\w+)\\s*\\(')
+	for found:RegExMatch in regex.search_all(script.source_code): names.append(StringName(found.get_string(1)))
+	return names
+
+## True when the talents mod's structure replacement is actually LIVE in this run. Announce the skip
+## rather than passing quietly - the same pairing skipped_without_talents() above uses, and for the
+## same measured reason (pass_test alone does not print at the default log level).
+func skipped_without_talents_structure() -> bool:
+	var live:Script = load(STRUCTURE_SCRIPT)
+	if live != null and method_names(live).has(TALENTS_STRUCTURE_METHOD): return false
+	var message := 'SKIPPED: %s is not resident, so the STRUCTURED PRE seam is unmeasured here. Restore the residency set with restore-links.ps1.' % TALENTS_MOD
+	gut.p(message)
+	pass_test(message)
+	return true
+
+## THE RULING, STRUCTURALLY. The resident replaces `execute` and defines no `execute_preblock` of its
+## own, so vanilla's STRUCTURED PRE await (event_unit_structure.gd:33-34) still runs under it. A
+## resident update that starts overriding the preblock reddens this BEFORE it can silently retire
+## ALL SYSTEMS RED.
+func test_the_talents_replacement_still_leaves_the_structure_preblock_alone() -> void:
+	if skipped_without_talents_structure(): return
+	var extension:Script = load(TALENTS_STRUCTURE_EXTENSION)
+	assert_not_null(extension, 'The resident\'s extension loads from its unpacked path.')
+	if extension == null: return
+	var own := own_method_names(extension)
+	assert_true(own.has(&'execute'),
+		'LIVENESS: the resident really does replace execute - the seam the registry records.')
+	assert_false(own.has(PREBLOCK),
+		'THE RULING: it defines no %s of its own, so vanilla\'s STRUCTURED PRE await still runs.' % PREBLOCK)
+
+## THE RULING, BEHAVIOURALLY, AGAINST THE PRODUCTION REACTION. Task 0's probe measured a knockoff on a
+## dummy; this is the real Leoleth with the real cp_hydraulic_excess, under the real resident.
+func test_a_structured_leoleth_takes_no_overflow_with_the_talents_mod_resident() -> void:
+	if skipped_without_talents_structure(): return
+	var leoleth:Unit = LeolethFixture.create_leoleth(game, LEOLETH_TILE)
+	assert_eq(leoleth.core.current.health, leoleth.get_health_max(), 'fixture: full HP.')
+	await LeolethFixture.structure(game, leoleth, LEOLETH_BIG_HIT)
+	assert_eq(leoleth.core.current.structure, 3, 'LIVENESS: it really structured.')
+	assert_eq(leoleth.core.current.health, leoleth.get_health_max(),
+		'And the new bar is EXACTLY full under the resident\'s replacement - no overflow carried.')
+
+## And the other half of the card, under the resident: the hard-cover chip.
+func test_a_structured_leoleth_gains_hard_cover_with_the_talents_mod_resident() -> void:
+	if skipped_without_talents_structure(): return
+	var leoleth:Unit = LeolethFixture.create_leoleth(game, LEOLETH_TILE)
+	var shooter:Unit = LeolethFixture.create_hostile(game, Vector2i(12, 6))
+	assert_eq(CoverCalculator.determine_cover(leoleth, shooter).total, Lancer.COVER.NONE,
+		'fixture: no cover in the open.')
+	await LeolethFixture.structure(game, leoleth, LEOLETH_BIG_HIT)
+	assert_true(LeolethFixture.has(leoleth, LeolethFixture.ASR_COVER_CHIP), 'The chip landed...')
+	assert_eq(CoverCalculator.determine_cover(leoleth, shooter).total, Lancer.COVER.HARD,
+		'...and the cover pipeline reads HARD off it, with the resident live.')

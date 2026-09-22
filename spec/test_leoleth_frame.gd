@@ -106,6 +106,23 @@ func test_the_role_is_striker_with_no_secondary():
 	assert_eq(frame.role_primary, Lancer.SQUAD_ROLE.STRIKER, 'Primary role STRIKER.')
 	assert_eq(frame.role_secondary, Lancer.SQUAD_ROLE.NONE, 'No secondary role.')
 
+func test_the_frame_carries_its_four_traits_in_sheet_order():
+	# WRITTEN LAST, because the array is appended to in Tasks 2, 3, 4 and 5 and a pin written earlier
+	# would be a moving target. ORDER is asserted, not membership: the mech sheet draws traits in
+	# array order, and the sheet (specs/sixth-voice/09-leoleth.md) lists Toe To Toe, the 43 As and
+	# Fleet of Foot in that order with the core system last - which is design 1.1's own wording.
+	var frame:Frame = _frame()
+	assert_not_null(frame, 'fixture: the frame loads.')
+	if frame == null: return
+	var ids:Array[StringName] = []
+	for kit:Kit in frame.traits: ids.append(kit.compcon_id)
+	assert_eq(ids, [
+		LeolethFixture.TOE_TO_TOE_ID,
+		LeolethFixture.AAAA_ID,
+		LeolethFixture.FLEET_ID,
+		LeolethFixture.CORE_ID,
+	] as Array[StringName], 'The four traits, in sheet order, with the core system last.')
+
 func test_the_frame_wears_the_shared_placeholder_until_sp5():
 	# THIS ASSERTION IS THE OPPOSITE OF EVERY OTHER FRAME SPEC IN THIS MOD, ON PURPOSE. There is no
 	# Leoleth art yet (design 1.1: "the placeholder until the author supplies art"), so the frame wears
