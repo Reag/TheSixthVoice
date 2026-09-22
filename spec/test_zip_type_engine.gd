@@ -53,10 +53,12 @@ func _disengage() -> Action:
 		if action.get_id() == LeolethFixture.ZIP_DISENGAGE: return action
 	return null
 
-## UnitAction.is_gear_available, NOT can_activate_gear: the latter also enforces the per-turn soft
-## limit (unit_action.gd:114), which would make "engage is back" depend on how many times this test
-## has already pressed something. is_gear_available runs is_available_to_activate (:157), which is
-## the gate both toggle halves actually carry.
+## UnitAction.is_gear_available, NOT can_activate_gear: for a naturally FREE action the two agree
+## anyway - Action.get_per_turn_soft_limit returns 99 once the action costs ACTION_COST_FREE or less
+## (action.gd:162-164), so can_activate_gear's extra per-turn check (unit_action.gd:116) never binds
+## here. is_gear_available is used because it is the engine's own availability predicate
+## (unit_action.gd:162), and it runs is_available_to_activate at :156 - the gate both toggle halves
+## actually carry.
 func _available(action:Action) -> bool:
 	return UnitAction.is_gear_available(SpecificAction.create(leoleth, zip, action))
 
@@ -103,12 +105,26 @@ func test_the_card_text_renders_rather_than_a_raw_key():
 	]:
 		assert_ne(tr(key), key, '%s resolves.' % key)
 
+## Nothing else asserts that the |teleportation=lancer.term.teleport| pipe actually resolves to a
+## LIVE glossary term - if the key drifts to something that no longer exists,
+## glossary_item.gd:229-233 still takes the explicit-tag branch and ships a dead link, with every
+## other test in this file green. Confirm the three rows still carry the tag literally, and that the
+## base game's own row for it (assets/localization/localizations.csv, read-only) still resolves.
+func test_the_teleportation_pipes_link_to_a_live_glossary_term():
+	for key:String in [
+		'gear.ms_zip_type_engine.effect',
+		'gear.ms_zip_type_engine.action_zip_engage.effect',
+		'gear.buff_zip_type_engine.effect',
+	]:
+		assert_true(tr(key).contains('|teleportation=lancer.term.teleport|'), '%s carries the pipe.' % key)
+	assert_ne(tr('lancer.term.teleport'), 'lancer.term.teleport', 'And the term itself resolves - a live link, not a dead one.')
+
 # ---------------------------------------------------------------- the toggle
 
 ## ONE ON AND ONE OFF PER ROUND, and that is the engine's rule for a FREE action rather than
 ## anything this Kit declares: Action.get_per_round_hard_limit returns 1 when the action costs
 ## ACTION_COST_FREE or less (action.gd:156-158), and UnitAction.get_gear_unavailable_reason checks
-## it (REASON.PER_ROUND, unit_action.gd:151). Measured on the first GREEN run of this file, where
+## it (REASON.PER_ROUND, unit_action.gd:148). Measured on the first GREEN run of this file, where
 ## the plan's "and engage is back" was the single red assertion. The counter is cleared by
 ## UnitAction.reset_per_round_usage, which only the HOLDER's own turn start reaches
 ## (new_turn_refresh, unit_action.gd:78 <- event_turn_start.gd:79) - so the button comes back next
