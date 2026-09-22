@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="3_passive"]
+[ext_resource type="Script" uid="uid://blv61i0a1ghms" path="res://engine/character/gear_passive/passive_ai_privilege.gd" id="4_ai_privilege"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_jormungandr_class_nhp/action_arc_activate.tres" id="5_activate"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_jormungandr_class_nhp/action_arc_deactivate.tres" id="6_deactivate"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_jormungandr_class_nhp/action_automatic_retaliation.tres" id="7_retaliation"]
+[ext_resource type="JSON" path="res://unpacked/Reag-TheSixthVoice/res/content/portraits/default_nhps/jormungandr.json" id="8_portrait"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/barks/bark_nhp_jormungandr.tres" id="9_barkset"]
+
+[sub_resource type="Resource" id="Resource_jormungandr_ai"]
+script = ExtResource("4_ai_privilege")
+; THE FACE, THE NAME AND THE VOICE ARRIVE TOGETHER, from UnitPrinter.full_repair ->
+; PassiveAiPrivilege.inherit_default_nhp_settings (unit_printer.gd:79, passive_ai_privilege.gd:61-79)
+; - and THE NAME IS GATED ON THE PORTRAIT, because the nhp_name assignment sits INSIDE the
+; `if passive.default_portrait:` branch (:66-70). ms_the_morrigan_class_nhp.tres carries the full
+; reasoning; this Kit is that Kit's shape with the author's second NHP in it.
+;
+; jormungandr.json ships is_stock TRUE (the portrait editor exports false), so a player who later
+; swaps to another NHP gets that NHP's face instead of being stuck with this one.
+;
+; counts_against_limit and increases_limit stay at their defaults - an ordinary one-per-mech AI -
+; and can_benefit_from_talents stays false, as every vanilla NHP but the Lesson of Shaping leaves it.
+default_portrait = ExtResource("8_portrait")
+default_barkset = ExtResource("9_barkset")
+
+; THE JÖRMUNGANDR-CLASS NHP, the Leoleth's rank-III system (SP4 Task 2, design ruling 17).
+;
+; THREE ACTIONS, EACH WITH ITS OWN usage_group. Unlike the Morrigan - one action, so the KIT-id
+; fallback is harmless - this Kit carries a 1/round REAL reaction beside two protocols, and that
+; reaction's per-round tally is its "for the first time each round". A groupless action here would
+; let one press of a protocol spend the retaliation for the whole round, silently.
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("5_activate"), ExtResource("6_deactivate"), ExtResource("7_retaliation")])
+passives = Array[ExtResource("3_passive")]([SubResource("Resource_jormungandr_ai")])
+sp_cost = 3
+; Unique 1 + AI 4 + NHP 8 = 13 (kit.gd:30): every vanilla NHP's value, the Morrigan's, and Thy
+; Hubris' Pestilence's. is_ai() is what the one-AI limit reads.
+system_tags = 13
+; NO icon_override in SP4 - SP5's glyph family covers the Kit, the two protocols and the reaction.
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

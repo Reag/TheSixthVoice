@@ -472,3 +472,37 @@ static func engage_zip(game:Gamemaster, unit:Unit) -> void:
 static func disengage_zip(game:Gamemaster, unit:Unit) -> void:
 	if not unit.state.is_taking_turn: await open_turn(game, unit)
 	await SpecFactory.use(game, unit, ZIP_ID, ZIP_DISENGAGE)
+
+## ------------------------------------------------------------------ SP4: rank III
+## The Jörmungandr-Class NHP (design ruling 17). UNIQUE + AI + NHP, SP 3; two protocols and one
+## REAL reaction around one chip.
+const JORMUNGANDR_ID := &'ms_jormungandr_class_nhp'
+const ARC_ACTIVATE := &'action_arc_activate'
+const ARC_DEACTIVATE := &'action_arc_deactivate'
+const ARC_REACTION := &'action_automatic_retaliation'
+const ARC_CHIP := &'buff_arc'
+const ARC_BONUS := &'buff_arc_bonus'
+## The barkset and the portrait the Kit's PassiveAiPrivilege hands the pilot (Task 1).
+const JORMUNGANDR_BARKSET := &'bark_nhp_jormungandr'
+
+static func arm_jormungandr(unit:Unit) -> GearCore: return equip(unit, JORMUNGANDR_ID)
+
+## Press the Automatic Retaliation Core protocol, opening the turn if it is not already open - the
+## same turn gate press_rage and press_wing document (unit_action.gd:144 refuses a PROTOCOL unless
+## is_using_protocols, which only event_turn_start opens).
+static func press_arc(game:Gamemaster, leoleth:Unit) -> void:
+	if not leoleth.state.is_taking_turn: await open_turn(game, leoleth)
+	await SpecFactory.use(game, leoleth, JORMUNGANDR_ID, ARC_ACTIVATE)
+
+## Press the deactivation protocol. It does NOT clear the chip: it stamps it, and the chip clears
+## itself at the Leoleth's next NEW_TURN POST ("You can BEGIN to deactivate ... At the start of your
+## next turn it deactivates").
+static func press_arc_deactivate(game:Gamemaster, leoleth:Unit) -> void:
+	if not leoleth.state.is_taking_turn: await open_turn(game, leoleth)
+	await SpecFactory.use(game, leoleth, JORMUNGANDR_ID, ARC_DEACTIVATE)
+
+## Does this unit still hold a reaction point? UnitAction.can_take_reactions is what
+## ActionReaction.is_available_to_activate asks (action_reaction.gd:52-53), so a spec that wants to
+## say "the point is spent" must say it the same way rather than reading the raw counter.
+static func has_reaction_point(unit:Unit) -> bool:
+	return unit.core.current.reactions > 0

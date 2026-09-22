@@ -513,3 +513,15 @@ bark.nhp_jormungandr.brace.2,YOU BETTER FUCKING NOT TRY THAT AGAIN
 bark.nhp_jormungandr.leader_accuracy.1,KILL THEM
 bark.nhp_jormungandr.leader_damage.1,"SWING HARDER, SHOOT FASTER"
 bark.nhp_jormungandr.leader_reduce.1,WHAT THE HELL ARE YOU DOING? THEY NEED NOT LIVE
+gear.ms_jormungandr_class_nhp.name,Jörmungandr-Class NHP
+gear.ms_jormungandr_class_nhp.flavor,"JÖRMUNGANDR began life as an industrial management NHP for the many forges of Ras Shamra, but was rejected early into development due to its unpredictable and overly violent tendencies. It was only later when it was salvaged for combat simulation tests that engineers realized its true potential. By focusing on its proclivity towards reactive stimuli, it was slowly brought into the realm of viability through manufactured loyalty, heavy usage limiters, and fake memories adapted from the Broadcasts. With its Automatic Retaliation core, JÖRMUNGANDR serves as a violent, aggressive, and cruel tool of unparalleled violence that is mostly directed towards hostile targets. Pilots are still advised to cycle JÖRMUNGANDR at least once a week, just in case."
+gear.ms_jormungandr_class_nhp.default_name,JÖRMUNGANDR
+gear.ms_jormungandr_class_nhp.action_arc_activate.name,Automatic Retaliation Core
+gear.ms_jormungandr_class_nhp.action_arc_activate.effect,"While the A.R.C systems are active, you gain the following effects: Whenever you take damage from a hostile character for the first time each round, you automatically retaliate, and must immediately attack the closest character -hostile or allied- within |Threat| with a non-|Superheavy| |melee| attack as a |reaction|. If there are more than one |characters| tied for closest, you attack one at random. You deal +1d6 bonus damage on a successful |melee| attack against |Slowed| or |Impaired| targets. You gain 1 |heat| every time you make an attack. You can begin to deactivate this system as a protocol. At the start of your next turn it deactivates."
+gear.ms_jormungandr_class_nhp.action_arc_deactivate.name,End Automatic Retaliation Core
+gear.ms_jormungandr_class_nhp.action_arc_deactivate.effect,Begin shutting JÖRMUNGANDR down. The A.R.C systems stay active for the rest of this turn and deactivate at the start of your next one.
+gear.ms_jormungandr_class_nhp.action_automatic_retaliation.name,Automatic Retaliation
+gear.ms_jormungandr_class_nhp.action_automatic_retaliation.trigger,You take damage from a hostile character while the A.R.C systems are active.
+gear.ms_jormungandr_class_nhp.action_automatic_retaliation.effect,"Attack the closest character within |Threat| - hostile or allied - with a non-|Superheavy| |melee| attack. If several are tied for closest, one of them is chosen at random."
+gear.buff_arc.name,A.R.C Active
+gear.buff_arc.effect,"JÖRMUNGANDR retaliates against the first hostile to damage you each round, you deal +1d6 bonus damage on a successful |melee| attack against |Slowed| or |Impaired| targets, and every attack you make costs you 1 |heat|."
