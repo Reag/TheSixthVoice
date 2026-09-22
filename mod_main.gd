@@ -29,9 +29,10 @@ const MOD_LIBRARY := 'res://engine/mod/mod_library.gd'
 ## Note that not every autoload can be extended: unit_action.gd logs the install and then never
 ## invokes an override, for reasons nobody has found. Prove any new seam with a spec that only the
 ## override can pass before building content on it - spec/test_unit_relation_extension.gd is that
-## spec for the one entry here.
+## spec for the first entry, spec/test_spike_unit_printer_seam.gd for the second.
 const EXTENDED_AUTOLOADS := {
 	&'UnitRelation': 'res://engine/character/unit/service/unit_relation.gd', # Primrose: Superheavy Overwatch under Wormhole Grasp
+	&'UnitPrinter': 'res://engine/character/unit/service/unit_printer.gd', # Leoleth: the Thermal Death Axe is destructible at zero charges
 }
 
 ## Terms this mod's rule text uses in |markup| that the base game's glossary does not list.
