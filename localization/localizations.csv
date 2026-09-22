@@ -544,7 +544,7 @@ frame.mf_naga.flavor.short,Shimmering Havoc
 frame.mf_naga.flavor,"The Broadcasts started small, a couple frequencies spewing numbers, sites on the omninet that spit out poems, half written books, or puzzles. As they ramped up and actual pieces of technology came through, most of the initial output was abandoned, cast by the wayside, and forgotten. But not everyone forgot. A small group of devotees unearthed a complicated chain of puzzles, buried deep in the labyrinthine depths of forgotten chatrooms, articles, and servers. For years they toiled away, spending their lives in pursuit of whatever ultimate secret that was just beyond reach. At first they were almost all disappointed. At the end of it all was just another piece of hardware, just the fabrication for another machine of war. However, in the years since, they discovered something rather curious, every single person that had worked on that final puzzle, no matter how small a contribution, had all ceased to age. Almost immediately, Union jumped to put as many as they could through an extensive battery of tests to find the cause of this newfound longevity. What they found were nanites, smaller than before, each one replicated from natural detritus and repurposed to support their charge. Unfortunately, their creation remained to be a secret that remained within whatever fabrications had been unearthed. Thus was the Naga pattern group born, harnessing the power of these new nanites, it has established itself as a versatile option for those who want to protect their allies and wreak havoc upon those who think they can get away."
 ,
 gear.mt_wire_slither.name,Wire Slither
-gear.mt_wire_slither.effect,"1/round, when the Naga takes a Tech Action, it may immediately move two spaces. This movement ignores |engagement| and doesn't provoke reactions."
+gear.mt_wire_slither.effect,"1/round, when the Naga takes a Tech Action, it may immediately move two spaces. This movement ignores |engagement| and doesn’t provoke reactions."
 gear.mt_wire_slither.action_wire_slither.name,Wire Slither
 gear.mt_wire_slither.action_wire_slither.effect,"Immediately move two spaces. This movement ignores |engagement| and doesn't provoke reactions."
 ,
@@ -566,3 +566,15 @@ gear.cp_shimmering_veil.action_blood_of_the_creature.effect,"You may take 1 |hea
 gear.mw_shimmering_blade.name,Shimmering Blade
 gear.mw_shimmering_blade.flavor,"""Bleed and crack oh shrivelous thing, weep your tears of joy and pain, for they sate my hunger till the end of time"""
 gear.mw_shimmering_blade.on_crit,"Gain 2 |Overshield|, your target must succeed on a |Systems save| or become |Slowed| until the end of their next turn."
+gear.ms_wide_gaze_networks.name,Wide Gaze Networks
+gear.ms_wide_gaze_networks.flavor,The system suite incorporated into Gaze Networks provides real time tracking of hostile forces and allows for a continuous broadcast of enemy locations. The repeated noise from generated target locks however are a continued complaint as many pilots report hearing the noise even in their dreams.
+gear.ms_wide_gaze_networks.action_ping.name,Ping
+gear.ms_wide_gaze_networks.action_ping.effect,"Your target becomes |Locked on|. Until the end of your next turn, if the target has |Lock On|, they are also |Impaired|."
+gear.ms_wide_gaze_networks.action_hypnotize.name,Hypnotize
+gear.ms_wide_gaze_networks.action_hypnotize.effect,You may immediately scan the target. Allied characters attacks against the target may choose to target either |Evasion| or |E-Defense| regardless of if the weapon is smart. This lasts until they succeed on a |Systems check| as a quick action.
+gear.ms_wide_gaze_networks.action_hypnotize_clear.name,Hypnotize
+gear.ms_wide_gaze_networks.action_hypnotize_clear.effect,This lasts until they succeed on a |Systems check| as a quick action.
+gear.buff_ping.name,Ping
+gear.buff_ping.effect,"Until the end of your next turn, if the target has |Lock On|, they are also |Impaired|."
+gear.buff_hypnotized.name,Hypnotize
+gear.buff_hypnotized.effect,Allied characters attacks against the target may choose to target either |Evasion| or |E-Defense| regardless of if the weapon is smart. This lasts until they succeed on a |Systems check| as a quick action.

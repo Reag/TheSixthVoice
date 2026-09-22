@@ -837,6 +837,10 @@ const ICON_TARGETS := {
 	# SP2 Task 1 (Naga). The Shimmering Blade: one Kit, one profile, so KIT (the Thunder Sword's row).
 	# The Thrown sub-menu wears the engine's own throw.svg. The Kit's icon is SP5's.
 	&'mw_shimmering_blade': {&'action_shimmering_blade': KIT},
+	# SP2 Task 2 (Naga). Wide Gaze Networks: two invades, each its own named family for now - design
+	# section 5 leaves it to the author whether Ping and Hypnotize share one glyph. The clear action is
+	# SITUATIONAL, so it reaches no player-facing surface of this Kit and has no row. SP5's.
+	&'ms_wide_gaze_networks': {&'action_ping': &'action_ping', &'action_hypnotize': &'action_hypnotize'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1059,6 +1063,11 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# SP1 Task 4 (Naga). SALVATION UPON THE WICKED's chip: the only on-token sign that the protocol
 	# is running for the rest of the scene, and the id its relock reaction gates on. Its own rows.
 	&'buff_salvation',
+	# SP2 Task 2 (Naga). Ping's chip - the only sign the Impaired is tied to the lock and to a clock.
+	&'buff_ping',
+	# SP2 Task 2 (Naga). Hypnotize's chip - the target's own cue that it has a clear to take. Its
+	# attacker-side partner buff_hypnotize_targeting is hidden plumbing.
+	&'buff_hypnotized',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

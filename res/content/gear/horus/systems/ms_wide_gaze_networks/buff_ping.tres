@@ -1,0 +1,13 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_wide_gaze_networks/buff_ping.gd" id="1_chip"]
+
+; Ping's chip on the target. until = 7 (END_OF_OWNERS_NEXT_TURN, the Naga's "your next turn" - a
+; BUFF lifetime, which is the half of that UNTIL that is implemented). applies_statuses locks the
+; Impaired on for exactly as long as the chip lives; triggers_on statuses_changed (POST, the default
+; timing = a status CLEARED) ends the chip when the holder loses Lock On. Visible. No icon until SP5.
+[resource]
+script = ExtResource("1_chip")
+until = 7
+applies_statuses = Array[StringName]([&"impaired"])
+triggers_on = Array[StringName]([&"statuses_changed"])

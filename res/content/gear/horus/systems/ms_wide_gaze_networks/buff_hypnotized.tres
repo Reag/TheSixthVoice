@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+
+; Hypnotize's chip on the target (ruling 12). MANUAL: it lasts until the target's own quick Systems
+; check clears it (action_hypnotize_clear). Does nothing by itself - buff_hypnotize_targeting, on the
+; ATTACKERS, reads it. Visible; no icon until SP5.
+[resource]
+script = ExtResource("1_buff")
+to = &"none"

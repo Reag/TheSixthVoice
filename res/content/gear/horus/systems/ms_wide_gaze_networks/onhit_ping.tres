@@ -1,0 +1,9 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_wide_gaze_networks/onhit_ping.gd" id="1_onhit"]
+
+; apply_on = 1 (ON_HIT). statuses and buffs are deliberately EMPTY: the lock and the chip are both the
+; script's, in that order (see its header).
+[resource]
+script = ExtResource("1_onhit")
+apply_on = 1

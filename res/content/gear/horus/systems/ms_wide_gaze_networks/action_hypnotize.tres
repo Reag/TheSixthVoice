@@ -1,0 +1,13 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://bmkbhm13soupd" path="res://engine/character/gear_action/action_attack_tech.gd" id="1_tech"]
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="2_onhiteffect"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_wide_gaze_networks/onhit_hypnotize.tres" id="3_onhit"]
+
+; HYPNOTIZE (rulings 12-13). An invade. The hit scans and hangs buff_hypnotized (onhit_hypnotize); the
+; targeting rule itself lives in the Kit's always-on aura, attacker-side.
+[resource]
+script = ExtResource("1_tech")
+is_invade = true
+on_hit_effects = Array[ExtResource("2_onhiteffect")]([ExtResource("3_onhit")])
+usage_group = &"hypnotize"
