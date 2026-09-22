@@ -193,6 +193,21 @@ static func lock_on(game:Gamemaster, unit:Unit, target:Unit) -> void:
 	if not unit.state.is_taking_turn: await open_turn(game, unit)
 	await SpecFactory.use(game, unit, LOCK_ON, LOCK_ON_ACTION, target)
 
+## Lock a target BY HAND through the shared hook, with `locker`'s own ms_lock_on gear as the source -
+## exactly the status a real Lock On writes (action_lock_on.gd through ActionSystemApplyStatus:
+## MANUAL, source = the gear's persistent id), with none of the action's side effects.
+##
+## THE SIDE EFFECTS ARE WHY THIS EXISTS. A real Lock On by the NAGA is a Tech Action, so it offers
+## WIRE SLITHER, and the stock responder answers that picker with the first tile it is offered -
+## which moves the Naga two spaces before the spec's real subject has even started (measured SP1
+## Task 4: the Naga ended at (2,2) in a test about declining a heat cost). A real Lock On by a PLAYER
+## unit also raises a confirm yes/no (action_system_apply_status.gd:49) that a queued responder has to
+## account for. The core-system specs lock by hand for both reasons; the slither spec and the frame
+## spec use lock_on() because the action itself is their subject.
+static func lock_by_hand(locker:Unit, target:Unit) -> bool:
+	const Lockon := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/lockon/lockon.gd')
+	return Lockon.apply(SpecFactory.dummy_event({unit = locker}), target, locker.get_gear(LOCK_ON))
+
 ## Scan: a QUICK tech action; needs a target with something unscanned (action_scan.gd:9-16).
 static func scan(game:Gamemaster, unit:Unit, target:Unit) -> void:
 	if not unit.state.is_taking_turn: await open_turn(game, unit)

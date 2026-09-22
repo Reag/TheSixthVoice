@@ -825,6 +825,15 @@ const ICON_TARGETS := {
 	# VISIBLE chip, buff_advanced_targeting_calculations, is listed in VISIBLE_BUFFS below and wears
 	# the trait's own glyph (ruling 2). The Kit's own icon is SP5's.
 	&'mt_advanced_targeting_calculations': {},
+	# SP1 Task 4 (Naga). SHIMMERING VEIL: exactly two glyph families (design 5) - SALVATION (the
+	# protocol, its chip, and its hidden relock reaction, which never gets a row because its script
+	# overrides show_in_tooltip to false) and THE BLOOD (the passive's reaction, which IS the card's
+	# passive line and carries its own trigger and effect rows so Action.show_in_tooltip does not
+	# hide it as a duplicate of the Kit's text). Both families and the Kit's own icon are SP5's.
+	&'cp_shimmering_veil': {
+		&'action_salvation_upon_the_wicked': &'action_salvation_upon_the_wicked',
+		&'action_blood_of_the_creature': &'action_blood_of_the_creature',
+	},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1044,6 +1053,9 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# trait's own icon: the frame's signature rule, and a trait the player cannot see reads as "does
 	# nothing" (the Leoleth close's rule). Metastatic Paralysis hides its twin; this one does not.
 	&'buff_advanced_targeting_calculations',
+	# SP1 Task 4 (Naga). SALVATION UPON THE WICKED's chip: the only on-token sign that the protocol
+	# is running for the rest of the scene, and the id its relock reaction gates on. Its own rows.
+	&'buff_salvation',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

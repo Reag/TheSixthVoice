@@ -1,0 +1,14 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_naga/cp_shimmering_veil/action_salvation_relock.gd" id="1_action"]
+
+; The hidden reaction half of SALVATION UPON THE WICKED (ruling 8; the script's header has the seam).
+; trigger_timing 1 is POST = a status was CLEARED (unit_condition.gd:216-218); PRE would be the
+; apply. consumes_rxn false and no hard limit: unlimited per round, a rule not a reaction point.
+; Its own usage_group so the protocol's and the Blood's tallies never touch it.
+[resource]
+script = ExtResource("1_action")
+triggers_on = Array[StringName]([&"statuses_changed"])
+trigger_timing = 1
+consumes_rxn = false
+usage_group = &"salvation_relock"
