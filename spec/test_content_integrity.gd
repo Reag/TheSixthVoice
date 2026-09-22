@@ -943,6 +943,8 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# visible signal chip. FLAGGED J: ruling 13 leaves the hostile-side chip's visibility to the
 	# author on sight.
 	&'buff_rage_bulwark',
+	# SP1 Task 12 (Leoleth). Hatred's chip - the last of RAGE's six faces.
+	&'buff_rage_hatred',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

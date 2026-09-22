@@ -441,3 +441,6 @@ gear.cp_hydraulic_excess.action_combust.name,Combust
 ,
 gear.buff_rage_bulwark.name,Bulwark
 gear.buff_rage_bulwark.effect,All hostile |characters| within |line of sight| have +1 |Difficulty| on attacks against characters other than you.
+,
+gear.buff_rage_hatred.name,Hatred
+gear.buff_rage_hatred.effect,"Whenever you take damage from a hostile character, they take 3 |energy| damage."

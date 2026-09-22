@@ -1,0 +1,20 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/buff_rage_hatred.gd" id="1_hatred"]
+
+[resource]
+script = ExtResource("1_hatred")
+triggers_on = Array[StringName]([&"damage"])
+; ReactionBus.TIMING.POST is 1. PRE reads a number the engine has not finished computing:
+; event_unit_damage.gd:55 writes the PRELIMINARY reduction onto the context before the PRE reactions
+; at :59, and the real one is computed at :62-67 afterwards - so a PRE-firing chip answers on a
+; figure a Brace or a resist buff can still change, and queues its answer into the block BEFORE the
+; hit it is answering. UNDER-DETERMINED BEHAVIOURALLY BY THIS MOD'S SPECS (measured, SP1 Task 12
+; mutation 4): flipping this to 0 reddens only the declarative wiring test, because armor's
+; reduction is already on the context at PRE and the "something landed" clause refuses a
+; zero-damage hit at either timing. Reported rather than contrived, as Task 6 reported the same
+; shape for action_rage_roll.
+trigger_timing = 1
+; Lancer.UNTIL.START_OF_TURN (lancer.gd:46-48) - the RAGE table's "until the start of your next turn".
+until = 3
+; VISIBLE - one of the six face chips - and NO icon in SP1. No `to`: this buff is purely a trigger.
