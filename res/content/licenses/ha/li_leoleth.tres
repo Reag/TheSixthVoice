@@ -31,10 +31,12 @@ granted_gear = Array[ExtResource("4_kit")]([ExtResource("11_nhp"), ExtResource("
 
 [resource]
 script = ExtResource("1_unlocktree")
-; THE SHARED STAND-IN, and a KNOWN deliberate red until SP5 (plan Departure 10):
-; test_every_licence_this_mod_owns_has_a_real_icon refuses a path containing "placeholder", and a null
-; icon fails the same test's other assertion. The convention, once art exists, is the frame's own
-; sprite - li_sluagh.tres and li_primrose.tres both wear theirs.
+; THE FRAME'S OWN SPRITE, wired at the frame close (2026-09-22) when the author supplied the art.
+; That is the convention - vanilla's li_gorgon.icon is horus_gorgon.png, and li_sluagh.tres,
+; li_primrose.tres and li_fitzgerald.tres all wear theirs. Until then this wore the shared
+; stand-in and test_every_licence_this_mod_owns_has_a_real_icon was a KNOWN deliberate red,
+; because that test refuses a path containing "placeholder" and a null icon fails its other
+; assertion. It was the last red in the mod and it is closed.
 icon = ExtResource("6_icon")
 rank_1 = SubResource("Resource_rank1")
 rank_2 = SubResource("Resource_rank2")

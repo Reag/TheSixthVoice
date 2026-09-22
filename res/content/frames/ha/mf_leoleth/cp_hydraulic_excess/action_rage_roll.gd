@@ -68,9 +68,17 @@ func activate(context:Context, activation:EventCore) -> void:
 	var chip_id:StringName = FACE_CHIPS.get(face, &'')
 	if chip_id != &'':
 		var chip:Buff = ContentLibrary.get_buff(chip_id)
-		# NULL IS EXPECTED DURING SP1: this table is written complete at Task 6 and the faces land one
-		# per task afterwards. A missing chip is skipped silently rather than asserted, because the
-		# same shape protects a player whose install is missing a resource.
+		# AT FRAME CLOSE THIS IS NO LONGER "NULL IS EXPECTED DURING SP1". That was true while the faces
+		# landed one per task against a table written complete at Task 6; every face in FACE_CHIPS now
+		# names a shipped buff, so a null here means a renamed or mistyped id and should be LOUD. Left
+		# silent it degrades to "that face does nothing" - no log line, no error, and the d6 still
+		# rolls, so a player sees RAGE fire and nothing happen.
+		#
+		# push_warning, and NOT push_error or assert: action_glimmering_armaments.gd:96-102 is this
+		# mod's own precedent for exactly this shape. GUT lists push_error in failure_error_types
+		# (gut_config.gd:57), so a missing buff would red every OTHER Kit's suite alongside this one,
+		# and assert() is stripped from release builds, so it would do nothing at all in a shipped
+		# mod. push_warning is visible in the editor and the log without either cost.
 		if chip != null:
 			apply_buffs(activation, unit, [chip] as Array[Buff])
 			# The popcorn is the chip's OWN name, read off the LIVE BuffCore that was just hung -
@@ -78,6 +86,9 @@ func activate(context:Context, activation:EventCore) -> void:
 			# Translate.buff's fallback chain. No string is invented here.
 			var live:BuffCore = UnitCondition.get_buff(unit, chip_id)
 			if live != null: effect_bus.play_text(live.name_text(), unit.tile())
+		else:
+			push_warning('%s: face %s chip %s is not in the buffs index - the face does nothing.'
+				% [context.gear.kit.compcon_id, face, chip_id])
 
 	await apply_face_effect(face, context, activation)
 

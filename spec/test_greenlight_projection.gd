@@ -23,6 +23,14 @@
 # number therefore lands whole, and event_unit_damage.gd:121-122 adds it to state.burn as well as
 # dealing it.
 #
+# "A CHARACTER" IS is_actor(), NOT is_character() - the mod-wide rule (ruling 22): unit.gd:116-119,
+# is_character() is TRUE for a drone, only is_actor() excludes it. FIX (2026-09-22): neither
+# should_abort nor on_hit checked this before, so a hit on a hostile turret drone (or any non-actor)
+# both burned it and silently spent the 1/round against a real mech later that round.
+# test_hitting_a_drone_burns_nobody_and_leaves_the_round_unspent below is the measurement, using a
+# DRONE specifically rather than an inert OBJECT - an object already fails is_character() too, so it
+# would abort under either check and prove nothing about which one the gate actually uses.
+#
 #   godot --resolution 800x600 --position -2400,-2400 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_greenlight_projection.gd
 extends GutTest
 
@@ -30,6 +38,7 @@ const LeolethFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/leoleth_
 
 const LEOLETH_TILE := Vector2i(6, 6)
 const VICTIM_TILE := Vector2i(7, 6)
+const DRONE_TILE := Vector2i(6, 7) ## also adjacent to LEOLETH_TILE; distinct from VICTIM_TILE so both can exist at once
 
 const TARGET_BURN := 3
 const SELF_BURN := 1
@@ -185,6 +194,33 @@ func test_a_second_hit_in_the_same_round_burns_nobody_further():
 	assert_eq(victim.state.burn, TARGET_BURN, '"1/round" - and no more burn for the target...')
 	assert_eq(leoleth.state.burn, SELF_BURN, '...nor a second point for the Leoleth.')
 
+## FIX (2026-09-22): "a character" is is_actor(), not is_character() (unit.gd:116-119) - a drone IS
+## a character and only is_actor() excludes it. Uses a DRONE deliberately, not
+## LeolethFixture.create_hostile_object: an OBJECT already fails is_character() too, so it would
+## abort under either check and say nothing about which one onhit_greenlight.gd actually uses.
+func test_hitting_a_drone_burns_nobody_and_leaves_the_round_unspent():
+	var drone:Unit = LeolethFixture.create_drone(game, DRONE_TILE, Faction.AI_ENEMY)
+	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
+	assert_false(drone.is_actor(), '...and is NOT an actor, which is the distinction the gate uses.')
+	arm_and_fit()
+	await LeolethFixture.open_turn(game, leoleth)
+	queue_a_hit()
+	await SpecFactory.use_solo(game, leoleth, LeolethFixture.MELEE_KIT, drone, [])
+	assert_eq(drone.state.burn, 0, 'The hit landed but the drone is not a character (is_actor()) - '
+		+ 'no burn for it...')
+	assert_eq(leoleth.state.burn, 0,
+		'...and none for the Leoleth either: should_abort has to gate BEFORE spending the round, or '
+		+ 'a non-actor would silently consume the 1/round.')
+
+	# THE VACUITY GUARD, as in test_a_second_hit_in_the_same_round_burns_nobody_further: without
+	# Action.FLAG.AS_FREEBIE the per-turn soft limit refuses a second activation of the same Kit this
+	# turn outright (action.gd:161-163) and the swing below would prove nothing.
+	queue_a_hit()
+	await swing([Action.FLAG.AS_FREEBIE])
+	assert_eq(victim.state.burn, TARGET_BURN,
+		'A REAL character hit right after still burns - the drone never spent the round.')
+	assert_eq(leoleth.state.burn, SELF_BURN, 'And the Leoleth still takes its own point too.')
+
 func test_the_next_round_burns_again():
 	arm_and_fit()
 	await LeolethFixture.open_turn(game, leoleth)
@@ -241,7 +277,13 @@ func test_the_card_text_is_the_lcp_verbatim():
 	assert_eq(X.tr('gear.%s.name' % id), 'GreenLight Projection', 'The name off the sheet.')
 	assert_eq(X.tr('gear.%s.flavor' % id), 'Split the sun with thy furious blows!',
 		'The LCP\'s own one-line flavour.')
-	var effect:String = X.tr('gear.%s.effect' % id)
-	assert_ne(effect, 'gear.%s.effect' % id, 'The mod has an effect row at all.')
-	assert_true(effect.contains('1/round'), 'It carries the round limit...')
-	assert_true(effect.contains('3 |Burn|') or effect.contains('3 Burn'), '...and the target\'s three.')
+	# assert_eq against the FULL row, not .contains() fragments (fixed 2026-09-22):
+	# check_content.py cannot see a weapon mod at all, so this is the ONLY pin on this text, and
+	# three .contains() checks would still pass if the row were rewritten to swap the burn numbers
+	# (e.g. "you take 3 Burn and the target takes 1 Burn" still contains '1/round' and '3 |Burn|').
+	# The pipes are the row exactly as authored (localization/localizations.csv:530) - do not strip
+	# them, tr() does not either (precedent: test_aaaa_difficulty.gd:94, test_in_triumvirate.gd:626).
+	assert_eq(X.tr('gear.%s.effect' % id),
+		'Choose one |melee| weapon: 1/round, after you hit a character with this weapon, you take 1 '
+		+ '|Burn| and the target takes 3 |Burn|.',
+		'The LCP\'s effect row, verbatim, pipes included.')

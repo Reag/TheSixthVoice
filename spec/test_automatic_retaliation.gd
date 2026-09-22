@@ -295,6 +295,31 @@ func test_the_closest_of_two_in_threat_is_chosen_whichever_was_placed_first():
 	assert_eq(hp(two_out), two_out.core.get_health_max(),
 		'...and the one two spaces out, in Threat but further, was passed over.')
 
+func test_a_drone_is_never_the_closest_candidate():
+	# COVERAGE GAP (frame-close review): action_automatic_retaliation.gd:118's `if not
+	# other.is_actor(): continue` - ruling 22's "character" gate - was never exercised by any test in
+	# this file. LeolethFixture.create_drone is the fixture's own negative control for it, used the
+	# same way for the DAMAGER half of this card by test_hatred.gd:167-196; own_drone is not needed
+	# here because candidates() reads is_actor() alone and never asks who the drone answers to.
+	#
+	# THE SAME RIG AS test_the_closest_of_two_in_threat_is_chosen_whichever_was_placed_first (a
+	# swordsman, Threat 2, so two distances fit in reach), on purpose: the drone sits STRICTLY CLOSER
+	# than the character, so if is_actor() did not filter it out first, candidates() would report the
+	# drone as the winning "closest" match and nothing would ever be struck at all.
+	var swordsman := LeolethFixture.create_leoleth(game, Vector2i(6, 9))
+	LeolethFixture.equip(swordsman, LeolethFixture.RELIABLE_SWORD)
+	LeolethFixture.arm_jormungandr(swordsman)
+	var drone := LeolethFixture.create_drone(game, Vector2i(7, 9)) # one out - the CLOSER of the two
+	var character := LeolethFixture.create_hostile(game, Vector2i(8, 9)) # two out - the only real candidate
+	await LeolethFixture.press_arc(game, swordsman)
+	spend_a_space(swordsman)
+	queue_hit_then_retaliation()
+	await LeolethFixture.shoot(game, shooter, swordsman)
+	assert_eq(hp(drone), drone.core.get_health_max(),
+		'The drone was closer, but is_actor() excludes it from the candidate search entirely.')
+	assert_lt(hp(character), character.core.get_health_max(),
+		'The character two out - the only real candidate once the drone is excluded - answers instead.')
+
 func test_a_tie_for_closest_picks_exactly_one_of_the_tied():
 	var left := LeolethFixture.create_hostile(game, OPPOSITE_TILE)
 	var right := LeolethFixture.create_hostile(game, NEAR_TILE)
@@ -370,6 +395,49 @@ func test_only_the_first_hit_each_round_retaliates():
 	await LeolethFixture.shoot_again(game, shooter, leoleth)
 	assert_eq(hp(victim), after_first,
 		'...and the second hit in the SAME round is still not answered.')
+
+func test_the_per_round_tally_resets_next_round():
+	# COVERAGE GAP (frame-close review): test_only_the_first_hit_each_round_retaliates proves the
+	# ROUND tally BLOCKS a repeat in the same round, but it hands the reaction POINT back by writing
+	# leoleth.core.current.reactions directly rather than ever turning the round over - so nothing in
+	# this file pinned that the tally actually RESETS. A suite that only ever proves "still zero"
+	# would stay green even if the tally were wired to never come back at all.
+	#
+	# UnitAction.reset_per_round_usage (unit_action.gd:87) runs from new_turn_refresh (:78), which
+	# fires only for the UNIT STARTING ITS OWN TURN - unlike every_new_turn_refresh, the reaction-POINT
+	# refresh, which runs for every unit at ANY unit's turn start (the header's own citation,
+	# event_turn_start.gd:42-44). So the round-over has to be LEOLETH'S OWN turn cycling; shoot() and
+	# shoot_again() alone only ever cycle the SHOOTER and could never reach this line.
+	var victim := LeolethFixture.create_hostile(game, NEAR_TILE)
+	await LeolethFixture.press_arc(game, leoleth)
+	spend_a_space()
+	queue_hit_then_retaliation()
+	await LeolethFixture.shoot(game, shooter, leoleth)
+	var after_first:int = hp(victim)
+	assert_lt(after_first, victim.core.get_health_max(), 'The first hit was answered.')
+
+	# HEAL THE LEOLETH FIRST, AND THIS LINE IS LOAD-BEARING. Two provoked hits of 4 against an 8-HP
+	# frame STRUCTURE it on the second, and a structure is not a quiet event here: it fires this
+	# frame's own ALL SYSTEMS RED at STRUCTURED PRE, and the structure table roll POPS DICE FROM
+	# Dice.CHEAT_ROLL_QUEUE, which slides every later roll in the queue by one. Measured: without
+	# this line the second round's retaliation really does trigger - the tally HAS reset - and then
+	# rolls `0 (4-4)` and misses, because the structure roll ate the queued 19 and the structure
+	# result impaired the mech. The test then fails on the victim's HP and reads exactly like "the
+	# per-round tally never reset", which is the one thing it is here to measure.
+	leoleth.core.current.health = leoleth.core.get_health_max()
+
+	# TURN LEOLETH'S OWN ROUND OVER. buff_arc's until is MANUAL
+	# (test_the_chip_survives_a_turn_start_when_the_protocol_was_never_pressed already pins that it
+	# needs no re-press to survive a turn start), and every_new_turn_refresh hands every unit's
+	# reaction point back on its own, so nothing else needs restoring by hand.
+	await SpecFactory.end_turn(game, leoleth)
+	await SpecFactory.start_turn(game, leoleth)
+	assert_true(LeolethFixture.has(leoleth, LeolethFixture.ARC_CHIP), 'fixture: the chip is still up.')
+
+	queue_hit_then_retaliation()
+	await LeolethFixture.shoot_again(game, shooter, leoleth)
+	assert_lt(hp(victim), after_first,
+		'A hit in the NEXT round is answered again - the per-round tally really reset.')
 
 func test_heat_damage_is_not_damage_for_this_card():
 	# The Berserker's Aggression excludes heat the same way (action_aggression_berserker.gd:20).
@@ -579,6 +647,41 @@ func test_the_chip_survives_the_turn_the_protocol_was_pressed_on():
 	await LeolethFixture.press_arc_deactivate(game, leoleth)
 	assert_true(LeolethFixture.has(leoleth, LeolethFixture.ARC_CHIP),
 		'"You can BEGIN to deactivate" - it is still active for the rest of this turn.')
+
+func test_the_deactivation_protocol_records_its_usage():
+	# FIX (frame-close review, CONFIRMED): action_arc_deactivate.activate() never called
+	# spend_actions, so gear.increment_action_usage_for_action (unit_action.gd:279, reached only from
+	# UnitAction.spend) never ran and the press was invisible to GearCore's own usage counters - see
+	# action_arc_deactivate.gd's header for the three consequences (no log line, no round cap, no
+	# event_gear_activate.gd:100-104 side effects). get_uses_this_round is exactly what
+	# UnitAction.is_under_per_round_limit reads (unit_action.gd:170-175) and what that gate compares
+	# against, so it is the most direct observable that spend_actions ran at all - no dependency on
+	# battle-log string formatting.
+	#
+	# THIS TEST FAILS AGAINST THE UNFIXED ACTION: get_uses_this_round would read 0 both times, because
+	# nothing ever incremented it.
+	await LeolethFixture.press_arc(game, leoleth)
+	var specific := SpecificAction.from_id(leoleth, LeolethFixture.JORMUNGANDR_ID, LeolethFixture.ARC_DEACTIVATE)
+	if not SpecificAction.is_valid(specific): return fail_test('the deactivation protocol resolves.')
+	assert_eq(specific.gear.get_uses_this_round(specific.action), 0, 'fixture: unused so far.')
+	await LeolethFixture.press_arc_deactivate(game, leoleth)
+	assert_eq(specific.gear.get_uses_this_round(specific.action), 1,
+		'spend_actions really ran: the engine\'s own per-round usage counter moved.')
+
+func test_a_second_deactivation_press_in_the_same_round_is_refused():
+	# The engine's natural 1/round hard limit on a free-cost action (action.gd:156-158,
+	# get_per_round_hard_limit) can only bite once get_uses_this_round is real - see the header's FIX
+	# note and the test above. THIS IS A CORRECT NEW BEHAVIOUR, NOT A REGRESSION: "you CAN BEGIN to
+	# deactivate" reads as one decision per round, exactly like the activation protocol's own
+	# can_reapply = false. Before the fix this press was refused only if held-chip availability said
+	# so - which it never did, since deactivating does not clear the chip - so a second press in the
+	# same round was silently accepted and re-stamped the same value every time.
+	await LeolethFixture.press_arc(game, leoleth)
+	await LeolethFixture.press_arc_deactivate(game, leoleth)
+	var specific := SpecificAction.from_id(leoleth, LeolethFixture.JORMUNGANDR_ID, LeolethFixture.ARC_DEACTIVATE)
+	if not SpecificAction.is_valid(specific): return fail_test('the deactivation protocol resolves.')
+	assert_false(UnitAction.is_gear_available(specific),
+		'A second press the same round is refused by the engine\'s own per-round cap.')
 
 func test_the_chip_is_gone_at_the_next_turn_start():
 	await LeolethFixture.press_arc(game, leoleth)

@@ -19,6 +19,13 @@
 # "MOVE OVER COVER REGARDLESS OF ITS SIZE" IS READ AS free_climb, A RECORDED DIVERGENCE (ruling 20):
 # free_climb is the only movement flag that touches climbing at all (pathfinder.gd:774, where it
 # halves the climb multiplier from 2 to 1) and the engine has no notion of "cover you may not climb".
+#
+# FIX (frame-close review, author's decision): "NOT OURS TO DEFINE" ABOVE WAS ONLY EVER TRUE OF
+# unit.state.statuses. A status a BUFF applies (Buff.applies_statuses) never becomes a
+# StatusCondition, so every test above - all of which go through SpecFactory.apply - could never
+# have caught the action only checking that one array. test_a_buff_carried_immobilized_and_slowed_
+# clear and test_a_self_applied_buff_carried_status_stays close that gap; see
+# action_enhanced_movement_suite.gd's own header for the engine citations.
 extends GutTest
 
 const LeolethFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/leoleth_fixture.gd')
@@ -220,6 +227,48 @@ func test_a_hostile_applied_prone_slow_and_immobilize_all_clear():
 		Lancer.STATUS.PRONE, Lancer.STATUS.SLOWED, Lancer.STATUS.IMMOBILIZED,
 	]:
 		assert_false(leoleth.has_status(status), '%s was cleared.' % status)
+
+func test_a_buff_carried_immobilized_and_slowed_clear():
+	# EVERY TEST ABOVE GOES THROUGH SpecFactory.apply, WHICH ALWAYS WRITES A StatusCondition - the one
+	# shape the unfixed action could already see. Slowed and Immobilized are ALSO granted through
+	# Buff.applies_statuses with no StatusCondition ever created at all -
+	# UnitCondition.get_current_statuses (unit_condition.gd:372-384) reads that second set straight
+	# off state.buffs via get_buffs_that_apply_status (:809-817), and unit.has_status reads the same
+	# cache (unit_battle_state.gd:181-190 rebuilds cached_statuses from get_current_statuses on every
+	# apply/clear). 21 vanilla resources apply Immobilized this way and 12 apply Slowed - the
+	# Goliath's Pin among them.
+	#
+	# buff_pin_goliath_immobilized (content/frames/npc/npcc_goliath/pin/) and
+	# buff_assault_cannon_spun_up (content/gear/ipsn/weapons/mw_assault_cannon/) are both PLAIN,
+	# script-free Buff resources (script = engine/character/buff/buff.gd directly) with no `until`
+	# override, no fxe and no reaction of their own - chosen for exactly that blandness, so nothing
+	# about their OWN behaviour could explain a pass or a fail here.
+	#
+	# THIS TEST FAILS AGAINST THE UNFIXED ACTION: _clear_if_not_self_inflicted iterated only
+	# unit.state.statuses, which a buff-applied status never populates, so both has_status checks
+	# below would still read true after pressing.
+	SpecFactory.apply_buff(leoleth, &'buff_pin_goliath_immobilized')
+	SpecFactory.apply_buff(leoleth, &'buff_assault_cannon_spun_up')
+	assert_true(leoleth.has_status(Lancer.STATUS.IMMOBILIZED), 'fixture: Immobilized via buff is on.')
+	assert_true(leoleth.has_status(Lancer.STATUS.SLOWED), 'fixture: Slowed via buff is on.')
+
+	await LeolethFixture.press_wing(game, leoleth)
+	assert_false(leoleth.has_status(Lancer.STATUS.IMMOBILIZED),
+		'The buff-carried Immobilized cleared too, not just a StatusCondition one.')
+	assert_false(leoleth.has_status(Lancer.STATUS.SLOWED),
+		'And so did the buff-carried Slowed.')
+
+func test_a_self_applied_buff_carried_status_stays():
+	# BuffCore.is_unit_owner (buff_core.gd:97-100) runs StatusCondition.is_unit_owner
+	# (status_condition.gd:41-44) verbatim, just read off from_gear instead of source - the engine's
+	# own definition of "self inflicted" holds on the buff path with no separate ruling needed.
+	var own_gear := _gear()
+	SpecFactory.apply_buff(leoleth, &'buff_pin_goliath_immobilized', own_gear)
+	assert_true(leoleth.has_status(Lancer.STATUS.IMMOBILIZED), 'fixture: Immobilized via buff is on.')
+
+	await LeolethFixture.press_wing(game, leoleth)
+	assert_true(leoleth.has_status(Lancer.STATUS.IMMOBILIZED),
+		'"if they weren\'t self inflicted" holds on the buff path too - one from our own gear stays.')
 
 func test_a_self_applied_prone_stays():
 	# The source is a piece of the Leoleth's OWN loadout, which is the engine's whole definition of

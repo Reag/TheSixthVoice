@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.8.1'
+const EXPECTED_VERSION := '0.9.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -1203,6 +1203,13 @@ const BUFFS_THAT_BORROW_A_CARD := {
 	&'buff_wicked_host': 'gear.mt_wicked_host.effect',
 	&'buff_weak_computer': 'gear.mt_weak_computer.effect',
 	&'buff_gravity_well': 'gear.mt_gravity_well.effect',
+	# ADDED AT THE LEOLETH FRAME CLOSE, 2026-09-22, and the Leoleth's own new name guard is what
+	# found it: the 43 As chip is the fourth instance of the trait-chip case directly above, and SP1
+	# simply never added its row. Same reasoning exactly - mt_aaaa... carries no actions at all, so
+	# there is no sibling action for either fallback to land on by mistake, and the trait's own rows
+	# are what the chip should say. It renders the trait's 43-character name in the roll breakdown
+	# beside the -2, which is the card's own name for itself and deliberate.
+	&'buff_aaaa_difficulty': 'gear.mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.effect',
 }
 
 func test_every_visible_buff_renders_real_text_rather_than_a_raw_key():
@@ -1240,6 +1247,77 @@ func test_every_visible_buff_renders_real_text_rather_than_a_raw_key():
 			var key := 'gear.%s.%s' % [buff.compcon_id, property]
 			assert_ne(translation.get_message(key), StringName(''),
 				'%s carries its own %s row, so the chip cannot render a raw key.' % [buff.compcon_id, property])
+
+func test_every_drawn_buff_names_itself_deliberately():
+	# THE SIBLING OF BUFFS_THAT_BORROW_A_CARD, FOR THE OTHER PROPERTY. That table and its guard were
+	# added at the Sluagh close and reason entirely about `.effect` - where the chain dead-ends and
+	# renders a RAW KEY, which is loud once you look. The `.name` chain is worse, because it does not
+	# dead-end: its last step before the raw key is owner_gear.get_solo_action(), which is
+	# `kit.actions[0]` REGARDLESS of how many actions the Kit has (gear_core.gd:337-339). So a
+	# nameless buff on a multi-action Kit renders a DIFFERENT ABILITY'S NAME and resolves
+	# successfully. No raw key, no blank, nothing for the Sluagh's guard to catch.
+	#
+	# FOUND AT THE LEOLETH FRAME CLOSE, 2026-09-22. buff_bulwark_penalty sits on cp_hydraulic_excess,
+	# whose actions[0] is ALL SYSTEMS RED, and attack_roll.gd:189 titles a roll-breakdown line with
+	# buff_core.name_text() - so every hostile under Bulwark read "ALL SYSTEMS RED -1" against its
+	# allies. Two more on the same frame (buff_rage_reach_reliable, buff_arc_bonus) were one draw
+	# site away from the same thing.
+	#
+	# THE INVARIANT: a buff that something DRAWS must name itself deliberately, by exactly one of
+	# three means - its own flat row, a localization_key_override, or a listed borrow. Being nameless
+	# and letting the chain choose is not one of them. A mod-wide audit at the close found no other
+	# instance: every other drawn buff already does one of the three, and the four that looked
+	# exposed on shipped frames turned out to be three overrides plus the Gate's reviewed borrow.
+	#
+	# A BORROW IS CHECKED FOR BOTH PROPERTIES HERE. BUFFS_THAT_BORROW_A_CARD maps to an `.effect`
+	# key; the name half is that key with `.effect` swapped for `.name`. Asserting it exists is what
+	# makes "the borrowed card is the right card" a claim about the TITLE too, not only the body -
+	# which is the gap that let this defect through in the first place.
+	var translation:Translation = load(OUR_TRANSLATION)
+	assert_not_null(translation,
+		'This mod has a compiled translation (run the headless --import if this is a fresh clone).')
+	if translation == null: return
+
+	var by_id := {}
+	for buff:Buff in ModResources.load_ours(MOD_ID, &'buffs'): by_id[buff.compcon_id] = buff
+
+	# Everything the game draws a NAME for: every visible chip, plus the hidden ones the roll
+	# breakdown titles anyway. Same population as the two icon guards above, for the same reason.
+	var drawn:Array[StringName] = []
+	for buff:Buff in by_id.values():
+		if not buff.hide_from_player: drawn.append(buff.compcon_id)
+	for buff_id:StringName in HIDDEN_BUFFS_NEEDING_ICONS:
+		if not drawn.has(buff_id): drawn.append(buff_id)
+	assert_false(drawn.is_empty(), 'There are drawn buffs, so this test has something to check.')
+
+	for buff_id:StringName in drawn:
+		assert_true(by_id.has(buff_id), "%s is one of this mod's buffs." % buff_id)
+		if not by_id.has(buff_id): continue
+		var buff:Buff = by_id[buff_id]
+
+		# 1. Its own flat row. Translate.buff resolves this on its FIRST branch (translate.gd:57-58)
+		#    and never walks the chain at all.
+		if translation.get_message('gear.%s.name' % buff_id) != StringName(''): continue
+
+		# 2. An override - the same claim, made in the buff's own file where a reader finds it. It
+		#    still has to point at a row that EXISTS: translate.gd:51-52 returns on the override with
+		#    `return_key_if_blank` false, so a bogus one renders BLANK rather than a raw key.
+		if not buff.localization_key_override.is_empty():
+			var override_key := 'gear.%s.name' % buff.localization_key_override
+			assert_ne(translation.get_message(override_key), StringName(''),
+				'%s overrides its name onto %s, and that row exists.' % [buff_id, override_key])
+			continue
+
+		# 3. A listed borrow, checked by a human - and now checked for the title as well as the body.
+		if BUFFS_THAT_BORROW_A_CARD.has(buff_id):
+			var borrowed_name:String = str(BUFFS_THAT_BORROW_A_CARD[buff_id]).replace('.effect', '.name')
+			assert_ne(translation.get_message(borrowed_name), StringName(''),
+				'%s borrows its name from %s, and that row exists.' % [buff_id, borrowed_name])
+			continue
+
+		fail_test(('%s is drawn, has no name row, no localization_key_override and no '
+			+ 'BUFFS_THAT_BORROW_A_CARD entry - so Translate.buff falls through to its Kit\'s '
+			+ 'actions[0] and it renders some OTHER ability\'s name, silently.') % buff_id)
 
 func test_every_licence_this_mod_owns_has_a_real_icon():
 	# UnlockTree.icon is player-facing (the licence catalog) and NOTHING else in this file could see

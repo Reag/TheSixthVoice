@@ -32,8 +32,17 @@
 #
 # NO VARIANT ACTIONS. action_predator_prey_concepts.gd expands each weapon through
 # VariantActionGroup.get_variant_specifics (:29) so a thrown profile can be picked; ruling 3 names
-# only "an ActionAttackWeapon that is MELEE and QUICK", and a thrown variant of a melee weapon has
-# threat 0 and is a ranged attack the 43 As would penalise. Deliberately out.
+# only "an ActionAttackWeapon that is MELEE and QUICK". Deliberately out.
+#
+# CORRECTED AT THE FRAME CLOSE, 2026-09-22. This comment used to end "and a thrown variant of a
+# melee weapon has threat 0 and is a ranged attack the 43 As would penalise". The first half is
+# true and the second is FALSE: a thrown variant is still weapon_type = MELEE - the variant
+# differs only by threat = 0, and action_attack_weapon.gd:197-201 detects it by THAT, never by
+# type - so buff_aaaa_difficulty's weapon_types_forbidden = [MELEE] never fires on it. Three
+# vanilla thrown melee weapons are equippable here (mw_tactical_knife, mw_war_pike,
+# mw_shock_knife) and all three throw at range for free. That is the author's taken ruling
+# rather than a defect: the engine itself treats a thrown melee as MELEE everywhere, including
+# the Engaged penalty (action_attack_weapon.gd:254-255), so the Leoleth stays consistent with it.
 extends ActionReactionSelf
 
 func get_required_triggering_context() -> Array[Context.PROP]:

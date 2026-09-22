@@ -191,6 +191,41 @@ func test_a_hostile_drone_is_not_penalised():
 	assert_false(LeolethFixture.has(drone, LeolethFixture.BULWARK_PENALTY),
 		'A hostile DRONE is a character but not an actor, and this card says characters.')
 
+# NO TEST HERE FOR THE NEUTRAL-FACTION FIX TO passive_bulwark_aura.gd (bug fix, Leoleth frame close).
+# The fix adds an explicit UnitRelation.are_enemies check because applies_to_enemies=true silences
+# passive_aura.gd's own enemies-exclusion clause and nothing else in can_apply_buff_to_unit reads
+# faction - see that file's header. But a Faction.NONE unit CANNOT be built into a state this function
+# would ever return true for in the first place: Unit.is_active() demands get_faction() !=
+# Faction.NONE (unit.gd:111), and is_character()/is_actor() both require is_active() (unit.gd:
+# 116-117) - checked directly against this mod's own construction path,
+# SpecFactory.create_unit(game.map, tile, Faction.NONE), which builds a real CHARACTER-entity frame
+# (Frame.create_dummy() defaults entity_type to ENTITY.CHARACTER, frame.gd:63) that is Faction.NONE.
+# Its is_actor() reads false regardless, so the PRE-EXISTING is_actor() check on the line above the
+# new one already rejects it - a test asserting "the neutral gets no chip" would pass identically
+# before and after this fix, for a reason that has nothing to do with the fix. Per this task's own
+# rule, that is a test that cannot fail, so it is left out rather than written to look like coverage
+# it is not. The fix is still correct and stays: it is what the card says, and it does not rely on an
+# invariant that lives in a different file (unit.gd's is_active) and that nothing here enforces.
+
+func test_a_hostile_shooting_a_non_character_object_is_unpenalised():
+	# BUG FIX (Leoleth frame close). buff_bulwark_penalty.check_if_passive_applies used to read only
+	# "other than you" (`context.target_unit != leoleth`) and said nothing about "characters" - so a
+	# hostile carrying the chip caught the -1 shooting a wreck, cover, or a turret too. RULING 22 says
+	# "character" means is_actor(); this object fails is_character() outright (Frame.ENTITY.OBJECT,
+	# unit.gd:116 -> frame.gd:100), same control test_a_hostile_drone_is_not_penalised uses for the
+	# AURA's placement half - this is the RESOLUTION half of the same card.
+	#
+	# DISTANCE 2 FROM THE HOSTILE, same caution as ALLY_TILE's own header: engagement is adjacency and
+	# sits on the SHOOTER. It cannot actually fire here (UnitRelation.adjacent_characters, which
+	# get_engaging_units walks, filters to is_character() and this target is not one) but matching the
+	# file's established distance keeps this test reading like every other one in it.
+	var target:Unit = LeolethFixture.create_hostile_object(game, Vector2i(12, 6))
+	assert_false(target.is_actor(), 'fixture: this really is not a character.')
+	await LeolethFixture.rage(game, leoleth, LeolethFixture.FACE_BULWARK)
+	assert_true(LeolethFixture.has(hostile, LeolethFixture.BULWARK_PENALTY), 'fixture: the dome IS up.')
+	assert_eq(preview(hostile, target).accuracy_mods_total(), 0,
+		'Shooting a non-character object is unpenalised even though the chip is on the shooter.')
+
 func test_the_penalty_vanishes_with_the_chip():
 	await LeolethFixture.rage(game, leoleth, LeolethFixture.FACE_BULWARK)
 	assert_true(LeolethFixture.has(hostile, LeolethFixture.BULWARK_PENALTY), 'fixture: the dome is up.')

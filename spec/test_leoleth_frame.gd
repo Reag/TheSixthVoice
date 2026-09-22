@@ -201,6 +201,58 @@ func test_the_colour_scheme_is_derived_from_the_frames_own_art():
 	assert_eq(theirs.palette_2.resource_path, ours.palette_2.resource_path,
 		'The Iskander still wears the same toneramp we kept.')
 
+func test_the_colour_scheme_literals_are_still_the_arts_own_census():
+	# THE ASSERTION THE TEST ABOVE WAS MISSING. That one reads three literals off the .tres and never
+	# opens the sprite, so swapping in different art leaves it green while its own comment about
+	# silent drift becomes false. This one re-derives the census from the shipped texture, so the
+	# .tres and the art cannot part company unnoticed - which matters because the day channel-encoded
+	# art lands, these three stop being inert and become the frame's real palette.
+	#
+	# SAFE TO READ IN-ENGINE. mf_leoleth.png.import sets compress/mode=0 (lossless), so get_image()
+	# hands back the source pixels exactly; a VRAM-compressed texture would not, and this test would
+	# have to read the PNG off disk instead.
+	#
+	# THE CENSUS RULE, from the Vauban's SP5 ruling as the Sluagh re-ran it: most-common literal fill
+	# colours among pixels at alpha >= 250, EXCLUDING pure black, which is linework rather than fill.
+	# Compared as 8-bit ints rather than Colors - Image.get_pixel returns v/255 floats, and exact
+	# float equality on those is a coin toss.
+	var frame:Frame = _frame()
+	assert_not_null(frame, 'fixture: the frame loads.')
+	if frame == null: return
+	if frame.sprites.is_empty(): return
+	var sprite:Texture2D = frame.sprites[0]
+	if sprite == null: return
+	var image:Image = sprite.get_image()
+	assert_not_null(image, 'The sprite hands back an Image to count.')
+	if image == null: return
+
+	var counts:Dictionary = {}
+	var opaque:int = 0
+	for y:int in image.get_height():
+		for x:int in image.get_width():
+			var px:Color = image.get_pixel(x, y)
+			if px.a < 0.98: continue # alpha >= 250/255
+			opaque += 1
+			var packed:int = (roundi(px.r * 255.0) << 16) | (roundi(px.g * 255.0) << 8) | roundi(px.b * 255.0)
+			if packed == 0: continue # pure-black linework is not a fill colour
+			counts[packed] = counts.get(packed, 0) + 1
+	assert_eq(opaque, 1618, 'The sprite still has the 1,618 opaque pixels the census was taken over.')
+
+	var ranked:Array = counts.keys()
+	ranked.sort_custom(func(a:int, b:int) -> bool: return counts[a] > counts[b])
+	assert_true(ranked.size() >= 3, 'The census found at least three fill colours.')
+	if ranked.size() < 3: return
+
+	var ours:ColorScheme = frame.default_color_scheme
+	if ours == null: return
+	var written:Array[Color] = [ours.base_0, ours.base_1, ours.base_2]
+	var labels:Array[String] = ['base_0', 'base_1', 'base_2']
+	for i:int in 3:
+		var packed:int = (roundi(written[i].r * 255.0) << 16) | (roundi(written[i].g * 255.0) << 8) | roundi(written[i].b * 255.0)
+		assert_eq(packed, ranked[i],
+			'%s is still the sprite\'s #%d most-used fill colour (#%06x in the art, #%06x on the .tres).'
+				% [labels[i], i + 1, ranked[i], packed])
+
 func test_the_name_and_flavour_and_tagline_resolve():
 	# Through THIS MOD'S OWN artifact first, so a sibling Reag-* mod cannot hold this green, and then
 	# end to end through tr(). A tr() that falls through to the raw key is the signature of a missing

@@ -17,11 +17,30 @@
 ## measurement that proves this rather than trusting it: a null read here would fail either
 ## permanently OPEN (every hit burns) or permanently CLOSED (no hit ever burns).
 ##
-## WHY THE INCREMENT HAPPENS BEFORE super(...). This OnHitEffect carries no save_to_avoid and no
-## buffs, so super's body does nothing but the unit-validity check this override has already redone
-## - there is no "spend the round even on a passed save" ordering question. The increment sits after
-## the round check's early return so a round already spent is refused WITHOUT touching the counter a
-## second time.
+## "A CHARACTER" IS is_actor(), NOT is_character() - the mod-wide rule (Sluagh close 2026-09-21,
+## ruling 22 on this frame). unit.gd:116-119: is_character() is TRUE for a drone, and only is_actor()
+## excludes it. Gated FIRST, before the round counter is even read, so hitting a non-actor (a hostile
+## turret drone, a wreck, a barrel) neither burns it nor spends the 1/round - the next hit this round
+## on a real mech still chips. Sibling gates doing the same thing on this frame:
+## action_combust.gd:40 (can_target_unit), buff_rage_hatred.gd:96 and
+## action_automatic_retaliation.gd:104 (both damager()).
+##
+## FIX (2026-09-22): BEFORE THIS FIX neither should_abort nor on_hit checked attacked_unit.is_actor()
+## at all, so swinging a GreenLight-modded weapon at a drone, a wreck or a barrel both burned it (in
+## on_hit, no target filter existed there either) AND spent the round, silently disarming the card
+## against the next real hit.
+##
+## WHY THE INCREMENT HAPPENS AFTER super(...), NOT BEFORE (changed 2026-09-22; it used to sit right
+## after the round check's early return, matching onhit_ddmr.gd verbatim). This OnHitEffect carries
+## no save_to_avoid and no buffs, so super's body (on_hit_effect.gd:54-73) does nothing but redo the
+## Unit.is_valid check on attacked_unit and activation.context.unit for stage apply_on - there is no
+## "spend the round even on a passed save" ordering question, so moving the increment past that call
+## changes nothing about when a VALID hit spends its round. What it fixes: if attacked_unit dies
+## between the roll and this effect running, super(...) now returns true and the round is refused
+## WITHOUT being spent - previously the increment ran first and the round was gone for a hit that
+## never actually landed. THIS PATTERN WAS INHERITED VERBATIM FROM onhit_ddmr.gd, which still
+## increments before its own super call; changing the DDMR's shipped content is out of scope here (it
+## is another frame's shipped mod) - report to the author whether it wants the same move.
 ##
 ## increment_action_usage's SECOND ARGUMENT IS FALSE, matching onhit_ddmr.gd: it gates only the
 ## uses_this_turn tally (gear_core.gd:171-181), and the per-ROUND counter this gate reads is written
@@ -49,12 +68,15 @@ const SELF_BURN := 1
 
 func should_abort(stage:STAGE, activation:EventCore, attacked_unit:Unit) -> bool:
 	if stage == apply_on:
+		if not Unit.is_valid(attacked_unit) or not attacked_unit.is_actor(): return true
 		var unit:Unit = activation.context.unit
 		if not Unit.is_valid(unit): return true
 		var mod_gear:GearCore = unit.get_gear(MOD_ID)
 		if not GearCore.is_valid(mod_gear): return true
 		if mod_gear.get_uses_this_round_alt(USAGE_KEY) > 0: return true
+		if await super(stage, activation, attacked_unit): return true
 		mod_gear.increment_action_usage(USAGE_KEY, false)
+		return false
 	return await super(stage, activation, attacked_unit)
 
 func on_hit(activation:EventCore, attacked_unit:Unit) -> void:

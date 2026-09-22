@@ -17,10 +17,19 @@
 # pathfinder with USE_BOOST added, target_action_util.gd:473-476). A system move
 # (action_system_movement.gd:41), a reaction move and a pathfinder variant all go through
 # MovementType.create(unit) with NO flag, so the chip merges `teleport = true` and the ZIP tag into
-# them. A knockback never merges buffs at all (create_for_involuntary, :64-72).
+# them. A knockback never merges buffs at all (create_for_involuntary, :63-71).
 #
 # THE HEAT: the same chip triggers on entire_movement POST when the mover is its holder and the
 # move's resource carries the tag - one movement EVENT, one heat, self-inflicted.
+#
+# THE HEAT ALSO GATES ON movement_type.voluntary (Fix 2, 2026-09-22; buff_zip_type_engine.gd's own
+# header has the full reasoning). "A knockback never merges buffs at all", above, is true and stays
+# true - create_for_involuntary is the one forced-move path that never calls get_buffs_to - but it
+# is NOT the only forced-move shape: MovementType.create(unit, false) is a SEPARATE path (a HORUS
+# puppet, a teleport event, mount-up) that passes is_voluntary=false yet DOES call get_buffs_to and
+# DOES merge the chip in. test_a_puppeted_forced_move_costs_no_heat_while_engaged, below, is the
+# measurement for that path specifically - test_a_knockback_costs_no_heat_while_engaged was never at
+# risk from the bug this fixed.
 #
 # ENGAGEMENT IS MEASURED ON A DUMMY (departure 4): Fleet of Foot already puts ignore_engagement on
 # every one of the Leoleth's voluntary moves, so on the frame itself that clause is vacuous.
@@ -121,20 +130,27 @@ func test_the_teleportation_pipes_link_to_a_live_glossary_term():
 
 # ---------------------------------------------------------------- the toggle
 
-## ONE ON AND ONE OFF PER ROUND, and that is the engine's rule for a FREE action rather than
-## anything this Kit declares: Action.get_per_round_hard_limit returns 1 when the action costs
-## ACTION_COST_FREE or less (action.gd:156-158), and UnitAction.get_gear_unavailable_reason checks
-## it (REASON.PER_ROUND, unit_action.gd:148). Measured on the first GREEN run of this file, where
-## the plan's "and engage is back" was the single red assertion. The counter is cleared by
-## UnitAction.reset_per_round_usage, which only the HOLDER's own turn start reaches
-## (new_turn_refresh, unit_action.gd:78 <- event_turn_start.gd:79) - so the button comes back next
-## turn, which is the last two lines here.
+## UNCAPPED, BY THE AUTHOR'S OWN DECISION (Fix 3, 2026-09-22) - REVERSING THE PIN THIS TEST USED TO
+## HOLD. Both halves are naturally FREE (action_type = 3), and unmodified, Action.
+## get_per_round_hard_limit returns 1 whenever an action costs ACTION_COST_FREE or less
+## (action.gd:156-158), which UnitAction.get_gear_unavailable_reason checks via
+## is_under_per_round_limit (REASON.PER_ROUND, unit_action.gd:148, :170-175) - so the engine's
+## DEFAULT caps each half to one flip per round. The card caps nothing: it grants the choice per
+## MOVEMENT. This test used to PIN the capped default (a naturally FREE action is 1/round); it now
+## pins the override instead - action_zip_engage.gd / action_zip_disengage.gd both override
+## get_per_round_hard_limit to return 99, straight at the source rather than through a
+## Buff.TO.ACTION_PER_ROUND buff (the engine's own sanctioned channel for RAISING this cap,
+## unit_action.gd:173-174) - the cap should never apply to this gear at all, not merely while some
+## buff is up.
 ##
-## Vanilla's Retractable Profile does not meet this because both its halves are QUICK
-## (action_retractable_profile_deactivate.tres: action_type = 1). FREE is still the right cost for
-## this card - the ZIP promises no action economy at all - and one toggle each way per round is a
-## cap the card never contradicts. FLAGGED for the author rather than designed around.
-func test_engaging_hangs_the_chip_and_the_two_actions_alternate():
+## The counter is still cleared by UnitAction.reset_per_round_usage, which only the HOLDER's own turn
+## start reaches (new_turn_refresh, unit_action.gd:78 <- event_turn_start.gd:79) - moot for the cap
+## itself now, but still why the button is offered again next turn regardless.
+##
+## Vanilla's Retractable Profile never had this problem: both its halves are QUICK
+## (action_retractable_profile_deactivate.tres: action_type = 1), so Action.get_per_round_hard_limit's
+## FREE-only branch never applied to it in the first place.
+func test_engaging_hangs_the_chip_and_the_two_actions_toggle_without_limit():
 	assert_false(_held(), 'Off at the start.')
 	await LeolethFixture.open_turn(game, leoleth)
 	assert_true(_available(_engage()), 'Engage is offered while off.')
@@ -145,10 +161,18 @@ func test_engaging_hangs_the_chip_and_the_two_actions_alternate():
 	assert_true(_available(_disengage()), 'Disengage is offered.')
 	await LeolethFixture.disengage_zip(game, leoleth)
 	assert_false(_held(), 'Cleared.')
-	assert_false(_available(_engage()), 'Not again THIS round: a naturally FREE action is 1/round.')
+	# THE PIN, REVERSED: before Fix 3 this next line was `assert_false` - "not again THIS round: a
+	# naturally FREE action is 1/round." That was the engine's unmodified default outrunning the
+	# card, which grants the choice per movement and caps nothing.
+	assert_true(_available(_engage()), 'Offered again in THE SAME round - Fix 3 lifts the cap.')
+	await LeolethFixture.engage_zip(game, leoleth)
+	assert_true(_held(), 'And re-engaging really works a second time this round.')
+	assert_true(_available(_disengage()), 'Disengage is offered again too.')
+	await LeolethFixture.disengage_zip(game, leoleth)
+	assert_false(_held(), 'And disengaging a second time this round works as well.')
 	await SpecFactory.end_turn(game, leoleth)
 	await SpecFactory.start_turn(game, leoleth)
-	assert_true(_available(_engage()), 'Next turn it is offered again.')
+	assert_true(_available(_engage()), 'Next turn it is offered too, uncapped or not.')
 	assert_false(_available(_disengage()), 'And disengage is withdrawn again, with no chip to clear.')
 
 func test_the_chip_is_visible_and_survives_turns():
@@ -285,6 +309,28 @@ func test_a_knockback_costs_no_heat_while_engaged():
 	var heat := leoleth.core.current.heat
 	await SpecFactory.move(game, leoleth, TWO_EAST, MovementType.create_for_involuntary(leoleth))
 	assert_eq(leoleth.core.current.heat, heat, 'Involuntary: no buffs merged, no tag, no heat.')
+
+## FIX 2 (2026-09-22): a knockback is NOT the only shape a forced move takes, and it is the ONE
+## path never at risk - create_for_involuntary never calls get_buffs_to at all (movement_type.gd:
+## 63-71), so the test above proves nothing about a forced move that DOES merge buffs. Three vanilla
+## producers build a "counts as involuntary!!" forced move via MovementType.create(unit, false)
+## instead (movement_type.gd:34-51 - is_voluntary=false, but the get_buffs_to call and the merge
+## loop both still run): action_puppet_system.gd:8 (a HORUS puppet), event_unit_teleport.gd:26, and
+## mt_mount_up/action_mount_up.gd:56. That path DOES merge this chip's teleport/other_tags in, so
+## before Fix 2 the resulting move both looked like a ZIP teleport AND charged 1 Heat for a move the
+## Leoleth never chose.
+func test_a_puppeted_forced_move_costs_no_heat_while_engaged():
+	await LeolethFixture.engage_zip(game, leoleth)
+	var forced := MovementType.create(leoleth, false)
+	assert_true(forced.teleport,
+		'fixture: unlike create_for_involuntary, this path DOES merge the chip in.')
+	assert_true(forced.other_tags.has(LeolethFixture.ZIP_TAG), 'fixture: and it carries the ZIP tag.')
+	assert_false(forced.voluntary, 'fixture: and it is still recorded as involuntary.')
+	var heat := leoleth.core.current.heat
+	await SpecFactory.move(game, leoleth, TWO_EAST, forced)
+	assert_eq(leoleth.core.current.heat, heat,
+		'Fix 2: triggers_on_event (buff_zip_type_engine.gd) now gates on movement_type.voluntary, '
+		+ 'so a tagged but INVOLUNTARY move still charges no Heat.')
 
 func test_disengaged_a_system_move_walks_and_costs_nothing():
 	await LeolethFixture.engage_zip(game, leoleth)
