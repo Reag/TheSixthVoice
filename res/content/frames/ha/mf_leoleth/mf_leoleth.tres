@@ -8,34 +8,40 @@
 [ext_resource type="Resource" uid="uid://bsktp4ushq6g1" path="res://content/mounts/mount_flex.tres" id="6_mountflex"]
 [ext_resource type="Resource" uid="uid://dj0bl2ve85q5o" path="res://content/mounts/mount_heavy.tres" id="7_mountheavy"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
-[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/placeholder/mf_placeholder.png" id="9_sprite"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ha/mf_leoleth/mf_leoleth.png" id="9_sprite"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/mt_toe_to_toe/mt_toe_to_toe.tres" id="10_toetotoe"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.tres" id="11_aaaa"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/mt_fleet_of_foot/mt_fleet_of_foot.tres" id="12_fleet"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_leoleth/cp_hydraulic_excess/cp_hydraulic_excess.tres" id="13_core"]
 
-; NO ART YET, SO NO CENSUS (design 1.1, SP5 slot). The Vauban's and the Sluagh's schemes were each
-; DERIVED from their own sprite by counting its literal fill colours; with the shared 80x80 stand-in
-; there is nothing to count that is not the stand-in. So this clones the frame's MANUFACTURER's
-; block - mf_iskander.tres:20-25, read 2026-09-21 - which is exactly what mf_maidens_blush.tres did
-; at its own SP1 with its base frame's block: the token still reads as a Harrison Armory machine on
-; the board until real art lands.
+; DERIVED FROM THE FRAME'S OWN ART at the frame close, 2026-09-22, when the author supplied the
+; sprite. This replaces the Iskander's HA block SP1 cloned as a stand-in (the Maiden's Blush shape),
+; re-running the Vauban's SP5 ruling exactly as the Sluagh did - mf_sluagh.tres:14-24.
 ;
-; palette_2 = tone_highcontrast is the Iskander's own slot and ramp. base_3 is deliberately NOT
-; written: the Iskander sets it to null, which on a typed Color export is a no-op that keeps
-; DEFAULT_BASE, so writing it would be noise. palette_1 and palette_3 are not written either, and
-; NOTHING should ever assert they are null - ColorScheme defaults every palette slot to
+; Measured with the same shader-literal test palette_swap_func.gdshaderinc uses (pixel ==
+; (v,0,0)/(0,v,0)/(0,0,v)/(0,v,v) for v in palette_index_r.png's seven red values 51, 85, 119, 153,
+; 187, 221, 255): mf_leoleth.png (80x80, 1,618 opaque pixels) has ZERO channel-encoded pixels, so
+; this scheme is INERT on this sprite exactly like the Sluagh's, the Vauban's and the Primrose's -
+; it cannot repaint the token at all. The three are written anyway, because the day channel-encoded
+; art replaces this sprite they become the frame's real palette without a second census.
+;
+; base_0..2 hold the sprite's OWN most-common literal fill colours (a plain colour census, excluding
+; the pure-black linework at 85px/0,0,0): a gunmetal grey-brown (82,76,77 - 252px), a light steel
+; grey (120,129,132 - 116px) and a slate blue-grey (56,72,90 - 75px), most-used first per the
+; Iskander's own slot convention.
+;
+; palette_2 = tone_highcontrast is KEPT: it is the Iskander's own slot and ramp, the census speaks
+; only to the three base colours, and it is inert here for the same reason they are. base_3 is
+; deliberately NOT written: the Iskander sets it to null, which on a typed Color export is a no-op
+; that keeps DEFAULT_BASE, so writing it would be noise. palette_1 and palette_3 are not written
+; either, and NOTHING should ever assert they are null - ColorScheme defaults every palette slot to
 ; DEFAULT_TONERAMP (color_scheme.gd:59-62).
-;
-; WHEN SP5 SUPPLIES ART, re-derive these three by a colour census of that sprite (the Vauban's SP5
-; ruling) and update test_leoleth_frame.test_the_colour_scheme_is_the_iskanders_ha_block, which
-; asserts BOTH these literals and the live Iskander's, so a divergence says which side moved.
 [sub_resource type="Resource" id="Resource_colorscheme"]
 script = ExtResource("3_colorscheme")
 palette_2 = ExtResource("4_toneramp")
-base_0 = Color(0.16466352, 0.23109427, 0.31874013, 1)
-base_1 = Color(0.2874422, 0.52152926, 0.82283276, 1)
-base_2 = Color(0.21505132, 0.56908107, 0.6512088, 1)
+base_0 = Color(0.32156863, 0.29803922, 0.30196078, 1)
+base_1 = Color(0.47058824, 0.50588235, 0.51764706, 1)
+base_2 = Color(0.21960784, 0.28235294, 0.35294118, 1)
 
 ; The sheet's fourteen columns plus reactions and activations, which Statblock carries and the card
 ; does not (statblock.gd:31, :34). armor = 1 and tech_attack = -2 are both written even though one is

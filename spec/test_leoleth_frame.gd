@@ -123,21 +123,25 @@ func test_the_frame_carries_its_four_traits_in_sheet_order():
 		LeolethFixture.CORE_ID,
 	] as Array[StringName], 'The four traits, in sheet order, with the core system last.')
 
-func test_the_frame_wears_the_shared_placeholder_until_sp5():
-	# THIS ASSERTION IS THE OPPOSITE OF EVERY OTHER FRAME SPEC IN THIS MOD, ON PURPOSE. There is no
-	# Leoleth art yet (design 1.1: "the placeholder until the author supplies art"), so the frame wears
-	# res/assets/frames/placeholder/mf_placeholder.png - the same file mf_maidens_blush.tres wore
-	# through its own SP1. Pinning that it IS the placeholder means SP5's art swap reddens exactly one
-	# named test and has to be a deliberate edit, instead of sliding in unremarked; the seven shipped
-	# frames all assert the reverse, and this line is rewritten to match them when the art lands.
-	#
-	# 80x80, not the 160x160 sibling: the mod ships mf_placeholder.png (80x80, size 1) and
-	# mf_placeholder_160.png (160x160, for the size-2 Myconid), and pointing a size-1 frame at the
-	# larger one renders it at double scale on the board.
+func test_the_frame_has_a_sprite_that_actually_loaded():
+	# THE AUTHOR SUPPLIED THE ART AT THE FRAME CLOSE, 2026-09-22, and this test flipped with it. It
+	# used to assert the OPPOSITE - that the frame still wore res/assets/frames/placeholder/
+	# mf_placeholder.png - precisely so that the swap would redden one named test and have to be a
+	# deliberate edit rather than sliding in unremarked. It did; this is that edit. The Leoleth now
+	# asserts what the other eight shipped frames assert.
 	#
 	# A .tres pointing at an unimported PNG does not fail loudly: the ext_resource fails, the whole
 	# frame resource fails to parse, and the frame drops out of ContentLibrary with no error a player
 	# would ever see. This is the only thing in the suite that reads mf_leoleth.sprites.
+	#
+	# CHECKING THE FRAME'S OWN FILENAME, not just "not placeholder" - test_sluagh_frame.gd's,
+	# test_vauban_frame.gd's and test_primrose_frame.gd's reasoning: several of this mod's frames are
+	# 80x80 with no "placeholder" in their paths, so a copy-paste from a SIBLING frame would pass the
+	# weaker check on its own. Both halves are asserted.
+	#
+	# 80x80, not the 160x160 sibling: the mod ships mf_placeholder.png (80x80, size 1) and
+	# mf_placeholder_160.png (160x160, for the size-2 Myconid), and pointing a size-1 frame at the
+	# larger one renders it at double scale on the board.
 	var frame:Frame = _frame()
 	assert_not_null(frame, 'fixture: the frame loads.')
 	if frame == null: return
@@ -146,19 +150,30 @@ func test_the_frame_wears_the_shared_placeholder_until_sp5():
 	var sprite:Texture2D = frame.sprites[0]
 	assert_not_null(sprite, 'The sprite texture loaded.')
 	if sprite == null: return
-	assert_eq(sprite.get_size(), Vector2(80, 80), 'A size-1 frame uses the 80x80 stand-in.')
-	assert_true(sprite.resource_path.ends_with('/placeholder/mf_placeholder.png'),
-		'SP1 ships the shared 80x80 stand-in. SP5 replaces it and rewrites this line.')
+	assert_eq(sprite.get_size(), Vector2(80, 80), 'A size-1 frame uses an 80x80 sprite.')
+	assert_false(sprite.resource_path.contains('placeholder'),
+		'And it is the author\'s own art, not the shared stand-in.')
+	assert_true(sprite.resource_path.ends_with('/mf_leoleth.png'),
+		'The frame wears its OWN sprite - not a sibling frame\'s, and not the stand-in.')
 
-func test_the_colour_scheme_is_the_iskanders_ha_block():
-	# NO CENSUS IS POSSIBLE, because there is no art. The Vauban's and the Sluagh's schemes were each
-	# derived from their own sprite by a pixel count; with the shared stand-in there is nothing to
-	# count that is not the stand-in itself. So this clones the frame's MANUFACTURER's scheme, which is
-	# what the Maiden's Blush did at its SP1 with its base frame's - the token still reads as an HA
-	# machine on the board until real art lands.
+func test_the_colour_scheme_is_derived_from_the_frames_own_art():
+	# RE-DERIVED AT THE FRAME CLOSE from the art the author supplied, re-running the Vauban's SP5
+	# ruling exactly as the Sluagh did. This test used to assert the Iskander's HA block, which SP1
+	# cloned as a stand-in because there was no art to count (the Maiden's Blush shape); the three
+	# base colours are now the sprite's own, so the Iskander's VALUES are no longer ours and those
+	# cross-assertions are gone with them.
 	#
-	# ASSERTED ON BOTH SIDES, the Blush's shape: the literals below AND the live Iskander's own values.
-	# If only ours fails we drifted; if only the Iskander's fails a modkit update restyled HA.
+	# LITERALS, NOT A RELATIONSHIP - the Vauban's, the Primrose's and the Sluagh's shape.
+	# mf_leoleth.png (80x80, 1,618 opaque pixels) has ZERO channel-encoded pixels under the shader's
+	# own literal test, so this scheme cannot repaint the token at all and is INERT. It is pinned
+	# anyway, because the day channel-encoded art replaces this sprite these become the frame's real
+	# palette, and a silent drift between the .tres and the art it was counted from would go unseen.
+	# The three are the sprite's most-common literal fill colours (census excluding the pure-black
+	# linework), most-used first, per the Iskander's own slot convention.
+	#
+	# THE TONERAMP CROSS-CHECK SURVIVES. palette_2 is still the Iskander's own slot and ramp - the
+	# census speaks only to the base colours - so the live Iskander is still asserted on that one
+	# property: if only ours fails we drifted, if only theirs fails a modkit update restyled HA.
 	#
 	# NOTHING IS ASSERTED ABOUT palette_1 OR palette_3. ColorScheme declares every palette slot
 	# `@export var palette_N:Texture2D = DEFAULT_TONERAMP` (color_scheme.gd:59-62), so a sub-resource
@@ -172,19 +187,19 @@ func test_the_colour_scheme_is_the_iskanders_ha_block():
 	if ours == null: return
 	assert_eq(ours.palette_2.resource_path, 'res://assets/palettes/toneramps/tone_highcontrast.png',
 		'palette_2 is the high-contrast toneramp, the Iskander\'s own slot and ramp.')
-	assert_eq(ours.base_0, Color(0.16466352, 0.23109427, 0.31874013, 1), 'base_0 is the HA deep blue.')
-	assert_eq(ours.base_1, Color(0.2874422, 0.52152926, 0.82283276, 1), 'base_1 is the HA bright blue.')
-	assert_eq(ours.base_2, Color(0.21505132, 0.56908107, 0.6512088, 1), 'base_2 is the HA teal.')
+	assert_eq(ours.base_0, Color(0.32156863, 0.29803922, 0.30196078, 1),
+		'base_0 is the sprite\'s gunmetal grey-brown (82,76,77 - 252px).')
+	assert_eq(ours.base_1, Color(0.47058824, 0.50588235, 0.51764706, 1),
+		'base_1 is the sprite\'s light steel grey (120,129,132 - 116px).')
+	assert_eq(ours.base_2, Color(0.21960784, 0.28235294, 0.35294118, 1),
+		'base_2 is the sprite\'s slate blue-grey (56,72,90 - 75px).')
 
 	var iskander:Frame = ContentLibrary.get_mech_frame(ISKANDER_ID)
 	assert_not_null(iskander, 'mf_iskander loads.')
 	if iskander == null or iskander.default_color_scheme == null: return
 	var theirs:ColorScheme = iskander.default_color_scheme
 	assert_eq(theirs.palette_2.resource_path, ours.palette_2.resource_path,
-		'The Iskander still wears the same toneramp we cloned.')
-	assert_eq(theirs.base_0, ours.base_0, 'Same base_0.')
-	assert_eq(theirs.base_1, ours.base_1, 'Same base_1.')
-	assert_eq(theirs.base_2, ours.base_2, 'Same base_2.')
+		'The Iskander still wears the same toneramp we kept.')
 
 func test_the_name_and_flavour_and_tagline_resolve():
 	# Through THIS MOD'S OWN artifact first, so a sibling Reag-* mod cannot hold this green, and then
