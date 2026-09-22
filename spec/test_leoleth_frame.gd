@@ -252,8 +252,8 @@ func test_the_licence_grants_exactly_the_rank_one_and_two_gear_and_nothing_else_
 		'Rank 1 grants exactly the Thunder Sword and W.I.N.G, once each, in sheet order.')
 	var rank_2:Array = license.rank_2.granted_gear.map(
 		func(kit:Kit) -> StringName: return kit.compcon_id)
-	assert_eq(rank_2, [LeolethFixture.TDA_ID] as Array,
-		'Rank 2 grants exactly the Thermal Death Axe so far (Task 2 appends the ZIP Type Engine).')
+	assert_eq(rank_2, [LeolethFixture.TDA_ID, LeolethFixture.ZIP_ID] as Array,
+		'Rank 2 grants exactly the Thermal Death Axe and the ZIP Type Engine, once each, in sheet order.')
 	assert_eq(license.rank_3.granted_gear.size(), 0, 'Rank 3 grants no gear yet (SP4 fills it).')
 
 func test_the_licence_names_itself_after_the_frame():

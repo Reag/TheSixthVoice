@@ -1,0 +1,28 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_zip_type_engine/buff_zip_type_engine.gd" id="1_chip"]
+[ext_resource type="Script" uid="uid://udxarj3kb6nm" path="res://engine/character/unit/movement_type.gd" id="2_type"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_zip_type_engine.svg" id="3_icon"]
+[ext_resource type="PackedScene" path="res://unpacked/Reag-TheSixthVoice/res/content/fx_endless/gear/fxe_zip_engaged.tscn" id="4_fxe"]
+
+; ONE FLAG AND ONE TAG - buff_fleet_of_foot.tres' reasoning: merge_in ORs sixteen booleans into the
+; mover's type, so a stray flag grants what the card never promised. teleport alone already implies
+; ignore reactions, engagement, difficult terrain and fall damage (movement_type.gd:101-111), which
+; IS "as if it were teleportation". other_tags is how the heat trigger recognises its own move.
+[sub_resource type="Resource" id="Resource_zip"]
+script = ExtResource("2_type")
+teleport = true
+other_tags = Array[StringName]([&"reag_zip"])
+
+; VISIBLE, with its own icon (the Kit's glyph - one family) and an fxe drawn on the token while
+; held. until is omitted: MANUAL is UNTIL's zero, and the chip lasts until disengaged.
+; triggers_on entire_movement, trigger_timing = 1 is ReactionBus.TIMING.POST (the move has resolved).
+[resource]
+script = ExtResource("1_chip")
+movement_type = SubResource("Resource_zip")
+to = &"movement_type"
+triggers_on = Array[StringName]([&"entire_movement"])
+trigger_timing = 1
+icon = ExtResource("3_icon")
+fxe = ExtResource("4_fxe")
+log_on_application = true

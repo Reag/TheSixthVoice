@@ -9,6 +9,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_thunder_sword/mw_thunder_sword.tres" id="7_thunder_sword"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_wing/ms_wing.tres" id="8_wing"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_thermal_death_axe/mw_thermal_death_axe.tres" id="9_axe"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_zip_type_engine/ms_zip_type_engine.tres" id="10_zip"]
 
 [sub_resource type="Resource" id="Resource_rank1"]
 script = ExtResource("2_unlockrank")
@@ -19,7 +20,7 @@ granted_gear = Array[ExtResource("4_kit")]([ExtResource("7_thunder_sword"), ExtR
 script = ExtResource("2_unlockrank")
 granted_frames = Array[ExtResource("3_frame")]([ExtResource("5_mf_leoleth")])
 ; SP3 fills rank 2 in sheet order: the axe first, then the ZIP Type Engine (Task 2).
-granted_gear = Array[ExtResource("4_kit")]([ExtResource("9_axe")])
+granted_gear = Array[ExtResource("4_kit")]([ExtResource("9_axe"), ExtResource("10_zip")])
 
 [sub_resource type="Resource" id="Resource_rank3"]
 script = ExtResource("2_unlockrank")

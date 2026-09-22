@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_zip_type_engine/action_zip_engage.tres" id="3_engage"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_zip_type_engine/action_zip_disengage.tres" id="4_disengage"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_zip_type_engine.svg" id="5_icon"]
+
+; THE ZIP TYPE ENGINE, the Leoleth's rank-II system (SP3 Task 2). system_tags = 1 is UNIQUE, SP 2.
+; A toggle: engage (family KIT - no icon_override of its own) and disengage (its own glyph).
+; Icons ship HERE, not at SP5, at the author's ask.
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("3_engage"), ExtResource("4_disengage")])
+sp_cost = 2
+system_tags = 1
+icon_override = ExtResource("5_icon")
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

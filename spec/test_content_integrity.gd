@@ -274,6 +274,16 @@ const LEOLETH_LOCALIZATION_ROWS:Array[String] = [
 	'gear.mw_thermal_death_axe.action_tda_standard.name',
 	'gear.mw_thermal_death_axe.action_tda_thunderous.name',
 	'gear.mw_thermal_death_axe.action_tda_recharge.log',
+	# SP3 Task 2. The ZIP Type Engine's rows - the Kit, both toggle actions and the chip.
+	'gear.ms_zip_type_engine.name',
+	'gear.ms_zip_type_engine.flavor',
+	'gear.ms_zip_type_engine.effect',
+	'gear.ms_zip_type_engine.action_zip_engage.name',
+	'gear.ms_zip_type_engine.action_zip_engage.effect',
+	'gear.ms_zip_type_engine.action_zip_disengage.name',
+	'gear.ms_zip_type_engine.action_zip_disengage.effect',
+	'gear.buff_zip_type_engine.name',
+	'gear.buff_zip_type_engine.effect',
 ]
 
 func test_the_leoleths_unguarded_rows_resolve():
@@ -789,6 +799,11 @@ const ICON_TARGETS := {
 	# the Kit's own, the Thunderous row's own, and TWO for the KIT row (the inherit claim and the
 	# fallback-resolves claim).
 	&'mw_thermal_death_axe': {&'action_tda_standard': KIT, &'action_tda_thunderous': &'action_tda_thunderous'},
+	# SP3 Task 2 (Leoleth). The ZIP Type Engine ships its glyphs IN SP3 at the author's ask. Two
+	# families: {Kit, action_zip_engage (KIT), buff_zip_type_engine} wear ms_zip_type_engine.svg -
+	# engaging IS the system - and action_zip_disengage wears its own struck-through variant, so on
+	# and off differ at a glance. Both assertions here are GREEN from this task.
+	&'ms_zip_type_engine': {&'action_zip_engage': KIT, &'action_zip_disengage': &'action_zip_disengage'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -993,6 +1008,8 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# is running this turn, and the pilot has to know whether the spent charge is still buying
 	# anything - Fleet of Foot's permanent sibling is hidden for exactly the opposite reason.
 	&'buff_wing',
+	# SP3 Task 2 (Leoleth). The only on-map signal that the engine is on; its fx is the other.
+	&'buff_zip_type_engine',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

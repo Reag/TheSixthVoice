@@ -1,0 +1,48 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://ck34knquhucbv" path="res://engine/gamemaster/effects_controller/fx_endless/fx_endless.gd" id="1_fxe"]
+[ext_resource type="ArrayMesh" uid="uid://benf3x3vnex5l" path="res://assets/fx/resources/spike_sparks.tres" id="2_sparks"]
+
+[sub_resource type="Curve" id="Curve_zip_scale"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.2, 1), 0.0, 0.0, 0, 0, Vector2(0.7, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="CurveTexture" id="CurveTexture_zip_scale"]
+curve = SubResource("Curve_zip_scale")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_zip"]
+lifetime_randomness = 0.4
+emission_shape_scale = Vector3(1.4, 1, 1.4)
+emission_shape = 6
+emission_ring_axis = Vector3(0, 1, 0)
+emission_ring_height = 0.6
+emission_ring_radius = 0.35
+emission_ring_inner_radius = 0.2
+emission_ring_cone_angle = 90.0
+angle_max = 360.0
+direction = Vector3(0, 1, 0)
+spread = 24.0
+initial_velocity_min = 0.6
+initial_velocity_max = 1.2
+orbit_velocity_min = 0.35
+orbit_velocity_max = 0.6
+gravity = Vector3(0, 0, 0)
+damping_min = 1.5
+damping_max = 1.5
+scale_min = 0.02
+scale_max = 0.045
+scale_curve = SubResource("CurveTexture_zip_scale")
+color = Color(0.55, 0.9, 1.0, 1)
+
+[node name="Fxe" type="Node3D"]
+script = ExtResource("1_fxe")
+
+[node name="ZipSparks" type="GPUParticles3D" parent="."]
+cast_shadow = 0
+amount = 10
+lifetime = 0.8
+randomness = 0.6
+local_coords = true
+draw_order = 3
+process_material = SubResource("ParticleProcessMaterial_zip")
+draw_pass_1 = ExtResource("2_sparks")

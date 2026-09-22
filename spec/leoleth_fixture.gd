@@ -450,3 +450,25 @@ static func swing_axe(game:Gamemaster, attacker:Unit, target:Unit, profile:Strin
 ## (the shoot_again() reasoning); pair it with an assertion that the swing really happened.
 static func swing_axe_again(game:Gamemaster, attacker:Unit, target:Unit, profile:StringName = TDA_STANDARD) -> void:
 	await SpecFactory.use(game, attacker, TDA_ID, profile, target, [Action.FLAG.AS_FREEBIE])
+
+## The ZIP Type Engine (design ruling 16). UNIQUE, SP 2, a two-action toggle around one visible chip.
+const ZIP_ID := &'ms_zip_type_engine'
+const ZIP_ENGAGE := &'action_zip_engage'
+const ZIP_DISENGAGE := &'action_zip_disengage'
+const ZIP_CHIP := &'buff_zip_type_engine'
+## The other_tags marker the chip puts on every movement type it teleports, and reads back at
+## ENTIRE_MOVEMENT POST to charge the heat.
+const ZIP_TAG := &'reag_zip'
+const ZIP_FXE_PATH := 'res://unpacked/Reag-TheSixthVoice/res/content/fx_endless/gear/fxe_zip_engaged.tscn'
+
+static func arm_zip(unit:Unit) -> GearCore: return equip(unit, ZIP_ID)
+
+## Both toggle actions are FREE, so no protocol phase is needed - but the turn has to be open for
+## any action at all (UnitAction.can_activate_gear refuses outside one).
+static func engage_zip(game:Gamemaster, unit:Unit) -> void:
+	if not unit.state.is_taking_turn: await open_turn(game, unit)
+	await SpecFactory.use(game, unit, ZIP_ID, ZIP_ENGAGE)
+
+static func disengage_zip(game:Gamemaster, unit:Unit) -> void:
+	if not unit.state.is_taking_turn: await open_turn(game, unit)
+	await SpecFactory.use(game, unit, ZIP_ID, ZIP_DISENGAGE)
