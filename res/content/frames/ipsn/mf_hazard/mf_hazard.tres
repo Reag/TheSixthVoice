@@ -11,6 +11,7 @@
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ipsn/mf_hazard/mf_hazard.png" id="9_sprite"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_hazard/mt_weight_of_fire/mt_weight_of_fire.tres" id="10_wof"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_hazard/mt_shield_wall/mt_shield_wall.tres" id="11_shieldwall"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_hazard/cp_int_type_command_systems/cp_int_type_command_systems.tres" id="12_core"]
 
 ; DERIVED FROM THE SPRITE ART, NOT LEFT AS THE PLACEHOLDER GRAYS (the Vauban's SP5 ruling, re-run
 ; here as every frame's since). Measured 2026-09-24 with the shader-literal test
@@ -50,11 +51,11 @@ activations = 1
 script = ExtResource("1_frame")
 default_color_scheme = SubResource("Resource_colorscheme")
 sprites = Array[Texture2D]([ExtResource("9_sprite")])
-; FILLED IN SHEET ORDER, ONE TASK AT A TIME (the Naga's rule): Task 1 lands the frame with NO
-; traits; Task 2 appends mt_weight_of_fire, Task 3 mt_shield_wall, Task 4
-; cp_int_type_command_systems. An ext_resource pointing at a file that does not exist yet would make
+; FILLED IN SHEET ORDER, ONE TASK AT A TIME (the Naga's rule), AND NOW COMPLETE: Task 1 landed the
+; frame with NO traits; Task 2 appended mt_weight_of_fire, Task 3 mt_shield_wall, Task 4
+; cp_int_type_command_systems. test_hazard_frame.gd pins the order. An ext_resource pointing at a file that does not exist yet would make
 ; this WHOLE resource fail to parse, taking the frame out of ContentLibrary silently.
-traits = Array[ExtResource("8_kit")]([ExtResource("10_wof"), ExtResource("11_shieldwall")])
+traits = Array[ExtResource("8_kit")]([ExtResource("10_wof"), ExtResource("11_shieldwall"), ExtResource("12_core")])
 mount_types = Array[ExtResource("4_mounttype")]([ExtResource("5_mountflex"), ExtResource("6_mountmain"), ExtResource("7_mountheavy")])
 stat = SubResource("Resource_statblock")
 ; STRIKER then SUPPORT, the sheet's order (Lancer.SQUAD_ROLE, lancer.gd:181).

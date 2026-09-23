@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BuffBonus" format=3]
+
+[ext_resource type="Script" uid="uid://bav10yhc56w73" path="res://engine/character/buff/archtypes/buff_bonus.gd" id="1_bonus"]
+
+; SUPPORTING FIRE's +1 ACCURACY on the ALLY (ruling 5): the ATTACKER's attack_roll buff
+; (attack_roll.gd:182-189), one-time - "the first attack they make", weapon or tech. Until the end
+; of the ally's OWN turn (END_OF_THIS_TURN = 2): an unused +1 does not carry into a later round,
+; where 1/round would otherwise let two stack on one attack. VISIBLE: the ally's only signal.
+[resource]
+script = ExtResource("1_bonus")
+bonus_subtype = &"accuracy"
+bonus_value = 1
+until = 2
+to = &"attack_roll"
+is_onetime = true

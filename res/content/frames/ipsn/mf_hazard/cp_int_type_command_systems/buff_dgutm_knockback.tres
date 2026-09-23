@@ -1,0 +1,13 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_hazard/cp_int_type_command_systems/buff_dgutm_knockback.gd" id="1_buff"]
+
+; "can not be pushed, pulled, knocked back": the Drake's buff_fortress_knockback.tres, narrowed by its
+; script to INVOLUNTARY moves (see the header). ONE gate for all three - every event_unit_pick_move
+; that is not a shunt asks is_immune_to_knockback_from, and the katamari drag asks it too. Hidden;
+; the aura owns its lifetime.
+[resource]
+script = ExtResource("1_buff")
+to = &"knockback_immunity"
+until = 0
+hide_from_player = true

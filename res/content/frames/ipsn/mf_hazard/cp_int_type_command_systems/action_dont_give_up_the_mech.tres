@@ -1,0 +1,13 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_hazard/cp_int_type_command_systems/action_dont_give_up_the_mech.gd" id="1_action"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_hazard/cp_int_type_command_systems/buff_dgutm_active.tres" id="2_active"]
+
+; DONT GIVE UP THE MECH, the core active (rulings 6-7). action_type 1 is Lancer.ACTION.QUICK;
+; consumes_cp spends the core power. Its own usage group.
+[resource]
+script = ExtResource("1_action")
+active_buff = ExtResource("2_active")
+action_type = 1
+consumes_cp = true
+usage_group = &"dont_give_up_the_mech"
