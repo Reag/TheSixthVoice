@@ -645,3 +645,9 @@ gear.buff_hyperfocus.name,Hyperfocus
 gear.buff_hyperfocus.effect,You have an additional +1 to attack rolls against them and they always count as within range of your ranged weapons. This effect ends if you take any actions that affect a different hostile character.
 gear.buff_hyperfocused.name,Hyperfocus
 gear.buff_hyperfocused.effect,You have an additional +1 to attack rolls against them and they always count as within range of your ranged weapons.
+gear.ms_hyper_engineered_munitions.name,Hyper Engineered Munitions
+gear.ms_hyper_engineered_munitions.flavor,"SSC has created the ultimate luxury: hand-made artisan munitions. Each craftsman trained their whole life to carve each armament by hand, microscopically folding and twisting metal into intricate fractals of impossibly powerful implements of war. Every piece a unique piece of art bent to the singular purpose of unmitigated violence."
+gear.ms_hyper_engineered_munitions.action_load_munitions.name,Load Munitions
+gear.ms_hyper_engineered_munitions.action_load_munitions.effect,"Choose a mount that contains only ranged weapons: until the start of your next turn, whenever you hit a hostile |character| with a weapon on this mount, the target takes 1 |AP| |Kinetic| damage and must succeed on a |Hull save| or become |Impaired| until the end of their next turn."
+gear.buff_loaded_munitions.name,Load Munitions
+gear.buff_loaded_munitions.effect,"Until the start of your next turn, whenever you hit a hostile |character| with a weapon on this mount, the target takes 1 |AP| |Kinetic| damage and must succeed on a |Hull save| or become |Impaired| until the end of their next turn."

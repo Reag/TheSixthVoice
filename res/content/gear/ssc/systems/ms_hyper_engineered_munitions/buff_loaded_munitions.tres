@@ -1,0 +1,15 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_hyper_engineered_munitions/buff_loaded_munitions.gd" id="1_chip"]
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="2_onhit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_hyper_engineered_munitions/onhit_hem_damage.tres" id="3_damage"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_hyper_engineered_munitions/onhit_hem_impair.tres" id="4_impair"]
+
+; LOAD MUNITIONS' CHIP on the Thorn (ruling 14). VISIBLE, until = 3 (START_OF_TURN, the Ramjet's
+; "until the start of your next turn"). An ONHIT_EFFECT carrier gated on the loaded mount - see the
+; script. The damage effect runs before the save effect. SP5: the icon.
+[resource]
+script = ExtResource("1_chip")
+effects = Array[ExtResource("2_onhit")]([ExtResource("3_damage"), ExtResource("4_impair")])
+to = &"onhit_effect"
+until = 3
