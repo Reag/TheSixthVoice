@@ -10,10 +10,11 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_wide_gaze_networks/ms_wide_gaze_networks.tres" id="8_wgn"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_binding_fangs/mw_binding_fangs.tres" id="9_fangs"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_green_tide/ms_green_tide.tres" id="10_tide"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_weeping_lance/mw_weeping_lance.tres" id="11_lance"]
 
 ; THE NAGA'S OWN FULL LICENCE (design 1.1, the Leoleth's file with the ids swapped): rank 2 grants the
 ; frame; rank 1 carries SP2's gear (Shimmering Blade, Wide Gaze Networks), rank 2 SP3's (Binding
-; Fangs, Green Tide), and rank 3 waits for SP4 (Weeping Lance, Bounded Automatic Targeting Systems). The licence has no name row of its own: UnlockTree.license_name reads rank_2's granted
+; Fangs, Green Tide), rank 3 SP4's (Weeping Lance, Bounded Automatic Targeting Systems). The licence has no name row of its own: UnlockTree.license_name reads rank_2's granted
 ; frame and translates frame.mf_naga.name (unlock_tree.gd:28-32), so an empty rank_2 would rename
 ; it "???" - test_naga_frame.gd pins the frame's presence there.
 [sub_resource type="Resource" id="Resource_rank1"]
@@ -27,6 +28,7 @@ granted_gear = Array[ExtResource("4_kit")]([ExtResource("9_fangs"), ExtResource(
 
 [sub_resource type="Resource" id="Resource_rank3"]
 script = ExtResource("2_unlockrank")
+granted_gear = Array[ExtResource("4_kit")]([ExtResource("11_lance")])
 
 [resource]
 script = ExtResource("1_unlocktree")

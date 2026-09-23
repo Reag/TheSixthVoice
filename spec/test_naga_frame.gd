@@ -227,7 +227,11 @@ func test_the_licence_grants_its_gear_rank_by_rank():
 	rank_2.sort()
 	assert_eq(rank_2, ['ms_green_tide', 'mw_binding_fangs'] as Array[String],
 		'Rank 2 grants Binding Fangs and Green Tide, and nothing else.')
-	assert_true(license.rank_3.granted_gear.is_empty(), 'Rank 3 grants no gear until SP4.')
+	var rank_3:Array[String] = []
+	for kit:Kit in license.rank_3.granted_gear: rank_3.append(String(kit.compcon_id))
+	rank_3.sort()
+	assert_eq(rank_3, ['mw_weeping_lance'] as Array[String],
+		'Rank 3 grants the Weeping Lance (and, from SP4 Task 2, BATS), and nothing else.')
 
 func test_the_licence_names_itself_after_the_frame():
 	# THERE IS NO LICENCE NAME ROW, AND THAT IS THE ENGINE'S DESIGN: UnlockTree.license_name

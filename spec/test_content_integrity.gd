@@ -851,6 +851,10 @@ const ICON_TARGETS := {
 	# Kits' own icons are checked, and a marker's Kit icon is drawn on nothing today.
 	&'mt_green_tide': {},
 	&'mt_green_tide_expiry': {},
+	# SP4 Task 1 (Naga). Weeping Lance: one Kit, one profile plus its forgo sub-menu entry (both
+	# profiles, one family - design 5), so KIT. The forced consume is a hidden reaction whose script
+	# overrides show_in_tooltip to false, so it has no row. SP5's.
+	&'mw_weeping_lance': {&'action_weeping_lance': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

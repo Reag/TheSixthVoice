@@ -598,3 +598,6 @@ gear.ms_green_tide.action_charging_swarm.effect,"A |Blast 1| area within |sensor
 gear.mt_green_tide.name,Charging Swarm
 gear.mt_green_tide.action_green_tide_surge.name,Charging Swarm
 gear.mt_green_tide.action_green_tide_surge.effect,"Until the start of your next turn, allied characters that start their turn at least partially within the area or move into it for the first time in a round, may immediately move up to their |speed| as a |reaction|. This movement is not affected by |Slowed| or |Immobilized|."
+gear.mw_weeping_lance.name,Weeping Lance
+gear.mw_weeping_lance.flavor,"The designation of a Weeping Lance is more of a loose term that describes its general properties rather than a specific fabrication. Typically consisting of a handle and maybe a guiding form, the weapon functions as more of a nanite delivery tool than a conventional melee armament. A container is hooked up to the pommel of the weapon and premade nanites are cycled through repeatedly to create the look of a perpetually dripping lance. Upon impact, the nanites activate and eat away at any systems or exposed core they can find."
+gear.mw_weeping_lance.effect,"When you attack with this weapon and consume |Lock On|, you may choose to forgo the +1 |Accuracy| from |Lock On|. If you do, the weapon damage becomes 2d6 + 4."
