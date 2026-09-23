@@ -866,6 +866,42 @@ const ICON_TARGETS := {
 	# SP4 Task 2 (Naga). Bounded Automatic Targeting Systems: a weapon mod, no action - its only
 	# player-facing surface is the Kit (the mod chip and the on-hit prompt's title). SP5's.
 	&'wm_bounded_automatic_targeting_systems': {},
+	# SP1 Task 2 (Purple Thorn). Vigil's reaction wears the KIT's glyph: a trait and the reaction it
+	# creates share ONE glyph (the icon directive), spelled KIT - absence, not duplication. Its
+	# effect row is the card sentence verbatim, the Kit's own text, so Action.show_in_tooltip hides
+	# it and it reaches no player-facing surface - hence `{}`. The Kit's own icon is SP5's.
+	&'mt_vigil': {},
+	# SP1 Task 3 (Purple Thorn). Blessed Bolt System: the same shape - one trait, one hidden
+	# duplicate-text reaction. The Kit's own icon is SP5's.
+	&'mt_blessed_bolt_system': {},
+	# SP1 Task 4 (Purple Thorn). LAV TACTICAL ENGINE. REND (the active, whose chip
+	# buff_cruel_and_unnatural wears the same texture) is a named family. STALK THE HORIZON is now a
+	# SECOND named family (SP5): its own action script overrides show_in_tooltip (the Blood of the
+	# Creature's shape) so it draws instead of hiding as a duplicate of the Kit's text, and it wears
+	# its own texture, distinct from Rend's and from the Kit's own bare glyph - design 5's "two
+	# families" pairing.
+	&'cp_lav_tactical_engine': {&'action_stalk_the_horizon': &'action_stalk_the_horizon', &'action_rend': &'action_rend'},
+	# SP2 Task 1 (Purple Thorn). Blink Bolt Launcher: one Kit, one profile, so KIT (the Shimmering
+	# Blade's row). SP5: the icon.
+	&'mw_blink_bolt_launcher': {&'action_blink_bolt_launcher': KIT},
+	# SP2 Task 2 (Purple Thorn). Trajectory Arc Mapper: a passive system, no action - its one surface
+	# is the Kit. Its hidden buff is in HIDDEN_BUFFS_NEEDING_ICONS below, wearing the same texture. SP5.
+	&'ms_trajectory_arc_mapper': {},
+	# SP3 Task 1 (Purple Thorn). Shredder Cannon: one Kit, one profile, so KIT. Its chip
+	# buff_shredded_mark is in VISIBLE_BUFFS, wearing the same texture; its clock is hidden and never
+	# drawn. SP5.
+	&'mw_shredder_cannon': {&'action_shredder_cannon': KIT},
+	# SP3 Task 2 (Purple Thorn). Pinpoint Mark: one Kit, one action, and the chip and the marker wear
+	# the same glyph as Hyperfocus - one family (the icon directive), spelled KIT. SP5.
+	&'ms_pinpoint_mark': {&'action_hyperfocus': KIT},
+	# SP4 Task 2 (Purple Thorn). Superpositional Profile: one Kit, Shimmer is the only action that
+	# reaches a player-facing surface - its own header says the blink "is drawn by Shimmer alone" and
+	# show_in_tooltip hides it, so it gets no row - so KIT (one family, per design 5). SP5: the icon.
+	&'ms_superpositional_profile': {&'action_shimmer': KIT},
+	# SP4 Task 1 (Purple Thorn). Hyper Engineered Munitions: one Kit, one action (a PROTOCOL, drawn on
+	# the gear bar), so KIT - Load Munitions and its chip share the system's own glyph (design 5).
+	# SP5: the icon.
+	&'ms_hyper_engineered_munitions': {&'action_load_munitions': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1093,6 +1129,22 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# SP2 Task 2 (Naga). Hypnotize's chip - the target's own cue that it has a clear to take. Its
 	# attacker-side partner buff_hypnotize_targeting is hidden plumbing.
 	&'buff_hypnotized',
+	# SP1 Task 4 (Purple Thorn). REND's chip - the only on-token sign that the save-or-be-shoved is
+	# live until the end of the Thorn's next turn. Its own rows.
+	&'buff_cruel_and_unnatural',
+	# SP3 Task 1 (Purple Thorn). The Shredder Cannon's chip - the only sign on the target that the +1
+	# is live and when it ends (the Shredded status draws its own glyph beside it). Its own rows. A
+	# FLAT bonus is not drawn in the roll breakdown (attack_roll.gd adds it to flat_bonus, no add_mod),
+	# so this chip is the whole of its surface.
+	&'buff_shredded_mark',
+	# SP3 Task 2 (Purple Thorn). Hyperfocus's two chips: the Thorn's (the +1 is FLAT, so the roll
+	# breakdown never draws it and this is its whole surface) and the focus's marker (who the Thorn
+	# is focused on - Mark for Death's buff_mark_for_death_mark shape). The range waiver is hidden.
+	&'buff_hyperfocus',
+	&'buff_hyperfocused',
+	# SP4 Task 1 (Purple Thorn). Load Munitions' chip on the Thorn - the only on-token sign of which
+	# mount is loaded and when the window ends. Its own rows.
+	&'buff_loaded_munitions',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -1298,6 +1350,14 @@ const BUFFS_THAT_BORROW_A_CARD := {
 	# are what the chip should say. It renders the trait's 43-character name in the roll breakdown
 	# beside the -2, which is the card's own name for itself and deliberate.
 	&'buff_aaaa_difficulty': 'gear.mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.effect',
+	# SP2 Task 2 (Purple Thorn), found by this guard on the first tier-2 run. The 43 As' shape on a
+	# SYSTEM: ms_trajectory_arc_mapper carries no actions, so the fallback lands on the Kit's own
+	# rows and the roll breakdown names the system beside the +1 - what the chip should say.
+	&'buff_trajectory_arc_mapper': 'gear.ms_trajectory_arc_mapper.effect',
+	# SP4 Task 2 (Purple Thorn), found by this guard once the icon pass made buff_shimmer_difficulty
+	# a DRAWN buff (HIDDEN_BUFFS_NEEDING_ICONS above). It has no standalone name row of its own -
+	# Shimmer's card IS its card - so it borrows Shimmer's own action row, name and effect both.
+	&'buff_shimmer_difficulty': 'gear.ms_superpositional_profile.action_shimmer.effect',
 }
 
 func test_every_visible_buff_renders_real_text_rather_than_a_raw_key():
@@ -1463,6 +1523,14 @@ const HIDDEN_BUFFS_NEEDING_ICONS:Array[StringName] = [
 	# Buff.get_icon() - so BuffBonus's difficulty-svg fallback never runs there and a null leaves a
 	# blank beside the -1. Its icon is SP5's.
 	&'buff_bulwark_penalty',
+	# SP2 Task 2 (Purple Thorn). Trajectory Arc Mapper's +1 accuracy is hidden - the system card says
+	# it - but attack_roll.gd:189 draws it in the roll breakdown from buff_core.base.icon RAW, the 43
+	# As' case with the sign flipped. Its icon is SP5's.
+	&'buff_trajectory_arc_mapper',
+	# SP4 Task 2 (Purple Thorn). Shimmer's +2 difficulty on the triggering attack is hidden - it lives
+	# for one roll - but attack_roll.gd:189 draws it in the roll breakdown from buff_core.base.icon
+	# RAW regardless. Its icon is SP5's.
+	&'buff_shimmer_difficulty',
 ]
 
 func test_every_hidden_buff_that_is_still_drawn_has_a_real_icon():

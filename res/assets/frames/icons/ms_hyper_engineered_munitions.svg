@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- ms_hyper_engineered_munitions : Reag-TheSixthVoice Purple Thorn icon, SP5 (action_load_munitions/buff_loaded_munitions share this texture) -->
+<path d="M24,6 L40,6 L40,20 L48,32 L48,58 L16,58 L16,32 Z M22,32 L42,32 L36,22 L28,22 Z"/>
+<path d="M20,40 L44,40 L44,44 L20,44 Z M20,48 L44,48 L44,52 L20,52 Z"/>
+</svg>

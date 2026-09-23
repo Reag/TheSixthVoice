@@ -603,3 +603,57 @@ gear.mw_weeping_lance.effect,"When you attack with this weapon and consume |Lock
 gear.wm_bounded_automatic_targeting_systems.name,Bounded Automatic Targeting Systems
 gear.wm_bounded_automatic_targeting_systems.flavor,"(LRL.9d.GRL2) [Audio, Length: 2:04][Date null] (Teplog Room SPR) ""He is like smoke, a shifting nefarious thing, the thief of thieves, the king of kings, right? so remember this, when it says he chose to die and leave and die again that MEANS something. Its gotta mean something because its all it keeps saying about him, and I've started to think about it more, in my sleep and my dreams even. I feel like I'm so close to cracking it, its on the TIP of my tongue, but it just isn't clicking. We got that dual nanite file from OCTP, those bullets remember? they had both types, but together as a whole, just like it says he was. We gotta go deeper, we are almost there, I can feel it. You just gotta trust me."""
 gear.wm_bounded_automatic_targeting_systems.effect,"1/round, when you hit with an attack that consumed |Lock On| you may expend a charge, if you do, the hit is treated as a |Critical Hit|. Resulting damage is not rolled twice. If the hit was already Critical, you deal the maximum possible damage."
+,
+frame.mf_purple_thorn.name,Purple Thorn
+frame.mf_purple_thorn.flavor.short,Odd Artillery
+frame.mf_purple_thorn.flavor,"Smith-Shimano were slow to integrate the Broadcasts into their lines, preferring to extensively test and measure each aspect of the new technology before releasing it. The first several blinkform tests ended in abject failure and subsequent tests were canceled in favor of more promising technology. However, a small group of dedicated artisans kept working on prototypes as pure passion projects. Due to this the Purple Thorn incorporated a hodgepodge of many different leftover projects that clarified into very promising system package. Eventually, higher ups caught wind of the potential and gave the go-ahead to restart official development. Built upon legacy integration of the slipstream modules and nonexplosive Monarch test launchers, the Purple Thorn ended up having the strangest movement suite SSC has ever greenlit. By appending trackers and engaging short bursts of focused slipstream, the Purple Thorn is able to rapidly reposition in ways that few other mechs can. While its unconventional nature made it difficult to allow its inclusion in any of the iconic lines, it was soft launched under its own unique TIAX-UYL line to moderate success."
+,
+gear.mt_vigil.name,Vigil
+gear.mt_vigil.effect,"2/round, whenever the Purple Thorn deals damage, it may immediately |teleport| to a free space within range 3. This teleport occurs before any other attacks are resolved."
+gear.mt_vigil.action_vigil.name,Vigil
+gear.mt_vigil.action_vigil.effect,"2/round, whenever the Purple Thorn deals damage, it may immediately |teleport| to a free space within range 3. This teleport occurs before any other attacks are resolved."
+,
+gear.mt_blessed_bolt_system.name,Blessed Bolt System
+gear.mt_blessed_bolt_system.effect,"1/round, when the Purple Thorn hits with an |Auxiliary| weapon, it may deal + 3 |bonus damage|."
+gear.mt_blessed_bolt_system.action_blessed_bolt.name,Blessed Bolt System
+gear.mt_blessed_bolt_system.action_blessed_bolt.effect,"1/round, when the Purple Thorn hits with an |Auxiliary| weapon, it may deal + 3 |bonus damage|."
+,
+gear.cp_lav_tactical_engine.name,LAV Tactical Engine
+gear.cp_lav_tactical_engine.flavor,"The Long-range Automatic Vigilance engine, or LAV for short, is one of the most individually powerful integrated systems SSC has ever put to manufacture. By constantly scanning the surrounding area it is able to lock down any moving targets with hair trigger strikes."
+gear.cp_lav_tactical_engine.effect,"2/round, when a hostile character in Line of Sight starts to move, you may make an attack against them with an |Auxiliary| weapon as a |reaction|."
+gear.cp_lav_tactical_engine.action_stalk_the_horizon.name,Stalk the Horizon
+gear.cp_lav_tactical_engine.action_stalk_the_horizon.effect,"2/round, when a hostile character in Line of Sight starts to move, you may make an attack against them with an |Auxiliary| weapon as a |reaction|."
+gear.cp_lav_tactical_engine.action_rend.name,Rend That which is Cruel and Unnatural
+gear.cp_lav_tactical_engine.action_rend.effect,"You may immediately |Skirmish| as a |free action|. Until the end of your next turn, whenever you deal damage to a hostile character, they must make a |Systems save| or be teleported to free space you choose within range 3 of their original position."
+gear.buff_cruel_and_unnatural.name,Rend That which is Cruel and Unnatural
+gear.buff_cruel_and_unnatural.effect,"Until the end of your next turn, whenever you deal damage to a hostile character, they must make a |Systems save| or be teleported to free space you choose within range 3 of their original position."
+gear.mw_blink_bolt_launcher.name,Blink Bolt Launcher
+gear.mw_blink_bolt_launcher.flavor,"While resembling a simple bolt launcher, the Blink carries this weapon from being useful, to being an iconic piece of the TIAX-UYL line. The head of each shard of metal is embedded with a small tracker that connects to on-frame TIAX systems. While not as destructive when compared with its contemporaries, it offers an unmatched level of reliability with its bolt being able to teleport straight through cover and into the heart of its foes."
+gear.ms_trajectory_arc_mapper.name,Trajectory Arc Mapper
+gear.ms_trajectory_arc_mapper.flavor,"One of the Broadcast's more versatile pieces of tech, the Trajectory Arc Mapper uses preset predictive algorithms to offload mathematical strain on targeting systems allowing for drastically increased precision."
+gear.ms_trajectory_arc_mapper.effect,"When attacking a |character| whose distance from you is equal to the range of the weapon, you gain +1 |accuracy|."
+gear.mw_shredder_cannon.name,Shredder Cannon
+gear.mw_shredder_cannon.flavor,"Comprised of a three part automatic targeting system and a short cannon, the SSC Shredder Cannon launches compacted ferroactive shards capable of tearing straight through armor. Additionally, the onboard targeting systems allow for the magnetic pull of its payload to draw allied fire straight to a weakpoint."
+gear.mw_shredder_cannon.on_hit,"Until the end of your next turn, the target is |Shredded|, and all characters gain +1 to all attack rolls against them."
+gear.buff_shredded_mark.name,Shredder Cannon
+gear.buff_shredded_mark.effect,"Until the end of your next turn, the target is |Shredded|, and all characters gain +1 to all attack rolls against them."
+gear.ms_pinpoint_mark.name,Pinpoint Mark
+gear.ms_pinpoint_mark.flavor,"The Pinpoint systems on the TIAX-UYL line were designed to allow a pilot to focus down priority targets while shutting down any attempts at escape. By repurposing slipstream technology to apply localized holes on a marked target, it allows for the wielder to functionally teleport their strikes far beyond typical effective range."
+gear.ms_pinpoint_mark.action_hyperfocus.name,Hyperfocus
+gear.ms_pinpoint_mark.action_hyperfocus.effect,"Expend a charge, choose a |character| within |Sensors|: You have an additional +1 to attack rolls against them and they always count as within range of your ranged weapons. This effect ends if you take any actions that affect a different hostile character. You cannot choose a new target unless the current target is destroyed or the scene ends."
+gear.buff_hyperfocus.name,Hyperfocus
+gear.buff_hyperfocus.effect,You have an additional +1 to attack rolls against them and they always count as within range of your ranged weapons. This effect ends if you take any actions that affect a different hostile character.
+gear.buff_hyperfocused.name,Hyperfocus
+gear.buff_hyperfocused.effect,You have an additional +1 to attack rolls against them and they always count as within range of your ranged weapons.
+gear.ms_hyper_engineered_munitions.name,Hyper Engineered Munitions
+gear.ms_hyper_engineered_munitions.flavor,"SSC has created the ultimate luxury: hand-made artisan munitions. Each craftsman trained their whole life to carve each armament by hand, microscopically folding and twisting metal into intricate fractals of impossibly powerful implements of war. Every piece a unique piece of art bent to the singular purpose of unmitigated violence."
+gear.ms_hyper_engineered_munitions.action_load_munitions.name,Load Munitions
+gear.ms_hyper_engineered_munitions.action_load_munitions.effect,"Choose a mount that contains only ranged weapons: until the start of your next turn, whenever you hit a hostile |character| with a weapon on this mount, the target takes 1 |AP| |Kinetic| damage and must succeed on a |Hull save| or become |Impaired| until the end of their next turn."
+gear.buff_loaded_munitions.name,Load Munitions
+gear.buff_loaded_munitions.effect,"Until the start of your next turn, whenever you hit a hostile |character| with a weapon on this mount, the target takes 1 |AP| |Kinetic| damage and must succeed on a |Hull save| or become |Impaired| until the end of their next turn."
+gear.ms_superpositional_profile.name,Superpositional Profile
+gear.ms_superpositional_profile.flavor,"A modification upon the VIGIL-Type blink systems that leans more into the Slipstream capabilities of its predecessors. The Superpositional Profile creates a temporary ""blur"" hologram that shrouds the mech, confusing targeting systems and pilots alike."
+gear.ms_superpositional_profile.action_shimmer.name,Shimmer
+gear.ms_superpositional_profile.action_shimmer.trigger,You are targeted by a |ranged attack|.
+gear.ms_superpositional_profile.action_shimmer.effect,"Expend a charge, the attack gains |+2 DIFFICULTY=lancer.term.difficulty|, if the attack misses you may immediately |teleport| to a space within range 3."
+gear.ms_superpositional_profile.action_shimmer_blink.name,Shimmer

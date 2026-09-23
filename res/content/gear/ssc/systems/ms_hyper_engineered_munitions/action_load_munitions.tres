@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_hyper_engineered_munitions/action_load_munitions.gd" id="1_load"]
+
+; LOAD MUNITIONS (ruling 14). PROTOCOL (action_type 4), a charge by the default consumes_charges,
+; its own usage group. The mount picker is the script's.
+[resource]
+script = ExtResource("1_load")
+action_type = 4
+usage_group = &"load_munitions"

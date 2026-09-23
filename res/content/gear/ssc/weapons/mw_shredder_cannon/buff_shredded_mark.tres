@@ -1,0 +1,19 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_shredder_cannon/buff_shredded_mark.gd" id="1_chip"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_shredder_cannon.svg" id="2_icon"]
+
+; The Shredder Cannon's chip on the target (ruling 11). VISIBLE. to = attack_roll_incoming, flat +1:
+; "all characters gain +1 to all attack rolls against them", weapon and tech alike - the flat subtype
+; is the Death's Head's (attack_roll.gd adds it to flat_bonus). applies_statuses carries the Shredded
+; for exactly as long as the chip lives. until = 7 (END_OF_OWNERS_NEXT_TURN) names the lifetime in
+; the tooltip; the Thorn-side buff_shredded_clock is what ends it on time whatever the turn order (the
+; Naga's Ping, whose chip carries the same 7). SP5: the icon.
+[resource]
+script = ExtResource("1_chip")
+bonus_subtype = &"flat"
+bonus_value = 1
+to = &"attack_roll_incoming"
+until = 7
+applies_statuses = Array[StringName]([&"shredded"])
+icon = ExtResource("2_icon")

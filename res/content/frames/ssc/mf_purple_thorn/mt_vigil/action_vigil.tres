@@ -1,0 +1,18 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_purple_thorn/mt_vigil/action_vigil.gd" id="1_action"]
+
+; VIGIL's reaction (rulings 2-3; the script's header has the seam). DAMAGE POST (trigger_timing 1),
+; point-free (consumes_rxn false - a trait; the 2/round is the script's hard limit on its own
+; usage_group). recheck_trigger_before_execution is LOAD-BEARING: a Blast queues one DAMAGE POST per
+; victim before any of them runs, and only a re-ask before execution lets the stamp the first one
+; wrote refuse the rest. No icon_override: the trait and its reaction share ONE glyph (the icon
+; directive), so this inherits the Kit's - SP5's.
+[resource]
+script = ExtResource("1_action")
+triggers_on = Array[StringName]([&"damage"])
+trigger_timing = 1
+recheck_trigger_before_execution = true
+consumes_rxn = false
+usage_group = &"vigil"
+emit_text_popcorn_on_use = true

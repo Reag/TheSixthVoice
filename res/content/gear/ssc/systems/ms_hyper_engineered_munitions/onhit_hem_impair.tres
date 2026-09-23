@@ -1,0 +1,11 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_hyper_engineered_munitions/onhit_hem.gd" id="1_hem"]
+
+; HYPER ENGINEERED MUNITIONS: Hull save or Impaired (ruling 14). save_type 0 = HULL; Impaired's
+; standard until (END_OF_NEXT_TURN) is OnHitEffect's default duration.
+[resource]
+script = ExtResource("1_hem")
+statuses = Array[StringName]([&"impaired"])
+save_to_avoid = true
+save_type = 0

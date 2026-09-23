@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- mw_shredder_cannon : Reag-TheSixthVoice Purple Thorn icon, SP5 (buff_shredded_mark shares this texture) -->
+<path d="M8,26 L38,26 L38,38 L8,38 Z"/>
+<path d="M38,22 L48,26 L48,38 L38,42 Z"/>
+<path d="M48,28 L60,20 L56,32 L60,44 L48,36 Z"/>
+</svg>

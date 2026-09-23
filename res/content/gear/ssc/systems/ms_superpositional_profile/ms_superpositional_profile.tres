@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_superpositional_profile/action_shimmer.tres" id="3_shimmer"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_superpositional_profile/action_shimmer_blink.tres" id="4_blink"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_superpositional_profile.svg" id="5_icon"]
+
+; SUPERPOSITIONAL PROFILE, the Purple Thorn's rank-III system (SP4 Task 2, design ruling 15).
+; UNIQUE + SHIELD (system_tags = 17: 1 | 16), LIMITED 3 (charges_max = 3), SP 2. Two actions: Shimmer
+; (the card's reaction) and its hidden blink. The LCP heading spells it "Superpositonal"; the id and
+; the name row carry the corrected spelling - see rulings.md. SP5: the icon - one family (the icon
+; directive) covering the Kit, Shimmer (KIT), and its blink; the blink never draws (action_shimmer_blink.gd:
+; "the card is drawn by Shimmer alone"), so it carries no icon_override of its own.
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("3_shimmer"), ExtResource("4_blink")])
+sp_cost = 2
+system_tags = 17
+charges_max = 3
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"
+icon_override = ExtResource("5_icon")

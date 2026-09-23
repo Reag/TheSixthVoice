@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_purple_thorn/mt_blessed_bolt_system/action_blessed_bolt.tres" id="3_bolt"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_blessed_bolt_system.svg" id="4_icon"]
+
+; BLESSED BOLT SYSTEM: one trait Kit, one action - the ATTACK POST reaction that offers the +3
+; (ruling 4; the action's own header has the seam). The reaction's effect row is the card sentence
+; verbatim, the Kit's own text, so Action.show_in_tooltip hides it as a duplicate and the trait
+; card draws the Kit alone. SP5: the trait and its reaction share ONE glyph - a blessed bolt.
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("3_bolt")])
+is_trait = true
+icon_override = ExtResource("4_icon")

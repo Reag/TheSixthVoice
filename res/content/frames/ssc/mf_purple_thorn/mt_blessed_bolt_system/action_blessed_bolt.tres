@@ -1,0 +1,24 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_purple_thorn/mt_blessed_bolt_system/action_blessed_bolt.gd" id="1_action"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_purple_thorn/mt_blessed_bolt_system/buff_blessed_bolt.tres" id="2_buff"]
+
+; BLESSED BOLT SYSTEM's reaction (ruling 4; the script's header has the seam). ATTACK POST
+; (trigger_timing 1), point-free (consumes_rxn false - a trait; the 1/round is the script's hard
+; limit on its own usage_group). ActionReactionAttacked's gate from here: require_unit_to_be 1 is
+; ATTACKER, require_hit, weapon_sizes [0] is [AUX], weapon attacks only; the defender need NOT be a
+; character (the card says "hits with an Auxiliary weapon", unqualified). No icon_override: the
+; trait and its reaction share ONE glyph (the icon directive), so this inherits the Kit's - SP5's.
+[resource]
+script = ExtResource("1_action")
+damage_buff = ExtResource("2_buff")
+triggers_on = Array[StringName]([&"attack"])
+trigger_timing = 1
+consumes_rxn = false
+usage_group = &"blessed_bolt"
+emit_text_popcorn_on_use = true
+require_unit_to_be = 1
+require_hit = true
+require_defender_to_be_character = false
+weapon_sizes = Array[int]([0])
+allow_basic = true

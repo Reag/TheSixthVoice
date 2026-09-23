@@ -22,6 +22,7 @@ const PrimroseFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/primros
 const SluaghFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/sluagh_fixture.gd')
 const LeolethFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/leoleth_fixture.gd')
 const NagaFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/naga_fixture.gd')
+const PurpleThornFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/purple_thorn_fixture.gd')
 ## Read-only here: the Mark's retort case asserts the dome is untouched between its two halves.
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
 
@@ -1046,3 +1047,46 @@ func test_an_overshield_grant_still_lands_the_number_with_the_emperor_extender_l
 	assert_eq(Overshield.current(unit), 1, 'THE RULING: a grant of 1 under the resident reads 1 - additive extension, no interference.')
 	await Overshield.grant(SpecFactory.dummy_event({unit = unit}), unit, 2)
 	assert_eq(Overshield.current(unit), 2, 'And the engine max semantics survive it too.')
+
+
+# ===================== THE TELEPORT SEAM (Purple Thorn, Vigil) =====================
+# Ruled at the Purple Thorn's design (its Contested seams line): teleport is contested by no
+# resident (talents ADDS sources only), and the resident Orator's rank-3 Demoralize returns an
+# EMPTY allowed set for every movement type - so under that lockdown the Thorn's own two teleports
+# (Vigil, Shimmer), which take the PREVENTABLE route on purpose (rulings 3 and 15), offer nothing.
+# Recorded, not fought: the cards say "may teleport", never "cannot be prevented". This pins the
+# mechanism that ruling rides on - a MOVEMENT_RESTRICTION ban stops a Vigil teleport - against
+# VANILLA's Interdiction Field, the same channel a resident's ban would use, so a resident update
+# that changes how bans compose with Pathfinder.create goes red here.
+#
+# NO RESIDENT IS NEEDED FOR THIS ONE, so it never skips. The field is the Minotaur's
+# buff_interdiction_field hung straight on the HOSTILE (its check_if_passive_applies asks only for a
+# teleporting movement type and an ENEMY mover, buff_interdiction_field.gd:16-21); the Thorn at 2
+# from it is inside FIELD_SIZE 3, which is the total lockdown branch (:29-33).
+const PURPLE_THORN_TILE := Vector2i(4, 6)
+const THORN_TARGET_TILE := Vector2i(6, 6) # 2 east: inside the field, inside the Nexus's range
+const INTERDICTION_FIELD := &'buff_interdiction_field'
+
+func test_a_vigil_teleport_is_stopped_by_a_movement_restriction_ban() -> void:
+	var pair := PurpleThornFixture.create_game_with_prompt_queues(self)
+	var thorn_game:Gamemaster = pair[0]
+	var responder = pair[1]
+	var watcher = add_child_autoqfree(load('res://testkit/prompt_watcher.gd').new())
+	var thorn:Unit = PurpleThornFixture.create_thorn(thorn_game, PURPLE_THORN_TILE)
+	var hostile:Unit = PurpleThornFixture.create_hostile(thorn_game, THORN_TARGET_TILE)
+	# THE RIFLE, NOT AN AUX: an Aux hit offers Blessed Bolt, and this file's before_each already
+	# installed the STOCK responder (which answers yes) on the shared gamemaster beside the queued one
+	# - measured on this pin's first run, where the Nexus landed 6. A Main hit wakes only Vigil.
+	PurpleThornFixture.arm_rifle(thorn)
+	UnitCondition.apply_buff_id(SpecFactory.dummy_event(), hostile, INTERDICTION_FIELD)
+	assert_true(UnitCondition.has_buff(hostile, INTERDICTION_FIELD), 'fixture: the field is up.')
+	responder.chosen_move_tile = Vector2i(3, 6)
+	PurpleThornFixture.queue([19, 4, 1])
+	await PurpleThornFixture.shoot(thorn_game, thorn, hostile, PurpleThornFixture.MAIN_RIFLE)
+	assert_eq(hostile.current_damage(), 4, 'fixture: the hit landed, so Vigil had its trigger.')
+	assert_eq(watcher.kinds(&'move_tile').size(), 0,
+		'THE RULING: under a MOVEMENT_RESTRICTION ban the reticle is not even raised - the preventable route.')
+	assert_eq(thorn.tile(), PURPLE_THORN_TILE, 'The Thorn stayed.')
+	assert_eq(PurpleThornFixture.uses_this_round(thorn, PurpleThornFixture.VIGIL_ID, PurpleThornFixture.VIGIL_ACTION_ID), 0,
+		'And nothing was spent.')
+	Dice.CHEAT_ROLL_QUEUE.clear()
