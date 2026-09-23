@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+
+; Hyperfocus's marker on the FOCUS (ruling 12; Mark for Death's buff_mark_for_death_mark). VISIBLE,
+; MANUAL, no effect: the player's cue on the token of who the Thorn is focused on. Cleared with the
+; rest by hyperfocus.gd end_focus. SP5: the icon.
+[resource]
+script = ExtResource("1_buff")
+to = &"none"

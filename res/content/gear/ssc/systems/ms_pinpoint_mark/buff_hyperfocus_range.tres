@@ -1,0 +1,11 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_pinpoint_mark/buff_hyperfocus_range.gd" id="1_range"]
+
+; Hyperfocus's range waiver on the Thorn (ruling 12). HIDDEN, MANUAL. ACTION_TILES, adding the
+; focus's tiles (within the Thorn's Line of Sight unless the weapon is SEEKING) to every ranged
+; weapon's targeting set.
+[resource]
+script = ExtResource("1_range")
+to = &"action_tiles"
+hide_from_player = true

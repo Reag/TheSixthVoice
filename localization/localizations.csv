@@ -637,3 +637,11 @@ gear.mw_shredder_cannon.flavor,"Comprised of a three part automatic targeting sy
 gear.mw_shredder_cannon.on_hit,"Until the end of your next turn, the target is |Shredded|, and all characters gain +1 to all attack rolls against them."
 gear.buff_shredded_mark.name,Shredder Cannon
 gear.buff_shredded_mark.effect,"Until the end of your next turn, the target is |Shredded|, and all characters gain +1 to all attack rolls against them."
+gear.ms_pinpoint_mark.name,Pinpoint Mark
+gear.ms_pinpoint_mark.flavor,"The Pinpoint systems on the TIAX-UYL line were designed to allow a pilot to focus down priority targets while shutting down any attempts at escape. By repurposing slipstream technology to apply localized holes on a marked target, it allows for the wielder to functionally teleport their strikes far beyond typical effective range."
+gear.ms_pinpoint_mark.action_hyperfocus.name,Hyperfocus
+gear.ms_pinpoint_mark.action_hyperfocus.effect,"Expend a charge, choose a |character| within |Sensors|: You have an additional +1 to attack rolls against them and they always count as within range of your ranged weapons. This effect ends if you take any actions that affect a different hostile character. You cannot choose a new target unless the current target is destroyed or the scene ends."
+gear.buff_hyperfocus.name,Hyperfocus
+gear.buff_hyperfocus.effect,You have an additional +1 to attack rolls against them and they always count as within range of your ranged weapons. This effect ends if you take any actions that affect a different hostile character.
+gear.buff_hyperfocused.name,Hyperfocus
+gear.buff_hyperfocused.effect,You have an additional +1 to attack rolls against them and they always count as within range of your ranged weapons.

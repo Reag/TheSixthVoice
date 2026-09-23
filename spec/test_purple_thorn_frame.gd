@@ -203,7 +203,9 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	var rank_1_ids:Array = license.rank_1.granted_gear.map(func(kit:Kit) -> StringName: return kit.compcon_id)
 	assert_eq(rank_1_ids, [&'mw_blink_bolt_launcher', &'ms_trajectory_arc_mapper'],
 		'Rank 1 grants the Blink Bolt Launcher and the Trajectory Arc Mapper, in sheet order (SP2).')
-	assert_true(license.rank_2.granted_gear.is_empty(), 'Rank 2 grants no gear until SP3.')
+	var rank_2_ids:Array = license.rank_2.granted_gear.map(func(kit:Kit) -> StringName: return kit.compcon_id)
+	assert_eq(rank_2_ids, [&'mw_shredder_cannon', &'ms_pinpoint_mark'],
+		'Rank 2 grants the Shredder Cannon and Pinpoint Mark, in sheet order (SP3).')
 	assert_true(license.rank_3.granted_gear.is_empty(), 'Rank 3 grants no gear until SP4.')
 
 func test_the_licence_names_itself_after_the_frame():

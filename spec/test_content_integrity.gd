@@ -892,6 +892,9 @@ const ICON_TARGETS := {
 	# SP3 Task 1 (Purple Thorn). Shredder Cannon: one Kit, one profile, so KIT. Its chip
 	# buff_shredded_mark is in VISIBLE_BUFFS; its clock is hidden and never drawn. SP5's.
 	&'mw_shredder_cannon': {&'action_shredder_cannon': KIT},
+	# SP3 Task 2 (Purple Thorn). Pinpoint Mark: one Kit, one action, and the chip and the marker wear
+	# the same glyph as Hyperfocus - one family (the icon directive), spelled KIT. SP5's.
+	&'ms_pinpoint_mark': {&'action_hyperfocus': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1127,6 +1130,11 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# FLAT bonus is not drawn in the roll breakdown (attack_roll.gd adds it to flat_bonus, no add_mod),
 	# so this chip is the whole of its surface.
 	&'buff_shredded_mark',
+	# SP3 Task 2 (Purple Thorn). Hyperfocus's two chips: the Thorn's (the +1 is FLAT, so the roll
+	# breakdown never draws it and this is its whole surface) and the focus's marker (who the Thorn
+	# is focused on - Mark for Death's buff_mark_for_death_mark shape). The range waiver is hidden.
+	&'buff_hyperfocus',
+	&'buff_hyperfocused',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
