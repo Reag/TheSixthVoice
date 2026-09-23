@@ -32,6 +32,19 @@
 # sentence, "this weapon can be destroyed (due to critical damage or other effects) even if it has
 # no charges remaining". One id appended, nothing else changed (specs/2026-09-22-naga-design.md
 # ruling 14); spec/test_binding_fangs.gd and spec/test_compat.gd pin it.
+#
+# FLEX SECONDARY - ONLY AS THE PRIMARY (Naga frame close, author decision 5). Leoleth's recorded
+# choose_to_destroy warning: a structure check's DESTROY_WEAPON offers MOUNTS
+# (event_unit_structure.gd:176), and picking one destroys its PRIMARY whenever it has one (:213-214).
+# The axe is HEAVY and always a primary, so it never met this; the Fangs are AUX and fit a flex
+# mount's secondary. Beside an empty Limited aux primary (mw_stub_cannon), an empty Fangs secondary
+# made the mount destructible through the whitelist and the pick destroyed the empty primary - a
+# weapon vanilla says cannot be. So get_destructable_mounts drops a mount whose ONLY destructible
+# gear is an empty whitelisted secondary: in that niche the Fangs survive rather than the wrong weapon
+# going. A secondary WITH charges is vanilla's own business and untouched. super-first, so the
+# resident and Thy Hubris compose as before; the level-1 dispatch the probe measured is kept
+# (super.get_destructable_mounts keeps the instance for its one level - memory
+# lancer-tactics-extension-seams), and spec/test_spike_unit_printer_seam.gd still measures it.
 # ============================================================================================
 extends "res://engine/character/unit/service/unit_printer.gd"
 
@@ -47,3 +60,21 @@ static func get_destructable_gear(gear_list:Array[GearCore]) -> Array[GearCore]:
 		if not DESTRUCTIBLE_WHILE_EMPTY.has(gear.kit.compcon_id): continue
 		destructable_gear.append(gear)
 	return destructable_gear
+
+## The whitelist counts toward a MOUNT only as its PRIMARY - see the banner above (FLEX SECONDARY).
+static func get_destructable_mounts(from_mounts:Array[MountCore]) -> Array[MountCore]:
+	var destructable_mounts := super.get_destructable_mounts(from_mounts)
+	return destructable_mounts.filter(func(mount:MountCore) -> bool:
+		return not is_destructable_only_by_an_empty_whitelisted_secondary(mount))
+
+## True when the one thing making `mount` destructible is a whitelisted Kit, EMPTY, in its secondary
+## slot - vanilla would have refused that gear, and the pick would destroy the primary instead.
+## Qualified through the node so every extender's whitelist is asked (the chain dispatches fully).
+static func is_destructable_only_by_an_empty_whitelisted_secondary(mount:MountCore) -> bool:
+	var secondary := mount.slot_secondary
+	if not GearCore.is_valid(secondary): return false
+	if not DESTRUCTIBLE_WHILE_EMPTY.has(secondary.kit.compcon_id): return false
+	if secondary.has_charges_left(): return false # vanilla admits it on its own
+	var destructable := UnitPrinter.get_destructable_gear(mount.get_gear())
+	destructable.erase(secondary)
+	return destructable.is_empty()

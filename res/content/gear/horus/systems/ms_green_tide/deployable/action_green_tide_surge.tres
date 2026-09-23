@@ -7,11 +7,14 @@
 ; turn within. can_only_affect_a_unit_once_per_round is the per-ally record the script writes;
 ; can_trigger_any_number_of_times_per_round lifts the ZONE-wide 1/round the archetype would otherwise
 ; claim (action_reaction_on_coming_within.gd:44-45) - the card limits each ally, not the swarm.
-; consumes_rxn = false: the reaction spent is the ALLY's, by hand, not the marker's.
+; consumes_rxn = false: the reaction spent is the ALLY's (UnitAction.spend_reaction in the script),
+; not the marker's. triggers_regardless_of_elevation: the area is the drawn Blast, which is flat
+; (author decision 4, frame close) - an ally higher up inside it is still within.
 [resource]
 script = ExtResource("1_surge")
 triggers_on_coming_within_range = 1
 triggers_on_enemies = false
+triggers_regardless_of_elevation = true
 when_start_turn_within = true
 can_only_affect_a_unit_once_per_round = true
 can_trigger_any_number_of_times_per_round = true

@@ -13,6 +13,14 @@
 ## lands (the consume runs at ATTACK_DECLARED PRE), so that target IS offered - the card's loop.
 ## Hostiles only: locking an ally is never what this is for.
 ##
+## CHARACTERS ONLY (frame close, slice 4 #2): "the target becomes Locked On", and vanilla Lock On only
+## ever targets a character (action_lock_on.gd:8, is_character - a drone passes, an object does not).
+## A hostile deployable object was offered the charge and took LOCKON.
+## NOT OFFERED TO A TARGET IMMUNE TO LOCKON (slice 4 #3, ruling 14's trap rule): an Invulnerable or
+## status-immune target would take the charge and the heat and refuse the lock. Asked with the Fangs'
+## persistent id as the source - the id Lockon.apply writes - so a source-keyed immunity reads what
+## the lock itself would.
+##
 ## THE HEAT is gain_self_heat_alt - the queued SELF_INFLICTED heat every "you take N heat" in this mod
 ## uses (action_blood_of_the_creature.gd) - and it lands after the attack event, with the lock.
 ## THE LOCK goes through the frozen Lockon.apply, source = the Fangs' persistent id.
@@ -30,7 +38,9 @@ func on_hit(activation:EventCore, attacked_unit:Unit) -> void:
 	if not GearCore.is_valid(gear) or gear.kit.charges_max <= 0: return
 	if not gear.has_charges_left(): return
 	if not UnitRelation.are_enemies(unit, attacked_unit): return
+	if not attacked_unit.is_character(): return
 	if attacked_unit.has_status(Lancer.STATUS.LOCKON): return
+	if UnitCondition.is_immune_to_status(attacked_unit, Lancer.STATUS.LOCKON, gear.persistent_id): return
 
 	var confirmed:bool = true
 	if unit.is_player_controlled():

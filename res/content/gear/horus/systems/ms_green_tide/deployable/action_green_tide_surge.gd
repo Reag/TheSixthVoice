@@ -29,16 +29,49 @@
 ## lifetime is START_OF_TURN (until = 3): it clears at the ALLY's own next turn start, just before the
 ## zone's turn-start offer is asked, so "once per round" is measured from turn start to turn start.
 ##
-## THE REACTION POINT IS SPENT BY HAND - the Symbiosis rule (no buff may grant or spend one), and
-## ActionReaction's own spend would charge the MARKER. consumes_rxn = false on the .tres for the same
-## reason.
+## THE ALLY'S REACTION POINT, NOT THE MARKER'S: ActionReaction's own spend would charge the MARKER, so
+## consumes_rxn = false on the .tres and the script spends the ally's through vanilla's
+## UnitAction.spend_reaction (unit_action.gd:283-285: the decrement plus the "reaction spent" popcorn;
+## not a buff, so the Symbiosis rule - no buff may grant or spend one - is untouched). The use is
+## logged and popped with the action's name under the ALLY (Action.log_usage / popcorn_usage on a
+## cloned specific), since nothing calls spend_actions here.
 ##
-## THE MOVE: event_unit_pick_move on the ally with a budget of its full speed (Quick March's shape,
+## AREA = THE DRAWN BLAST: triggers_regardless_of_elevation = true on the .tres (author decision 4,
+## frame close). The Blast the player drew is flat; measured with elevation, an ally two levels up
+## inside it was never offered.
+##
+## THE MOVER: the ALLY chooses this move; nothing forces it. So it is NOT an event_unit_pick_move:
+## that event's budget branch is inlined here (event_unit_pick_move.gd:112-113, :145-162 - build the
+## pathfinder, ask, execute) WITHOUT its knockback-immunity abort (:78). Frame-close slice 4 #1: with
+## the marker as the pick_move's `unit`, buff_heavy_frame_knockback / Fomorian Frame compare that
+## unit's size to the mover's, and a size-0.5 marker is smaller than everyone - a Heavy Frame ally
+## said yes, lost its reaction and never moved. Omitting `unit` (vanilla Perimeter Command Plate,
+## action_perimeter_command_plate_trigger.gd:29-36) clears those, but read against
+## TargetActionUtil.ask_for_movement_alt (target_action_util.gd:37-38, :108-120) an invalid specific
+## sends an AI-controlled ally to the reachable tile CLOSEST to where it stands (:115-116 - one step
+## at best, never a choice) and a player's picker loses its label and the overwatch confirm (read,
+## not measured); `unit = ally` instead keeps those
+## but makes a BRACED Armor-Lock ally immune (buff_armor_lock_plating_knockback.gd compares the
+## unit to size 5), and unconditional immunities (Fortress Protocol, Flash Anchor, mt_knockback_
+## immunity) block every variant. A voluntary move is not knockback, so no immunity is asked at all.
+## The specific handed to the picker and the move names the ally, so the picker is the ally's own.
+## A cancelled picker spends nothing (the record is still written - ruling 23).
+##
+## THE MOVE: a pathfinder on the ally with a budget of its full speed (Quick March's budget,
 ## action_quick_march_commander.gd:9-19). A fixed budget is not halved by Slowed - Slowed gates
 ## availability, never a move event - so "not affected by Slowed" costs nothing. "Not affected by
 ## Immobilized" has no narrow flag: every Immobilized gate is `voluntary and is_immobilized`
-## (pathfinder.gd:333, event_unit_move.gd:451), so an Immobilized ally is moved INVOLUNTARILY, which
-## also ignores engagement and reactions - ruling 17's recorded divergence, for that ally only.
+## (pathfinder.gd:333, event_unit_move.gd:451), so an Immobilized ally's move must be INVOLUNTARY.
+## AUTHOR DECISION 3 (frame close) NARROWS IT: the type is the ally's own voluntary one
+## (MovementType.create - its MOVEMENT_TYPE buffs kept, no jump_downhill, no ignore_difficult flag)
+## with `voluntary` cleared and ignore_fall_damage set, so it takes no fall damage as a voluntary move
+## would. WHAT NO FLAG CAN NARROW, recorded: `not voluntary` alone still makes it ignore reactions and
+## engagement (ruling 17, movement_type.gd ignores_reactions/ignores_engagement), ignore difficult
+## terrain (ignores_difficult_terrain() ORs in `not voluntary`), and pay 1 per tile for every step,
+## climbs included (pathfinder.gd:772 returns 1 for `not voluntary and not spend_move`; spend_move
+## would charge the ally's standard move, which a reaction must not). Katamari also leaves riders
+## behind on an involuntary move (katamari.gd:94-96) and the leave-attachment confirm is skipped
+## (event_unit_move.gd:187). For this ally only, and only while Immobilized.
 extends ActionReactionOnComingWithin
 
 ## Lives on a MARKER, which the player can never select (memory marker-units-cannot-be-picked), so no
@@ -67,16 +100,27 @@ func activate(context:Context, activation:EventCore) -> void:
 	if activation.abort_without_unit(ally): return
 	if activation.abort_when(not UnitAction.can_take_reactions(ally)): return
 
-	ally.core.current.reactions = maxi(0, ally.core.current.reactions - 1)
+	# THE ALLY IS THE ONE MOVING AND CHOOSING (see THE MOVER): the specific names it, so the picker is
+	# the ally's own (player or AI) and is labelled with the surge.
+	var as_ally := SpecificAction.clone(specific)
+	as_ally.unit = ally
 
-	var movement := MovementType.create_for_involuntary(ally) if UnitCondition.is_immobilized(ally) \
-		else MovementType.create(ally, true)
-	activation.queue_event(&'event_unit_pick_move', {
-		target_unit = ally,
-		resource = movement,
-		number = ally.core.get_speed_max(),
-		# tell the event who did it
-		unit = context.unit,
-		gear = context.gear,
-		action = context.action,
-	})
+	var movement := MovementType.create(ally, true)
+	if UnitCondition.is_immobilized(ally): narrow_to_involuntary(movement)
+	var pathfinder := await Pathfinder.generate_for_movement_budget(ally, ally.core.get_speed_max(), movement)
+	if activation.abort_without_unit(ally): return
+	var plan := await TargetActionUtil.ask_for_movement_alt(ally, pathfinder, as_ally)
+	if activation.abort_without_movement_plan(plan, ally): return
+
+	# Logged and popped as the ALLY's use, and its reaction spent - only for a move actually taken.
+	log_usage(as_ally)
+	popcorn_usage(as_ally)
+	UnitAction.spend_reaction(ally)
+	await activation.execute_events(pathfinder.generate_events(ally, plan.move_path, [], as_ally))
+
+## Author decision 3 (frame close): the Immobilized ally's move is the VOLUNTARY one with only the
+## flag that gets it past Immobilized flipped. See the header for what that flag still drags along.
+static func narrow_to_involuntary(movement:MovementType) -> void:
+	movement.voluntary = false
+	# takes_fall_damage() is `(straight_line or not voluntary)`: a voluntary move never falls for damage.
+	movement.ignore_fall_damage = true

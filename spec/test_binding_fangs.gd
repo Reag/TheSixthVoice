@@ -16,6 +16,8 @@
 extends GutTest
 
 const NagaFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/naga_fixture.gd')
+const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
+const FrameIsolation := preload('res://testkit/frame_isolation.gd')
 const Lockon := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/lockon/lockon.gd')
 
 const TRANSLATION_PATH := 'res://unpacked/Reag-TheSixthVoice/localization/localizations.en.translation'
@@ -182,6 +184,47 @@ func test_an_already_locked_target_is_not_offered() -> void:
 	assert_eq(Lockon.source_of(target), naga.get_gear(NagaFixture.LOCK_ON).persistent_id,
 		'The lock is still the original one.')
 
+## Frame-close slice 4 #2: "the target becomes Locked On" - and vanilla Lock On only ever targets a
+## CHARACTER (action_lock_on.gd:8). A hostile deployable OBJECT is hit, but never offered the charge.
+func test_a_hostile_object_is_not_offered() -> void:
+	var object := FitzgeraldFixture.create_deployable(game, TARGET_TILE + Vector2i(0, 2), 200, 0, 0)
+	assert_false(object.is_character(), 'fixture: an object, not a character.')
+	assert_true(UnitRelation.are_enemies(naga, object), 'fixture: and hostile.')
+	var roll := await swing([A_HIT], [true, true], object)
+	if roll == null: return fail_test('fixture: no roll.')
+	assert_true(roll.hit, 'LIVENESS: a hit.')
+	assert_eq(fangs_prompts().size(), 0, 'Not offered against an object.')
+	assert_eq(fangs.charges_current, 2, 'Nothing spent.')
+	assert_false(object.has_status(Lancer.STATUS.LOCKON), 'No lock.')
+
+## Frame-close slice 4 #3 (ruling 14's trap rule): a target IMMUNE to Lock On would take the charge
+## and the heat and refuse the lock, so it is not offered.
+func test_a_target_immune_to_lock_on_is_not_offered() -> void:
+	var immunity := BuffStatusImmunity.new()
+	immunity.compcon_id = &'reag_spec_lockon_immunity'
+	immunity.to = Buff.TO.STATUS_IMMUNITY
+	immunity.immune_to_statuses = [Lancer.STATUS.LOCKON]
+	immunity.hide_from_player = true
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), target, immunity)
+	assert_true(UnitCondition.is_immune_to_status(target, Lancer.STATUS.LOCKON), 'fixture: immune to Lock On.')
+	var heat := naga.core.current.heat
+	var roll := await swing([A_HIT], [true])
+	if roll == null: return fail_test('fixture: no roll.')
+	assert_true(roll.hit, 'LIVENESS: a hit.')
+	assert_eq(fangs_prompts().size(), 0, 'Not offered against a target that cannot be Locked On.')
+	assert_eq(fangs.charges_current, 2, 'No charge spent...')
+	assert_eq(naga.core.current.heat, heat, '...and no heat.')
+
+## "Hostiles only" (the script header) was unpinned: an ALLY hit by the Fangs is never offered.
+func test_an_ally_is_not_offered() -> void:
+	var ally := NagaFixture.create_ally(game, TARGET_TILE + Vector2i(0, 2))
+	NagaFixture.set_edef(ally, TARGET_EDEF)
+	var roll := await swing([A_HIT], [true, true], ally)
+	if roll == null: return fail_test('fixture: no roll.')
+	assert_true(roll.hit, 'LIVENESS: a hit.')
+	assert_eq(fangs_prompts().size(), 0, 'Not offered against an ally.')
+	assert_false(ally.has_status(Lancer.STATUS.LOCKON), 'No lock.')
+
 ## Consumed by this very swing (the consume runs at ATTACK_DECLARED PRE), the target is unlocked
 ## again by the time the hit lands, so the Fangs lock it anew - the loop the card is built for.
 func test_a_consumed_lock_is_relocked_by_the_same_swing() -> void:
@@ -216,3 +259,54 @@ func test_the_fangs_are_destructible_at_zero_charges() -> void:
 		'"can be destroyed ... even if it has no charges remaining" - the whitelist says so.')
 	assert_true(LoadoutCore.get_destructable_gear([fangs]).has(fangs),
 		'And through LoadoutCore\'s delegation (loadout_core.gd:575-576).')
+
+
+# ---------------------------------------------------------------- only as the PRIMARY (author decision 5)
+# The Fangs are AUX, so they fit a FLEX mount's secondary. A structure check's DESTROY_WEAPON offers
+# MOUNTS (event_unit_structure.gd:176), and picking one destroys its PRIMARY when it has one
+# (:213-214). An empty Limited aux primary is not destructible (vanilla), so if the whitelist let an
+# empty Fangs SECONDARY make the mount destructible, the pick would destroy the empty primary - the
+# wrong weapon. The whitelist therefore counts the Fangs toward a mount only as its primary; in the
+# niche they survive. LoadoutCore.get_destructable_mounts is the structure check's own entry.
+
+## An AI-faction dummy with one FLEX mount (test_spike_unit_printer_seam.gd's shape, flex instead of
+## aux/aux), `primary` and `secondary` equipped through the mount type and charged as given.
+func flex_mount_with(primary:StringName, primary_charges:int, secondary:StringName, secondary_charges:int) -> MountCore:
+	var dummy := SpecFactory.create_unit(game.map, Vector2i(12, 8), Faction.AI_ENEMY)
+	FrameIsolation.isolate_frame(dummy)
+	dummy.core.frame.mount_types.clear()
+	dummy.core.frame.mount_types.append(ContentLibrary.get_mount(&'mount_flex'))
+	dummy.core.full_repair()
+	var mount:MountCore = dummy.core.loadout.mounts[0]
+	var first := mount.equip_primary(primary)
+	assert_true(GearCore.is_valid(first), 'fixture: %s is the primary.' % primary)
+	if not secondary.is_empty():
+		var second := mount.equip_secondary(secondary)
+		assert_true(GearCore.is_valid(second), 'fixture: %s is the secondary.' % secondary)
+		if GearCore.is_valid(second): second.charges_current = secondary_charges
+	if GearCore.is_valid(first): first.charges_current = primary_charges
+	return mount
+
+func test_an_empty_fangs_secondary_does_not_make_the_mount_destructible() -> void:
+	var mount := flex_mount_with(&'mw_stub_cannon', 0, KIT_ID, 0)
+	assert_false(mount.slot_primary.has_charges_left(), 'fixture: the Stub Cannon primary is empty...')
+	assert_eq((mount.slot_primary.kit.actions[0] as ActionAttackWeapon).weapon_size, Lancer.WEAPON_SIZE.AUX, '...and an aux...')
+	assert_true(mount.slot_primary.kit.charges_max > 0, '...Limited weapon.')
+	assert_eq(mount.slot_secondary.kit.compcon_id, KIT_ID, 'fixture: the empty Fangs are the secondary.')
+	assert_eq(LoadoutCore.get_destructable_mounts([mount] as Array[MountCore]).size(), 0,
+		'Not offered: the pick would destroy the empty primary, not the Fangs.')
+
+func test_an_empty_fangs_primary_makes_the_mount_destructible() -> void:
+	var mount := flex_mount_with(KIT_ID, 0, &'', 0)
+	assert_eq(LoadoutCore.get_destructable_mounts([mount] as Array[MountCore]).size(), 1,
+		'CONTROL: the Fangs as the primary - the whitelist still applies, and the pick destroys the Fangs.')
+
+func test_a_charged_primary_beside_an_empty_fangs_secondary_is_still_destructible() -> void:
+	var mount := flex_mount_with(&'mw_stub_cannon', 1, KIT_ID, 0)
+	assert_eq(LoadoutCore.get_destructable_mounts([mount] as Array[MountCore]).size(), 1,
+		'CONTROL: vanilla destructibility of the primary is untouched.')
+
+func test_a_charged_fangs_secondary_is_still_vanilla() -> void:
+	var mount := flex_mount_with(&'mw_stub_cannon', 0, KIT_ID, 1)
+	assert_eq(LoadoutCore.get_destructable_mounts([mount] as Array[MountCore]).size(), 1,
+		'CONTROL: a Fangs WITH a charge is destructible under vanilla\'s own rule, and the guard narrows only the whitelist.')
