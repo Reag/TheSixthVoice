@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ssc/mf_purple_thorn/mf_purple_thorn.png" id="9_sprite"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_purple_thorn/mt_vigil/mt_vigil.tres" id="10_vigil"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_purple_thorn/mt_blessed_bolt_system/mt_blessed_bolt_system.tres" id="11_bolt"]
 
 ; DERIVED FROM THE SPRITE ART, NOT LEFT AS THE PLACEHOLDER GRAYS (the Vauban's SP5 ruling, re-run
 ; here as the Naga's was). Measured 2026-09-23 with the same shader-literal test
@@ -57,7 +58,7 @@ sprites = Array[Texture2D]([ExtResource("9_sprite")])
 ; make this WHOLE resource fail to parse, taking the frame out of ContentLibrary with no error a
 ; player would ever see - which is why each entry lands only once its own files do.
 ; test_purple_thorn_frame.gd pins the order at the close of SP1.
-traits = Array[ExtResource("8_kit")]([ExtResource("10_vigil")])
+traits = Array[ExtResource("8_kit")]([ExtResource("10_vigil"), ExtResource("11_bolt")])
 mount_types = Array[ExtResource("4_mounttype")]([ExtResource("5_mountauxaux"), ExtResource("5_mountauxaux"), ExtResource("6_mountflex")])
 stat = SubResource("Resource_statblock")
 role_primary = 4
