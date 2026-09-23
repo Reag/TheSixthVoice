@@ -1324,6 +1324,10 @@ const BUFFS_THAT_BORROW_A_CARD := {
 	# are what the chip should say. It renders the trait's 43-character name in the roll breakdown
 	# beside the -2, which is the card's own name for itself and deliberate.
 	&'buff_aaaa_difficulty': 'gear.mt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.effect',
+	# SP2 Task 2 (Purple Thorn), found by this guard on the first tier-2 run. The 43 As' shape on a
+	# SYSTEM: ms_trajectory_arc_mapper carries no actions, so the fallback lands on the Kit's own
+	# rows and the roll breakdown names the system beside the +1 - what the chip should say.
+	&'buff_trajectory_arc_mapper': 'gear.ms_trajectory_arc_mapper.effect',
 }
 
 func test_every_visible_buff_renders_real_text_rather_than_a_raw_key():
