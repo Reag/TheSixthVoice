@@ -16,10 +16,10 @@
 # stock responder answers the compcon-plan request with that target - so a Stalk shot raises no
 # prompt a spec has to queue for. The Nexus pops the d20, one d3 hit die, one d3 crit die.
 #
-# THE SEEKING CASE IS SP2's. Ruling 5's own-LOS gate exists so a SEEKING Aux cannot fire through a
-# wall; this mod ships no SEEKING Aux until the Blink Bolt Launcher (SP2 Task 1), whose spec owns
-# that case. Here the wall case uses the Nexus, whose own LOS requirement fails too - so it pins
-# "out of LOS does not offer" and not yet WHICH gate refused it. Recorded in the ledger.
+# THE SEEKING CASE (SP1 J-5, landed SP2 Task 1). Ruling 5's own-LOS gate exists so a SEEKING Aux
+# cannot fire through a wall. The Nexus wall case below cannot tell the two gates apart - its own
+# LOS requirement fails too - so the Blink Bolt Launcher cases after it do: the weapon filter
+# (get_possible_auxes) DOES offer the bolt behind the wall, and only the trait's can_see refuses.
 #
 #   godot --resolution 800x600 --position -2400,-2400 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_stalk_the_horizon.gd
 extends GutTest
@@ -43,6 +43,8 @@ const THIRD_STEP := Vector2i(9, 10)
 ## Twelve east: outside the Nexus's Range 10.
 const FAR_TILE := Vector2i(16, 6)
 const FAR_STEP := Vector2i(16, 7)
+## The Purple Thorn's own SEEKING Aux (SP2).
+const BLINK_BOLT := &'mw_blink_bolt_launcher'
 ## The column a wall stands in for the LOS case: between the Thorn and the mover.
 const WALL_X := 6
 
@@ -204,6 +206,23 @@ func test_a_mover_out_of_line_of_sight_is_not_shot():
 	await moves(mover, MOVER_STEP)
 	assert_eq(mover.current_damage(), 0, 'Not in Line of Sight: no shot.')
 	assert_eq(points(), 1, 'The point is untouched.')
+
+func test_a_seeking_aux_is_not_fired_through_a_wall_by_the_traits_own_gate():
+	Fixture.mount_pair(thorn, 0, BLINK_BOLT)
+	build_wall_at(WALL_X)
+	assert_false(UnitRelation.can_see(thorn, mover), 'fixture: the wall blocks LOS.')
+	assert_false(StalkAction.get_possible_auxes(thorn, mover).is_empty(),
+		'fixture: the weapon filter WOULD offer the SEEKING bolt behind the wall - so the refusal below is the TRAIT gate.')
+	await moves(mover, MOVER_STEP)
+	assert_eq(mover.current_damage(), 0, '"In Line of Sight": no shot, SEEKING or not.')
+	assert_eq(points(), 1, 'The point is untouched.')
+	assert_eq(uses(), 0, 'No use.')
+
+func test_the_seeking_aux_is_fired_when_the_mover_is_in_sight():
+	Fixture.mount_pair(thorn, 0, BLINK_BOLT)
+	await moves(mover, MOVER_STEP)
+	assert_eq(mover.current_damage(), 2, 'Control: in sight, the Blink Bolt Launcher fires for its 2.')
+	assert_eq(uses(), 1, 'One use.')
 
 func test_a_teleporting_hostile_is_not_shot():
 	arm_nexus()

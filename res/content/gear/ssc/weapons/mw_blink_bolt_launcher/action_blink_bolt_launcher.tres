@@ -1,0 +1,18 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://vi3dfs5ql3lg" path="res://engine/character/gear_action/action_attack_weapon.gd" id="1_attack"]
+
+; Auxiliary (0) Launcher (4), flat 2 Kinetic (0), Range 10, SEEKING and RELIABLE 1 in the card's
+; order (Purple Thorn ruling 9). No script: SEEKING waives LOS (requires_line_of_sight) and cover
+; (ignores_cover) inside ActionAttackWeapon itself, and RELIABLE's value is reliable_damage
+; (get_base_value_for_tag). Threat stays the default 1, as on every vanilla
+; ranged weapon (mw_gandiva_missiles.tres).
+[resource]
+script = ExtResource("1_attack")
+damage_type = 0
+damage_dice = "2"
+weapon_size = 0
+weapon_type = 4
+aim_range = 10
+tags = Array[StringName]([&"seeking", &"reliable"])
+reliable_damage = "1"
