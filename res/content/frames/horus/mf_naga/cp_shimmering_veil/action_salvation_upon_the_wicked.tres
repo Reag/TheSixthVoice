@@ -3,12 +3,14 @@
 [ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
 [ext_resource type="Script" uid="uid://cm50wdj5g8syg" path="res://engine/character/gear_action/archtypes/action_system_apply_buff.gd" id="2_applybuff"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_naga/cp_shimmering_veil/buff_salvation.tres" id="3_chip"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_salvation_upon_the_wicked.svg" id="4_icon"]
 
 ; SALVATION UPON THE WICKED, the protocol (ruling 8): the Leoleth's RAGE shape (action_rage.tres) -
 ; an ActionSystemApplyBuff hanging the scene-long chip on the Naga itself. action_type 4 is
 ; Lancer.ACTION.PROTOCOL; consumes_cp spends the core power; can_reapply false, so the second press
 ; is refused rather than silently re-hung. The chip's own reaction (action_salvation_relock) does the
-; work; nothing is kickstarted here because the card's trigger is a loss, not a turn start.
+; work; nothing is kickstarted here because the card's trigger is a loss, not a turn start. SP5: a
+; rising warded shield, the SALVATION family - buff_salvation wears this same texture.
 [resource]
 script = ExtResource("2_applybuff")
 buffs = Array[ExtResource("1_buff")]([ExtResource("3_chip")])
@@ -18,3 +20,4 @@ can_reapply = false
 action_type = 4
 consumes_cp = true
 usage_group = &"salvation_upon_the_wicked"
+icon_override = ExtResource("4_icon")

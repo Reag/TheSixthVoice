@@ -1,11 +1,13 @@
 [gd_resource type="Resource" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_naga/cp_shimmering_veil/action_blood_of_the_creature.gd" id="1_action"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_blood_of_the_creature.svg" id="2_icon"]
 
 ; The core PASSIVE's reaction (ruling 7; the script's header has the seam). trigger_timing 1 is
 ; POST: event_unit_attack.gd:123 queues ATTACK POST with the roll, and consumed_lock, in context.
 ; consumes_rxn false: a trait, not a reaction point; the 1/round is the script's hard limit. Its own
-; usage_group so the protocol and the relock never share its tally.
+; usage_group so the protocol and the relock never share its tally. SP5: a single teardrop - THE
+; BLOOD family.
 [resource]
 script = ExtResource("1_action")
 triggers_on = Array[StringName]([&"attack"])
@@ -13,3 +15,4 @@ trigger_timing = 1
 consumes_rxn = false
 usage_group = &"blood_of_the_creature"
 emit_text_popcorn_on_use = true
+icon_override = ExtResource("2_icon")

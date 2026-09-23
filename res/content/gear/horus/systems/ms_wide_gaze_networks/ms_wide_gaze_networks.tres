@@ -7,13 +7,16 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_wide_gaze_networks/action_hypnotize.tres" id="5_hypnotize"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_wide_gaze_networks/action_hypnotize_clear.tres" id="6_clear"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_wide_gaze_networks/passive_hypnotize_targeting.tres" id="7_aura"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_wide_gaze_networks.svg" id="8_icon"]
 
 ; WIDE GAZE NETWORKS, the Naga's rank-I Unique tech system (SP2 Task 2, design rulings 10-13). The
 ; ms_o_trickery shape: two invades as plain entries in the card's order, each in its own usage group.
 ; The third action is Hypnotize's clear, SITUATIONAL (it appears on the Hypnotized TARGET's bar
 ; through can_be_used_situationally_by, and ActionSystemClearBuff hides it from the Kit's tooltip).
 ; The one passive is the ALWAYS-ON aura that carries Hypnotize's targeting rule to the Naga and its
-; allies (ruling 12). system_tags = 1 is UNIQUE. No icon_override until SP5.
+; allies (ruling 12). system_tags = 1 is UNIQUE. SP5: the Kit's own bare glyph (a three-node gaze
+; network), distinct from Ping's and Hypnotize's own named families - decided 2026-09-23 that the
+; two invades draw SEPARATE pictures.
 [resource]
 script = ExtResource("2_kit")
 actions = Array[ExtResource("1_action")]([ExtResource("4_ping"), ExtResource("5_hypnotize"), ExtResource("6_clear")])
@@ -21,3 +24,4 @@ passives = Array[ExtResource("3_passive")]([ExtResource("7_aura")])
 sp_cost = 2
 system_tags = 1
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"
+icon_override = ExtResource("8_icon")

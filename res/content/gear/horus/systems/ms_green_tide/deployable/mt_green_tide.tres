@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://b2xlpsu4kynfl" path="res://engine/gamemaster/map/command_zone/dynamic_zone.gd" id="5_zone"]
 [ext_resource type="Script" uid="uid://g8ycgtxd1y6n" path="res://engine/character/gear_passive/passive_dynamic_zone.gd" id="6_dynzone"]
 [ext_resource type="PackedScene" uid="uid://cqvonn46ieu62" path="res://content/fx_endless/gear/aura/fxe_nanites.tscn" id="7_fx"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_green_tide.svg" id="8_icon"]
 
 ; THE PICTURE: vanilla's HORUS nanite haze (fxe_nanites.tscn - the Hive Drone's, mt_hive_drone.tres)
 ; over the Blast 1, radius 1 around the size-1 marker. Every gameplay export on the DynamicZone is
@@ -23,8 +24,11 @@ dynamic_zone = SubResource("Resource_shape")
 fxe = ExtResource("7_fx")
 
 ; THE GREENWASH SWARM, the marker's own trait (design ruling 16): the surge reaction and the picture.
+; SP5: a wave-crest with a waterline - the TIDE-MARK picture, shared with mt_green_tide_expiry (one
+; mechanic, two files, the Leoleth crater precedent).
 [resource]
 script = ExtResource("3_kit")
 actions = Array[ExtResource("1_action")]([ExtResource("4_surge")])
 passives = Array[ExtResource("2_passive")]([SubResource("Resource_picture")])
 is_trait = true
+icon_override = ExtResource("8_icon")
