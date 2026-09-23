@@ -1,0 +1,8 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_shredder_cannon/onhit_shredder_cannon.gd" id="1_onhit"]
+
+; apply_on = 1 (ON_HIT). statuses and buffs are deliberately EMPTY: the chip and its clock are both the
+; script's, because the clock needs the chip's persistent id (see its header).
+[resource]
+script = ExtResource("1_onhit")

@@ -889,6 +889,9 @@ const ICON_TARGETS := {
 	# SP2 Task 2 (Purple Thorn). Trajectory Arc Mapper: a passive system, no action - its one surface
 	# is the Kit. Its hidden buff is in HIDDEN_BUFFS_NEEDING_ICONS below. SP5's.
 	&'ms_trajectory_arc_mapper': {},
+	# SP3 Task 1 (Purple Thorn). Shredder Cannon: one Kit, one profile, so KIT. Its chip
+	# buff_shredded_mark is in VISIBLE_BUFFS; its clock is hidden and never drawn. SP5's.
+	&'mw_shredder_cannon': {&'action_shredder_cannon': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1119,6 +1122,11 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# SP1 Task 4 (Purple Thorn). REND's chip - the only on-token sign that the save-or-be-shoved is
 	# live until the end of the Thorn's next turn. Its own rows.
 	&'buff_cruel_and_unnatural',
+	# SP3 Task 1 (Purple Thorn). The Shredder Cannon's chip - the only sign on the target that the +1
+	# is live and when it ends (the Shredded status draws its own glyph beside it). Its own rows. A
+	# FLAT bonus is not drawn in the roll breakdown (attack_roll.gd adds it to flat_bonus, no add_mod),
+	# so this chip is the whole of its surface.
+	&'buff_shredded_mark',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

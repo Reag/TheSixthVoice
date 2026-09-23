@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_shredder_cannon/action_shredder_cannon.tres" id="3_cannon"]
+
+; SHREDDER CANNON, the Purple Thorn's rank-II weapon (SP3 Task 1, design ruling 11). SP 0. The on-hit
+; is onhit_shredder_cannon: the visible chip on the target (Shredded, +1 to all attacks against it)
+; and its clock on the Thorn. SP5: the icon.
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("3_cannon")])
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

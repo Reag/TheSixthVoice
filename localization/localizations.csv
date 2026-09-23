@@ -632,3 +632,8 @@ gear.mw_blink_bolt_launcher.flavor,"While resembling a simple bolt launcher, the
 gear.ms_trajectory_arc_mapper.name,Trajectory Arc Mapper
 gear.ms_trajectory_arc_mapper.flavor,"One of the Broadcast's more versatile pieces of tech, the Trajectory Arc Mapper uses preset predictive algorithms to offload mathematical strain on targeting systems allowing for drastically increased precision."
 gear.ms_trajectory_arc_mapper.effect,"When attacking a |character| whose distance from you is equal to the range of the weapon, you gain +1 |accuracy|."
+gear.mw_shredder_cannon.name,Shredder Cannon
+gear.mw_shredder_cannon.flavor,"Comprised of a three part automatic targeting system and a short cannon, the SSC Shredder Cannon launches compacted ferroactive shards capable of tearing straight through armor. Additionally, the onboard targeting systems allow for the magnetic pull of its payload to draw allied fire straight to a weakpoint."
+gear.mw_shredder_cannon.on_hit,"Until the end of your next turn, the target is |Shredded|, and all characters gain +1 to all attack rolls against them."
+gear.buff_shredded_mark.name,Shredder Cannon
+gear.buff_shredded_mark.effect,"Until the end of your next turn, the target is |Shredded|, and all characters gain +1 to all attack rolls against them."

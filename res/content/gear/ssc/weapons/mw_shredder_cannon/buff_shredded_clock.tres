@@ -1,0 +1,13 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_wide_gaze_networks/buff_ping_clock.gd" id="1_clock"]
+
+; The Shredder Cannon's clock, on the THORN (ruling 11: "the clock is the Ping's"). THE PING'S OWN
+; SCRIPT, not a copy: buff_ping_clock.gd names no Naga content - it ends the one chip whose
+; persistent id it holds, on the target whose id it holds, at the end of its holder's next turn
+; (until = 7 counted on the holder's own turn_count). Stacks, one per hit. HIDDEN.
+[resource]
+script = ExtResource("1_clock")
+until = 7
+multiple_copies_can_stack = true
+hide_from_player = true
