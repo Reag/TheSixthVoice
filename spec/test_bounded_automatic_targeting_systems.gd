@@ -256,6 +256,8 @@ func test_an_empty_mod_is_not_offered() -> void:
 	assert_true(NagaFixture.lock_by_hand(naga, target), 'fixture: locked.')
 	var roll := await attack(pair[0], [A_HIT, 1], [true, true])
 	if roll == null: return fail_test('fixture: no roll.')
+	assert_true(roll.hit, 'LIVENESS: a hit.')
+	assert_true(roll.consumed_lock, 'LIVENESS: the lock was consumed.')
 	assert_eq(bats_prompts().size(), 0, 'No charge to expend: not offered.')
 	assert_false(roll.crit, 'A plain hit.')
 
@@ -271,6 +273,8 @@ func test_a_crit_immune_target_is_not_offered_the_conversion() -> void:
 	assert_true(NagaFixture.lock_by_hand(naga, target), 'fixture: locked.')
 	var roll := await attack(pair[0], [A_HIT, 1], [true, true])
 	if roll == null: return fail_test('fixture: no roll.')
+	assert_true(roll.hit, 'LIVENESS: a hit.')
+	assert_true(roll.consumed_lock, 'LIVENESS: the lock was consumed.')
 	assert_eq(bats_prompts().size(), 0, 'A crit it cannot take would waste the charge: not offered.')
 	assert_eq(mod.charges_current, 2, 'Nothing expended.')
 

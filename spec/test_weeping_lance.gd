@@ -187,6 +187,41 @@ func test_the_forgo_profile_can_target_only_a_locked_hostile() -> void:
 	var plain := SpecificAction.create(naga, lance, lance.get_solo_action())
 	assert_true(plain.action.can_target_unit(other, plain), 'The plain profile targets anybody.')
 
+## "Consume Lock On" means a HOSTILE's lock: vanilla's consume refuses a non-enemy
+## (action_consume_lock_on.gd:62-67), so forgoing against a Locked On ally would consume nothing and
+## still take the -1 and the 2d6+4.
+func test_a_locked_ally_is_not_a_forgo_target() -> void:
+	var ally := NagaFixture.create_ally(game, OTHER_TILE)
+	UnitCondition.apply_status(SpecFactory.dummy_event({unit = naga}), ally, Lancer.STATUS.LOCKON, Lancer.UNTIL.MANUAL, &'')
+	assert_true(ally.has_status(Lancer.STATUS.LOCKON), 'fixture: the ally is Locked On.')
+	assert_true(NagaFixture.lock_by_hand(naga, target), 'fixture: a hostile is locked too, so the entry is live.')
+	var forgo := forgo_specific()
+	if forgo == null: return fail_test('fixture: no forgo profile.')
+	var plain := SpecificAction.create(naga, lance, lance.get_solo_action())
+	assert_true(plain.action.can_target_unit(ally, plain), 'LIVENESS: the plain profile can target the ally.')
+	assert_true(forgo.action.can_target_unit(target, forgo), 'LIVENESS: the locked hostile is a forgo target.')
+	assert_false(forgo.action.can_target_unit(ally, forgo), 'A Locked On ALLY is not a forgo target.')
+
+## The attack preview (attack_preview.gd:46-48) builds PreAttack from the forgo action BEFORE the
+## consume, when the target carries no buff_lock_consumed yet: the +1 is not there to cancel, so the
+## -1 must not be either, or the preview shows the swing a point worse than it will roll.
+func test_the_attack_preview_shows_the_forgo_swing_at_net_zero() -> void:
+	assert_true(NagaFixture.lock_by_hand(naga, target), 'fixture: locked, not yet consumed.')
+	var forgo := forgo_specific()
+	if forgo == null: return fail_test('fixture: no forgo profile.')
+	var tiles:Array[Vector2i] = [target.tile()]
+	var virtual_declared := DeclaredAttackSummary.create(
+		[target], target.occupied_tiles(), target.occupied_tiles(),
+		forgo.action.get_origin_voxels(forgo, tiles, naga.tile()))
+	# attack_preview.gd:114-122, verbatim in shape
+	var preattack := AttackRoll.PreAttack.create(Context.create({
+		unit = forgo.unit.get_attacker(forgo), target_unit = target, gear = forgo.gear,
+		action = forgo.action, resource = virtual_declared, flags = [],
+	}))
+	assert_true(preattack.target_is_locked_on, 'LIVENESS: the preview sees the lock.')
+	assert_false(UnitCondition.has_buff(target, &'buff_lock_consumed'), 'LIVENESS: nothing consumed yet.')
+	assert_eq(preattack.accuracy_mods_total(), 0, 'The preview nets 0, as the real forgo roll does.')
+
 func test_the_forgo_profile_consumes_without_asking_and_trades_the_accuracy_for_2d6_plus_4() -> void:
 	assert_true(NagaFixture.lock_by_hand(naga, target), 'fixture: locked beforehand.')
 	var hp:int = target.core.current.health

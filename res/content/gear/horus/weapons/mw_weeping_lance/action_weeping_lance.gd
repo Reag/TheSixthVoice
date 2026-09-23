@@ -17,15 +17,25 @@
 ## THE FORGO PROFILE, READ FROM ITS MARKER. VariantActionGroup appends the variant's key to
 ## modified_by_variants on the composed duplicate (variant_action_group.gd:117), so is_forgo() is how
 ## every other half of the card recognises it:
-##  - can_target_unit: only a Locked On target ("consume Lock On" is the condition of the whole card);
-##  - modify_pre_attack_data: the -1 that cancels buff_lock_consumed's +1 ("forgo the +1");
+##  - can_target_unit: only a Locked On HOSTILE ("consume Lock On" is the condition of the whole card,
+##    and vanilla's consume refuses a non-enemy, action_consume_lock_on.gd:62-67 - a Locked On ally
+##    would consume nothing and still take the -1 and the 2d6+4);
+##  - modify_pre_attack_data: the -1 that cancels buff_lock_consumed's +1 ("forgo the +1"), added ONLY
+##    when that +1 is among the PreAttack's applied buffs. The real roll's PreAttack is built after the
+##    consume and carries it, so it nets exactly 0; the attack preview builds its PreAttack from this
+##    same forgo action BEFORE any consume (attack_preview.gd:46-48, action = specific.action at :119),
+##    when there is no +1 to cancel, and an unconditional -1 showed the swing at net -1;
 ##  - action_weeping_lance_autoconsume.gd: the consume is MANDATORY, so the lock is really consumed and
 ##    the roll carries consumed_lock for BATS and THE BLOOD OF THE CREATURE.
 ##
 ## THE ENTRY IS GREYED OUT when no hostile on the map is Locked On (author, SP4): VariantAction.is_disabled
 ## keeps it visible and unpickable, so it never opens a targeting screen with nothing in it.
-## The AI never picks it - generate_composed_action with no choices takes each group's index 0, the
-## blank (event_gear_activate.gd:82-91).
+## THE AI CAN PICK IT (corrected at the frame close, 2026-09-23; the earlier claim here was wrong).
+## The AI does not go through the sub-menu: ai_action_decider.gd:78 enumerates
+## VariantActionGroup.get_variant_specifics, which composes EVERY variant into its own specific
+## (variant_action_group.gd:95-99) and never reads is_disabled. So an AI or Hand-Over-Control Naga
+## weighs the forgo profile like any other attack; can_target_unit still limits it to a Locked On
+## hostile and the autoconsume still consumes. Accepted by the author; no behaviour change.
 extends ActionAttackWeapon
 
 const FORGO := &'weeping_lance_forgo'
@@ -67,11 +77,19 @@ func get_alternate_actions(specific:SpecificAction, action_flags:Array = []) -> 
 
 func can_target_unit(potential_target:Unit, specific:SpecificAction) -> bool:
 	if not super.can_target_unit(potential_target, specific): return false
-	if is_forgo(specific.action) and not potential_target.has_status(Lancer.STATUS.LOCKON): return false
+	if is_forgo(specific.action) and not (
+		potential_target.has_status(Lancer.STATUS.LOCKON) and UnitRelation.are_enemies(specific.unit, potential_target)
+	): return false
 	return true
 
-## Runs last in PreAttack.create (attack_roll.gd:192), after buff_lock_consumed's +1 was added.
+## Runs last in PreAttack.create (attack_roll.gd:192), after the applied buffs' accuracy was added
+## (:182-189). The -1 cancels buff_lock_consumed's +1, so it goes in only when that buff is among
+## applied_buffs (collected from the target's ATTACK_ROLL_INCOMING buffs at :135) - see the header.
 func modify_pre_attack_data(context:Context, pre_attack_data:AttackRoll.PreAttack) -> void:
 	super.modify_pre_attack_data(context, pre_attack_data)
-	if is_forgo(context.action):
+	if is_forgo(context.action) and carries_consumed_lock(pre_attack_data):
 		pre_attack_data.add_mod(tr('gear.mw_weeping_lance.name'), -1, get_icon())
+
+static func carries_consumed_lock(pre_attack_data:AttackRoll.PreAttack) -> bool:
+	return pre_attack_data.applied_buffs.any(func(buff_core:BuffCore) -> bool:
+		return BuffCore.is_valid(buff_core) and buff_core.base.compcon_id == &'buff_lock_consumed')
