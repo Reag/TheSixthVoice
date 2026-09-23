@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_hazard/mt_shield_wall/action_shield_wall.gd" id="1_action"]
+
+[resource]
+script = ExtResource("1_action")
+usage_group = &"action_shield_wall"
+triggers_on = Array[StringName]([&"end_turn"])
+trigger_timing = 1
+consumes_rxn = false
