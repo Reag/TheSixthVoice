@@ -23,6 +23,7 @@ const SluaghFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/sluagh_fi
 const LeolethFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/leoleth_fixture.gd')
 const NagaFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/naga_fixture.gd')
 const PurpleThornFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/purple_thorn_fixture.gd')
+const HazardFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/hazard_fixture.gd')
 ## Read-only here: the Mark's retort case asserts the dome is untouched between its two halves.
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
 
@@ -1090,3 +1091,91 @@ func test_a_vigil_teleport_is_stopped_by_a_movement_restriction_ban() -> void:
 	assert_eq(PurpleThornFixture.uses_this_round(thorn, PurpleThornFixture.VIGIL_ID, PurpleThornFixture.VIGIL_ACTION_ID), 0,
 		'And nothing was spent.')
 	Dice.CHEAT_ROLL_QUEUE.clear()
+
+
+# ===================== THE HAZARD: FOUR "ADJACENT" CLAUSES, RULED TWO WAYS =====================
+#
+# Ruled at the Hazard's design (its Contested seams line; author): ask where the engine measures.
+# The two AURAS (Weight of Fire, DONT GIVE UP THE MECH's immunity) measure distance_between against
+# aura_range and IGNORE House Guard - the Fungal Network and Gravity Well position. The two HELPER
+# callers (Shield Wall's pick through adjacent_characters, Supporting Fire's trigger through
+# is_adjacent) TAKE it - the Sluagh position. Direction follows the engine: the widening is read off
+# the HAZARD's buffs, so each pin puts it there. Every pin has its control inside it (the same ally
+# at the same tile, before and after the widening, or a genuinely adjacent one beside it).
+const HAZARD_TILE := Vector2i(4, 8)
+const HAZARD_ADJACENT := Vector2i(5, 8) # 1 out
+const HAZARD_TWO_OUT := Vector2i(6, 8)  # 2 out - the tile House Guard's widening pulls into "adjacent"
+
+func make_hazard_game() -> Array:
+	var hazard_game:Gamemaster = HazardFixture.create_game(self)
+	var hazard:Unit = HazardFixture.create_hazard(hazard_game, HAZARD_TILE, 4)
+	return [hazard_game, hazard]
+
+func test_house_guard_does_not_widen_weight_of_fire() -> void:
+	if skipped_without_talents(): return
+	var pair := make_hazard_game()
+	var hazard_game:Gamemaster = pair[0]
+	var hazard:Unit = pair[1]
+	var near_ally := HazardFixture.create_ally(hazard_game, HAZARD_ADJACENT)
+	var far_ally := HazardFixture.create_ally(hazard_game, HAZARD_TWO_OUT)
+	widen_adjacency_on(hazard)
+	UnitTile.update_tracking_and_statuses(hazard_game.map)
+	assert_true(UnitRelation.is_adjacent(hazard, far_ally), 'LIVENESS: the widening is live for this ally.')
+	assert_false(UnitCondition.has_buff(far_ally, HazardFixture.WOF_BUFF),
+		'RULED: the widened ally gets no Weight of Fire - the aura measures distance.')
+	assert_true(UnitCondition.has_buff(near_ally, HazardFixture.WOF_BUFF),
+		'While a genuinely adjacent one does - so the assertion above is not vacuous.')
+
+func test_house_guard_does_not_widen_the_dgutm_immunity() -> void:
+	if skipped_without_talents(): return
+	var pair := make_hazard_game()
+	var hazard_game:Gamemaster = pair[0]
+	var hazard:Unit = pair[1]
+	var near_ally := HazardFixture.create_ally(hazard_game, HAZARD_ADJACENT)
+	var far_ally := HazardFixture.create_ally(hazard_game, HAZARD_TWO_OUT)
+	widen_adjacency_on(hazard)
+	# THE SWITCH, NOT THE PRESS: pressing would raise a move reticle for both allies, which this file's
+	# stock responder answers by moving them. The seam under test is the aura's range, not the moves.
+	var core:GearCore = hazard.get_gear(HazardFixture.CORE_ID)
+	SpecFactory.apply_buff(hazard, HazardFixture.DGUTM_ACTIVE, core)
+	UnitTile.update_tracking_and_statuses(hazard_game.map)
+	assert_true(UnitRelation.is_adjacent(hazard, far_ally), 'LIVENESS: the widening is live for this ally.')
+	assert_true(UnitCondition.has_buff(near_ally, HazardFixture.DGUTM_KNOCKBACK),
+		'A genuinely adjacent ally is immune - the aura is up.')
+	assert_false(UnitCondition.has_buff(far_ally, HazardFixture.DGUTM_KNOCKBACK),
+		'RULED: the widened ally is not - the aura measures distance.')
+
+func test_house_guard_on_the_hazard_lets_shield_wall_reach_an_ally_two_tiles_out() -> void:
+	if skipped_without_talents(): return
+	var pair := make_hazard_game()
+	var hazard_game:Gamemaster = pair[0]
+	var hazard:Unit = pair[1]
+	var far_ally := HazardFixture.create_ally(hazard_game, HAZARD_TWO_OUT)
+	# CONTROL: the same turn end without the widening shields nobody.
+	await HazardFixture.open_turn(hazard_game, hazard)
+	await SpecFactory.end_turn(hazard_game, hazard)
+	assert_eq(Overshield.current(far_ally), 0, 'CONTROL: two tiles out is not offered in vanilla.')
+	widen_adjacency_on(hazard)
+	assert_true(UnitRelation.is_adjacent(hazard, far_ally), 'LIVENESS: the widening is live.')
+	await HazardFixture.open_turn(hazard_game, hazard)
+	await SpecFactory.end_turn(hazard_game, hazard)
+	assert_eq(Overshield.current(far_ally), 1 + 4,
+		'RULED: Shield Wall reached the widened ally - 1 + Grit 4 Overshield (the only candidate, so any responder picks it).')
+
+func test_house_guard_on_the_hazard_lets_supporting_fire_trigger_two_tiles_out() -> void:
+	if skipped_without_talents(): return
+	var pair := make_hazard_game()
+	var hazard_game:Gamemaster = pair[0]
+	var hazard:Unit = pair[1]
+	var far_ally := HazardFixture.create_ally(hazard_game, HAZARD_TWO_OUT)
+	# CONTROL: the same turn start without the widening offers nothing - and spends nothing, so the
+	# 1/round is still there for the ruled half.
+	await SpecFactory.start_turn(hazard_game, far_ally)
+	await SpecFactory.end_turn(hazard_game, far_ally)
+	assert_false(UnitCondition.has_buff(far_ally, HazardFixture.SF_BUFF), 'CONTROL: not offered in vanilla.')
+	widen_adjacency_on(hazard)
+	assert_true(UnitRelation.is_adjacent(hazard, far_ally), 'LIVENESS: the widening is live.')
+	await SpecFactory.start_turn(hazard_game, far_ally)
+	assert_true(UnitCondition.has_buff(far_ally, HazardFixture.SF_BUFF),
+		'RULED: Supporting Fire triggered for the widened ally.')
+	assert_true(UnitCondition.has_buff(hazard, HazardFixture.SF_COST_BUFF), 'And the Hazard paid.')
