@@ -1,6 +1,7 @@
 [gd_resource type="Resource" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_shredder_cannon/buff_shredded_mark.gd" id="1_chip"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_shredder_cannon.svg" id="2_icon"]
 
 ; The Shredder Cannon's chip on the target (ruling 11). VISIBLE. to = attack_roll_incoming, flat +1:
 ; "all characters gain +1 to all attack rolls against them", weapon and tech alike - the flat subtype
@@ -15,3 +16,4 @@ bonus_value = 1
 to = &"attack_roll_incoming"
 until = 7
 applies_statuses = Array[StringName]([&"shredded"])
+icon = ExtResource("2_icon")

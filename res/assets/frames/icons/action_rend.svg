@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- action_rend : Reag-TheSixthVoice Purple Thorn icon, SP5 (buff_cruel_and_unnatural shares this texture) -->
+<path d="M12,10 L20,10 L34,52 L26,52 Z"/>
+<path d="M26,10 L34,10 L48,52 L40,52 Z"/>
+<path d="M40,10 L48,10 L58,40 L50,40 Z"/>
+</svg>

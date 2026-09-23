@@ -305,9 +305,11 @@ func test_the_wiring_and_the_card_text():
 	assert_eq(action.get_per_round_hard_limit(null), 2, '2/round.')
 	assert_eq(action.usage_group, &'stalk_the_horizon', 'Its own usage group.')
 	assert_ne(action.usage_group, kit.get_action(Fixture.REND_ID).usage_group, 'Distinct from Rend\'s.')
-	# Card text drawn ONCE: the passive's row is the Kit's own sentence, so the reaction hides from
-	# the core card as a duplicate and the Kit's text is the passive line.
-	assert_false(action.show_in_tooltip(kit), 'The reaction hides from the core card as a duplicate of the Kit\'s text.')
+	# Card text drawn ONCE (SP5, the Blood of the Creature's shape): the reaction's own
+	# show_in_tooltip override forces it to draw instead of hiding as a duplicate of the Kit's
+	# sentence, so it gets its own name, its own family glyph, and the Kit's plain-text row hides
+	# behind it (tooltip_organ_kit.gd:77-83) - see test_content_integrity.gd's ICON_TARGETS row.
+	assert_true(action.show_in_tooltip(kit), 'The reaction draws its own row, under its own name and glyph (SP5).')
 	var translation:Translation = load(OUR_TRANSLATION)
 	if translation == null:
 		fail_test('This mod has a compiled translation.')

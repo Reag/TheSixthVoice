@@ -36,6 +36,13 @@ extends ActionReaction
 
 const USES_PER_ROUND := 2
 
+## ALWAYS DRAWN ON THE KIT (SP5, the Blood of the Creature's shape - roadmap §4 Purple Thorn row).
+## Design 5 wants Stalk and Rend as two separate glyph families on one Kit; without this override its
+## effect row duplicates the Kit's own text and action.gd:350-352 hides it, leaving Stalk with no
+## player-facing surface to hang a family on. Forced to draw, it hides the Kit's duplicate plain text
+## instead (tooltip_organ_kit.gd:77-83), so the passive appears once, under its own name and glyph.
+func show_in_tooltip(_kit:Kit) -> bool: return not is_situationally_activated
+
 func get_per_round_hard_limit(_specific:SpecificAction) -> int: return USES_PER_ROUND
 
 func get_required_triggering_context() -> Array[Context.PROP]:

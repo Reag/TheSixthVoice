@@ -4,16 +4,19 @@
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="2_action"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_purple_thorn/cp_lav_tactical_engine/action_stalk_the_horizon.tres" id="3_stalk"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_purple_thorn/cp_lav_tactical_engine/action_rend.tres" id="4_rend"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_lav_tactical_engine.svg" id="5_icon"]
 
 ; LAV TACTICAL ENGINE, the core system (design 1.4): two actions, each in its own usage group.
 ; STALK THE HORIZON is the passive - an entire_movement PRE reaction that spends the point, 2/round
 ; - and IS the card's passive line, so the Kit's `.effect` row is that sentence and the reaction's
 ; duplicate row hides. REND THAT WHICH IS CRUEL AND UNNATURAL is the active (QUICK, consumes_cp) and
-; hangs buff_cruel_and_unnatural. SP5: the REND family (the chip wears it) plus the Kit's own bare
-; glyph; STALK reaches no player-facing surface today (its row duplicates the Kit's, so it hides),
-; and whether it gets a trigger row and a glyph of its own is SP5's call - see
-; test_content_integrity.gd's ICON_TARGETS row.
+; hangs buff_cruel_and_unnatural. SP5: three glyphs - the Kit's own bare radar-sweep, REND's own
+; family (the chip wears it too), and STALK's own family, given a trigger row of its own
+; (action_stalk_the_horizon.gd's show_in_tooltip override, the Blood of the Creature's shape) so it
+; reaches a player-facing surface distinct from the Kit's text. See test_content_integrity.gd's
+; ICON_TARGETS row.
 [resource]
 script = ExtResource("1_kit")
 actions = Array[ExtResource("2_action")]([ExtResource("3_stalk"), ExtResource("4_rend")])
 is_trait = true
+icon_override = ExtResource("5_icon")

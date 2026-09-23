@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- ms_superpositional_profile : Reag-TheSixthVoice Purple Thorn icon, SP5 (action_shimmer/buff_shimmer_difficulty share this texture) -->
+<path d="M22,10 L38,10 L46,32 L38,54 L22,54 L14,32 Z M25,16 L19,32 L25,48 L35,48 L41,32 L35,16 Z" fill-opacity="0.55"/>
+<path d="M32,4 L48,4 L56,26 L48,48 L32,48 L24,26 Z M35,10 L29,26 L35,42 L45,42 L51,26 L45,10 Z"/>
+</svg>
