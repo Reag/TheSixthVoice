@@ -168,6 +168,13 @@ func test_the_rows_resolve() -> void:
 		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
 		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
 	assert_eq(X.tr('gear.mt_wire_slither.name'), 'Wire Slither', 'Named off the card.')
+	# AUTHOR DECISION 6 (frame close): the reaction's row is the card sentence VERBATIM, the Kit's own
+	# text, so Action.show_in_tooltip hides it as a duplicate (action.gd:350-352) and the trait card
+	# draws the card once.
+	assert_eq(X.tr('gear.mt_wire_slither.action_wire_slither.effect'), X.tr('gear.mt_wire_slither.effect'),
+		"The reaction's text is the card's, word for word.")
+	var kit:Kit = ContentLibrary.get_kit(NagaFixture.WIRE_SLITHER_ID)
+	assert_false(kit.get_action(NagaFixture.SLITHER_ACTION_ID).show_in_tooltip(kit), '...so it is not drawn twice.')
 
 # ---------------------------------------------------------------- the offer
 

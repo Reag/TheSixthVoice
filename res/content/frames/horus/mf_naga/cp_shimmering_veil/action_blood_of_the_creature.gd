@@ -41,6 +41,12 @@ const MOVE_SPACES := 3
 
 func get_per_round_hard_limit(_specific:SpecificAction) -> int: return 1
 
+## ALWAYS DRAWN ON THE KIT (author decision 6, frame close). Its effect row is the card's passive
+## sentence verbatim - the Kit's own text - which vanilla reads as "nothing special" and hides
+## (action.gd:350-352). Drawn, it hides the Kit's duplicate plain text instead
+## (tooltip_organ_kit.gd:77-83), so the passive appears ONCE and under its own name.
+func show_in_tooltip(_kit:Kit) -> bool: return not is_situationally_activated
+
 func get_required_triggering_context() -> Array[Context.PROP]:
 	return [Context.PROP.unit, Context.PROP.target_units, Context.PROP.object]
 

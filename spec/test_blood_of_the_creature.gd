@@ -140,10 +140,20 @@ func test_the_rows_resolve() -> void:
 	if translation == null: return
 	for key:String in ['gear.cp_shimmering_veil.name', 'gear.cp_shimmering_veil.effect',
 			'gear.cp_shimmering_veil.action_blood_of_the_creature.name',
-			'gear.cp_shimmering_veil.action_blood_of_the_creature.effect',
-			'gear.cp_shimmering_veil.action_blood_of_the_creature.trigger']:
+			'gear.cp_shimmering_veil.action_blood_of_the_creature.effect']:
 		assert_ne(translation.get_message(key), StringName(''), 'Our own artifact carries %s.' % key)
 		assert_ne(X.tr(key), key, '%s resolves to real text.' % key)
+	# AUTHOR DECISION 6 (frame close): the Blood's row is the card's passive sentence VERBATIM, the
+	# same text as the Kit's, with no .trigger split - so the Kit tooltip's plain text hides as a
+	# duplicate (tooltip_organ_kit.gd:77-83) and the passive is drawn once, under the Blood's own name.
+	assert_eq(X.tr('gear.cp_shimmering_veil.action_blood_of_the_creature.trigger'),
+		'gear.cp_shimmering_veil.action_blood_of_the_creature.trigger', 'No trigger split.')
+	var kit:Kit = ContentLibrary.get_kit(NagaFixture.CORE_ID)
+	var blood:Action = kit.get_action(NagaFixture.BLOOD_ID)
+	var specific := SpecificAction.create(naga, naga.get_gear(NagaFixture.CORE_ID), blood)
+	assert_eq(blood.effect_text(specific), Translate.gear(NagaFixture.CORE_ID, 'effect', false),
+		"The Blood's effect IS the Kit's text, so the tooltip draws it once.")
+	assert_true(blood.show_in_tooltip(kit), "...and the Blood's card, name and all, is the one drawn.")
 	assert_eq(X.tr('gear.cp_shimmering_veil.name'), 'Shimmering Veil', 'Named off the card.')
 
 # ---------------------------------------------------------------- the offer

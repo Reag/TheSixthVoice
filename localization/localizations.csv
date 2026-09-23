@@ -546,7 +546,7 @@ frame.mf_naga.flavor,"The Broadcasts started small, a couple frequencies spewing
 gear.mt_wire_slither.name,Wire Slither
 gear.mt_wire_slither.effect,"1/round, when the Naga takes a Tech Action, it may immediately move two spaces. This movement ignores |engagement| and doesn’t provoke reactions."
 gear.mt_wire_slither.action_wire_slither.name,Wire Slither
-gear.mt_wire_slither.action_wire_slither.effect,"Immediately move two spaces. This movement ignores |engagement| and doesn't provoke reactions."
+gear.mt_wire_slither.action_wire_slither.effect,"1/round, when the Naga takes a Tech Action, it may immediately move two spaces. This movement ignores |engagement| and doesn’t provoke reactions."
 ,
 gear.mt_advanced_targeting_calculations.name,Advanced Targeting Calculations
 gear.mt_advanced_targeting_calculations.effect,"The Naga's Smart weapons Critically Hit on an attack roll of 18 or higher rather than 20."
@@ -554,15 +554,14 @@ gear.buff_advanced_targeting_calculations.name,Advanced Targeting Calculations
 gear.buff_advanced_targeting_calculations.effect,"The Naga's Smart weapons Critically Hit on an attack roll of 18 or higher rather than 20."
 ,
 gear.cp_shimmering_veil.name,Shimmering Veil
-gear.cp_shimmering_veil.effect,"1/round, when you or an allied character within sensors consume |Lock On|, you may take 1 |heat| to have the triggering character gain 1 |OVERSHIELD| and move 3 spaces. This movement ignores |engagement| and doesn't provoke reactions."
+gear.cp_shimmering_veil.effect,"1/round, when you or an allied character within sensors consume |Lock On|, you may take 1 |heat| to have the triggering character gain 1 |OVERSHIELD| and move 3 spaces. This movement ignores |engagement| and doesn’t provoke reactions."
 gear.cp_shimmering_veil.action_salvation_upon_the_wicked.name,SALVATION UPON THE WICKED
 gear.cp_shimmering_veil.action_salvation_upon_the_wicked.effect,"For the rest of the scene, whenever a hostile character would lose |Lock On| within sensors. They must succeed a |Systems save| or take 1 |AP| Kinetic damage and become Locked On."
 gear.buff_salvation.name,SALVATION UPON THE WICKED
 gear.buff_salvation.effect,"For the rest of the scene, whenever a hostile character would lose |Lock On| within sensors. They must succeed a |Systems save| or take 1 |AP| Kinetic damage and become Locked On."
 gear.cp_shimmering_veil.action_salvation_relock.name,SALVATION UPON THE WICKED
 gear.cp_shimmering_veil.action_blood_of_the_creature.name,THE BLOOD OF THE CREATURE THAT BRINGS ABOUT THE BEGINNING OF DAYS
-gear.cp_shimmering_veil.action_blood_of_the_creature.trigger,"1/round, when you or an allied character within sensors consume |Lock On|"
-gear.cp_shimmering_veil.action_blood_of_the_creature.effect,"You may take 1 |heat| to have the triggering character gain 1 |OVERSHIELD| and move 3 spaces. This movement ignores |engagement| and doesn't provoke reactions."
+gear.cp_shimmering_veil.action_blood_of_the_creature.effect,"1/round, when you or an allied character within sensors consume |Lock On|, you may take 1 |heat| to have the triggering character gain 1 |OVERSHIELD| and move 3 spaces. This movement ignores |engagement| and doesn’t provoke reactions."
 gear.mw_shimmering_blade.name,Shimmering Blade
 gear.mw_shimmering_blade.flavor,"""Bleed and crack oh shrivelous thing, weep your tears of joy and pain, for they sate my hunger till the end of time"""
 gear.mw_shimmering_blade.on_crit,"Gain 2 |Overshield|, your target must succeed on a |Systems save| or become |Slowed| until the end of their next turn."
