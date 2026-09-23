@@ -145,6 +145,16 @@ func test_green_tide_is_a_unique_two_sp_system_with_one_quick_deploy() -> void:
 	assert_true(swarm.deployable_frame.is_marker(), 'The swarm is a MARKER - no attacks, no cover, no sight.')
 	assert_true(swarm.deployable_frame.is_deactivated_on_owner_death, 'The swarm dies with the Naga.')
 
+## The haze is the mod's green copy of the nanite scene (author playtest 2026-09-23), and its id - the
+## scene BASENAME - must resolve in ContentLibrary, or the swarm silently draws nothing.
+func test_the_swarm_draws_the_green_haze() -> void:
+	var zone_kit := load('res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_green_tide/deployable/mt_green_tide.tres') as Kit
+	var picture := zone_kit.passives[0] as PassiveDynamicZone
+	assert_not_null(picture, 'The zone Kit carries its DynamicZone picture.')
+	if picture == null: return
+	assert_eq(picture.get_fxe_id(), &'fxe_green_tide', 'The tinted copy, not vanilla fxe_nanites.')
+	assert_ne(ContentLibrary.get_fxendless_path(&'fxe_green_tide'), '', 'ContentLibrary maps the id to the scene.')
+
 func test_the_licence_grants_green_tide_at_rank_2() -> void:
 	var licence := load('res://unpacked/Reag-TheSixthVoice/res/content/licenses/horus/li_naga.tres') as UnlockTree
 	var ids:Array[StringName] = []

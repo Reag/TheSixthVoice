@@ -6,10 +6,11 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_green_tide/deployable/action_green_tide_surge.tres" id="4_surge"]
 [ext_resource type="Script" uid="uid://b2xlpsu4kynfl" path="res://engine/gamemaster/map/command_zone/dynamic_zone.gd" id="5_zone"]
 [ext_resource type="Script" uid="uid://g8ycgtxd1y6n" path="res://engine/character/gear_passive/passive_dynamic_zone.gd" id="6_dynzone"]
-[ext_resource type="PackedScene" uid="uid://cqvonn46ieu62" path="res://content/fx_endless/gear/aura/fxe_nanites.tscn" id="7_fx"]
+[ext_resource type="PackedScene" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_green_tide/deployable/fxe_green_tide.tscn" id="7_fx"]
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_green_tide.svg" id="8_icon"]
 
-; THE PICTURE: vanilla's HORUS nanite haze (fxe_nanites.tscn - the Hive Drone's, mt_hive_drone.tres)
+; THE PICTURE: vanilla's HORUS nanite haze (fxe_nanites.tscn - the Hive Drone's), tinted a mild green in
+; our own copy, fxe_green_tide.tscn (author playtest 2026-09-23),
 ; over the Blast 1, radius 1 around the size-1 marker. Every gameplay export on the DynamicZone is
 ; left at its inert default (passive_fungal_network_zone.tres has the full accounting): it blocks no
 ; sight, fences no move, steers no AI. is_fxe_at_unit_tiles stays TRUE - the marker's tile is the
