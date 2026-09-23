@@ -159,7 +159,7 @@ func test_the_pinged_target_is_impaired() -> void:
 	await ping()
 	assert_eq(targets_accuracy(), -1, 'Impaired: its shot now carries -1 accuracy.')
 
-func test_consuming_the_lock_ends_the_chip_and_the_impaired() -> void:
+func test_consuming_the_lock_ends_the_impaired_but_not_the_window() -> void:
 	await ping()
 	var shooter := NagaFixture.create_ally(game, SHOOTER_TILE)
 	NagaFixture.arm_rifle(shooter) # after the Ping, but the SHOOTER holds nothing the spec reads
@@ -168,25 +168,27 @@ func test_consuming_the_lock_ends_the_chip_and_the_impaired() -> void:
 	NagaFixture.queue([19])
 	await NagaFixture.shoot(game, shooter, target)
 	assert_false(target.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: the shot consumed the lock.')
-	assert_false(UnitCondition.has_buff(target, PING_CHIP), 'The chip went with it...')
-	assert_eq(targets_accuracy(), 0, '...and so did the Impaired.')
+	assert_eq(targets_accuracy(), 0, 'The Impaired went with the lock...')
+	assert_true(UnitCondition.has_buff(target, PING_CHIP), '...but the window stands (author decision 1).')
 
-func test_stabilize_on_the_lock_ends_both() -> void:
+func test_stabilize_on_the_lock_ends_the_impaired_but_not_the_window() -> void:
 	await ping()
-	await NagaFixture.clear_by_ability(game, target, Lancer.STATUS.LOCKON)
+	await NagaFixture.clear_like_stabilize(game, target, Lancer.STATUS.LOCKON)
 	assert_false(target.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: the lock is cleared.')
-	assert_false(UnitCondition.has_buff(target, PING_CHIP), 'The chip is gone.')
-	assert_eq(targets_accuracy(), 0, 'The Impaired is gone.')
+	assert_eq(targets_accuracy(), 0, 'The Impaired is gone with the lock...')
+	assert_true(UnitCondition.has_buff(target, PING_CHIP),
+		'...but the chip - the WINDOW - stands until the end of the Naga\'s next turn (author decision 1).')
 
 func test_stabilize_aimed_at_the_impaired_changes_nothing() -> void:
 	await ping()
-	await NagaFixture.clear_by_ability(game, target, Lancer.STATUS.IMPAIRED)
+	await NagaFixture.clear_like_stabilize(game, target, Lancer.STATUS.IMPAIRED)
 	assert_true(target.has_status(Lancer.STATUS.LOCKON), 'The lock stands...')
 	assert_true(UnitCondition.has_buff(target, PING_CHIP), '...the chip stands...')
 	assert_eq(targets_accuracy(), -1,
-		'...and the Impaired stands: a buff-carried status is out of clear_status\' reach '
+		'...and the Impaired stands: a buff-carried status is out of clear_status_via_ability\'s reach '
 		+ '(Myconid ruling 124). The way out is the lock, which is the card.')
 
+## ORDER ONE: the target takes a turn between the Ping and the Naga's next turn.
 func test_the_chip_expires_at_the_end_of_the_nagas_next_turn() -> void:
 	await ping()
 	await SpecFactory.end_turn(game, naga)
@@ -196,21 +198,107 @@ func test_the_chip_expires_at_the_end_of_the_nagas_next_turn() -> void:
 	assert_true(UnitCondition.has_buff(target, PING_CHIP), 'Still up after the target\'s turn.')
 	await SpecFactory.start_turn(game, naga)
 	assert_true(UnitCondition.has_buff(target, PING_CHIP), 'Still up through the Naga\'s next turn...')
+	assert_eq(targets_accuracy(), -1, '...and still Impaired.')
 	await SpecFactory.end_turn(game, naga)
 	assert_false(UnitCondition.has_buff(target, PING_CHIP), '...and gone when it ends ("your next turn").')
 	assert_eq(targets_accuracy(), 0, 'The Impaired went with it.')
 	assert_true(target.has_status(Lancer.STATUS.LOCKON), 'The Lock On itself is MANUAL and stays.')
 
-## THE MEASUREMENT behind ruling 11's open question. A plain apply_status STACKS a second LOCKON
-## (unit_condition.gd:104-105 appends unconditionally), and an ability clear removes ONE condition
-## (clear_specific_status, :326-329) - so a declarative Ping on a locked target would leave a lock
-## standing behind Stabilize. The next test is the ruling this forces.
-func test_measured_a_raw_second_lockon_stacks_and_survives_one_ability_clear() -> void:
+## ORDER TWO: the target never starts a turn in between (the Naga acts last in one round and first
+## in the next). A target-side END_OF_OWNERS_NEXT_TURN never ticks here (unit_condition.gd:24, :62),
+## so only the Naga-side clock ends the window where the card does.
+func test_the_window_ends_on_the_nagas_next_turn_even_if_the_target_never_acted() -> void:
+	await ping()
+	await SpecFactory.end_turn(game, naga)
+	await SpecFactory.start_turn(game, naga)
+	assert_true(UnitCondition.has_buff(target, PING_CHIP), 'Up through the Naga\'s next turn...')
+	assert_eq(targets_accuracy(), -1, '...Impaired...')
+	await SpecFactory.end_turn(game, naga)
+	assert_false(UnitCondition.has_buff(target, PING_CHIP), '...and gone at its end, though the target never started a turn.')
+	assert_eq(targets_accuracy(), 0, 'The Impaired went with it.')
+	assert_true(target.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: still Locked On - it is the window that ended.')
+
+## A second Ping restarts the window: the first Ping's clock must not take the second chip with it.
+func test_a_second_ping_next_turn_restarts_the_window() -> void:
+	await ping()
+	await SpecFactory.end_turn(game, naga)
+	await ping() # opens the Naga's next turn; the stock yes consumes the old lock, the hit relocks
+	assert_true(UnitCondition.has_buff(target, PING_CHIP), 'LIVENESS: the second chip hangs.')
+	await SpecFactory.end_turn(game, naga)
+	assert_true(UnitCondition.has_buff(target, PING_CHIP),
+		'The FIRST Ping\'s window ended here, but the second chip is its own and stands...')
+	assert_eq(targets_accuracy(), -1, '...Impaired.')
+	await SpecFactory.start_turn(game, naga)
+	await SpecFactory.end_turn(game, naga)
+	assert_false(UnitCondition.has_buff(target, PING_CHIP), 'The second window ends a turn later.')
+
+## Two targets, two windows: the second Ping's clock must not replace the first's (the clocks stack).
+func test_pinging_a_second_target_leaves_the_first_window_running() -> void:
+	var second := NagaFixture.create_hostile(game, Vector2i(9, 8))
+	await ping()
+	await SpecFactory.end_turn(game, naga)
+	await ping(second)
+	assert_true(UnitCondition.has_buff(second, PING_CHIP), 'LIVENESS: the second target has its window.')
+	assert_true(UnitCondition.has_buff(target, PING_CHIP), 'The first target\'s window is still running...')
+	assert_eq(targets_accuracy(), -1, '...Impaired.')
+	await SpecFactory.end_turn(game, naga)
+	assert_false(UnitCondition.has_buff(target, PING_CHIP), 'The first window ends at the end of this turn...')
+	assert_true(UnitCondition.has_buff(second, PING_CHIP), '...the second a turn later.')
+
+## "if the target has Lock On" is read throughout the window: a lock regained inside it brings the
+## Impaired back. The relock is a vanilla Lock On by an ally - a real apply, so its statuses_changed
+## PRE fires (lock_by_hand's dummy event has no block and would drop it).
+func test_a_relock_inside_the_window_brings_the_impaired_back() -> void:
+	var ally := NagaFixture.create_ally(game, ALLY_TILE)
+	await ping()
+	await NagaFixture.clear_like_stabilize(game, target, Lancer.STATUS.LOCKON)
+	assert_eq(targets_accuracy(), 0, 'CONTROL: the lock is gone and so is the Impaired.')
+	await NagaFixture.lock_on(game, ally, target)
+	assert_true(target.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: the ally\'s Lock On landed.')
+	assert_eq(targets_accuracy(), -1, 'Locked On again inside the window: Impaired again.')
+	await NagaFixture.clear_like_stabilize(game, target, Lancer.STATUS.LOCKON)
+	assert_eq(targets_accuracy(), 0, 'And it goes again with the second lock.')
+
+func test_after_the_window_a_relock_does_not_impair() -> void:
+	var ally := NagaFixture.create_ally(game, ALLY_TILE)
+	await ping()
+	await SpecFactory.end_turn(game, naga)
+	await SpecFactory.start_turn(game, naga)
+	await SpecFactory.end_turn(game, naga)
+	assert_false(UnitCondition.has_buff(target, PING_CHIP), 'LIVENESS: the window is over.')
+	await NagaFixture.clear_like_stabilize(game, target, Lancer.STATUS.LOCKON)
+	await NagaFixture.lock_on(game, ally, target)
+	assert_true(target.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: the ally\'s Lock On landed.')
+	assert_eq(targets_accuracy(), 0, 'Locked On after the window: not Impaired.')
+
+## Two stacked LOCKON conditions (apply_status APPENDS, unit_condition.gd:104-105): a SOURCE-SPECIFIC
+## clear takes one (clear_status with a source, :310-324) and fires a POST while the other remains.
+## The target still has Lock On, so it is still Impaired.
+func test_a_stacked_lock_losing_one_copy_stays_impaired() -> void:
+	await ping()
+	SpecFactory.apply(target, Lancer.STATUS.LOCKON, Lancer.UNTIL.MANUAL, 'second')
+	assert_eq(lockon_count(target), 2, 'fixture: two LOCKON conditions.')
+	await NagaFixture.clear_by_ability(game, target, Lancer.STATUS.LOCKON) # the Ping's own, first
+	assert_eq(lockon_count(target), 1, 'LIVENESS: one copy went.')
+	assert_eq(targets_accuracy(), -1, 'Still Locked On, so still Impaired.')
+	await NagaFixture.clear_by_ability(game, target, Lancer.STATUS.LOCKON)
+	assert_eq(lockon_count(target), 0, 'LIVENESS: the other went too.')
+	assert_eq(targets_accuracy(), 0, 'No Lock On: no Impaired.')
+
+## THE MEASUREMENT behind the Ping's relock refusal. A plain apply_status STACKS a second LOCKON
+## (unit_condition.gd:104-105 appends unconditionally). A SOURCE-SPECIFIC clear removes only the
+## copies with that source, so one survives it. Stabilize itself (clear_status_via_ability,
+## :479-483) walks EVERY copy and takes both - measured here too, so neither claim rests on the
+## wrong clear.
+func test_measured_a_raw_second_lockon_stacks_and_survives_one_sourced_clear() -> void:
 	SpecFactory.apply(target, Lancer.STATUS.LOCKON, Lancer.UNTIL.MANUAL, 'first')
 	SpecFactory.apply(target, Lancer.STATUS.LOCKON, Lancer.UNTIL.MANUAL, 'second')
 	assert_eq(lockon_count(target), 2, 'MEASURED: two LOCKON conditions.')
 	await NagaFixture.clear_by_ability(game, target, Lancer.STATUS.LOCKON)
-	assert_eq(lockon_count(target), 1, 'MEASURED: one Stabilize-shaped clear leaves the other standing.')
+	assert_eq(lockon_count(target), 1, 'MEASURED: one source-specific clear leaves the other standing.')
+	SpecFactory.apply(target, Lancer.STATUS.LOCKON, Lancer.UNTIL.MANUAL, 'third')
+	await NagaFixture.clear_like_stabilize(game, target, Lancer.STATUS.LOCKON)
+	assert_eq(lockon_count(target), 0, 'MEASURED: a Stabilize-shaped clear takes every copy.')
 
 ## AN INVADE ON A LOCKED TARGET RAISES VANILLA'S CONSUME PROMPT - tech attacks consume through the
 ## same attack_declared reaction as weapons (Snow Crash; design section 7). Two cases, then:
@@ -227,7 +315,7 @@ func test_a_ping_on_a_locked_target_that_keeps_its_lock_does_not_stack_a_second(
 	assert_eq(NagaFixture.source_of_status(target, Lancer.STATUS.LOCKON), first_source, 'The first lock\'s source is kept.')
 	assert_true(UnitCondition.has_buff(target, PING_CHIP), 'The chip still hangs - "if the target has Lock On".')
 	assert_eq(targets_accuracy(), -1, 'Impaired.')
-	await NagaFixture.clear_by_ability(game, target, Lancer.STATUS.LOCKON)
+	await NagaFixture.clear_like_stabilize(game, target, Lancer.STATUS.LOCKON)
 	assert_false(target.has_status(Lancer.STATUS.LOCKON), 'And ONE Stabilize clears it all.')
 	assert_eq(targets_accuracy(), 0, 'Impaired gone with it.')
 
@@ -280,13 +368,48 @@ func test_the_nagas_own_rifle_is_smart_against_the_target() -> void:
 	assert_eq(pre.against, AttackRoll.ATTACK_TYPE.TECH, 'The Naga benefits too ("allied characters", self included).')
 	assert_eq(pre.target_defense, 8, 'Against E-DEF 8.')
 
-func test_an_allied_drone_does_not_benefit() -> void:
+## AUTHOR DECISION 2 (2026-09-23): a drone is not a character, but where it attacks it attacks as
+## its OWNER (mod-wide row 301, Draw Fire's rule) - Unit.get_attacker, unit.gd:276-282.
+func test_an_allied_drone_attacks_as_its_owner() -> void:
+	defences(target, 8, 10)
+	var ally := NagaFixture.create_ally(game, Vector2i(12, 8))
+	var drone := NagaFixture.own_drone(NagaFixture.create_drone(game, ALLY_TILE), ally)
+	NagaFixture.arm_rifle(drone)
+	await hypnotize()
+	UnitTile.update_tracking_and_statuses(game.map)
+	assert_true(UnitCondition.has_buff(drone, TARGETING), 'LIVENESS: the aura reaches the drone.')
+	assert_true(rifle_is_smart(drone, target), 'Its owner is an allied character, so its rifle is Smart here.')
+	var pre := pre_attack(drone)
+	assert_eq(pre.target_defense, 8, 'And it rolls against E-DEF 8, the lower one.')
+
+func test_an_unowned_drone_does_not_benefit() -> void:
 	defences(target, 8, 10)
 	var drone := NagaFixture.create_drone(game, ALLY_TILE)
 	NagaFixture.arm_rifle(drone)
 	await hypnotize()
 	UnitTile.update_tracking_and_statuses(game.map)
-	assert_false(rifle_is_smart(drone, target), 'A drone is not a character by ruling 21.')
+	assert_true(UnitCondition.has_buff(drone, TARGETING), 'LIVENESS: the aura reaches the drone.')
+	assert_false(rifle_is_smart(drone, target), 'No owner: get_attacker is the drone itself, not a character.')
+
+func test_a_drone_whose_owner_is_hostile_does_not_benefit() -> void:
+	defences(target, 8, 10)
+	var hostile_owner := NagaFixture.create_hostile(game, Vector2i(20, 8))
+	var drone := NagaFixture.own_drone(NagaFixture.create_drone(game, ALLY_TILE), hostile_owner)
+	NagaFixture.arm_rifle(drone)
+	await hypnotize()
+	UnitTile.update_tracking_and_statuses(game.map)
+	assert_true(UnitCondition.has_buff(drone, TARGETING), 'LIVENESS: the drone is on our side, so the aura reaches it.')
+	assert_false(rifle_is_smart(drone, target), 'Its attack is its hostile owner\'s - not an ALLIED character\'s.')
+
+## Slice 3 #7: the hit pops vanilla Scan's own text (action_scan.gd:32).
+func test_the_hypnotize_scan_pops_the_vanilla_scan_text() -> void:
+	var bus:EffectsControllerBus = load('res://engine/gamemaster/effects_controller/effects_controller_bus.tres')
+	var popped:Array[String] = []
+	var record := func(text:String, _tile:Vector2i, _large:bool) -> void: popped.append(text)
+	bus.on_play_text.connect(record)
+	await hypnotize()
+	bus.on_play_text.disconnect(record)
+	assert_true(popped.has(tr('gear.ms_scan.action_scan.pop')), 'The scan pops "%s".' % tr('gear.ms_scan.action_scan.pop'))
 
 func test_no_chip_no_smart_and_no_leak_onto_the_sheet() -> void:
 	defences(target, 8, 10)

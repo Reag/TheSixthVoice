@@ -12,8 +12,13 @@
 ## lower number - only the E-Defense half of "either" is reachable. Hypnotize scans first, so the
 ## numbers are known and a prompt could never beat the lower one.
 ##
-## "CHARACTERS" IS is_actor() (ruling 21): the aura's applies_only_to_characters lets a DRONE through
-## (Unit.is_character is true of one, unit.gd:116), so the holder gate is here.
+## "ALLIED CHARACTERS" - A DRONE ATTACKS AS ITS OWNER (author decision 2 at the frame close,
+## 2026-09-23; mod-wide rulings row 301, Draw Fire's rule, over design section 2.2). The attacker is
+## resolved through Unit.get_attacker (unit.gd:276-282: the owner, unless the unit holds a
+## SET_ATTACK_ROOT buff), and it must then be a character by ruling 21 (is_actor(), unit.gd:117) and an
+## ally of the Naga who owns this buff. The aura reaches a drone itself (is_character is true of one,
+## unit.gd:116), which is how its weapon gets the tag at all; an UNOWNED drone resolves to itself and
+## is refused, and so is a drone on our side whose owner is not.
 ##
 ## NO LEAK ONTO THE SHEET: with no target_unit in the context the context is not valid for this buff
 ## at all, so a weapon card read without a target never shows Smart.
@@ -26,7 +31,10 @@ func is_buff_context_valid_for_passive(core:BuffCore, context:Context) -> bool:
 
 func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 	if not super(core, context): return false
-	if not context.unit.is_actor(): return false
+	var attacker:Unit = context.unit.get_attacker(context)
+	if not Unit.is_valid(attacker) or not attacker.is_actor(): return false
+	var naga := core.get_owner_unit(context.map)
+	if not Unit.is_valid(naga) or not UnitRelation.are_allies(attacker, naga): return false
 	var target:Unit = context.target_unit
 	if not UnitCondition.has_buff(target, HYPNOTIZED): return false
 	return target.get_edef() < target.get_evasion()

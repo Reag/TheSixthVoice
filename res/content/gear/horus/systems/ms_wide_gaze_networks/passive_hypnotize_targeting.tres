@@ -6,8 +6,9 @@
 
 ; HYPNOTIZE'S TARGETING RULE, ATTACKER-SIDE (ruling 12). WEAPON_TAG buffs are read off the ATTACKER
 ; (action_attack_weapon.gd:170), so the rule has to be ON every allied attacker, and this always-on
-; map-wide aura is how it gets there: self and allies, never enemies, characters only (the drone
-; exclusion is the buff's own is_actor gate - is_character() lets a drone through). No LOS.
+; map-wide aura is how it gets there: self and allies, never enemies. is_character() lets a drone
+; through, which is wanted: a drone attacks as its OWNER (author decision 2), and the buff's own gate
+; resolves get_attacker and checks that owner. No LOS.
 [resource]
 script = ExtResource("1_aura")
 buffs = Array[ExtResource("2_buff")]([ExtResource("3_targeting")])

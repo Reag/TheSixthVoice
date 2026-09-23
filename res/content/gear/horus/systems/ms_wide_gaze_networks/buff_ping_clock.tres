@@ -1,0 +1,13 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_wide_gaze_networks/buff_ping_clock.gd" id="1_clock"]
+
+; Ping's clock, on the NAGA (frame close, author decision 1; the Sluagh's owner-side clock, rulings
+; row 285). until = 7 is END_OF_OWNERS_NEXT_TURN, measured on the Naga's own turn_count, so it ends
+; at the end of the Naga's next turn whatever the turn order, and its on_clear ends the one Ping chip
+; it names. Stacks, one per Ping (see its script). HIDDEN.
+[resource]
+script = ExtResource("1_clock")
+until = 7
+multiple_copies_can_stack = true
+hide_from_player = true

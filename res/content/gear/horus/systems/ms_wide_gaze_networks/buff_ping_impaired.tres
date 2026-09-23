@@ -1,0 +1,13 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_wide_gaze_networks/buff_ping_impaired.gd" id="1_impaired"]
+
+; Ping's Impaired (frame close, author decision 1). HIDDEN: buff_ping, the window, is the chip the
+; player reads. applies_statuses carries the Impaired for exactly as long as this lives; buff_ping
+; hangs it while the holder is Locked On inside the window, and triggers_on statuses_changed (POST,
+; the default timing = a status CLEARED) drops it when the holder is no longer Locked On.
+[resource]
+script = ExtResource("1_impaired")
+applies_statuses = Array[StringName]([&"impaired"])
+triggers_on = Array[StringName]([&"statuses_changed"])
+hide_from_player = true
