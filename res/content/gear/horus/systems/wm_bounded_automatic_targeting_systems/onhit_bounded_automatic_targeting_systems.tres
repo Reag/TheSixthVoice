@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/wm_bounded_automatic_targeting_systems/onhit_bounded_automatic_targeting_systems.gd" id="1_onhit"]
+
+; apply_on 0 = ON_ATTACK: after hit/crit are settled, before MAXIMIZE_DAMAGE and every on_hit/on_crit
+; (the script's header). require_consume_lock: only an attack that consumed Lock On.
+[resource]
+script = ExtResource("1_onhit")
+apply_on = 0
+require_consume_lock = true

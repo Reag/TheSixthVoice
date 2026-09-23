@@ -11,6 +11,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_binding_fangs/mw_binding_fangs.tres" id="9_fangs"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_green_tide/ms_green_tide.tres" id="10_tide"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_weeping_lance/mw_weeping_lance.tres" id="11_lance"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/wm_bounded_automatic_targeting_systems/wm_bounded_automatic_targeting_systems.tres" id="12_bats"]
 
 ; THE NAGA'S OWN FULL LICENCE (design 1.1, the Leoleth's file with the ids swapped): rank 2 grants the
 ; frame; rank 1 carries SP2's gear (Shimmering Blade, Wide Gaze Networks), rank 2 SP3's (Binding
@@ -28,7 +29,7 @@ granted_gear = Array[ExtResource("4_kit")]([ExtResource("9_fangs"), ExtResource(
 
 [sub_resource type="Resource" id="Resource_rank3"]
 script = ExtResource("2_unlockrank")
-granted_gear = Array[ExtResource("4_kit")]([ExtResource("11_lance")])
+granted_gear = Array[ExtResource("4_kit")]([ExtResource("11_lance"), ExtResource("12_bats")])
 
 [resource]
 script = ExtResource("1_unlocktree")

@@ -855,6 +855,9 @@ const ICON_TARGETS := {
 	# profiles, one family - design 5), so KIT. The forced consume is a hidden reaction whose script
 	# overrides show_in_tooltip to false, so it has no row. SP5's.
 	&'mw_weeping_lance': {&'action_weeping_lance': KIT},
+	# SP4 Task 2 (Naga). Bounded Automatic Targeting Systems: a weapon mod, no action - its only
+	# player-facing surface is the Kit (the mod chip and the on-hit prompt's title). SP5's.
+	&'wm_bounded_automatic_targeting_systems': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

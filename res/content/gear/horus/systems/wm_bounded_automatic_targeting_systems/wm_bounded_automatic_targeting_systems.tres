@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="2_passive"]
+[ext_resource type="Script" uid="uid://ch8avblisp8j1" path="res://engine/character/gear_passive/passive_weapon_mod.gd" id="3_weaponmod"]
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="4_onhiteffect"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/wm_bounded_automatic_targeting_systems/onhit_bounded_automatic_targeting_systems.tres" id="5_onhit"]
+
+; BOUNDED AUTOMATIC TARGETING SYSTEMS, the Naga's rank-III weapon mod (SP4 Task 2). SP 2, LIMITED 2
+; (charges_max; kit.gd draws the tag from it). Thermal Charge's shape: one PassiveWeaponMod carrying
+; one on-hit effect. Fits MELEE (2), RIFLE (3), NEXUS (5); AUX (0), MAIN (1), HEAVY (2) - never
+; SUPERHEAVY. The card's Effect paragraph is the gear.<id>.effect row. No icon_override until SP5.
+[sub_resource type="Resource" id="Resource_weaponmod"]
+script = ExtResource("3_weaponmod")
+allowed_sizes = Array[int]([0, 1, 2])
+allowed_types = Array[int]([2, 3, 5])
+on_hit_effects = Array[ExtResource("4_onhiteffect")]([ExtResource("5_onhit")])
+
+[resource]
+script = ExtResource("1_kit")
+passives = Array[ExtResource("2_passive")]([SubResource("Resource_weaponmod")])
+sp_cost = 2
+charges_max = 2
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

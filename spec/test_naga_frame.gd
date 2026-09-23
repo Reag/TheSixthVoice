@@ -212,7 +212,7 @@ func test_the_licence_grants_its_gear_rank_by_rank():
 	# fills that rank (SP2 rank 1, SP3 rank 2, SP4 rank 3), and that sub-project rewrites this test
 	# the way test_sluagh_frame.gd's own rewrite did. Strings, not StringNames: Array[StringName]
 	# .sort() orders by the interned pointer, not the text. Rank 1 rewritten at SP2 Task 2, rank 2 at
-	# SP3.
+	# SP3, rank 3 at SP4.
 	var license := _license()
 	assert_not_null(license, 'fixture: the licence loads.')
 	if license == null: return
@@ -230,8 +230,8 @@ func test_the_licence_grants_its_gear_rank_by_rank():
 	var rank_3:Array[String] = []
 	for kit:Kit in license.rank_3.granted_gear: rank_3.append(String(kit.compcon_id))
 	rank_3.sort()
-	assert_eq(rank_3, ['mw_weeping_lance'] as Array[String],
-		'Rank 3 grants the Weeping Lance (and, from SP4 Task 2, BATS), and nothing else.')
+	assert_eq(rank_3, ['mw_weeping_lance', 'wm_bounded_automatic_targeting_systems'] as Array[String],
+		'Rank 3 grants the Weeping Lance and Bounded Automatic Targeting Systems, and nothing else.')
 
 func test_the_licence_names_itself_after_the_frame():
 	# THERE IS NO LICENCE NAME ROW, AND THAT IS THE ENGINE'S DESIGN: UnlockTree.license_name
