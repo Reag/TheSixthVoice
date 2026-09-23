@@ -1,0 +1,16 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_purple_thorn/cp_lav_tactical_engine/action_stalk_the_horizon.gd" id="1_action"]
+
+; STALK THE HORIZON, the core passive (ruling 5; the script's header has the seam). ENTIRE_MOVEMENT
+; PRE (trigger_timing 0): Overwatch's trigger. consumes_rxn stays at its default TRUE - the card
+; says "as a reaction" and the author ruled it spends the point; the 2/round is the script's hard
+; limit on its own usage_group. Its effect row is the card's passive sentence, the Kit's own
+; `.effect`, so Action.show_in_tooltip hides it on the core card as a duplicate. SP5: the STALK
+; family - its own glyph, distinct from Rend's and from the Kit's bare picture.
+[resource]
+script = ExtResource("1_action")
+triggers_on = Array[StringName]([&"entire_movement"])
+trigger_timing = 0
+usage_group = &"stalk_the_horizon"
+emit_text_popcorn_on_use = true

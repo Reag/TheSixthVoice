@@ -55,7 +55,7 @@ const STALK_ID := &'action_stalk_the_horizon' # the passive: an entire_movement 
 const REND_ID := &'action_rend'               # the active: QUICK, consumes the core power (rulings 6-7)
 ## Rend's VISIBLE chip on the Thorn until the end of its next turn; its DAMAGE POST trigger is the
 ## save-or-be-shoved.
-const REND_CHIP := &'buff_rend'
+const REND_CHIP := &'buff_cruel_and_unnatural'
 
 ## A vanilla AUX weapon that reaches: GMS Nexus (Light), 1d3, Range 10, tags [smart]. SMART rolls
 ## against E-DEF (action_attack_weapon.gd:250-252), which is statblock_default.tres's 8 on every

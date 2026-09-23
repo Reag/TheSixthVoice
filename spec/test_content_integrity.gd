@@ -866,6 +866,23 @@ const ICON_TARGETS := {
 	# SP4 Task 2 (Naga). Bounded Automatic Targeting Systems: a weapon mod, no action - its only
 	# player-facing surface is the Kit (the mod chip and the on-hit prompt's title). SP5's.
 	&'wm_bounded_automatic_targeting_systems': {},
+	# SP1 Task 2 (Purple Thorn). Vigil's reaction wears the KIT's glyph: a trait and the reaction it
+	# creates share ONE glyph (the icon directive), spelled KIT - absence, not duplication. Its
+	# effect row is the card sentence verbatim, the Kit's own text, so Action.show_in_tooltip hides
+	# it and it reaches no player-facing surface - hence `{}`. The Kit's own icon is SP5's.
+	&'mt_vigil': {},
+	# SP1 Task 3 (Purple Thorn). Blessed Bolt System: the same shape - one trait, one hidden
+	# duplicate-text reaction. The Kit's own icon is SP5's.
+	&'mt_blessed_bolt_system': {},
+	# SP1 Task 4 (Purple Thorn). LAV TACTICAL ENGINE. REND (the active, whose chip
+	# buff_cruel_and_unnatural wears the same texture) is a named family. STALK THE HORIZON has NO
+	# row: its effect row is the card's passive sentence, the Kit's own text, so Action.show_in_tooltip
+	# hides it as a duplicate and this guard's surface test reads it as reaching no player-facing
+	# surface (measured 2026-09-23: a row for it fails "listed exactly when it reaches a
+	# player-facing surface"). Design 5's "two families" therefore lands at SP5 only if Stalk is
+	# given a trigger row of its own, the Blood of the Creature's shape - SP5's call. The Kit's own
+	# icon and Rend's are SP5's.
+	&'cp_lav_tactical_engine': {&'action_rend': &'action_rend'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1093,6 +1110,9 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# SP2 Task 2 (Naga). Hypnotize's chip - the target's own cue that it has a clear to take. Its
 	# attacker-side partner buff_hypnotize_targeting is hidden plumbing.
 	&'buff_hypnotized',
+	# SP1 Task 4 (Purple Thorn). REND's chip - the only on-token sign that the save-or-be-shoved is
+	# live until the end of the Thorn's next turn. Its own rows.
+	&'buff_cruel_and_unnatural',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

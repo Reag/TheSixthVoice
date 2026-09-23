@@ -277,13 +277,15 @@ func test_the_fixture_mounts_an_aux_pair_and_equips_an_integrated_rifle_the_way_
 	assert_eq(again.persistent_id, rifle.persistent_id,
 		'equip() is idempotent: a second call hands back the same gear and re-equips nothing.')
 
-func test_the_fixture_can_shoot_a_hostile_with_the_nexus():
-	# THE VACUITY GUARD FOR EVERY DAMAGE-TRIGGERED SPEC: the Nexus's d20 then d3 land on a hostile
-	# for exactly the die, so a "did the trait fire" case is measuring the trait and not a miss.
+func test_the_fixture_can_shoot_a_hostile_with_the_rifle():
+	# THE VACUITY GUARD FOR EVERY DAMAGE-TRIGGERED SPEC: the rifle's d20, hit die and crit die land
+	# on a hostile for exactly the hit die, so a "did the trait fire" case is measuring the trait and
+	# not a miss. THE RIFLE, NOT THE NEXUS: a Main weapon is the one shot on this frame that wakes no
+	# trait - an Aux hit offers Blessed Bolt, and the stock responder says yes to it.
 	var game:Gamemaster = Fixture.create_game(self)
 	var thorn:Unit = Fixture.create_thorn(game, THORN_TILE)
 	var hostile:Unit = Fixture.create_hostile(game, TARGET_TILE)
-	Fixture.mount_pair(thorn, 0, Fixture.AUX_NEXUS)
-	Fixture.queue([19, 3])
-	await Fixture.shoot(game, thorn, hostile)
-	assert_eq(hostile.current_damage(), 3, 'The Nexus hit for its die (armor 0, no bonus damage yet).')
+	Fixture.arm_rifle(thorn)
+	Fixture.queue([19, 4, 1])
+	await Fixture.shoot(game, thorn, hostile, Fixture.MAIN_RIFLE)
+	assert_eq(hostile.current_damage(), 4, 'The rifle hit for its die (armor 0).')

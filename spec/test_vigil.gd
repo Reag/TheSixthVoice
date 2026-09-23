@@ -115,6 +115,10 @@ func before_each() -> void:
 	hostile = Fixture.create_hostile(game, TARGET_TILE)
 	moves = MoveWatcher.new()
 	install_on(hostile, moves, &'spec_move_watcher')
+	# BLESSED BOLT (Task 3) is on this frame too and offers a yes/no on every Aux hit; the responder's
+	# default answer is YES, which would add 3 to every Nexus number below. Decline it by default -
+	# Vigil raises no yes/no of its own (ruling 3), so nothing here needs a yes.
+	responder.chosen_yesnos = false
 
 func after_each() -> void:
 	Dice.CHEAT_ROLL_QUEUE.clear()

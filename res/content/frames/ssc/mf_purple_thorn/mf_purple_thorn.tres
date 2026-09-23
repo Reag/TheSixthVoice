@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ssc/mf_purple_thorn/mf_purple_thorn.png" id="9_sprite"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_purple_thorn/mt_vigil/mt_vigil.tres" id="10_vigil"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_purple_thorn/mt_blessed_bolt_system/mt_blessed_bolt_system.tres" id="11_bolt"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_purple_thorn/cp_lav_tactical_engine/cp_lav_tactical_engine.tres" id="12_core"]
 
 ; DERIVED FROM THE SPRITE ART, NOT LEFT AS THE PLACEHOLDER GRAYS (the Vauban's SP5 ruling, re-run
 ; here as the Naga's was). Measured 2026-09-23 with the same shader-literal test
@@ -52,13 +53,13 @@ activations = 1
 script = ExtResource("1_frame")
 default_color_scheme = SubResource("Resource_colorscheme")
 sprites = Array[Texture2D]([ExtResource("9_sprite")])
-; FILLED IN SHEET ORDER, ONE TASK AT A TIME (the Naga's rule). Task 1 lands the frame with NO
-; traits; Task 2 appends mt_vigil, Task 3 mt_blessed_bolt_system, Task 4 cp_lav_tactical_engine -
-; so the order is the sheet's. An ext_resource pointing at a file that does not exist yet would
+; FILLED IN SHEET ORDER, ONE TASK AT A TIME (the Naga's rule), AND NOW COMPLETE. Task 1 landed
+; the frame with NO traits; Task 2 appended mt_vigil, Task 3 mt_blessed_bolt_system, Task 4
+; cp_lav_tactical_engine - so the order is the sheet's. An ext_resource pointing at a file that does not exist yet would
 ; make this WHOLE resource fail to parse, taking the frame out of ContentLibrary with no error a
 ; player would ever see - which is why each entry lands only once its own files do.
 ; test_purple_thorn_frame.gd pins the order at the close of SP1.
-traits = Array[ExtResource("8_kit")]([ExtResource("10_vigil"), ExtResource("11_bolt")])
+traits = Array[ExtResource("8_kit")]([ExtResource("10_vigil"), ExtResource("11_bolt"), ExtResource("12_core")])
 mount_types = Array[ExtResource("4_mounttype")]([ExtResource("5_mountauxaux"), ExtResource("5_mountauxaux"), ExtResource("6_mountflex")])
 stat = SubResource("Resource_statblock")
 role_primary = 4

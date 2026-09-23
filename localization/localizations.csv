@@ -625,5 +625,5 @@ gear.cp_lav_tactical_engine.action_stalk_the_horizon.name,Stalk the Horizon
 gear.cp_lav_tactical_engine.action_stalk_the_horizon.effect,"2/round, when a hostile character in Line of Sight starts to move, you may make an attack against them with an |Auxiliary| weapon as a |reaction|."
 gear.cp_lav_tactical_engine.action_rend.name,Rend That which is Cruel and Unnatural
 gear.cp_lav_tactical_engine.action_rend.effect,"You may immediately |Skirmish| as a |free action|. Until the end of your next turn, whenever you deal damage to a hostile character, they must make a |Systems save| or be teleported to free space you choose within range 3 of their original position."
-gear.buff_rend.name,Rend That which is Cruel and Unnatural
-gear.buff_rend.effect,"Until the end of your next turn, whenever you deal damage to a hostile character, they must make a |Systems save| or be teleported to free space you choose within range 3 of their original position."
+gear.buff_cruel_and_unnatural.name,Rend That which is Cruel and Unnatural
+gear.buff_cruel_and_unnatural.effect,"Until the end of your next turn, whenever you deal damage to a hostile character, they must make a |Systems save| or be teleported to free space you choose within range 3 of their original position."

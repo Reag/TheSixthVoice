@@ -1,0 +1,15 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_purple_thorn/cp_lav_tactical_engine/action_rend.gd" id="1_action"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_purple_thorn/cp_lav_tactical_engine/buff_cruel_and_unnatural.tres" id="2_chip"]
+
+; REND THAT WHICH IS CRUEL AND UNNATURAL, the core active (rulings 6-7; the script's header has the
+; seam). action_type 1 is Lancer.ACTION.QUICK; consumes_cp spends the core power. Its own effect
+; rows, so it draws on the core card beside the Kit's passive text. SP5: the REND family - the
+; chip wears this same texture.
+[resource]
+script = ExtResource("1_action")
+chip = ExtResource("2_chip")
+action_type = 1
+consumes_cp = true
+usage_group = &"rend"

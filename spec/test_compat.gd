@@ -1074,13 +1074,16 @@ func test_a_vigil_teleport_is_stopped_by_a_movement_restriction_ban() -> void:
 	var watcher = add_child_autoqfree(load('res://testkit/prompt_watcher.gd').new())
 	var thorn:Unit = PurpleThornFixture.create_thorn(thorn_game, PURPLE_THORN_TILE)
 	var hostile:Unit = PurpleThornFixture.create_hostile(thorn_game, THORN_TARGET_TILE)
-	PurpleThornFixture.mount_pair(thorn, 0, PurpleThornFixture.AUX_NEXUS)
+	# THE RIFLE, NOT AN AUX: an Aux hit offers Blessed Bolt, and this file's before_each already
+	# installed the STOCK responder (which answers yes) on the shared gamemaster beside the queued one
+	# - measured on this pin's first run, where the Nexus landed 6. A Main hit wakes only Vigil.
+	PurpleThornFixture.arm_rifle(thorn)
 	UnitCondition.apply_buff_id(SpecFactory.dummy_event(), hostile, INTERDICTION_FIELD)
 	assert_true(UnitCondition.has_buff(hostile, INTERDICTION_FIELD), 'fixture: the field is up.')
 	responder.chosen_move_tile = Vector2i(3, 6)
-	PurpleThornFixture.queue([19, 3])
-	await PurpleThornFixture.shoot(thorn_game, thorn, hostile)
-	assert_eq(hostile.current_damage(), 3, 'fixture: the hit landed, so Vigil had its trigger.')
+	PurpleThornFixture.queue([19, 4, 1])
+	await PurpleThornFixture.shoot(thorn_game, thorn, hostile, PurpleThornFixture.MAIN_RIFLE)
+	assert_eq(hostile.current_damage(), 4, 'fixture: the hit landed, so Vigil had its trigger.')
 	assert_eq(watcher.kinds(&'move_tile').size(), 0,
 		'THE RULING: under a MOVEMENT_RESTRICTION ban the reticle is not even raised - the preventable route.')
 	assert_eq(thorn.tile(), PURPLE_THORN_TILE, 'The Thorn stayed.')
