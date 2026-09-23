@@ -12,7 +12,9 @@
 # owner (ruling 21); an invade consuming
 # Lock On offers; an attack that does not consume does not; a hostile consuming a lock on the Naga's
 # ally does not; declining costs nothing; a second consumption in the round is not offered; an ally
-# already holding 2 Overshield keeps 2.
+# already holding 2 Overshield keeps 2. Added at the frame close (2026-09-23): the enemy-target gate
+# on its own; a size-3 Heavy Frame ally still moves (the pick_move carries no `unit`); the move
+# passes a NEW engagement; the move draws no Overwatch.
 #
 # TWO YES/NO PROMPTS PER CONSUMING SHOT, AND THEY NEED DIFFERENT ANSWERS: the attacker's own
 # attack_declared consume prompt ("consume the lock?") and then the Naga's "take 1 heat?". The stock
@@ -79,13 +81,20 @@ func blood_prompts() -> Array[Dictionary]:
 			found.append(seen)
 	return found
 
-## Movement pickers the BLOOD opened (its pick_move carries the core Kit as `gear`).
+## Movement pickers the BLOOD opened. Since the frame close its pick_move carries NO `unit` (the
+## Heavy Frame fix), so SpecificAction.is_valid fails and ask_for_movement_alt takes its no-ability
+## branch (target_action_util.gd:111-114), which opens choose_move_tile WITHOUT a `using` - the core
+## Kit no longer rides on the prompt. So a Blood picker is told apart by its BUDGET: 3, where Wire
+## Slither's (the other picker a consuming INVADE opens) is 2 and carries its own Kit.
 func blood_move_prompts() -> Array[Dictionary]:
 	var found:Array[Dictionary] = []
 	for info:Dictionary in watcher.kinds(PromptWatcher.KIND.move_tile):
 		var using = info.get('using')
 		if using is SpecificAction and GearCore.is_valid(using.gear) \
-				and using.gear.kit.compcon_id == NagaFixture.CORE_ID:
+				and using.gear.kit.compcon_id != NagaFixture.CORE_ID:
+			continue
+		var pathfinder:Pathfinder = info.get('pathfinder')
+		if pathfinder != null and pathfinder.max_budget == 3:
 			found.append(info)
 	return found
 
@@ -243,6 +252,95 @@ func test_a_hostile_consuming_a_lock_on_the_nagas_ally_offers_nothing() -> void:
 	assert_false(ally.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: the hostile consumed its lock on the ally.')
 	assert_true(blood_prompts().is_empty(), 'A hostile\'s consumption is not "you or an allied character".')
 	assert_eq(naga.core.current.heat, heat_before, 'No heat.')
+
+func test_the_locked_target_must_be_an_enemy_of_the_naga_on_its_own() -> void:
+	# The ENEMY gate (action_blood_of_the_creature.gd:53) ALONE (close review slice 2 #5): the test
+	# above fails it together with the consumer gate. No board produces a consumption on a non-enemy -
+	# vanilla's consume refuses one (action_consume_lock_on.gd:62-67) and factions are symmetric
+	# (faction.gd:22-26) - so the gate is read on a synthesized attack event instead: the Naga itself
+	# consuming ("you", so the consumer gate passes), the consumed buff on the target (Lockon's
+	# attack_declared shape), and only the target's faction changed between the two.
+	var blood:ActionReaction = ContentLibrary.get_kit(NagaFixture.CORE_ID).get_action(NagaFixture.BLOOD_ID)
+	var core := naga.get_gear(NagaFixture.CORE_ID)
+	var ally := NagaFixture.create_ally(game, IN_SENSORS)
+	SpecFactory.apply_buff(ally, Lockon.CONSUMED_BUFF)
+	SpecFactory.apply_buff(hostile, Lockon.CONSUMED_BUFF)
+	var on_ally_targets:Array[Unit] = [ally]
+	var on_hostile_targets:Array[Unit] = [hostile]
+	var on_ally := EventCore.create(&'event_unit_attack', {unit = naga, target_units = on_ally_targets})
+	var on_hostile := EventCore.create(&'event_unit_attack', {unit = naga, target_units = on_hostile_targets})
+	assert_true(Lockon.was_consumed(on_ally.context), 'LIVENESS: the synthesized event reads as a consumption.')
+	assert_eq(Lockon.consumer(on_ally.context), naga, 'LIVENESS: by the Naga - "you".')
+	assert_true(blood.triggers_on_event(naga, core, on_hostile),
+		'CONTROL: the same event on a HOSTILE target triggers - every other gate is open.')
+	assert_false(blood.triggers_on_event(naga, core, on_ally),
+		'THE CLAIM: an ALLIED locked target refuses it, on the enemy gate alone.')
+
+# ---------------------------------------------------------------- the move
+
+## Size 3 with Heavy Frame's knockback immunity, which compares the mover to the pick_move's `unit`
+## (buff_heavy_frame_knockback.gd: immune when context.unit is SMALLER) - and
+## event_unit_pick_move.gd:78 aborts every non-shunt pick_move on that immunity.
+func test_a_size_three_heavy_frame_ally_still_moves() -> void:
+	var ally := NagaFixture.create_ally(game, IN_SENSORS)
+	SpecFactory.change_size(ally, 3)
+	UnitTile.move_to(ally, IN_SENSORS)
+	SpecFactory.apply_buff(ally, &'buff_heavy_frame_knockback')
+	assert_eq(ally.get_size(), 3, 'fixture: size 3.')
+	assert_eq(UnitRelation.distance_between(naga, ally), 8, 'fixture: within Sensors.')
+	var core := naga.get_gear(NagaFixture.CORE_ID)
+	var blood:Action = core.kit.get_action(NagaFixture.BLOOD_ID)
+	assert_true(UnitCondition.is_immune_to_knockback_from(ally, SpecificAction.create(naga, core, blood),
+			MovementType.create(ally, true)),
+		'LIVENESS: a move attributed to the size-2 Naga WOULD be refused as knockback.')
+	responder.chosen_move_tile = ALLY_THREE_SOUTH
+	await lock_and_shoot(ally, ally, hostile)
+	assert_false(hostile.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: the ally consumed the lock.')
+	assert_eq(blood_prompts().size(), 1, 'Offered and taken.')
+	assert_eq(Overshield.current(ally), 1, 'Shielded.')
+	assert_eq(ally.tile(), ALLY_THREE_SOUTH,
+		'THE CLAIM: the ally chooses its own move - no `unit` on the pick_move, as Perimeter Command Plate.')
+
+## THE ENGAGEMENT GEOMETRY - test_wire_slither.gd's, one budget higher. The Naga at (4,4) occupies
+## (4,4)-(5,5); a SIZE-2 hostile at (1,4) occupies (1,4)-(2,5), two out (no engagement yet), and
+## engages anchors with x <= 3 and y 2-6. ENGAGED_DESTINATION (2,2) is two steps from (4,4) through
+## (3,3), an engaged anchor with no outward connections (pathfinder.gd:454); the unengaged way round
+## ((4,3) or (5,3), (4,2), (3,1), (2,2)) is FOUR steps, one past the Blood's 3. Size 2 because a
+## size-1 hostile never stops a size-2 mover (unit_relation.gd:140-143); inside the budget-3 scan
+## ring because an engager outside it marks nothing (pathfinder.gd:256).
+const ENGAGER_TILE := Vector2i(1, 4)
+const ENGAGED_DESTINATION := Vector2i(2, 2)
+
+func test_the_move_ignores_engagement() -> void:
+	var engager := NagaFixture.create_hostile(game, ENGAGER_TILE)
+	SpecFactory.change_size(engager, 2)
+	UnitTile.move_to(engager, ENGAGER_TILE)
+	assert_eq(UnitRelation.distance_between(naga, engager), 2, 'fixture: two out - a NEW engagement.')
+	var control := await Pathfinder.generate_for_movement_budget(naga, 3, MovementType.create(naga, true))
+	assert_false(control.is_movable(ENGAGED_DESTINATION),
+		'CONTROL: a plain voluntary 3-space move cannot reach it - the zone stops it at (3,3).')
+	responder.chosen_move_tile = ENGAGED_DESTINATION
+	await lock_and_shoot(naga, naga, hostile)
+	assert_eq(blood_prompts().size(), 1, 'LIVENESS: offered and taken.')
+	assert_eq(blood_move_prompts().size(), 1, 'LIVENESS: the picker opened.')
+	assert_eq(naga.tile(), ENGAGED_DESTINATION, 'THE CLAIM: "ignores engagement" - it slid past the zone.')
+
+func test_the_move_provokes_no_overwatch() -> void:
+	# A rifle hostile adjacent to the Naga's (4,5): its threat 1 covers the Naga's start, and the
+	# Blood's move walks the Naga out of it. The dice tail is 1s, and the rifle's Reliable 2 lands
+	# even on a miss - BUT THE BLOOD'S OWN OVERSHIELD, granted before the move, soaks that 1 (2 less
+	# the Naga's 1 armor): measured, a mutated move drew the Overwatch and current_damage stayed 0.
+	# So the claim is read off the Overwatch's own tally, with the shield as a second witness.
+	var watcher_hostile := NagaFixture.create_hostile(game, Vector2i(3, 6))
+	NagaFixture.arm_rifle(watcher_hostile)
+	assert_eq(UnitRelation.distance_between(naga, watcher_hostile), 1, 'fixture: adjacent - in threat 1.')
+	responder.chosen_move_tile = THREE_EAST
+	await lock_and_shoot(naga, naga, hostile)
+	assert_eq(naga.tile(), THREE_EAST, 'LIVENESS: the Blood moved the Naga out of the threat.')
+	assert_eq(NagaFixture.uses_this_round(watcher_hostile, &'ms_overwatch', &'action_overwatch'), 0,
+		'THE CLAIM: "doesn\'t provoke reactions" - the adjacent rifle never Overwatched.')
+	assert_eq(Overshield.current(naga), 1, 'And the Blood\'s shield is untouched.')
+	assert_eq(naga.current_damage(), 0, 'No damage.')
 
 # ---------------------------------------------------------------- "may" and 1/round
 

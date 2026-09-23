@@ -29,7 +29,8 @@
 # consumer - engine-max semantics, so an ally already holding 2 keeps 2, which is Lancer's own
 # Overshield rule - then event_unit_pick_move on the consumer, number 3, with a voluntary
 # MovementType carrying ignore_engagement and ignore_rxns (Quick March's shape moves a unit that is
-# not the holder; the mover's own controller drives the picker).
+# not the holder; the mover's own controller drives the picker), with no `unit` on the event - see
+# the note at the queue_event below.
 extends ActionReaction
 
 const Lockon := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/lockon/lockon.gd')
@@ -85,8 +86,12 @@ func activate(context:Context, activation:EventCore) -> void:
 		target_unit = consumer,
 		resource = movement,
 		number = MOVE_SPACES,
-		# tell the event who did it
-		unit = naga,
+		# NO `unit`: it is the consumer choosing to move, not the Naga pushing it - vanilla Perimeter
+		# Command Plate omits it for this reason. event_unit_pick_move.gd:78 aborts any non-shunt
+		# pick_move the mover is knockback-immune to FROM that unit, and Heavy Frame / Fomorian Frame
+		# compare the mover's size to it (buff_heavy_frame_knockback.gd), so `unit = naga` refused a
+		# size-3 ally outright after its heat was paid (frame close, 2026-09-23). gear and action
+		# still say which Kit opened the picker.
 		gear = context.gear,
 		action = context.action,
 	})

@@ -180,9 +180,12 @@ static func queue(rolls:Array[int]) -> void:
 	for i:int in 60: all.append(1)
 	Dice.CHEAT_ROLL_QUEUE.assign(all)
 
-## A guaranteed HIT that is never a crit against any defence this fixture hands out (10 or less):
-## base_roll 19 minus the worst-case -6 accuracy die is 13, always short of the crit threshold 20 -
-## and short of Advanced Targeting Calculations' 18 too, which is the number that frame reads.
+## A guaranteed HIT against any defence this fixture hands out (10 or less): base_roll 19 minus the
+## worst-case -6 accuracy die is 13. NOT a crit for a plain weapon (threshold 20) - BUT A 19 IS A
+## CRIT FOR THE NAGA'S SMART WEAPONS: Advanced Targeting Calculations crits a Smart hit whose
+## total_roll is 18 or more (buff_advanced_targeting_calculations.gd), and an unmodified 19 is 19.
+## A Naga Smart-weapon spec that wants a plain hit queues 12 against E-DEF 8 instead, as
+## test_binding_fangs.gd does. No caller today.
 static func cheat_a_hit() -> void: queue([19])
 
 ## A guaranteed MISS: base_roll 1 cannot beat any defence this fixture hands out.
@@ -257,10 +260,45 @@ static func press_salvation(game:Gamemaster, naga:Unit) -> void:
 	if not naga.state.is_taking_turn: await open_turn(game, naga)
 	await SpecFactory.use(game, naga, CORE_ID, SALVATION_ID)
 
-## Clear a status the way Stabilize's "clear condition" does: clear_status_via_ability ->
-## clear_specific_status, which hands the status's OWN source on to the reaction bus
-## (unit_condition.gd:479-483, :326-329). Driven inside a real event so the statuses_changed POST
-## it queues is actually run - a dummy event has no block to run it on.
+## Clear a status EXACTLY the way vanilla Stabilize's "clear condition" does: the one line
+## action_stabilize.gd:268 runs, UnitCondition.clear_status_via_ability(event, unit, status)
+## (unit_condition.gd:479-483), which walks EVERY copy of that status the ability may clear and
+## calls clear_specific_status on each (:326-329) - so a doubly-applied status (apply_status
+## APPENDS, :103-105; a Markerlight on a target already Locked On) fires ONE statuses_changed POST
+## PER COPY, each carrying that copy's own source. Self-applied copies are skipped (ability_can_clear,
+## :472-477), as they are for Stabilize.
+##
+## WHY NOT DRIVE ms_stabilize ITSELF: a non-player unit picks WHICH condition to clear from a fixed
+## priority list (common_action_util.gd:417-423 - Impaired before Lock On), so a Pinged target
+## Stabilizing would clear the Impaired, not the lock under test; and a player unit's Stabilize
+## raises a confirm, a variant pick and a multiple-choice that a queued responder would have to
+## account for. The CLEAR is identical; only the menu around it is skipped.
+##
+## Run inside a REAL root event block (the same Level.execute_event_block every SpecFactory.use
+## goes through), so the POSTs it queues onto that block actually execute before this returns - a
+## SpecFactory.dummy_event has no block, and queue_reaction_events silently drops them
+## (event_core.gd:59-60).
+static func clear_like_stabilize(game:Gamemaster, unit:Unit, status:StringName) -> void:
+	var core := EventCore.new()
+	core.base = ClearViaAbilityEvent.new()
+	core.base.event_type = &'event_reag_spec_clear_via_ability'
+	core.context = Context.create({unit = unit, category = status})
+	core.id = Util.generate_random_hexcode()
+	await game.execute_event_block(EventBlock.create_multiple([core]))
+
+## The spec-only event clear_like_stabilize runs: nothing but Stabilize's clear line.
+class ClearViaAbilityEvent extends EventBase:
+	func get_required_context() -> Array[Context.PROP]:
+		return [Context.PROP.unit, Context.PROP.category]
+	func execute(core:EventCore) -> void:
+		UnitCondition.clear_status_via_ability(core, core.context.unit, core.context.category_str)
+
+## NOT Stabilize-shaped - use clear_like_stabilize() for that. This is a SOURCE-SPECIFIC
+## UnitCondition.clear_status through vanilla's event_unit_clear_status
+## (event_unit_clear_status.gd:22-28), with the source read off the unit's first live copy of the
+## status: it removes every copy carrying THAT source and fires ONE statuses_changed POST however
+## many it removed (clear_status's single `cleared` flag, unit_condition.gd:310-324). A second copy
+## with a different source survives. Kept for the specs that want exactly one sourced loss.
 static func clear_by_ability(game:Gamemaster, unit:Unit, status:StringName) -> void:
 	await game.execute_event(&'event_unit_clear_status', {
 		unit = unit, category = status, string = source_of_status(unit, status),

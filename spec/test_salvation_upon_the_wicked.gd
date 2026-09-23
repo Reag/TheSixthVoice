@@ -12,6 +12,10 @@
 # 1) and re-locks it with the core Kit as the source; a PASS does neither; a Stabilize-style ability
 # clear on a hostile within Sensors also triggers; a hostile outside Sensors does not; without the
 # chip nothing triggers; twice in one round both trigger; an allied unit losing Lock On does not.
+# Added at the frame close (2026-09-23): a DOUBLY-locked hostile cleared by Stabilize saves once
+# (fail or pass); losing one of two stacked locks is no loss; a second Naga finds the target already
+# re-locked; a hostile DRONE's loss does not trigger. Every clear here is Stabilize's real line
+# (NagaFixture.clear_like_stabilize) except the one-of-two case, which needs a sourced clear.
 # Plus the protocol itself (spends the core power, hangs the visible chip, needs a turn) and the rows.
 #
 # THE CONSUMER IS THE INVADE, NOT THE RIFLE, so the hostile's HP damage is the re-lock's 1 and
@@ -125,12 +129,13 @@ func test_a_passed_save_does_neither() -> void:
 	assert_gt(hostile.core.current.heat, 0, 'LIVENESS: the invade still hit (its 19 came after the save\'s 20).')
 
 func test_an_ability_clear_within_sensors_also_triggers() -> void:
-	# Stabilize's own line (clear_status_via_ability -> clear_specific_status): the loss carries the
-	# locker's source, and the reaction does not care - "would lose", unqualified.
+	# Stabilize's own line, driven for real (NagaFixture.clear_like_stabilize runs
+	# clear_status_via_ability -> clear_specific_status): the loss carries the locker's source, and
+	# the reaction does not care - "would lose", unqualified.
 	await NagaFixture.press_salvation(game, naga)
 	assert_true(NagaFixture.lock_by_hand(naga, hostile), 'fixture: locked.')
 	NagaFixture.queue([SAVE_FAIL])
-	await NagaFixture.clear_by_ability(game, hostile, Lancer.STATUS.LOCKON)
+	await NagaFixture.clear_like_stabilize(game, hostile, Lancer.STATUS.LOCKON)
 	assert_eq(hostile.current_damage(), 1, 'A failed save on an ability clear: 1 AP.')
 	assert_true(hostile.has_status(Lancer.STATUS.LOCKON), 'And re-locked.')
 	assert_eq(Lockon.source_of(hostile), core_gear().persistent_id, 'By the core Kit.')
@@ -144,7 +149,7 @@ func test_a_hostile_outside_sensors_does_not_trigger() -> void:
 		'fixture: locked by hand with the Naga\'s ms_lock_on as the source.')
 	NagaFixture.queue([SAVE_FAIL])
 	var queued:int = Dice.CHEAT_ROLL_QUEUE.size()
-	await NagaFixture.clear_by_ability(game, far, Lancer.STATUS.LOCKON)
+	await NagaFixture.clear_like_stabilize(game, far, Lancer.STATUS.LOCKON)
 	assert_false(far.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: the lock was cleared.')
 	assert_eq(Dice.CHEAT_ROLL_QUEUE.size(), queued, 'No save was rolled: nothing popped.')
 	assert_eq(far.current_damage(), 0, 'No damage.')
@@ -154,7 +159,7 @@ func test_without_the_chip_nothing_triggers() -> void:
 	assert_true(NagaFixture.lock_by_hand(naga, hostile), 'fixture: locked.')
 	NagaFixture.queue([SAVE_FAIL])
 	var queued:int = Dice.CHEAT_ROLL_QUEUE.size()
-	await NagaFixture.clear_by_ability(game, hostile, Lancer.STATUS.LOCKON)
+	await NagaFixture.clear_like_stabilize(game, hostile, Lancer.STATUS.LOCKON)
 	assert_false(hostile.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: the lock was cleared.')
 	assert_eq(Dice.CHEAT_ROLL_QUEUE.size(), queued, 'No save was rolled.')
 	assert_eq(hostile.current_damage(), 0, 'No damage, no re-lock: the reaction is unavailable without the chip.')
@@ -164,13 +169,92 @@ func test_twice_in_one_round_both_trigger() -> void:
 	await NagaFixture.press_salvation(game, naga)
 	assert_true(NagaFixture.lock_by_hand(naga, hostile), 'fixture: locked.')
 	NagaFixture.queue([SAVE_FAIL])
-	await NagaFixture.clear_by_ability(game, hostile, Lancer.STATUS.LOCKON)
+	await NagaFixture.clear_like_stabilize(game, hostile, Lancer.STATUS.LOCKON)
 	assert_eq(hostile.current_damage(), 1, 'fixture: the first loss cost 1.')
 	assert_true(hostile.has_status(Lancer.STATUS.LOCKON), 'fixture: and re-locked.')
 	NagaFixture.queue([SAVE_FAIL])
-	await NagaFixture.clear_by_ability(game, hostile, Lancer.STATUS.LOCKON) # loses the RE-lock
+	await NagaFixture.clear_like_stabilize(game, hostile, Lancer.STATUS.LOCKON) # loses the RE-lock
 	assert_eq(hostile.current_damage(), 2, 'The second loss in the same round cost another 1.')
 	assert_true(hostile.has_status(Lancer.STATUS.LOCKON), 'And re-locked again.')
+
+func test_a_doubly_locked_hostile_cleared_by_stabilize_saves_once() -> void:
+	# THE DOUBLE-FIRE (close review slice 2 #1). apply_status APPENDS (unit_condition.gd:103-105), so
+	# a Markerlight on a target already Locked On leaves TWO Lock On copies with two sources; Lockon.apply
+	# refuses a second lock, so they are written raw here. Stabilize's clear_status_via_ability clears
+	# BOTH and fires one statuses_changed POST PER COPY (:479-483 -> :326-329). The hostile loses Lock
+	# On ONCE, so it saves once and takes at most 1.
+	await NagaFixture.press_salvation(game, naga)
+	SpecFactory.apply(hostile, Lancer.STATUS.LOCKON, Lancer.UNTIL.MANUAL, naga.get_gear(NagaFixture.LOCK_ON).persistent_id)
+	SpecFactory.apply(hostile, Lancer.STATUS.LOCKON, Lancer.UNTIL.MANUAL, naga.get_gear(NagaFixture.SCAN).persistent_id)
+	var copies := hostile.state.statuses.filter(func(s:StatusCondition) -> bool: return s.type == Lancer.STATUS.LOCKON)
+	assert_eq(copies.size(), 2, 'fixture: two stacked Lock On copies.')
+	NagaFixture.queue([SAVE_FAIL]) # and the tail is 1s: a second save would ALSO fail, and show
+	var queued:int = Dice.CHEAT_ROLL_QUEUE.size()
+	await NagaFixture.clear_like_stabilize(game, hostile, Lancer.STATUS.LOCKON)
+	assert_eq(queued - Dice.CHEAT_ROLL_QUEUE.size(), 1, 'THE CLAIM: exactly one save d20 popped.')
+	assert_eq(hostile.current_damage(), 1, 'And 1 AP, not 2.')
+	assert_true(hostile.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: the one failed save re-locked it.')
+	assert_eq(Lockon.source_of(hostile), core_gear().persistent_id, 'By the core Kit.')
+
+func test_a_doubly_locked_hostile_that_passes_is_not_asked_again() -> void:
+	# The same stack, a PASS: nothing re-locks, so the second copy's POST must not roll a second save.
+	await NagaFixture.press_salvation(game, naga)
+	SpecFactory.apply(hostile, Lancer.STATUS.LOCKON, Lancer.UNTIL.MANUAL, naga.get_gear(NagaFixture.LOCK_ON).persistent_id)
+	SpecFactory.apply(hostile, Lancer.STATUS.LOCKON, Lancer.UNTIL.MANUAL, naga.get_gear(NagaFixture.SCAN).persistent_id)
+	NagaFixture.queue([SAVE_PASS])
+	var queued:int = Dice.CHEAT_ROLL_QUEUE.size()
+	await NagaFixture.clear_like_stabilize(game, hostile, Lancer.STATUS.LOCKON)
+	assert_false(hostile.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: both copies cleared, no re-lock.')
+	assert_eq(queued - Dice.CHEAT_ROLL_QUEUE.size(), 1, 'THE CLAIM: one save, not a second on a tail 1.')
+	assert_eq(hostile.current_damage(), 0, 'And no damage.')
+
+func test_losing_one_of_two_stacked_locks_does_not_trigger() -> void:
+	# A source-specific clear of ONE copy (event_unit_clear_status with a source) leaves the other:
+	# the hostile never loses Lock On, so there is nothing to save against.
+	await NagaFixture.press_salvation(game, naga)
+	SpecFactory.apply(hostile, Lancer.STATUS.LOCKON, Lancer.UNTIL.MANUAL, naga.get_gear(NagaFixture.LOCK_ON).persistent_id)
+	SpecFactory.apply(hostile, Lancer.STATUS.LOCKON, Lancer.UNTIL.MANUAL, naga.get_gear(NagaFixture.SCAN).persistent_id)
+	NagaFixture.queue([SAVE_FAIL])
+	var queued:int = Dice.CHEAT_ROLL_QUEUE.size()
+	await NagaFixture.clear_by_ability(game, hostile, Lancer.STATUS.LOCKON)
+	var copies := hostile.state.statuses.filter(func(s:StatusCondition) -> bool: return s.type == Lancer.STATUS.LOCKON)
+	assert_eq(copies.size(), 1, 'LIVENESS: one copy was cleared, one remains.')
+	assert_eq(queued - Dice.CHEAT_ROLL_QUEUE.size(), 0, 'No save: it is still Locked On.')
+	assert_eq(hostile.current_damage(), 0, 'No damage.')
+
+func test_two_nagas_the_second_finds_the_target_already_relocked() -> void:
+	# The activate() half of still_locked: both Nagas' reactions are QUEUED on the one loss (the target
+	# holds no lock at queue time), the first fails the save and re-locks, and by the time the second
+	# RUNS there is nothing left to lose - so it neither saves nor deals a second 1 AP.
+	var naga2 := NagaFixture.create_naga(game, Vector2i(4, 8))
+	await NagaFixture.press_salvation(game, naga)
+	await NagaFixture.press_salvation(game, naga2)
+	assert_true(UnitCondition.has_buff(naga2, NagaFixture.SALVATION_CHIP), 'fixture: the second Naga\'s chip is up.')
+	assert_true(has_chip(), 'fixture: the first Naga\'s chip is up.')
+	assert_lte(UnitRelation.distance_between(naga2, hostile), naga2.get_sensor_range(), 'fixture: within its Sensors.')
+	assert_true(NagaFixture.lock_by_hand(naga, hostile), 'fixture: locked.')
+	NagaFixture.queue([SAVE_FAIL]) # the tail is 1s: a second save would fail too
+	var queued:int = Dice.CHEAT_ROLL_QUEUE.size()
+	await NagaFixture.clear_like_stabilize(game, hostile, Lancer.STATUS.LOCKON)
+	assert_true(hostile.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: one Naga re-locked it.')
+	assert_eq(queued - Dice.CHEAT_ROLL_QUEUE.size(), 1, 'THE CLAIM: one save across both Nagas.')
+	assert_eq(hostile.current_damage(), 1, 'And 1 AP, not 2.')
+
+func test_a_hostile_drone_losing_lock_on_does_not_trigger() -> void:
+	# "A hostile CHARACTER" is is_actor (ruling 21): a drone is_character() but not an actor
+	# (unit.gd:116-117). Within Sensors and hostile, so the actor gate is the only one it fails.
+	await NagaFixture.press_salvation(game, naga)
+	var drone := NagaFixture.create_drone(game, SECOND_HOSTILE_TILE, Faction.AI_ENEMY)
+	assert_true(drone.is_character() and not drone.is_actor(), 'fixture: a character that is not an actor.')
+	assert_true(UnitRelation.are_enemies(naga, drone), 'fixture: hostile.')
+	assert_lte(UnitRelation.distance_between(naga, drone), naga.get_sensor_range(), 'fixture: within Sensors.')
+	assert_true(NagaFixture.lock_by_hand(naga, drone), 'fixture: locked.')
+	NagaFixture.queue([SAVE_FAIL])
+	var queued:int = Dice.CHEAT_ROLL_QUEUE.size()
+	await NagaFixture.clear_like_stabilize(game, drone, Lancer.STATUS.LOCKON)
+	assert_false(drone.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: the drone lost the lock.')
+	assert_eq(Dice.CHEAT_ROLL_QUEUE.size(), queued, 'No save: a drone is not "a hostile character".')
+	assert_eq(drone.current_damage(), 0, 'No damage.')
 
 func test_an_allied_unit_losing_lock_on_does_not_trigger() -> void:
 	await NagaFixture.press_salvation(game, naga)
@@ -180,7 +264,7 @@ func test_an_allied_unit_losing_lock_on_does_not_trigger() -> void:
 		'fixture: the hostile\'s lock on our ally.')
 	NagaFixture.queue([SAVE_FAIL])
 	var queued:int = Dice.CHEAT_ROLL_QUEUE.size()
-	await NagaFixture.clear_by_ability(game, ally, Lancer.STATUS.LOCKON)
+	await NagaFixture.clear_like_stabilize(game, ally, Lancer.STATUS.LOCKON)
 	assert_false(ally.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: the ally lost the lock.')
 	assert_eq(Dice.CHEAT_ROLL_QUEUE.size(), queued, 'No save: an ally is not "a hostile character".')
 	assert_eq(ally.current_damage(), 0, 'No damage.')

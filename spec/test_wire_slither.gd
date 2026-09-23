@@ -18,10 +18,13 @@
 #
 # GEOMETRY. The Naga is size 2, anchored at (4,4), occupying (4,4) (5,4) (4,5) (5,5). The hostile
 # stands at (6,5): adjacent to (5,4) and (5,5), and with a rifle its threat 1 covers the Naga's
-# first step whichever way it goes - the Overwatch case. The ENGAGEMENT case has its own geometry
-# on the map's top edge (the EDGE_* constants and their header), because two things defeated the
-# obvious one: Chebyshev diagonals slip round a zone, and a size-1 hostile does not stop a size-2
-# mover at all.
+# first step whichever way it goes - the Overwatch case. The ENGAGEMENT case adds a size-2 engager
+# west of the Naga (ENGAGER_TILE and its header), because three things defeated the obvious
+# geometry: Chebyshev diagonals slip round a zone, a size-1 hostile does not stop a size-2 mover at
+# all, and an engager outside the budget-2 scan ring marks nothing.
+#
+# SLOWED AND IMMOBILIZED: a Naga with either does not slither at all (author decision 7, 2026-09-23:
+# correct Lancer - Slowed allows only the standard move). Pinned below, each with a liveness line.
 #
 #   godot --resolution 800x600 --position -2400,-2400 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_wire_slither.gd
 extends GutTest
@@ -42,31 +45,26 @@ const TWO_WEST := Vector2i(2, 4)
 ## A second hostile, far enough to be nobody's neighbour, for the second-tech-action case.
 const FAR_HOSTILE_TILE := Vector2i(10, 4)
 
-## THE ENGAGEMENT GEOMETRY, on the map's top edge so no diagonal can slip round the zone (the first
-## run's lesson: from (4,4) with the hostile at (6,5), every anchor behind an engaged tile was also
-## reachable by a two-step diagonal that never touched one, and the two sets came out equal). A
-## second Naga at (4,0) occupies (4,0) (5,0) (4,1) (5,1); the edge hostile at (7,0) is made SIZE 2
-## (footprint (7,0)-(8,1), zone x 6-9, y 0-2) and is two away from (5,0), so this Naga starts
-## UNENGAGED. BEYOND_ZONE (6,2) is reachable in two steps only through (5,0) or (5,1), and both put
-## a Naga tile at x 6 inside the zone - an engaged anchor, which has no outward connections
-## (pathfinder.gd:454). So a vanilla budget-2 pathfinder cannot offer it and the slither's can.
+## THE ENGAGEMENT GEOMETRY (rebuilt at the frame close, 2026-09-23). The Naga at (4,4) occupies
+## (4,4)-(5,5); the ENGAGER is a SIZE-2 hostile at (1,4), footprint (1,4)-(2,5), two tiles from the
+## Naga's (4,4), so the Naga starts UNENGAGED. Its zone (every tile adjacent to that footprint) is
+## x 0-3, y 3-6, so a Naga anchor is ENGAGED when its own footprint touches it - x <= 3 and y 2-6.
+## BEYOND_ZONE (2,2) is two steps from (4,4), and the ONLY tile adjacent to both is (3,3), an
+## engaged anchor with no outward connections (pathfinder.gd:454). So a budget-2 pathfinder that
+## honours engagement cannot offer (2,2), and the slither's - ignore_engagement - can.
 ##
-## SIZE 2 IS LOAD-BEARING (the second run's lesson): the pathfinder only marks a tile engaged when
-## the engager WOULD STOP this mover - would_lose_movement_due_to_engagement_from
-## (pathfinder.gd:147-150 -> unit_relation.gd:140-143), a SIZE compare - and a size-1 hostile does
-## not stop a size-2 Naga at all. With a size-1 hostile the control reached BEYOND_ZONE and the
-## claim could not discriminate.
+## THE ENGAGER MUST BE INSIDE THE SCAN RING, which is what the first geometry got wrong (close
+## review slice 1 #1): generate_for_movement_budget evaluates occupation only for tiles within the
+## BUDGET of the anchor (pathfinder.gd:256, Tile.get_all_within), and the pathfinder only knows a
+## tile engages its neighbours because it saw the engager standing on a scanned tile
+## (pathfinder.gd:135-153). The old engager stood at x 7-8, three out from a budget-2 scan at x 4 - it
+## marked nothing, and deleting ignore_engagement from the .tres stayed green. Here x 2 is scanned.
 ##
-## AND THE CONTROL IS A STANDARD-MOVE PATHFINDER, NOT A BUDGET-2 ONE (the third run's lesson):
-## generate_for_movement_budget only evaluates occupation for tiles WITHIN THE BUDGET of the anchor
-## (pathfinder.gd:256, Tile.get_all_within), so an engager three tiles out is never even looked at
-## and marks nothing - the budget control reached BEYOND_ZONE for that reason alone.
-## generate_for_standard_move looks eight out (:222). With the Naga's speed 3 the control still
-## cannot reach BEYOND_ZONE: every route of three steps or fewer passes an anchor at x 5 with y 0-2,
-## all engaged; the four-step way round through (5,3) is over budget.
-const EDGE_NAGA_TILE := Vector2i(4, 0)
-const EDGE_HOSTILE_TILE := Vector2i(7, 0)
-const BEYOND_ZONE := Vector2i(6, 2)
+## SIZE 2 IS LOAD-BEARING: the pathfinder only marks a tile engaged when the engager WOULD STOP this
+## mover - would_lose_movement_due_to_engagement_from (pathfinder.gd:147-150 ->
+## unit_relation.gd:140-143), a SIZE compare - and a size-1 hostile does not stop a size-2 Naga.
+const ENGAGER_TILE := Vector2i(1, 4)
+const BEYOND_ZONE := Vector2i(2, 2)
 
 var game:Gamemaster
 var naga:Unit
@@ -239,6 +237,31 @@ func test_declining_costs_nothing_and_the_next_tech_action_still_offers() -> voi
 	assert_eq(naga.tile(), TWO_SOUTH, '...and this time it moved.')
 	assert_eq(uses_this_round(), 1, 'Now it is spent.')
 
+# ---------------------------------------------------------------- Slowed and Immobilized
+
+func test_a_slowed_naga_does_not_slither() -> void:
+	# AUTHOR DECISION 7 (2026-09-23): correct Lancer - Slowed allows only the standard move, so no
+	# system move at all. The archetype refuses a VOLUNTARY move to a Slowed holder
+	# (action_reaction_movement.gd:46).
+	SpecFactory.apply(naga, Lancer.STATUS.SLOWED)
+	assert_true(UnitCondition.is_slowed(naga), 'LIVENESS: the Naga IS Slowed.')
+	responder.chosen_move_tile = TWO_SOUTH
+	await NagaFixture.lock_on(game, naga, hostile)
+	assert_true(hostile.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: the Lock On - a Tech Action - landed.')
+	assert_true(slither_prompts().is_empty(), 'THE CLAIM: no slither picker for a Slowed Naga.')
+	assert_eq(naga.tile(), NAGA_TILE, 'It stayed put.')
+	assert_eq(uses_this_round(), 0, 'Nothing spent.')
+
+func test_an_immobilized_naga_does_not_slither() -> void:
+	SpecFactory.apply(naga, Lancer.STATUS.IMMOBILIZED)
+	assert_true(UnitCondition.is_immobilized(naga), 'LIVENESS: the Naga IS Immobilized.')
+	responder.chosen_move_tile = TWO_SOUTH
+	await NagaFixture.lock_on(game, naga, hostile)
+	assert_true(hostile.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: the Lock On - a Tech Action - landed.')
+	assert_true(slither_prompts().is_empty(), 'THE CLAIM: no slither picker for an Immobilized Naga.')
+	assert_eq(naga.tile(), NAGA_TILE, 'It stayed put.')
+	assert_eq(uses_this_round(), 0, 'Nothing spent.')
+
 func test_after_the_round_refresh_it_offers_again() -> void:
 	responder.chosen_move_tile = TWO_SOUTH
 	await NagaFixture.lock_on(game, naga, hostile)
@@ -262,20 +285,23 @@ func test_the_reaction_point_is_untouched() -> void:
 # ---------------------------------------------------------------- engagement and reactions
 
 func test_the_slither_reaches_past_an_engagement_zone_a_vanilla_move_cannot_cross() -> void:
-	var edge_naga := NagaFixture.create_naga(game, EDGE_NAGA_TILE)
-	var edge_hostile := NagaFixture.create_hostile(game, EDGE_HOSTILE_TILE)
-	SpecFactory.change_size(edge_hostile, 2)
-	UnitTile.move_to(edge_hostile, EDGE_HOSTILE_TILE) # re-track the grown footprint
-	assert_eq(edge_hostile.get_size(), 2, 'fixture: the engager is size 2, big enough to stop a size-2 Naga.')
-	await NagaFixture.open_turn(game, edge_naga)
-	assert_false(UnitCondition.is_engaged(edge_naga), 'fixture: it starts UNENGAGED, two tiles from the hostile.')
-	assert_eq(edge_naga.get_speed_max(), 3, 'fixture: speed 3, so the four-step way round is over budget.')
-	var control := await Pathfinder.generate_for_standard_move(
-		edge_naga, MovementType.create_for_standard_move(edge_naga), false)
+	var engager := NagaFixture.create_hostile(game, ENGAGER_TILE)
+	SpecFactory.change_size(engager, 2)
+	UnitTile.move_to(engager, ENGAGER_TILE) # re-track the grown footprint
+	assert_eq(engager.get_size(), 2, 'fixture: the engager is size 2, big enough to stop a size-2 Naga.')
+	assert_eq(UnitRelation.distance_between(naga, engager), 2, 'fixture: two tiles out - not yet engaging.')
+	await NagaFixture.open_turn(game, naga)
+	# The Naga IS Engaged here, by the file's default size-1 hostile at (6,5) - irrelevant: a unit
+	# already within 1 never engages again for this move (pathfinder.gd:147), and the distance-2 line
+	# above is what keeps the ENGAGER a new engagement the pathfinder must honour.
+	var control := await standard_two_step()
 	assert_false(control.is_movable(BEYOND_ZONE),
-		'CONTROL: a vanilla standard move cannot reach BEYOND_ZONE - every route crosses an engaged anchor.')
+		'CONTROL: a budget-2 standard move cannot reach BEYOND_ZONE - its only route is the engaged (3,3).')
+	assert_true(control.is_movable(Vector2i(3, 3)),
+		'CONTROL LIVENESS: the engaged anchor itself IS reachable, as an endpoint - the zone stops, it does not wall.')
 	responder.abort_all = true # open the picker, read what it offers, take nothing
-	await NagaFixture.lock_on(game, edge_naga, edge_hostile)
+	await NagaFixture.lock_on(game, naga, engager)
+	assert_true(engager.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: the Lock On landed.')
 	var prompts := slither_prompts()
 	assert_eq(prompts.size(), 1, 'The slither picker opened.')
 	if prompts.is_empty(): return

@@ -275,7 +275,9 @@ func test_a_consume_loses_the_lock_anonymously_and_an_ability_clear_does_not():
 	var source := Lockon.source_of(hostile)
 	assert_eq(source, lock_gear().persistent_id, 'fixture: relocked, sourced.')
 	assert_eq(watcher.seen.size(), 1, 'The APPLY is PRE, so the POST watcher did not see it.')
-	await NagaFixture.clear_by_ability(game, hostile, Lancer.STATUS.LOCKON)
+	# Stabilize's own clear line (clear_status_via_ability), which is handed NO source - so the
+	# source the watcher sees is one the ENGINE read off the status, not one this spec supplied.
+	await NagaFixture.clear_like_stabilize(game, hostile, Lancer.STATUS.LOCKON)
 	assert_false(hostile.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: cleared by ability.')
 	assert_eq(watcher.seen.size(), 2, 'A second LOCKON loss seen.')
 	if watcher.seen.size() >= 2:

@@ -21,8 +21,10 @@
 #
 # THE GATE: Lockon.is_lost (a statuses_changed event for LOCKON - the same virtual event carries the
 # APPLY at PRE, which is why the .tres says POST); the loser is a live hostile CHARACTER of the Naga
-# (is_actor, ruling 21) within the Naga's Sensors (no line of sight). Unlimited per round:
-# consumes_rxn false, no hard limit, its own usage group.
+# (is_actor, ruling 21) within the Naga's Sensors (no line of sight), and who no longer holds ANY
+# Lock On - a stacked double lock cleared by Stabilize fires one POST per copy, and only the last is
+# a loss (still_locked, below; frame close 2026-09-23). Unlimited per round: consumes_rxn false, no
+# hard limit, its own usage group.
 #
 # THE SAVE: UnitHasecheck.make_save with THIS SpecificAction as the forcer (the Vauban's rulings
 # 196-197: the forcer is the Naga, and a full unit/gear/action trifecta is what lets the saver's
@@ -50,7 +52,20 @@ func get_required_triggering_context() -> Array[Context.PROP]:
 func triggers_on_event(unit:Unit, _gear:GearCore, triggering_event:EventCore) -> bool:
 	if not Unit.is_valid(unit): return false
 	if not Lockon.is_lost(triggering_event): return false
+	if still_locked(triggering_event.context.unit): return false
 	return is_a_hostile_character_within_sensors(unit, triggering_event.context.unit)
+
+## "WOULD LOSE LOCK ON" MEANS THE UNIT ENDS UP WITHOUT IT. apply_status APPENDS
+## (unit_condition.gd:103-105), so a Markerlight on a target already Locked On stacks a second copy,
+## and Stabilize's clear_status_via_ability clears EVERY copy with one statuses_changed POST PER COPY
+## (:479-483 -> clear_specific_status :326-329). The bus polls this predicate as each POST is QUEUED
+## (reaction_bus.gd:53), after on_status_clear refreshed the status cache (:183), so every copy but
+## the last is refused here - the target still holds the lock - and the loss is answered once. A
+## source-specific clear of one of two copies is not a loss at all. activate() asks again, because a
+## re-lock between queue and run (another Naga's SALVATION, a Binding Fangs) also means there is
+## nothing left to lose.
+static func still_locked(loser:Unit) -> bool:
+	return Unit.is_valid(loser) and loser.has_status(Lancer.STATUS.LOCKON)
 
 ## "A hostile character ... within sensors", read from the Naga's side.
 static func is_a_hostile_character_within_sensors(naga:Unit, loser:Unit) -> bool:
@@ -63,6 +78,7 @@ func activate(context:Context, activation:EventCore) -> void:
 	var naga:Unit = context.unit
 	var loser:Unit = context.event.context.unit
 	if activation.abort_without_units([naga, loser]): return
+	if activation.abort_when(still_locked(loser)): return # see still_locked()
 	var forcer := SpecificAction.from_context(context)
 
 	var passed:bool = await UnitHasecheck.make_save(activation, loser, forcer, Lancer.HASE.SYS)

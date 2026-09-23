@@ -36,8 +36,9 @@
 #
 # SLOWED OR IMMOBILIZED: the archetype's is_available_to_activate refuses a VOLUNTARY move to a
 # Slowed or Immobilized holder (action_reaction_movement.gd:46-51). Immobilized is the card's own
-# rule for any move; Slowed is the archetype's reading and is recorded as a judgment item for the
-# author in the ledger - a Slowed Naga does not slither at all rather than slithering one space.
+# rule for any move; Slowed is Lancer's too - a Slowed character may only take its standard move, so
+# no system move at all. CLOSED AS CORRECT by author decision 7 (frame close, 2026-09-23): a Slowed
+# Naga does not slither rather than slithering one space. Both are pinned in test_wire_slither.gd.
 extends ActionReactionMovement
 
 func get_required_triggering_context() -> Array[Context.PROP]:
