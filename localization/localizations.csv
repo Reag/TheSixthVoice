@@ -657,3 +657,35 @@ gear.ms_superpositional_profile.action_shimmer.name,Shimmer
 gear.ms_superpositional_profile.action_shimmer.trigger,You are targeted by a |ranged attack|.
 gear.ms_superpositional_profile.action_shimmer.effect,"Expend a charge, the attack gains |+2 DIFFICULTY=lancer.term.difficulty|, if the attack misses you may immediately |teleport| to a space within range 3."
 gear.ms_superpositional_profile.action_shimmer_blink.name,Shimmer
+,
+frame.mf_hazard.name,Hazard
+frame.mf_hazard.flavor.short,Common Soldier
+frame.mf_hazard.flavor,"The Hazard is IPS-N's experimental attempt to create a mech that is able to operate at full efficiency in every possible situation. Incorporating many of the lessons learned from the Broadcasts, it utilizes a wide array of IPS-N technologies; self-shielding, multifaceted armature, redundant ammo feeds, and universal ammunition for all theater deployment. Due to its heavily standardized nature as a infantry mech, many pilots opt to decorate their Hazard to fit their personality. IPS-N encourages this behavior and it is common to see them heavily modded, flying flags of every nationality, planet, or group imaginable, emblazoned with pride and glory. At its core, the Hazard speaks to some irrepressible part of the human spirit. It does not stand for some warlord in a tower, or a king upon his throne. The Hazard is the common soldier, side by side, marching to war. The true bravery that comes with the storm of bullets and whizzing shrapnel. Those who win the day again and again, spending their blood, sweat, and tears for each mile of progress. Those who spend their lives so that others may see each new day upon the horizon. The Hazard. Dont give up the ship."
+,
+gear.mt_weight_of_fire.name,Weight of Fire
+gear.mt_weight_of_fire.effect,"All non-|Auxiliary| weapons mounted on the Hazard and adjacent allied mechs increase their |Reliable| equal to half |Grit|. If they do not have Reliable, they instead gain that much."
+gear.buff_weight_of_fire.name,Weight of Fire
+gear.buff_weight_of_fire.effect,"All non-|Auxiliary| weapons mounted on the Hazard and adjacent allied mechs increase their |Reliable| equal to half |Grit|. If they do not have Reliable, they instead gain that much."
+,
+gear.mt_shield_wall.name,Shield Wall
+gear.mt_shield_wall.effect,"At the end of the Hazards turn, it may choose an adjacent allied character, they gain |OVERSHIELD| equal to 1+|GRIT|."
+gear.mt_shield_wall.action_shield_wall.name,Shield Wall
+gear.mt_shield_wall.action_shield_wall.effect,"At the end of the Hazards turn, it may choose an adjacent allied character, they gain |OVERSHIELD| equal to 1+|GRIT|."
+,
+gear.cp_int_type_command_systems.name,INT-Type Command Systems
+gear.cp_int_type_command_systems.flavor,"IPS-N's INT type systems provide real-time statistics and helpful recommendations to pilots during combat scenarios in an effort to increase overall metrics. While not particularly popular amongst users, the results remain positive with a notable 15% productivity increase and higher operation success rates in moderate to severe theaters."
+gear.cp_int_type_command_systems.effect,"1/round, when an adjacent allied character starts their turn, you may choose to give the first attack they make +1 |Accuracy|. Until the end of your next turn, the next attack you make has +1 |Difficulty|."
+gear.cp_int_type_command_systems.action_supporting_fire.name,Supporting Fire
+gear.cp_int_type_command_systems.action_supporting_fire.effect,"1/round, when an adjacent allied character starts their turn, you may choose to give the first attack they make +1 |Accuracy|. Until the end of your next turn, the next attack you make has +1 |Difficulty|."
+gear.buff_supporting_fire.name,Supporting Fire
+gear.buff_supporting_fire.effect,"1/round, when an adjacent allied character starts their turn, you may choose to give the first attack they make +1 |Accuracy|. Until the end of your next turn, the next attack you make has +1 |Difficulty|."
+gear.buff_supporting_fire_cost.name,Supporting Fire
+gear.buff_supporting_fire_cost.effect,"1/round, when an adjacent allied character starts their turn, you may choose to give the first attack they make +1 |Accuracy|. Until the end of your next turn, the next attack you make has +1 |Difficulty|."
+gear.cp_int_type_command_systems.action_dont_give_up_the_mech.name,DONT GIVE UP THE MECH
+gear.cp_int_type_command_systems.action_dont_give_up_the_mech.effect,"All allied characters within |SENSORS| may move up to their speed as a |reaction|. For the rest of the scene, you and all adjacent allied characters can not be pushed, pulled, knocked back, or knocked |Prone|."
+gear.buff_dgutm_active.name,DONT GIVE UP THE MECH
+gear.buff_dgutm_active.effect,"All allied characters within |SENSORS| may move up to their speed as a |reaction|. For the rest of the scene, you and all adjacent allied characters can not be pushed, pulled, knocked back, or knocked |Prone|."
+gear.buff_dgutm_knockback.name,DONT GIVE UP THE MECH
+gear.buff_dgutm_knockback.effect,"All allied characters within |SENSORS| may move up to their speed as a |reaction|. For the rest of the scene, you and all adjacent allied characters can not be pushed, pulled, knocked back, or knocked |Prone|."
+gear.buff_dgutm_prone.name,DONT GIVE UP THE MECH
+gear.buff_dgutm_prone.effect,"All allied characters within |SENSORS| may move up to their speed as a |reaction|. For the rest of the scene, you and all adjacent allied characters can not be pushed, pulled, knocked back, or knocked |Prone|."

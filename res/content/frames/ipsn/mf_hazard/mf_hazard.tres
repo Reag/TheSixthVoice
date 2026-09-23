@@ -1,0 +1,60 @@
+[gd_resource type="Resource" script_class="Frame" format=3]
+
+[ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="1_frame"]
+[ext_resource type="Script" uid="uid://bxpc46igtsmvw" path="res://engine/character/unit/statblock.gd" id="2_statblock"]
+[ext_resource type="Script" uid="uid://dch85ypcupfgo" path="res://engine/character/unit_core/color_scheme.gd" id="3_colorscheme"]
+[ext_resource type="Script" uid="uid://djuk56crywqss" path="res://engine/character/unit_core/mount_type.gd" id="4_mounttype"]
+[ext_resource type="Resource" uid="uid://bsktp4ushq6g1" path="res://content/mounts/mount_flex.tres" id="5_mountflex"]
+[ext_resource type="Resource" uid="uid://dvhgasnfwqbym" path="res://content/mounts/mount_main.tres" id="6_mountmain"]
+[ext_resource type="Resource" uid="uid://dj0bl2ve85q5o" path="res://content/mounts/mount_heavy.tres" id="7_mountheavy"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ipsn/mf_hazard/mf_hazard.png" id="9_sprite"]
+
+; DERIVED FROM THE SPRITE ART, NOT LEFT AS THE PLACEHOLDER GRAYS (the Vauban's SP5 ruling, re-run
+; here as every frame's since). Measured 2026-09-24 with the shader-literal test
+; palette_swap_func.gdshaderinc uses (pixel == (v,0,0)/(0,v,0)/(0,0,v)/(0,v,v) for v in
+; palette_index_r.png's seven red values 51, 85, 119, 153, 187, 221, 255): mf_hazard.png (80x80,
+; 3,363 opaque pixels - the author's own art, delivered before SP1) has ZERO channel-encoded
+; pixels, so this scheme is INERT on this sprite, like every frame's since the Sluagh.
+; So base_0..2 hold the sprite's OWN most-common literal fill colours (a plain colour census,
+; excluding the pure-black linework at 87px): the magenta (139,20,116 - 165px), a blue slate
+; (67,70,93 - 95px) and a khaki (103,94,85 - 75px), most-used first.
+[sub_resource type="Resource" id="Resource_colorscheme"]
+script = ExtResource("3_colorscheme")
+base_0 = Color(0.54509807, 0.078431375, 0.45490196, 1)
+base_1 = Color(0.2627451, 0.27450982, 0.3647059, 1)
+base_2 = Color(0.40392157, 0.36862746, 0.33333334, 1)
+
+[sub_resource type="Resource" id="Resource_statblock"]
+script = ExtResource("2_statblock")
+size = 1
+structure = 4
+stress = 4
+health = 10
+armor = 1
+evasion = 8
+edef = 8
+speed = 4
+heat = 5
+save_target = 10
+sensor_range = 10
+tech_attack = -2
+repairs = 5
+systems_points = 6
+reactions = 1
+activations = 1
+
+[resource]
+script = ExtResource("1_frame")
+default_color_scheme = SubResource("Resource_colorscheme")
+sprites = Array[Texture2D]([ExtResource("9_sprite")])
+; FILLED IN SHEET ORDER, ONE TASK AT A TIME (the Naga's rule): Task 1 lands the frame with NO
+; traits; Task 2 appends mt_weight_of_fire, Task 3 mt_shield_wall, Task 4
+; cp_int_type_command_systems. An ext_resource pointing at a file that does not exist yet would make
+; this WHOLE resource fail to parse, taking the frame out of ContentLibrary silently.
+traits = Array[ExtResource("8_kit")]([])
+mount_types = Array[ExtResource("4_mounttype")]([ExtResource("5_mountflex"), ExtResource("6_mountmain"), ExtResource("7_mountheavy")])
+stat = SubResource("Resource_statblock")
+; STRIKER then SUPPORT, the sheet's order (Lancer.SQUAD_ROLE, lancer.gd:181).
+role_primary = 1
+role_secondary = 5
