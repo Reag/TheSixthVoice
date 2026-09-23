@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.9.0'
+const EXPECTED_VERSION := '0.10.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -816,6 +816,56 @@ const ICON_TARGETS := {
 	# SP4 Task 3 (Leoleth). GreenLight Projection. A weapon mod with no actions at all - the
 	# wm_ripper_mod / wm_ddmr shape - so nothing but the Kit's own icon is ever shown. SP5's.
 	&'wm_greenlight_projection': {},
+	# SP1 Task 2 (Naga). Wire Slither's reaction wears the KIT's glyph: the icon directive gives a
+	# trait and the reaction it creates ONE glyph, and that is spelled KIT - absence, not duplication
+	# (mt_toe_to_toe's row). The Kit's own icon is SP5's; this row is part of the deliberate red
+	# until then. FRAME CLOSE (author decision 6): the reaction's effect row is now the card sentence
+	# verbatim, the Kit's own text, so Action.show_in_tooltip hides it as a duplicate and it reaches
+	# no player-facing surface - the trait card draws the Kit alone, under the Kit's glyph.
+	&'mt_wire_slither': {},
+	# SP1 Task 3 (Naga). A passive trait with no action of its own - the mt_fleet_of_foot shape. Its
+	# VISIBLE chip, buff_advanced_targeting_calculations, is listed in VISIBLE_BUFFS below and wears
+	# the trait's own glyph (ruling 2). The Kit's own icon is SP5's.
+	&'mt_advanced_targeting_calculations': {},
+	# SP1 Task 4 (Naga). SHIMMERING VEIL: exactly two glyph families (design 5) - SALVATION (the
+	# protocol, its chip, and its hidden relock reaction, which never gets a row because its script
+	# overrides show_in_tooltip to false) and THE BLOOD (the passive's reaction, which IS the card's
+	# passive line and carries its own trigger and effect rows so Action.show_in_tooltip does not
+	# hide it as a duplicate of the Kit's text). Both families and the Kit's own icon are SP5's.
+	&'cp_shimmering_veil': {
+		&'action_salvation_upon_the_wicked': &'action_salvation_upon_the_wicked',
+		&'action_blood_of_the_creature': &'action_blood_of_the_creature',
+	},
+	# SP2 Task 1 (Naga). The Shimmering Blade: one Kit, one profile, so KIT (the Thunder Sword's row).
+	# The Thrown sub-menu wears the engine's own throw.svg. The Kit's icon is SP5's.
+	&'mw_shimmering_blade': {&'action_shimmering_blade': KIT},
+	# SP2 Task 2 (Naga). Wide Gaze Networks: two invades, each its own named family (SP5 decided they
+	# draw separate pictures). The clear action is SITUATIONAL, which keeps it off THIS unit's gear bar
+	# and off the trait card - but it DOES reach a bar: the Hypnotized TARGET's situational list
+	# (unit_action.gd:31-53 -> gear_bar.gd:91-102), so it is in the Hypnotize family, the chip's own
+	# glyph, rather than wearing the Kit's (naga close, slice 6 #4). SP5's.
+	&'ms_wide_gaze_networks': {
+		&'action_ping': &'action_ping',
+		&'action_hypnotize': &'action_hypnotize',
+		&'action_hypnotize_clear': &'action_hypnotize',
+	},
+	# SP3 Task 1 (Naga). Binding Fangs: one Kit, one profile, so KIT (the Blade's row). SP5's.
+	&'mw_binding_fangs': {&'action_binding_fangs': KIT},
+	# SP3 Task 2 (Naga). Green Tide: one Kit, one action, so KIT. SP5's.
+	&'ms_green_tide': {&'action_charging_swarm': KIT},
+	# SP3 Task 2 (Naga). The greenwash swarm's two trait Kits, on the MARKER dep_green_tide - the
+	# Decimate crater's pair. Neither carries a player-facing action: the surge and the expiry both
+	# override show_in_tooltip to false (a marker is never selected, so no card draws them). Only the
+	# Kits' own icons are checked, and a marker's Kit icon is drawn on nothing today.
+	&'mt_green_tide': {},
+	&'mt_green_tide_expiry': {},
+	# SP4 Task 1 (Naga). Weeping Lance: one Kit, one profile plus its forgo sub-menu entry (both
+	# profiles, one family - design 5), so KIT. The forced consume is a hidden reaction whose script
+	# overrides show_in_tooltip to false, so it has no row. SP5's.
+	&'mw_weeping_lance': {&'action_weeping_lance': KIT},
+	# SP4 Task 2 (Naga). Bounded Automatic Targeting Systems: a weapon mod, no action - its only
+	# player-facing surface is the Kit (the mod chip and the on-hit prompt's title). SP5's.
+	&'wm_bounded_automatic_targeting_systems': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1031,6 +1081,18 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# active at all. buff_arc_bonus, its hidden +1d6 half, is deliberately absent - one card, one
 	# chip.
 	&'buff_arc',
+	# SP1 Task 3 (Naga). Advanced Targeting Calculations' chip - VISIBLE by ruling 2, with the
+	# trait's own icon: the frame's signature rule, and a trait the player cannot see reads as "does
+	# nothing" (the Leoleth close's rule). Metastatic Paralysis hides its twin; this one does not.
+	&'buff_advanced_targeting_calculations',
+	# SP1 Task 4 (Naga). SALVATION UPON THE WICKED's chip: the only on-token sign that the protocol
+	# is running for the rest of the scene, and the id its relock reaction gates on. Its own rows.
+	&'buff_salvation',
+	# SP2 Task 2 (Naga). Ping's chip - the only sign the Impaired is tied to the lock and to a clock.
+	&'buff_ping',
+	# SP2 Task 2 (Naga). Hypnotize's chip - the target's own cue that it has a clear to take. Its
+	# attacker-side partner buff_hypnotize_targeting is hidden plumbing.
+	&'buff_hypnotized',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -1120,7 +1182,7 @@ func test_every_player_facing_kit_and_action_has_a_real_icon():
 		# quietly dropped from ICON_TARGETS is invisible to every assertion above this line. Walk
 		# the OTHER direction - every action the Kit actually carries - and assert its presence in
 		# `listed` agrees with whether the engine would ever draw it with an icon of its own. See
-		# _action_reaches_a_player_facing_surface's header for the three surfaces and the rule.
+		# _action_reaches_a_player_facing_surface's header for the four surfaces and the rule.
 		var first_weapon_action:Action = null
 		var weapon_actions:Array[ActionAttackWeapon] = kit.get_weapon_actions() # kit.gd:129-132
 		if not weapon_actions.is_empty(): first_weapon_action = weapon_actions[0]
@@ -1131,7 +1193,7 @@ func test_every_player_facing_kit_and_action_has_a_real_icon():
 					% [kit.compcon_id, action.get_id()])
 
 ## Whether ACTION would be drawn with an icon of its own by some real player-facing surface, rather
-## than borrowing the Kit's - i.e. whether it belongs in ICON_TARGETS at all. Three surfaces do
+## than borrowing the Kit's - i.e. whether it belongs in ICON_TARGETS at all. Four surfaces do
 ## this, and each clause below transcribes that surface's actual gate rather than guessing, so the
 ## rule tracks the engine instead of drifting from it as new content lands:
 ##
@@ -1152,16 +1214,37 @@ func test_every_player_facing_kit_and_action_has_a_real_icon():
 ##     rows despite being reactions that never reach the gear bar (path 2 above always excludes a
 ##     reaction, so this path is the only one that can list one).
 ##
-## A hidden bookkeeping reaction (mt_blasting_powder's, ms_heaer's, mt_halo's) fails all three and is
-## correctly unlisted; the Pike's strike is caught only by path 1, and the Gyre only by path 3 - both
-## load-bearing, not redundant.
+##  4. ANOTHER UNIT's gear bar - the situational list. UnitAction.get_situational_actions walks every
+##     unit's gear for is_situationally_activated actions and offers each one whose
+##     can_be_used_situationally_by(unit, ...) says so (unit_action.gd:31-53), and the gear bar draws
+##     them on the asking unit's own bar (gear_bar.gd:91-102), wearing the action's icon. Action's own
+##     can_be_used_situationally_by returns false (action.gd:180-181), so only an archetype that
+##     OVERRIDES it can ever reach this surface - ActionSystemClearBuff does (the Hypnotized target's
+##     clear, added at the naga close, slice 6 #4). Detected from the script's method list, which
+##     includes every base script's methods (so an override is the name appearing more than once).
+##
+## A hidden bookkeeping reaction (mt_blasting_powder's, ms_heaer's, mt_halo's) fails all four and is
+## correctly unlisted; the Pike's strike is caught only by path 1, the Gyre only by path 3, and the
+## Hypnotize clear only by path 4 - all load-bearing, not redundant.
 ##
 ## first_weapon_action is kit.get_weapon_actions()[0], or null - passed in so it is computed once per
 ## Kit rather than once per action.
 func _action_reaches_a_player_facing_surface(action:Action, kit:Kit, first_weapon_action:Action) -> bool:
 	if action == first_weapon_action: return true
 	if action is not ActionReaction and not action.is_situationally_activated: return true
+	if action.is_situationally_activated and _overrides_situational_gate(action): return true
 	return action.show_in_tooltip(kit)
+
+## Whether the action's script (or any script between it and Action) overrides
+## can_be_used_situationally_by. get_script_method_list walks the whole script chain, so the base
+## declaration is one entry and every override adds another.
+func _overrides_situational_gate(action:Action) -> bool:
+	var script:Script = action.get_script()
+	if script == null: return false
+	var count := 0
+	for method:Dictionary in script.get_script_method_list():
+		if method.name == 'can_be_used_situationally_by': count += 1
+	return count > 1
 
 func test_every_visible_buff_has_a_real_icon():
 	# Same shape: driven by what the mod contributed, so VISIBLE_BUFFS cannot fall behind. A buff

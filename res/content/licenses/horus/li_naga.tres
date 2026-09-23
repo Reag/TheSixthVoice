@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="UnlockTree" format=3]
+
+[ext_resource type="Script" uid="uid://dq0jowvw37x6i" path="res://engine/character/unit_core/unlock_tree.gd" id="1_unlocktree"]
+[ext_resource type="Script" uid="uid://ctb1pfqlfgmni" path="res://engine/character/unit_core/unlock_rank.gd" id="2_unlockrank"]
+[ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="3_frame"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="4_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_naga/mf_naga.tres" id="5_mf_naga"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/horus/mf_naga/mf_naga.png" id="6_icon"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_shimmering_blade/mw_shimmering_blade.tres" id="7_blade"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_wide_gaze_networks/ms_wide_gaze_networks.tres" id="8_wgn"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_binding_fangs/mw_binding_fangs.tres" id="9_fangs"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_green_tide/ms_green_tide.tres" id="10_tide"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_weeping_lance/mw_weeping_lance.tres" id="11_lance"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/wm_bounded_automatic_targeting_systems/wm_bounded_automatic_targeting_systems.tres" id="12_bats"]
+
+; THE NAGA'S OWN FULL LICENCE (design 1.1, the Leoleth's file with the ids swapped): rank 2 grants the
+; frame; rank 1 carries SP2's gear (Shimmering Blade, Wide Gaze Networks), rank 2 SP3's (Binding
+; Fangs, Green Tide), rank 3 SP4's (Weeping Lance, Bounded Automatic Targeting Systems). The licence has no name row of its own: UnlockTree.license_name reads rank_2's granted
+; frame and translates frame.mf_naga.name (unlock_tree.gd:28-32), so an empty rank_2 would rename
+; it "???" - test_naga_frame.gd pins the frame's presence there.
+[sub_resource type="Resource" id="Resource_rank1"]
+script = ExtResource("2_unlockrank")
+granted_gear = Array[ExtResource("4_kit")]([ExtResource("7_blade"), ExtResource("8_wgn")])
+
+[sub_resource type="Resource" id="Resource_rank2"]
+script = ExtResource("2_unlockrank")
+granted_frames = Array[ExtResource("3_frame")]([ExtResource("5_mf_naga")])
+granted_gear = Array[ExtResource("4_kit")]([ExtResource("9_fangs"), ExtResource("10_tide")])
+
+[sub_resource type="Resource" id="Resource_rank3"]
+script = ExtResource("2_unlockrank")
+granted_gear = Array[ExtResource("4_kit")]([ExtResource("11_lance"), ExtResource("12_bats")])
+
+[resource]
+script = ExtResource("1_unlocktree")
+icon = ExtResource("6_icon")
+rank_1 = SubResource("Resource_rank1")
+rank_2 = SubResource("Resource_rank2")
+rank_3 = SubResource("Resource_rank3")

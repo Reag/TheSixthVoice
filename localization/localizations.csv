@@ -538,3 +538,68 @@ gear.buff_arc.effect,"JÖRMUNGANDR retaliates against the first hostile to damag
 gear.wm_greenlight_projection.name,GreenLight Projection
 gear.wm_greenlight_projection.flavor,Split the sun with thy furious blows!
 gear.wm_greenlight_projection.effect,"Choose one |melee| weapon: 1/round, after you hit a character with this weapon, you take 1 |Burn| and the target takes 3 |Burn|."
+,
+frame.mf_naga.name,Naga
+frame.mf_naga.flavor.short,Shimmering Havoc
+frame.mf_naga.flavor,"The Broadcasts started small, a couple frequencies spewing numbers, sites on the omninet that spit out poems, half written books, or puzzles. As they ramped up and actual pieces of technology came through, most of the initial output was abandoned, cast by the wayside, and forgotten. But not everyone forgot. A small group of devotees unearthed a complicated chain of puzzles, buried deep in the labyrinthine depths of forgotten chatrooms, articles, and servers. For years they toiled away, spending their lives in pursuit of whatever ultimate secret that was just beyond reach. At first they were almost all disappointed. At the end of it all was just another piece of hardware, just the fabrication for another machine of war. However, in the years since, they discovered something rather curious, every single person that had worked on that final puzzle, no matter how small a contribution, had all ceased to age. Almost immediately, Union jumped to put as many as they could through an extensive battery of tests to find the cause of this newfound longevity. What they found were nanites, smaller than before, each one replicated from natural detritus and repurposed to support their charge. Unfortunately, their creation remained to be a secret that remained within whatever fabrications had been unearthed. Thus was the Naga pattern group born, harnessing the power of these new nanites, it has established itself as a versatile option for those who want to protect their allies and wreak havoc upon those who think they can get away."
+,
+gear.mt_wire_slither.name,Wire Slither
+gear.mt_wire_slither.effect,"1/round, when the Naga takes a Tech Action, it may immediately move two spaces. This movement ignores |engagement| and doesn’t provoke reactions."
+gear.mt_wire_slither.action_wire_slither.name,Wire Slither
+gear.mt_wire_slither.action_wire_slither.effect,"1/round, when the Naga takes a Tech Action, it may immediately move two spaces. This movement ignores |engagement| and doesn’t provoke reactions."
+,
+gear.mt_advanced_targeting_calculations.name,Advanced Targeting Calculations
+gear.mt_advanced_targeting_calculations.effect,"The Naga's Smart weapons Critically Hit on an attack roll of 18 or higher rather than 20."
+gear.buff_advanced_targeting_calculations.name,Advanced Targeting Calculations
+gear.buff_advanced_targeting_calculations.effect,"The Naga's Smart weapons Critically Hit on an attack roll of 18 or higher rather than 20."
+,
+gear.cp_shimmering_veil.name,Shimmering Veil
+gear.cp_shimmering_veil.effect,"1/round, when you or an allied character within sensors consume |Lock On|, you may take 1 |heat| to have the triggering character gain 1 |OVERSHIELD| and move 3 spaces. This movement ignores |engagement| and doesn’t provoke reactions."
+gear.cp_shimmering_veil.action_salvation_upon_the_wicked.name,SALVATION UPON THE WICKED
+gear.cp_shimmering_veil.action_salvation_upon_the_wicked.effect,"For the rest of the scene, whenever a hostile character would lose |Lock On| within sensors. They must succeed a |Systems save| or take 1 |AP| Kinetic damage and become Locked On."
+gear.buff_salvation.name,SALVATION UPON THE WICKED
+gear.buff_salvation.effect,"For the rest of the scene, whenever a hostile character would lose |Lock On| within sensors. They must succeed a |Systems save| or take 1 |AP| Kinetic damage and become Locked On."
+gear.cp_shimmering_veil.action_salvation_relock.name,SALVATION UPON THE WICKED
+gear.cp_shimmering_veil.action_blood_of_the_creature.name,THE BLOOD OF THE CREATURE THAT BRINGS ABOUT THE BEGINNING OF DAYS
+gear.cp_shimmering_veil.action_blood_of_the_creature.effect,"1/round, when you or an allied character within sensors consume |Lock On|, you may take 1 |heat| to have the triggering character gain 1 |OVERSHIELD| and move 3 spaces. This movement ignores |engagement| and doesn’t provoke reactions."
+gear.mw_shimmering_blade.name,Shimmering Blade
+gear.mw_shimmering_blade.flavor,"""Bleed and crack oh shrivelous thing, weep your tears of joy and pain, for they sate my hunger till the end of time"""
+gear.mw_shimmering_blade.on_crit,"Gain 2 |Overshield|, your target must succeed on a |Systems save| or become |Slowed| until the end of their next turn."
+gear.ms_wide_gaze_networks.name,Wide Gaze Networks
+gear.ms_wide_gaze_networks.flavor,The system suite incorporated into Gaze Networks provides real time tracking of hostile forces and allows for a continuous broadcast of enemy locations. The repeated noise from generated target locks however are a continued complaint as many pilots report hearing the noise even in their dreams.
+gear.ms_wide_gaze_networks.action_ping.name,Ping
+gear.ms_wide_gaze_networks.action_ping.effect,"Your target becomes |Locked on|. Until the end of your next turn, if the target has |Lock On|, they are also |Impaired|."
+gear.ms_wide_gaze_networks.action_hypnotize.name,Hypnotize
+gear.ms_wide_gaze_networks.action_hypnotize.effect,You may immediately scan the target. Allied characters attacks against the target may choose to target either |Evasion| or |E-Defense| regardless of if the weapon is smart. This lasts until they succeed on a |Systems check| as a quick action.
+gear.ms_wide_gaze_networks.action_hypnotize_clear.name,Hypnotize
+gear.ms_wide_gaze_networks.action_hypnotize_clear.effect,This lasts until they succeed on a |Systems check| as a quick action.
+gear.buff_ping.name,Ping
+gear.buff_ping.effect,"Until the end of your next turn, if the target has |Lock On|, they are also |Impaired|."
+gear.buff_hypnotized.name,Hypnotize
+gear.buff_hypnotized.effect,Allied characters attacks against the target may choose to target either |Evasion| or |E-Defense| regardless of if the weapon is smart. This lasts until they succeed on a |Systems check| as a quick action.
+gear.mw_binding_fangs.name,Binding Fangs
+gear.mw_binding_fangs.flavor,"L-map{23.1}: [message transcript]
+OctoPiss: any progress on that eye puzzle? went through all those images but found nothing
+Br1ghtG0T: YEAH! it was encrypted old cradle morse hidden in the audio graphs, linked me to some old wiki site
+OctoPiss: anything interesting or about that REX guy?
+Br1ghtG0T: not yet, did find the fab files for what i think is some kinda nanite knife, gonna print it togniht
+OctoPiss: badass
+OctoPiss: any updates?
+Octopiss: hello? dude its been a week, where the hell are you?
+Br1ghtG0T: YOU CANNOT HIDE
+[transcript ends]"
+gear.mw_binding_fangs.effect,"You may attack with this weapon without expending or requiring charges, and this weapon can be destroyed (due to critical damage or other effects) even if it has no charges remaining."
+gear.mw_binding_fangs.on_hit,"You may expend a charge. If you do, you take 1 |Heat|, and the target becomes |Locked On|."
+gear.ms_green_tide.name,Green Tide
+gear.ms_green_tide.flavor,"""And nothing from you shall doth fade, for you are strange enough neath my hands in that callous foaming twirl"""
+gear.ms_green_tide.action_charging_swarm.name,Charging Swarm
+gear.ms_green_tide.action_charging_swarm.effect,"A |Blast 1| area within |sensors| becomes coated in a greenwash swarm. Until the start of your next turn, allied characters that start their turn at least partially within the area or move into it for the first time in a round, may immediately move up to their |speed| as a |reaction|. This movement is not affected by |Slowed| or |Immobilized|."
+gear.mt_green_tide.name,Charging Swarm
+gear.mt_green_tide.action_green_tide_surge.name,Charging Swarm
+gear.mt_green_tide.action_green_tide_surge.effect,"Until the start of your next turn, allied characters that start their turn at least partially within the area or move into it for the first time in a round, may immediately move up to their |speed| as a |reaction|. This movement is not affected by |Slowed| or |Immobilized|."
+gear.mw_weeping_lance.name,Weeping Lance
+gear.mw_weeping_lance.flavor,"The designation of a Weeping Lance is more of a loose term that describes its general properties rather than a specific fabrication. Typically consisting of a handle and maybe a guiding form, the weapon functions as more of a nanite delivery tool than a conventional melee armament. A container is hooked up to the pommel of the weapon and premade nanites are cycled through repeatedly to create the look of a perpetually dripping lance. Upon impact, the nanites activate and eat away at any systems or exposed core they can find."
+gear.mw_weeping_lance.effect,"When you attack with this weapon and consume |Lock On|, you may choose to forgo the +1 |Accuracy| from |Lock On|. If you do, the weapon damage becomes 2d6 + 4."
+gear.wm_bounded_automatic_targeting_systems.name,Bounded Automatic Targeting Systems
+gear.wm_bounded_automatic_targeting_systems.flavor,"(LRL.9d.GRL2) [Audio, Length: 2:04][Date null] (Teplog Room SPR) ""He is like smoke, a shifting nefarious thing, the thief of thieves, the king of kings, right? so remember this, when it says he chose to die and leave and die again that MEANS something. Its gotta mean something because its all it keeps saying about him, and I've started to think about it more, in my sleep and my dreams even. I feel like I'm so close to cracking it, its on the TIP of my tongue, but it just isn't clicking. We got that dual nanite file from OCTP, those bullets remember? they had both types, but together as a whole, just like it says he was. We gotta go deeper, we are almost there, I can feel it. You just gotta trust me."""
+gear.wm_bounded_automatic_targeting_systems.effect,"1/round, when you hit with an attack that consumed |Lock On| you may expend a charge, if you do, the hit is treated as a |Critical Hit|. Resulting damage is not rolled twice. If the hit was already Critical, you deal the maximum possible damage."

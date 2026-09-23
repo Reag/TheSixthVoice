@@ -21,6 +21,7 @@ const VaubanFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/vauban_fi
 const PrimroseFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/primrose_fixture.gd')
 const SluaghFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/sluagh_fixture.gd')
 const LeolethFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/leoleth_fixture.gd')
+const NagaFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/naga_fixture.gd')
 ## Read-only here: the Mark's retort case asserts the dome is untouched between its two halves.
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
 
@@ -945,6 +946,20 @@ func test_the_empty_axe_is_still_destructible_with_the_emperor_extender_in_the_c
 	assert_true(UnitPrinter.get_destructable_gear([axe]).has(axe),
 		'THE RULING: super-first whitelists compose - the empty axe is offered with the resident co-extending the file.')
 
+## Naga SP3 (design ruling 14) put a SECOND id on the same whitelist - Binding Fangs, whose card says
+## the axe's sentence word for word. Same override, same chain, so the same ruling; pinned by name so
+## a whitelist that ever loses the Fangs goes red here as well as in test_binding_fangs.gd.
+func test_the_empty_binding_fangs_are_destructible_with_the_emperor_extender_in_the_chain() -> void:
+	if skipped_without_emperor_printer(): return
+	var naga:Unit = NagaFixture.create_naga(game, LEOLETH_TILE)
+	var fangs:GearCore = NagaFixture.equip(naga, &'mw_binding_fangs')
+	assert_true(GearCore.is_valid(fangs), 'fixture: the Fangs are equipped.')
+	if not GearCore.is_valid(fangs): return
+	fangs.charges_current = 0
+	assert_false(fangs.has_charges_left(), 'fixture: and empty.')
+	assert_true(UnitPrinter.get_destructable_gear([fangs]).has(fangs),
+		'THE RULING, extended: the empty Fangs are offered with the resident co-extending the file.')
+
 ## The other half of "compose": the resident's own override still runs under ours. Read structurally,
 ## because its effect (an mf_emperor health correction) needs an Emperor and a pilot to show.
 func test_both_extensions_are_in_one_chain_and_vanilla_is_its_root() -> void:
@@ -993,3 +1008,41 @@ func test_two_mods_whitelisting_the_same_function_compose_rather_than_cancel() -
 	assert_false(drill.has_charges_left(), '...which is the only state either whitelist is for.')
 	assert_eq(UnitPrinter.get_destructable_gear([axe, drill]).size(), 2,
 		'THE RULING: super-first whitelists UNION - both mods\' weapons are offered in one run.')
+
+
+# ===================== THE OVERSHIELD SEAM (Naga, Shimmering Veil) =====================
+# The resident gavstarb-ssc_emperor extends event_unit_overshield.gd (super-calling: it fires an
+# invented &"overshield_emperor" trigger at PRE and POST and adds an optional `boolean` context
+# prop). Ruled at the Naga's design (its Contested seams line): both of our grants - the core
+# passive's "gain 1 OVERSHIELD" and the Shimmering Blade's "Gain 2 Overshield" (SP2) - go through the
+# frozen Overshield.grant, which fires the vanilla event the resident extends ADDITIVELY; its trigger
+# is noise to us and ours is unchanged by it. This pins that with the resident live, a grant still
+# lands the number. Identified by SOURCE in the live script chain, the unit_printer idiom above.
+const EMPEROR_OVERSHIELD_MARKER := 'overshield_emperor'
+const OVERSHIELD_EVENT_SCRIPT := 'res://content/events/event_unit_overshield.gd'
+
+func live_overshield_chain() -> Array[Script]:
+	var chain:Array[Script] = []
+	var script:Script = load(OVERSHIELD_EVENT_SCRIPT)
+	while script != null:
+		chain.append(script)
+		script = script.get_base_script()
+	return chain
+
+func skipped_without_emperor_overshield() -> bool:
+	if live_overshield_chain().any(func(script:Script) -> bool: return script.source_code.contains(EMPEROR_OVERSHIELD_MARKER)):
+		return false
+	var message := 'SKIPPED: %s is not resident, so the overshield seam is unmeasured against its extender. Restore the residency set with restore-links.ps1.' % SSC_EMPEROR_MOD
+	gut.p(message)
+	pass_test(message)
+	return true
+
+func test_an_overshield_grant_still_lands_the_number_with_the_emperor_extender_live() -> void:
+	if skipped_without_emperor_overshield(): return
+	var game:Gamemaster = LeolethFixture.create_game(self)
+	var unit:Unit = LeolethFixture.create_ally(game, Vector2i(4, 4))
+	assert_eq(Overshield.current(unit), 0, 'fixture: none to start.')
+	await Overshield.grant(SpecFactory.dummy_event({unit = unit}), unit, 1)
+	assert_eq(Overshield.current(unit), 1, 'THE RULING: a grant of 1 under the resident reads 1 - additive extension, no interference.')
+	await Overshield.grant(SpecFactory.dummy_event({unit = unit}), unit, 2)
+	assert_eq(Overshield.current(unit), 2, 'And the engine max semantics survive it too.')

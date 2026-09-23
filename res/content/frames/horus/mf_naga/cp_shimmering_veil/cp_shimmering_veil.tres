@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="2_action"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_naga/cp_shimmering_veil/action_salvation_upon_the_wicked.tres" id="3_salvation"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_naga/cp_shimmering_veil/action_salvation_relock.tres" id="4_relock"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_naga/cp_shimmering_veil/action_blood_of_the_creature.tres" id="5_blood"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_shimmering_veil.svg" id="6_icon"]
+
+; SHIMMERING VEIL, the core system (design 1.4): three actions, each in its own usage group. The
+; protocol SALVATION UPON THE WICKED (consumes_cp) hangs buff_salvation; action_salvation_relock is
+; its hidden statuses_changed reaction, live only while the chip is; THE BLOOD OF THE CREATURE... is
+; the passive's attack POST reaction and IS the card's passive line. The Kit's `.effect` row is that
+; passive line; the active has its own rows. SP5: three families total - the Kit's own bare veil
+; glyph here, plus SALVATION (the protocol, the chip, the relock) and THE BLOOD (the passive's
+; reaction), each a separate picture per the guard's assert_ne between a Kit's own icon and any
+; family it hosts.
+[resource]
+script = ExtResource("1_kit")
+actions = Array[ExtResource("2_action")]([ExtResource("3_salvation"), ExtResource("4_relock"), ExtResource("5_blood")])
+is_trait = true
+icon_override = ExtResource("6_icon")

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="BuffModifyAttackRoll" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_naga/mt_advanced_targeting_calculations/buff_advanced_targeting_calculations.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_advanced_targeting_calculations.svg" id="2_icon"]
+
+; The permanent, VISIBLE crit-threshold chip (rulings 2-4). step 5 is EventUnitAttack.SEQUENCE_STEP.
+; turn_hit_to_crit - Weak Spot's step (buff_markerlight_weak_spot.tres carries the same 5);
+; applies_when_holder_is 0 is APPLIES_WHEN.attacker. allow_tech is false: the card says WEAPONS.
+; needs_confirmation stays false: the trait is a rule, not a choice. SP5: wears the SAME texture
+; as mt_advanced_targeting_calculations.tres (ruling 2 - the trait's own glyph, not a new picture).
+[resource]
+script = ExtResource("1_buff")
+threshold = 18
+step = 5
+applies_when_holder_is = 0
+needs_confirmation = false
+allow_tech = false
+to = &"modify_attack_roll"
+icon = ExtResource("2_icon")

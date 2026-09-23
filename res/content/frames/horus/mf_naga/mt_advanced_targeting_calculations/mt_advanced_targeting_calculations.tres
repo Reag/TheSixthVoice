@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="1_passive"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="3_buff"]
+[ext_resource type="Script" uid="uid://dy4kg537rc55e" path="res://engine/character/gear_passive/passive_buff_applicator.gd" id="4_applicator"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_naga/mt_advanced_targeting_calculations/buff_advanced_targeting_calculations.tres" id="5_chip"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_advanced_targeting_calculations.svg" id="6_icon"]
+
+; ADVANCED TARGETING CALCULATIONS: a passive trait with no action of its own - the Gorgon's
+; mt_metastatic_paralysis shape (a PassiveBuffApplicator hanging one MODIFY_ATTACK_ROLL buff at
+; combat start), minus the hidden flag. Rulings 2-5; the buff's own header has the seam. SP5: a
+; math-ticked reticle inside the lock-on-bracket register; buff_advanced_targeting_calculations
+; wears this same file (ruling 2 - the chip is VISIBLE and shows the trait's own glyph).
+[sub_resource type="Resource" id="Resource_applicator"]
+script = ExtResource("4_applicator")
+applied_buffs = Array[ExtResource("3_buff")]([ExtResource("5_chip")])
+
+[resource]
+script = ExtResource("2_kit")
+passives = Array[ExtResource("1_passive")]([SubResource("Resource_applicator")])
+is_trait = true
+icon_override = ExtResource("6_icon")

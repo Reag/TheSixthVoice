@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_binding_fangs/action_binding_fangs.tres" id="3_fangs"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_binding_fangs.svg" id="4_icon"]
+
+; BINDING FANGS, the Naga's rank-II weapon (SP3 Task 1, design ruling 14). SP 1, LIMITED 2
+; (charges_max = 2). One profile; the Thrown sub-menu is the engine's own, built from the THROWN tag.
+;
+; THIS KIT HAS A gear.mw_binding_fangs.effect ROW, the Thermal Death Axe's shape: the card's Effect
+; paragraph has nowhere else to live. "can be destroyed even if it has no charges remaining" is NOT
+; here - a .tres cannot carry it. It is the whitelist in
+; res/engine/character/unit/service/unit_printer.gd_ext.gd, keyed on this file's id.
+; SP5: two crossed fangs, KIT row - the action inherits this file.
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("3_fangs")])
+sp_cost = 1
+charges_max = 2
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"
+icon_override = ExtResource("4_icon")

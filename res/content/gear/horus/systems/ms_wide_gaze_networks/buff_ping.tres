@@ -1,0 +1,17 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_wide_gaze_networks/buff_ping.gd" id="1_chip"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_ping.svg" id="2_icon"]
+
+; Ping's WINDOW on the target (rebuilt at the frame close, author decision 1). until = 7
+; (END_OF_OWNERS_NEXT_TURN) names the lifetime; the Naga-side buff_ping_clock is what actually ends it
+; on time whatever the turn order (see buff_ping.gd). It carries NO status: the Impaired rides the
+; hidden buff_ping_impaired, which this chip hangs whenever the holder is Locked On inside the window.
+; trigger_timing = 0 (PRE): statuses_changed at PRE is a status APPLIED - a relock re-hangs the
+; Impaired. Visible; SP5 gives it the same file as action_ping.tres (one family).
+[resource]
+script = ExtResource("1_chip")
+until = 7
+triggers_on = Array[StringName]([&"statuses_changed"])
+trigger_timing = 0
+icon = ExtResource("2_icon")

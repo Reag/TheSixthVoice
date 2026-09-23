@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_weeping_lance/action_weeping_lance.tres" id="3_lance"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_weeping_lance/action_weeping_lance_autoconsume.tres" id="4_autoconsume"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mw_weeping_lance.svg" id="5_icon"]
+
+; WEEPING LANCE, the Naga's rank-III weapon (SP4 Task 1, design ruling 18). SP 1. The attack is
+; actions[0] (get_solo_action); the forced consume is a hidden reaction behind it - reactions on a
+; weapon Kit are reached, since LoadoutCore.get_reactions walks get_all_gear, mounts included
+; (loadout_core.gd:506-516). The card's Effect paragraph is the gear.mw_weeping_lance.effect row.
+; SP5: a lance with one bleeding drop off its tip - both profiles and the forgo sub-menu are KIT
+; rows and inherit this file.
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("3_lance"), ExtResource("4_autoconsume")])
+sp_cost = 1
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"
+icon_override = ExtResource("5_icon")

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/systems/ms_green_tide/deployable/action_green_tide_expiry.tres" id="3_expiry"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_green_tide_expiry.svg" id="4_icon"]
+
+; The swarm's lifetime trait (mt_decimate_expiry's shape). A MARKER's Kit is drawn on nothing in
+; play; only the integrity guard's table asks it for an icon. SP5: the same TIDE-MARK picture as
+; mt_green_tide - the surge and its own expiry timer are one mechanic, not two.
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("3_expiry")])
+is_trait = true
+icon_override = ExtResource("4_icon")

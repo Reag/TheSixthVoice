@@ -1,0 +1,8 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_binding_fangs/onhit_binding_fangs.gd" id="1_onhit"]
+
+; apply_on stays ON_HIT (the default): the lock is offered on a hit, crit or not. No statuses, no
+; save - the script does the whole clause (see its header).
+[resource]
+script = ExtResource("1_onhit")

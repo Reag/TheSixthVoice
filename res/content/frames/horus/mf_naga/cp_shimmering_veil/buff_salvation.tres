@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_salvation_upon_the_wicked.svg" id="2_icon"]
+
+; SALVATION UPON THE WICKED's chip on the Naga, for the rest of the scene (ruling 8): a plain Buff,
+; until MANUAL (the default), VISIBLE - it is the only on-token sign that the protocol is running,
+; and action_salvation_relock reads it by id, so it has to exist as a standalone buff_*.tres whether
+; or not it were visible (buff_gather_round's reasoning). It carries its own name and effect rows.
+; SP5: wears the SAME texture as action_salvation_upon_the_wicked.tres (the SALVATION family).
+[resource]
+script = ExtResource("1_buff")
+icon = ExtResource("2_icon")

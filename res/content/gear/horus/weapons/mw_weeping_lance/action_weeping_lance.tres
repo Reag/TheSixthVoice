@@ -1,0 +1,15 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/horus/weapons/mw_weeping_lance/action_weeping_lance.gd" id="1_attack"]
+
+; Heavy (2) Melee (2), 1d6+3 Kinetic (0, omitted), Threat 2, SMART, AP, THROWN 5 in the card's order.
+; The forgo profile (2d6+4) is the script's variant sub-menu, not a second action.
+[resource]
+script = ExtResource("1_attack")
+damage_dice = "1d6+3"
+weapon_size = 2
+weapon_type = 2
+aim_range = 0
+threat = 2
+tags = Array[StringName]([&"smart", &"ap", &"thrown"])
+thrown = 5
