@@ -27,10 +27,9 @@
 # spend costs nothing. Yes: 1 HEAT self through UnitAction.gain_self_heat_alt (vanilla's own
 # self-heat shape, an event_unit_damage HEAT flagged SELF_INFLICTED), then Overshield.grant(1) on the
 # consumer - engine-max semantics, so an ally already holding 2 keeps 2, which is Lancer's own
-# Overshield rule - then event_unit_pick_move on the consumer, number 3, with a voluntary
-# MovementType carrying ignore_engagement and ignore_rxns (Quick March's shape moves a unit that is
-# not the holder; the mover's own controller drives the picker), with no `unit` on the event - see
-# the note at the queue_event below.
+# Overshield rule - then a 3-space move the CONSUMER picks and takes, with a voluntary
+# MovementType carrying ignore_engagement and ignore_rxns - planned and executed in activate, not
+# through event_unit_pick_move; see the note there.
 extends ActionReaction
 
 const Lockon := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/lockon/lockon.gd')
@@ -79,19 +78,20 @@ func activate(context:Context, activation:EventCore) -> void:
 	await Overshield.grant(activation, consumer, OVERSHIELD_GAIN)
 	if activation.abort_without_units([naga, consumer]): return
 
+	# THE CONSUMER CHOOSES THIS MOVE - nothing forces it - so it is planned and executed here, Green
+	# Tide's surge shape (action_green_tide_surge.gd: event_unit_pick_move's budget branch, :112-113 and
+	# :145-162, WITHOUT its knockback-immunity abort at :78). A pick_move naming the Naga as `unit` let
+	# Heavy Frame / Fomorian Frame (buff_heavy_frame_knockback.gd compares that unit's size to the
+	# mover's) refuse a size-3 ally after its heat was paid; omitting `unit` sends an AI-controlled
+	# mover to the nearest reachable tile (target_action_util.gd:110-116) and strips the picker's label
+	# (frame close, 2026-09-23). The specific names the CONSUMER, so the picker is its own, player or AI.
+	var as_consumer := SpecificAction.from_context(context)
+	as_consumer.unit = consumer
 	var movement := MovementType.create(consumer, true)
 	movement.ignore_engagement = true
 	movement.ignore_rxns = true
-	activation.queue_event(&'event_unit_pick_move', {
-		target_unit = consumer,
-		resource = movement,
-		number = MOVE_SPACES,
-		# NO `unit`: it is the consumer choosing to move, not the Naga pushing it - vanilla Perimeter
-		# Command Plate omits it for this reason. event_unit_pick_move.gd:78 aborts any non-shunt
-		# pick_move the mover is knockback-immune to FROM that unit, and Heavy Frame / Fomorian Frame
-		# compare the mover's size to it (buff_heavy_frame_knockback.gd), so `unit = naga` refused a
-		# size-3 ally outright after its heat was paid (frame close, 2026-09-23). gear and action
-		# still say which Kit opened the picker.
-		gear = context.gear,
-		action = context.action,
-	})
+	var pathfinder := await Pathfinder.generate_for_movement_budget(consumer, MOVE_SPACES, movement)
+	if activation.abort_without_unit(consumer): return
+	var plan := await TargetActionUtil.ask_for_movement_alt(consumer, pathfinder, as_consumer)
+	if activation.abort_without_movement_plan(plan, consumer): return
+	await activation.execute_events(pathfinder.generate_events(consumer, plan.move_path, [], as_consumer))

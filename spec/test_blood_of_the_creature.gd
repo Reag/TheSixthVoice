@@ -323,7 +323,15 @@ func test_the_move_ignores_engagement() -> void:
 	await lock_and_shoot(naga, naga, hostile)
 	assert_eq(blood_prompts().size(), 1, 'LIVENESS: offered and taken.')
 	assert_eq(blood_move_prompts().size(), 1, 'LIVENESS: the picker opened.')
-	assert_eq(naga.tile(), ENGAGED_DESTINATION, 'THE CLAIM: "ignores engagement" - it slid past the zone.')
+	# THE CLAIM IS READ OFF THE PICKER'S PATHFINDER, not only the landing tile: in TEST_MODE a player
+	# pick within budget is walked as a STRAIGHT path (target_action_util.gd:95, the player-decides branch,
+	# is_tile_within_max_distance_of_straight_movement), which reaches (2,2) whatever the move type -
+	# the real picker only offers reachable tiles. Frame close: this test stayed green with
+	# ignore_engagement deleted until this line was added.
+	var offered:Pathfinder = blood_move_prompts()[0].get('pathfinder')
+	assert_true(offered.is_movable(ENGAGED_DESTINATION),
+		'THE CLAIM: "ignores engagement" - the picker offers the tile past the zone.')
+	assert_eq(naga.tile(), ENGAGED_DESTINATION, 'And the Naga went there.')
 
 func test_the_move_provokes_no_overwatch() -> void:
 	# A rifle hostile adjacent to the Naga's (4,5): its threat 1 covers the Naga's start, and the
