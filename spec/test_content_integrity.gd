@@ -883,6 +883,12 @@ const ICON_TARGETS := {
 	# given a trigger row of its own, the Blood of the Creature's shape - SP5's call. The Kit's own
 	# icon and Rend's are SP5's.
 	&'cp_lav_tactical_engine': {&'action_rend': &'action_rend'},
+	# SP2 Task 1 (Purple Thorn). Blink Bolt Launcher: one Kit, one profile, so KIT (the Shimmering
+	# Blade's row). The Kit's icon is SP5's.
+	&'mw_blink_bolt_launcher': {&'action_blink_bolt_launcher': KIT},
+	# SP2 Task 2 (Purple Thorn). Trajectory Arc Mapper: a passive system, no action - its one surface
+	# is the Kit. Its hidden buff is in HIDDEN_BUFFS_NEEDING_ICONS below. SP5's.
+	&'ms_trajectory_arc_mapper': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1483,6 +1489,10 @@ const HIDDEN_BUFFS_NEEDING_ICONS:Array[StringName] = [
 	# Buff.get_icon() - so BuffBonus's difficulty-svg fallback never runs there and a null leaves a
 	# blank beside the -1. Its icon is SP5's.
 	&'buff_bulwark_penalty',
+	# SP2 Task 2 (Purple Thorn). Trajectory Arc Mapper's +1 accuracy is hidden - the system card says
+	# it - but attack_roll.gd:189 draws it in the roll breakdown from buff_core.base.icon RAW, the 43
+	# As' case with the sign flipped. Its icon is SP5's.
+	&'buff_trajectory_arc_mapper',
 ]
 
 func test_every_hidden_buff_that_is_still_drawn_has_a_real_icon():

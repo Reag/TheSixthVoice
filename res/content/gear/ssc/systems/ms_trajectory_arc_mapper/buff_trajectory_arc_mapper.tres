@@ -1,0 +1,14 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_trajectory_arc_mapper/buff_trajectory_arc_mapper.gd" id="1_buff"]
+
+; +1 accuracy (subtype accuracy, not flat) on ATTACK_ROLL; MELEE (2) forbidden; basic attacks
+; allowed (an improvised ranged attack has a range too). Hidden: the card is the Kit's own row.
+[resource]
+script = ExtResource("1_buff")
+bonus_subtype = &"accuracy"
+bonus_value = 1
+weapon_types_forbidden = Array[int]([2])
+allow_basic = true
+to = &"attack_roll"
+hide_from_player = true

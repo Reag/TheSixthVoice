@@ -627,3 +627,8 @@ gear.cp_lav_tactical_engine.action_rend.name,Rend That which is Cruel and Unnatu
 gear.cp_lav_tactical_engine.action_rend.effect,"You may immediately |Skirmish| as a |free action|. Until the end of your next turn, whenever you deal damage to a hostile character, they must make a |Systems save| or be teleported to free space you choose within range 3 of their original position."
 gear.buff_cruel_and_unnatural.name,Rend That which is Cruel and Unnatural
 gear.buff_cruel_and_unnatural.effect,"Until the end of your next turn, whenever you deal damage to a hostile character, they must make a |Systems save| or be teleported to free space you choose within range 3 of their original position."
+gear.mw_blink_bolt_launcher.name,Blink Bolt Launcher
+gear.mw_blink_bolt_launcher.flavor,"While resembling a simple bolt launcher, the Blink carries this weapon from being useful, to being an iconic piece of the TIAX-UYL line. The head of each shard of metal is embedded with a small tracker that connects to on-frame TIAX systems. While not as destructive when compared with its contemporaries, it offers an unmatched level of reliability with its bolt being able to teleport straight through cover and into the heart of its foes."
+gear.ms_trajectory_arc_mapper.name,Trajectory Arc Mapper
+gear.ms_trajectory_arc_mapper.flavor,"One of the Broadcast's more versatile pieces of tech, the Trajectory Arc Mapper uses preset predictive algorithms to offload mathematical strain on targeting systems allowing for drastically increased precision."
+gear.ms_trajectory_arc_mapper.effect,"When attacking a |character| whose distance from you is equal to the range of the weapon, you gain +1 |accuracy|."

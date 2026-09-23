@@ -192,7 +192,7 @@ func test_the_licence_grants_the_frame_at_rank_two_and_nowhere_else():
 	assert_true(license.rank_1.granted_frames.is_empty(), 'rank_1 grants no frame.')
 	assert_true(license.rank_3.granted_frames.is_empty(), 'rank_3 grants no frame.')
 
-func test_the_licence_grants_no_gear_yet():
+func test_the_licence_grants_exactly_the_gear_built_so_far():
 	# EXACT lists, not "contains ours": each line goes red exactly once, in the sub-project that
 	# fills that rank (SP2 rank 1, SP3 rank 2, SP4 rank 3), and that sub-project rewrites this test
 	# the way test_naga_frame.gd's own rewrite did.
@@ -200,7 +200,9 @@ func test_the_licence_grants_no_gear_yet():
 	assert_not_null(license, 'fixture: the licence loads.')
 	if license == null: return
 	if license.rank_1 == null or license.rank_2 == null or license.rank_3 == null: return
-	assert_true(license.rank_1.granted_gear.is_empty(), 'Rank 1 grants no gear until SP2.')
+	var rank_1_ids:Array = license.rank_1.granted_gear.map(func(kit:Kit) -> StringName: return kit.compcon_id)
+	assert_eq(rank_1_ids, [&'mw_blink_bolt_launcher', &'ms_trajectory_arc_mapper'],
+		'Rank 1 grants the Blink Bolt Launcher and the Trajectory Arc Mapper, in sheet order (SP2).')
 	assert_true(license.rank_2.granted_gear.is_empty(), 'Rank 2 grants no gear until SP3.')
 	assert_true(license.rank_3.granted_gear.is_empty(), 'Rank 3 grants no gear until SP4.')
 
