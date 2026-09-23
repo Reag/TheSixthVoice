@@ -10,11 +10,13 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_trajectory_arc_mapper/ms_trajectory_arc_mapper.tres" id="8_ms_trajectory_arc_mapper"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/weapons/mw_shredder_cannon/mw_shredder_cannon.tres" id="9_mw_shredder_cannon"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_pinpoint_mark/ms_pinpoint_mark.tres" id="10_ms_pinpoint_mark"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_hyper_engineered_munitions/ms_hyper_engineered_munitions.tres" id="11_ms_hyper_engineered_munitions"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_superpositional_profile/ms_superpositional_profile.tres" id="12_ms_superpositional_profile"]
 
 ; THE PURPLE THORN'S OWN FULL LICENCE (design 1.1, the Naga's file with the ids swapped): rank 2
 ; grants the frame; each granted_gear is filled by its own sub-project - SP2 (Blink Bolt Launcher,
 ; Trajectory Arc Mapper) at rank 1, filled 2026-09-23, SP3 (Shredder Cannon, Pinpoint Mark) at
-; rank 2, filled 2026-09-23, SP4 (Hyper Engineered Munitions, Superpositional Profile) at rank 3. The licence has no
+; rank 2, filled 2026-09-23, SP4 (Hyper Engineered Munitions, Superpositional Profile) at rank 3, filled 2026-09-23. The licence has no
 ; name row of its own: UnlockTree.license_name reads rank_2's granted frame and translates
 ; frame.mf_purple_thorn.name (unlock_tree.gd:28-32), so an empty rank_2 would rename it "???" -
 ; test_purple_thorn_frame.gd pins the frame's presence there.
@@ -29,7 +31,7 @@ granted_gear = Array[ExtResource("4_kit")]([ExtResource("9_mw_shredder_cannon"),
 
 [sub_resource type="Resource" id="Resource_rank3"]
 script = ExtResource("2_unlockrank")
-granted_gear = Array[ExtResource("4_kit")]([])
+granted_gear = Array[ExtResource("4_kit")]([ExtResource("11_ms_hyper_engineered_munitions"), ExtResource("12_ms_superpositional_profile")])
 
 [resource]
 script = ExtResource("1_unlocktree")

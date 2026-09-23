@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BuffBonus" format=3]
+
+[ext_resource type="Script" uid="uid://bav10yhc56w73" path="res://engine/character/buff/archtypes/buff_bonus.gd" id="1_bonus"]
+
+; SHIMMER's +2 DIFFICULTY on the attack that triggered it (ruling 15): the Saladin's
+; buff_warp_shield.tres with bonus_value -2. On the THORN, attack_roll_incoming, until = 8
+; (FINISH_ATTACK_ROLL), onetime - so it rides exactly the one roll. Hidden: it lives for one roll.
+[resource]
+script = ExtResource("1_bonus")
+bonus_subtype = &"accuracy"
+bonus_value = -2
+until = 8
+to = &"attack_roll_incoming"
+is_onetime = true
+hide_from_player = true
+metadata/_custom_type_script = "uid://bav10yhc56w73"

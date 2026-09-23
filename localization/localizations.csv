@@ -651,3 +651,9 @@ gear.ms_hyper_engineered_munitions.action_load_munitions.name,Load Munitions
 gear.ms_hyper_engineered_munitions.action_load_munitions.effect,"Choose a mount that contains only ranged weapons: until the start of your next turn, whenever you hit a hostile |character| with a weapon on this mount, the target takes 1 |AP| |Kinetic| damage and must succeed on a |Hull save| or become |Impaired| until the end of their next turn."
 gear.buff_loaded_munitions.name,Load Munitions
 gear.buff_loaded_munitions.effect,"Until the start of your next turn, whenever you hit a hostile |character| with a weapon on this mount, the target takes 1 |AP| |Kinetic| damage and must succeed on a |Hull save| or become |Impaired| until the end of their next turn."
+gear.ms_superpositional_profile.name,Superpositional Profile
+gear.ms_superpositional_profile.flavor,"A modification upon the VIGIL-Type blink systems that leans more into the Slipstream capabilities of its predecessors. The Superpositional Profile creates a temporary ""blur"" hologram that shrouds the mech, confusing targeting systems and pilots alike."
+gear.ms_superpositional_profile.action_shimmer.name,Shimmer
+gear.ms_superpositional_profile.action_shimmer.trigger,You are targeted by a |ranged attack|.
+gear.ms_superpositional_profile.action_shimmer.effect,"Expend a charge, the attack gains |+2 DIFFICULTY=lancer.term.difficulty|, if the attack misses you may immediately |teleport| to a space within range 3."
+gear.ms_superpositional_profile.action_shimmer_blink.name,Shimmer

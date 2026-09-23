@@ -1,0 +1,17 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_superpositional_profile/action_shimmer_blink.gd" id="1_blink"]
+
+; SHIMMER'S BLINK (ruling 15). ATTACK POST (trigger_timing 1), the Thorn the DEFENDER, point-free
+; (consumes_rxn false), no charge (the script), armed only by Shimmer's stamp. The same weapon
+; filters as Shimmer, so the two can never disagree about which attack is "ranged". No effect row:
+; Action.show_in_tooltip hides it, and the card is drawn by Shimmer alone.
+[resource]
+script = ExtResource("1_blink")
+require_unit_to_be = 2
+weapon_types_forbidden = Array[int]([2])
+allow_basic = true
+triggers_on = Array[StringName]([&"attack"])
+trigger_timing = 1
+consumes_rxn = false
+usage_group = &"shimmer_blink"

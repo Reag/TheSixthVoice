@@ -206,7 +206,9 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	var rank_2_ids:Array = license.rank_2.granted_gear.map(func(kit:Kit) -> StringName: return kit.compcon_id)
 	assert_eq(rank_2_ids, [&'mw_shredder_cannon', &'ms_pinpoint_mark'],
 		'Rank 2 grants the Shredder Cannon and Pinpoint Mark, in sheet order (SP3).')
-	assert_true(license.rank_3.granted_gear.is_empty(), 'Rank 3 grants no gear until SP4.')
+	var rank_3_ids:Array = license.rank_3.granted_gear.map(func(kit:Kit) -> StringName: return kit.compcon_id)
+	assert_eq(rank_3_ids, [&'ms_hyper_engineered_munitions', &'ms_superpositional_profile'],
+		'Rank 3 grants Hyper Engineered Munitions and the Superpositional Profile, in sheet order (SP4).')
 
 func test_the_licence_names_itself_after_the_frame():
 	# THERE IS NO LICENCE NAME ROW, AND THAT IS THE ENGINE'S DESIGN: UnlockTree.license_name
