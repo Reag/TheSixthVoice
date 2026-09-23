@@ -1,0 +1,18 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_hazard/mt_weight_of_fire/buff_weight_of_fire.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+to = &"weapon_tag"
+added_tag = &"reliable"
+; "non-Auxiliary": MAIN, HEAVY, SUPERHEAVY (Lancer.WEAPON_SIZE { AUX, MAIN, HEAVY, SUPERHEAVY, NONE }).
+; allow_basic stays false, so a basic attack gets nothing.
+weapon_sizes = Array[int]([1, 2, 3])
+; MANUAL. The aura owns this buff's lifetime - it applies it in range and strips it out of range.
+until = 0
+; HIDDEN: plumbing, not a chip. The weapon card's own Reliable number is where the player sees it.
+hide_from_player = true
+; THE PAYOUT: the holder's own attacks, after all their damage has landed (see the script header).
+triggers_on = Array[StringName]([&"attack_declared"])
+trigger_timing = 1
