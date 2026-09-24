@@ -10,15 +10,13 @@
 # pilot and then never used. So the Kit carries 13, every vanilla NHP's value and the Morrígan's
 # and the Jörmungandr's; test_the_hazard_has_an_nhp_copilot is the pin.
 #
-# THE LINES ARE NOT IN THE RESOURCE. bark_nhp_brigid.tres is an empty BarkSet; the 36 lines are
+# THE LINES ARE NOT IN THE RESOURCE. bark_nhp_brigid.tres is an empty BarkSet; the 38 lines are
 # bark.nhp_brigid.<incident>.<N> rows in localizations.csv, found by counting N upward from 1 and
 # STOPPING AT THE FIRST MISSING KEY (bark_set.gd:168-186).
 #
-# FRIENDLY_FIRE_TARGET HAS NO LINES, BY THE AUTHOR'S FILE, AND THAT IS SILENCE, NOT A FALLBACK.
-# get_bark_for drops to bark_unknown when a set has no line for an incident, but bark_unknown carries
-# lines ONLY for the three leader_* incidents (assets/localization/localizations.csv:386-389), so
-# for friendly_fire_target it finds nothing and returns an empty bark. The case below pins that, so
-# a later vanilla release adding generic lines there shows up here.
+# FRIENDLY_FIRE_TARGET HAD NO LINES until the author added two with the 0.12.0 release (358beb5),
+# so every incident is now voiced. (With none it was silence, not a fallback: bark_unknown carries
+# lines only for the three leader_* incidents, assets/localization/localizations.csv:386-389.)
 #
 # BARKS ARE THIS MOD'S ONE EXEMPTION FROM localization-matches-the-lcp. The lines are the author's
 # file (D:/DEV/lancer-tactics-claude/brigid_barks.txt) transcribed verbatim, trailing spaces trimmed
@@ -50,7 +48,7 @@ const LINES_PER_INCIDENT := {
 	&'destroy_self': 3,
 	&'destroy_ally': 3,
 	&'friendly_fire_self': 2,
-	&'friendly_fire_target': 0,
+	&'friendly_fire_target': 2,
 	&'core_power': 2,
 	&'overcharge': 2,
 	&'brace': 2,
@@ -58,7 +56,7 @@ const LINES_PER_INCIDENT := {
 	&'leader_damage': 1,
 	&'leader_reduce': 1,
 }
-const TOTAL_LINES := 36
+const TOTAL_LINES := 38
 
 var game:Gamemaster
 var hazard:Unit
@@ -148,7 +146,7 @@ func test_every_incident_uses_the_engine_default_odds():
 
 # ------------------------------------------------------------------ the lines
 
-func test_the_barkset_finds_all_thirty_six_lines_with_no_gap():
+func test_the_barkset_finds_all_thirty_eight_lines_with_no_gap():
 	var set:BarkSet = barkset()
 	if not BarkSet.is_valid(set): return fail_test('%s resolves.' % BARKSET)
 	var total := 0
@@ -157,7 +155,7 @@ func test_the_barkset_finds_all_thirty_six_lines_with_no_gap():
 		assert_eq(keys.size(), int(LINES_PER_INCIDENT[incident]),
 			'%s has %s lines, numbered without a gap.' % [incident, LINES_PER_INCIDENT[incident]])
 		total += keys.size()
-	assert_eq(total, TOTAL_LINES, 'Thirty-six lines in all.')
+	assert_eq(total, TOTAL_LINES, 'Thirty-eight lines in all.')
 	assert_eq(LINES_PER_INCIDENT.size(), BarkSet.BARKS.size(), 'Every incident the engine offers is listed.')
 
 func test_every_voiced_incident_is_hers_and_not_the_default():
@@ -169,13 +167,6 @@ func test_every_voiced_incident_is_hers_and_not_the_default():
 		assert_true(String(line.key).begins_with('bark.nhp_brigid.'),
 			'%s came back as one of ours, not bark_unknown: %s' % [incident, line.key])
 		assert_false(String(line.text).is_empty(), '%s has text.' % incident)
-
-func test_friendly_fire_target_is_silent():
-	var set:BarkSet = barkset()
-	if not BarkSet.is_valid(set): return fail_test('%s resolves.' % BARKSET)
-	var line:Dictionary = set.get_bark_for(&'friendly_fire_target', {}, [], true)
-	assert_eq(String(line.key), '', 'No line of ours, and bark_unknown has none to fall back on.')
-	assert_eq(String(line.text), '', 'So she says nothing.')
 
 func test_no_line_carries_a_format_placeholder():
 	var set:BarkSet = barkset()
