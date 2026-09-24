@@ -161,7 +161,9 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	var rank_2_ids:Array = license.rank_2.granted_gear.map(func(k:Kit) -> StringName: return k.compcon_id)
 	assert_eq(rank_2_ids, [&'mw_panic_breaker', &'wm_statistical_compensator'] as Array,
 		'Rank 2 grants the Panic Breaker and the Statistical Compensator, in sheet order.')
-	assert_eq(license.rank_3.granted_gear.size(), 0, 'Rank 3 grants nothing yet (SP4).')
+	var rank_3_ids:Array = license.rank_3.granted_gear.map(func(k:Kit) -> StringName: return k.compcon_id)
+	assert_eq(rank_3_ids, [&'mw_hrr_seneschal', &'ms_brigid_class_nhp'] as Array,
+		'Rank 3 grants the HRR-SENESCHAL and the Brigid-Class NHP, in sheet order (SP4).')
 
 func test_the_licence_names_itself_after_the_frame():
 	var license := _license()

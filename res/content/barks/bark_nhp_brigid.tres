@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="BarkSet" format=3]
+
+[ext_resource type="Script" uid="uid://c0y2qrcbe5qxw" path="res://engine/dialogue/bark/bark_set.gd" id="1_barkset"]
+
+[resource]
+script = ExtResource("1_barkset")
+; EMPTY BY DESIGN, exactly like the Morrigan's and the Jormungandr's. A BarkSet carries no lines:
+; `custom` is for straight-text overrides and `probabilities` for per-incident odds, and the
+; Brigid needs neither. Her 36 lines are the bark.nhp_brigid.<incident>.<N> rows in
+; localization/localizations.csv, which get_possible_bark_keys_for discovers by counting N upward
+; from 1 until a key has no translation (bark_set.gd:168-186). So the lines are data, not resource
+; state, and the numbering must stay GAPLESS or everything after the gap is invisible.
+;
+; The author's stated odds for every incident match BarkSet.BARKS' defaults exactly (bark_set.gd:10-28),
+; so `probabilities` is left empty rather than restating them. friendly_fire_target has NO rows (the
+; author wrote none), which is silence: bark_unknown carries no line for that incident either.
+;
+; is_nhp marks this a co-pilot voice rather than a pilot personality preset; it is what the barkset
+; picker filters on.
+is_nhp = true

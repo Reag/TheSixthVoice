@@ -710,3 +710,48 @@ gear.wm_statistical_compensator.action_statistical_compensator.name,Statistical 
 gear.wm_statistical_compensator.action_statistical_compensator.effect,"When you make an attack roll with the weapon this mod is applied to, you may expend a charge to gain +2 |Reliable| for that attack."
 gear.buff_statistical_compensator.name,Statistical Compensator
 gear.buff_statistical_compensator.effect,"When you make an attack roll with the weapon this mod is applied to, you may expend a charge to gain +2 |Reliable| for that attack."
+gear.mw_hrr_seneschal.name,HRR-SENESCHAL
+gear.mw_hrr_seneschal.flavor,"The most experimental weapon IPS-N has put to mainline production, the HRR-SENESHAL is the hallmark of planet side line infantry. With its massive operational range, consistent output, and ability to capitalize on more complex terrain, its mere presence has ended battles before they have even begun."
+gear.ms_brigid_class_nhp.name,Brigid-Class NHP
+gear.ms_brigid_class_nhp.flavor,"The Brigid-Class NHP was designed to be an all-purpose battlefield companion, integrating the latest in IPS-N's rapid adjustment goal oriented design. Able to be engaged as a continuous presence, Brigid serves as a comrade in arms that is able to provide moral support and tactical input both in and out of engagements. With a tendency for supportive, friendly, and highly protective personalities, plus their ability to turn the tide in sticky situations, many pilots consider them their guardian angels on the battlefield. ""The cowards fears death The courageous fear failure [Fear neither] says Brigid, [You shall face each when you are ready, and no sooner]"""
+gear.ms_brigid_class_nhp.effect,Your mech gains the AI tag and the Rallying Cry quick action.
+gear.ms_brigid_class_nhp.action_rallying_cry.name,Rallying Cry
+gear.ms_brigid_class_nhp.action_rallying_cry.effect,"1/scene, expend a charge and choose an allied mech character within sensors. They clear Impaired, Shredded, and Slowed if they weren't self-inflicted. If they are prone, they stand up. They also clear 1d6+1 Heat."
+gear.ms_brigid_class_nhp.default_name,Brigid
+bark.nhp_brigid,NHP Brigid
+bark.nhp_brigid.deploy.1,Up and at em!
+bark.nhp_brigid.deploy.2,Everyone ready?
+bark.nhp_brigid.deploy.3,We got this in the bag!
+bark.nhp_brigid.start_turn.1,Lets get to work!
+bark.nhp_brigid.start_turn.2,No use dilly dallying
+bark.nhp_brigid.crit_target.1,That was good!
+bark.nhp_brigid.crit_target.2,Good work hun!
+bark.nhp_brigid.structure_target.1,Serves you right!
+bark.nhp_brigid.structure_target.2,Decisive!
+bark.nhp_brigid.stress_target.1,Now! Seize the day!
+bark.nhp_brigid.stress_target.2,Onward! Press the advantage!
+bark.nhp_brigid.stress_target.3,Get em!
+bark.nhp_brigid.destroy_target.1,There!
+bark.nhp_brigid.destroy_target.2,Easy peazy!
+bark.nhp_brigid.destroy_target.3,I knew you could do it!
+bark.nhp_brigid.structure_self.1,Oh my
+bark.nhp_brigid.structure_self.2,Careful now!
+bark.nhp_brigid.stress_self.1,Lets not get carried away!
+bark.nhp_brigid.stress_self.2,Oops
+bark.nhp_brigid.destroy_self.1,Its gonna be alright!
+bark.nhp_brigid.destroy_self.2,"I'll be okay, keep going!"
+bark.nhp_brigid.destroy_self.3,You'll do great without me!
+bark.nhp_brigid.destroy_ally.1,Wait! No! Dont go!
+bark.nhp_brigid.destroy_ally.2,We need you here!
+bark.nhp_brigid.destroy_ally.3,I will mourn you.
+bark.nhp_brigid.friendly_fire_self.1,Its alright! dont worry!
+bark.nhp_brigid.friendly_fire_self.2,Im sure it was an accident.
+bark.nhp_brigid.core_power.1,LETS GET THIS DONE!
+bark.nhp_brigid.core_power.2,WE GOT THIS IN THE BAG
+bark.nhp_brigid.overcharge.1,Till the day is won!
+bark.nhp_brigid.overcharge.2,No stopping now!
+bark.nhp_brigid.brace.1,You are under my protection!
+bark.nhp_brigid.brace.2,Try not to take another one of those please.
+bark.nhp_brigid.leader_accuracy.1,Aim true!
+bark.nhp_brigid.leader_damage.1,There we go!
+bark.nhp_brigid.leader_reduce.1,Isn't that better?

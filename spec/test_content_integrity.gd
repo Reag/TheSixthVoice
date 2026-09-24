@@ -926,6 +926,11 @@ const ICON_TARGETS := {
 	# reaction is hidden (show_in_tooltip false) and whose Reliable buff is hidden, so nothing but the
 	# Kit's own icon is ever shown - `{}`. The prompt shares the Kit's glyph (design 5). SP5: the icon.
 	&'wm_statistical_compensator': {},
+	# SP4 Task 1 (Hazard). HRR-SENESCHAL: one Kit, one profile, so KIT. SP5: the icon.
+	&'mw_hrr_seneschal': {&'action_hrr_seneschal': KIT},
+	# SP4 Task 2 (Hazard). Brigid-Class NHP: Rallying Cry is the one button, and the design's family
+	# is {the Kit, Rallying Cry} (design 5), so KIT - the Morrigan's row. SP5: the icon.
+	&'ms_brigid_class_nhp': {&'action_rallying_cry': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

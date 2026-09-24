@@ -1,0 +1,19 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://vi3dfs5ql3lg" path="res://engine/character/gear_action/action_attack_weapon.gd" id="1_attack"]
+
+; Main (1) Rifle (3), 1d6 Kinetic (0), Range 20 (Hazard design ruling 12). RELIABLE 2 is the one
+; tags entry, its value reliable_damage. HEAT SELF 1 is NOT a tag entry: it is self_heat_dice, drawn
+; as a tag by action.gd:359-361 and rolled by UnitAction.gain_self_heat inside spend_actions, flagged
+; SELF_INFLICTED (unit_action.gd:296-306) - which is why it never offers Emergency Armature. The
+; Annihilator is the vanilla precedent. No FX override: vanilla's default main rifle.
+[resource]
+script = ExtResource("1_attack")
+damage_type = 0
+damage_dice = "1d6"
+weapon_size = 1
+weapon_type = 3
+aim_range = 20
+self_heat_dice = "1"
+tags = Array[StringName]([&"reliable"])
+reliable_damage = "2"
