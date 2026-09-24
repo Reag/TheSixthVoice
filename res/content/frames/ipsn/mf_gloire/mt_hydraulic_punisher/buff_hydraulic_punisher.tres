@@ -1,0 +1,13 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/mt_hydraulic_punisher/buff_hydraulic_punisher.gd" id="1_buff"]
+
+; Hydraulic Punisher's Impaired (design ruling 4). applies_statuses carries the Impaired for exactly
+; as long as this lives (until = MANUAL, the default: "until they clear Prone"); triggers_on
+; statuses_changed at POST (the default timing = a status CLEARED) is how it notices the holder
+; standing up. VISIBLE: no hide_from_player, so the chip is the on-map sign of the trait. Icon: SP3.
+[resource]
+script = ExtResource("1_buff")
+applies_statuses = Array[StringName]([&"impaired"])
+triggers_on = Array[StringName]([&"statuses_changed"])
+log_on_application = true

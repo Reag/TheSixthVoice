@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BuffWeaponTypeBonus" format=3]
+
+[ext_resource type="Script" uid="uid://bqmx1sop25c44" path="res://engine/character/buff/archtypes/buff_weapon_type_bonus.gd" id="1_buffweapontypebonus"]
+
+; EXTENDED ZONE CONTROL, the CQB half: "it has +2 Range with CQB weapons." Design ruling 6. Radiance's
+; buff_radiance_range.tres shape (aim_range on action_range); the Tortuga's own Hyper Reflex Mode is
+; the same archetype on threat_range. ranged_distance (action_attack_weapon.gd:177-184) adds every
+; aim_range bonus, and BuffWeaponType.check_if_passive_applies (buff_weapon_type.gd:37-46) gates on
+; is_weapon_type(CQB) - weapon_types 0 = Lancer.WEAPON_TYPE.CQB. Range, not threat: a CQB weapon's
+; threat is untouched. Hidden plumbing, as the Ram half.
+[resource]
+script = ExtResource("1_buffweapontypebonus")
+bonus_subtype = &"aim_range"
+bonus_value = 2
+weapon_types = Array[int]([0])
+to = &"action_range"
+hide_from_player = true

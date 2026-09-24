@@ -735,6 +735,13 @@ gear.cp_force_distribution_programs.action_calamitous_impact.name,Calamitous Imp
 gear.cp_force_distribution_programs.action_calamitous_impact.effect,You leap up into the air and crash down upon a free space within sensors. All characters within a |Burst 2| area are knocked back 3 spaces and must immediately make a |Hull save|. On a failure they take 2d6+2 |Kinetic| damage and are knocked |Prone|. The |Burst 2| area becomes |Difficult Terrain| for the rest of the scene.
 frame.dep_shackleton_crater.name,Calamitous Impact
 gear.mt_shackleton_crater.name,Calamitous Impact
+frame.mf_gloire.name,Gloire
+frame.mf_gloire.flavor.short,Angry Steel
+frame.mf_gloire.flavor,"The Gloire is IPS-N's alternative to the classic Tortuga. While still boasting the impressive durability and heft of the original, the Gloire embraces some of the Broadcast's new tech. The primary feature of the model is the high powered hydraulic arm and its tie-in Rushdown Systems that it uses to close the gap and keep its targets locked down. While it may not be able to punch mechs quite as far as the Zheng, its zone control adds a level of unrivaled utility without sacrificing the reliability of the Tortuga. It excels at quickly identifying threats, running them down, and stomping them flat. Its amplification systems turn it into a solid mass of angry steel and god help anyone trying to run away."
+gear.mt_hydraulic_punisher.name,Hydraulic Punisher
+gear.mt_hydraulic_punisher.effect,"1/round, when the Gloire knocks a hostile character |Prone|, they become |Impaired| until they clear |Prone|."
+gear.mt_extended_zone_control.name,Extended Zone Control
+gear.mt_extended_zone_control.effect,"The Gloire can |Ram| targets within Range 3 and line of sight. Additionally, it has +2 Range with CQB weapons."
 bark.nhp_brigid,NHP Brigid
 bark.nhp_brigid.deploy.1,Up and at em!
 bark.nhp_brigid.deploy.2,Everyone ready?
