@@ -13,17 +13,23 @@
 # system (measured by spec/test_spike_hazard_sp3_seams.gd) - so the gate asks the FIRING weapon for
 # its mod and compares it with our own gear.
 #
-# WHAT A YES DOES. The ruled carrier - a FINISH_DAMAGE tag buff hung here - is cleared at the end of
-# the attack's execute(), BEFORE the ATTACK_DECLARED POST where reliable_topup.gd pays (measured by
-# the probe). So a yes STAMPS this attack's DeclaredAttackSummary instead; the mod's permanent buff
-# (buff_statistical_compensator.gd) reads +2 only on a stamped attack. The stamp dies with the
-# summary, so nothing can leak to the next attack, even one that aborts before POST.
+# WHAT A YES DOES. It has the shared native_reliable.gd raise the weapon's Reliable by 2 for the
+# length of this attack - we are already at ATTACK_DECLARED PRE, before the engine reads it (:82),
+# so the engine floors every roll itself and Weight of Fire's raise simply adds. It also STAMPS the
+# DeclaredAttackSummary, which is what stops a second offer and what lets the mod's WEAPON_TAG buff
+# (buff_statistical_compensator.gd) draw the +2 during the attack. Until 2026-09-24 the +2 was paid
+# as a second damage event at POST (reliable_topup.gd); the stamp dates from then, when a
+# FINISH_DAMAGE buff could not carry the +2 that far.
 #
 # "YOU MAY": CommonActionUtil.confirm_use - the player's yes/no; the AI declines (charges are a
 # scene resource the AI does not weigh).
 extends ActionReaction
 
 const BuffCompensator := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/wm_statistical_compensator/buff_statistical_compensator.gd')
+const NativeReliable := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/reliable/native_reliable.gd')
+
+## The card's "+2 Reliable".
+const RELIABLE_BONUS := 2
 
 func show_in_tooltip(_kit:Kit) -> bool: return false
 func get_per_round_hard_limit(_specific:SpecificAction) -> int: return 99
@@ -48,3 +54,4 @@ func activate(context:Context, activation:EventCore) -> void:
 	if activation.abort_when(not confirmed): return
 	spend_actions(activation) # a charge
 	BuffCompensator.arm(context.event.context)
+	NativeReliable.raise(context.event, RELIABLE_BONUS, &'statistical_compensator')
