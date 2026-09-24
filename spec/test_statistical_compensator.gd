@@ -6,9 +6,10 @@
 #   expend a charge to gain +2 Reliable for that attack."
 #
 # THE SHAPE. A hidden ATTACK_DECLARED PRE reaction on the mod Kit asks (confirm_use; the AI
-# declines), spends a charge and STAMPS the attack's DeclaredAttackSummary. The mod's permanent
-# WEAPON_TAG buff reads +2 only on a stamped attack, and pays through the shared reliable_topup.gd at
-# ATTACK_DECLARED POST - the same payout Weight of Fire uses, so the two add exactly.
+# declines), spends a charge, STAMPS the attack's DeclaredAttackSummary and has the shared
+# native_reliable.gd raise the weapon's Reliable export by 2 for that attack - the carrier Weight of
+# Fire uses too, so the two add exactly. The mod's WEAPON_TAG buff reads +2 only on a stamped attack
+# (card only). Until 2026-09-24 the +2 was paid at POST by reliable_topup.gd.
 #
 # THE DICE: d20 first, then the damage columns. Hostile evasion 10, armor 0.
 #
@@ -171,6 +172,9 @@ func test_under_weight_of_fire_the_three_add():
 	accept()
 	await miss_with(PANIC_BREAKER)
 	assert_eq(hostile.current_damage(), 8, 'A miss: 4 + 2 + 2.')
+	# two raises on one attack, one shared export (native_reliable.gd): both must come off
+	assert_eq(ContentLibrary.get_kit(PANIC_BREAKER).actions.front().reliable_damage, '4',
+		'The shared Panic Breaker reads its printed Reliable 4 again.')
 
 func test_weight_of_fire_alone_still_pays_when_the_mod_is_declined():
 	Fixture.set_grit(hazard, 4)

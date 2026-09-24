@@ -13,6 +13,6 @@ weapon_sizes = Array[int]([1, 2, 3])
 until = 0
 ; HIDDEN: plumbing, not a chip. The weapon card's own Reliable number is where the player sees it.
 hide_from_player = true
-; THE PAYOUT: the holder's own attacks, after all their damage has landed (see the script header).
+; THE RAISE: the holder's own attacks, before the engine reads Reliable (see the script header).
 triggers_on = Array[StringName]([&"attack_declared"])
-trigger_timing = 1
+trigger_timing = 0

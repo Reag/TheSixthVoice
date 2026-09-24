@@ -14,9 +14,9 @@
 # bark.nhp_brigid.<incident>.<N> rows in localizations.csv, found by counting N upward from 1 and
 # STOPPING AT THE FIRST MISSING KEY (bark_set.gd:168-186).
 #
-# FRIENDLY_FIRE_TARGET WAS SILENT AT SP4 (the author's file had no lines for it) AND IS VOICED SINCE
-# THE AUTHOR'S 358beb5 (2026-09-24), which added two rows. The silence test went with it; the voiced
-# test below now covers the incident like every other.
+# FRIENDLY_FIRE_TARGET HAD NO LINES until the author added two with the 0.12.0 release (358beb5),
+# so every incident is now voiced. (With none it was silence, not a fallback: bark_unknown carries
+# lines only for the three leader_* incidents, assets/localization/localizations.csv:386-389.)
 #
 # BARKS ARE THIS MOD'S ONE EXEMPTION FROM localization-matches-the-lcp. The lines are the author's
 # file (D:/DEV/lancer-tactics-claude/brigid_barks.txt) transcribed verbatim, trailing spaces trimmed
@@ -48,7 +48,7 @@ const LINES_PER_INCIDENT := {
 	&'destroy_self': 3,
 	&'destroy_ally': 3,
 	&'friendly_fire_self': 2,
-	&'friendly_fire_target': 2, # added by the author in 358beb5 (2026-09-24); was silent at SP4
+	&'friendly_fire_target': 2,
 	&'core_power': 2,
 	&'overcharge': 2,
 	&'brace': 2,
