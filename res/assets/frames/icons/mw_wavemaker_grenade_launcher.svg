@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- mw_wavemaker_grenade_launcher : Reag-TheSixthVoice Hazard icon, SP5 -->
+<path d="M20,30 a10,10 0 1,0 0.01,0 Z"/>
+<path d="M27,23 L34,16 L38,20 L31,27 Z"/>
+<path d="M8,30 A22,22 0 0,1 12,17 M46,30 A22,22 0 0,1 42,17" stroke="white" stroke-width="3" fill="none"/>
+<path d="M2,30 A28,28 0 0,1 8,13 M52,30 A28,28 0 0,1 46,13" stroke="white" stroke-width="3" fill="none"/>
+</svg>

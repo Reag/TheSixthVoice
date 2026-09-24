@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://blv61i0a1ghms" path="res://engine/character/gear_passive/passive_ai_privilege.gd" id="6_ai_privilege"]
 [ext_resource type="JSON" path="res://unpacked/Reag-TheSixthVoice/res/content/portraits/default_nhps/brigid.json" id="7_portrait"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/barks/bark_nhp_brigid.tres" id="8_barkset"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_brigid_class_nhp.svg" id="9_icon"]
 
 [sub_resource type="Resource" id="Resource_brigid_ai"]
 script = ExtResource("6_ai_privilege")
@@ -38,3 +39,4 @@ charges_max = 4
 ; which leaves the charges alone. ONE ACTION, so no usage_group: the tally falls back to the Kit id.
 uses_per_scene = 1
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"
+icon_override = ExtResource("9_icon")

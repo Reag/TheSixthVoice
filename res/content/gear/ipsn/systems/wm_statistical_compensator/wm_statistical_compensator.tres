@@ -7,11 +7,12 @@
 [ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="5_buff"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/wm_statistical_compensator/action_statistical_compensator.tres" id="6_prompt"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/wm_statistical_compensator/buff_statistical_compensator.tres" id="7_reliable"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/wm_statistical_compensator.svg" id="8_icon"]
 
 ; STATISTICAL COMPENSATOR, the Hazard's rank-II weapon mod (SP3 Task 2, design ruling 11). SP 2,
 ; UNIQUE (system_tags 1), LIMITED 3 (charges_max). Fits Rifle (3), Cannon (1), Launcher (4), CQB (0),
 ; Nexus (5), Melee (2) - the card's order - at Main (1), Heavy (2), Superheavy (3). No added_tags: the
-; +2 is optional and charged, so it is the applied buff, armed per attack by the prompt. SP5: the icon.
+; +2 is optional and charged, so it is the applied buff, armed per attack by the prompt.
 [sub_resource type="Resource" id="Resource_compensator"]
 script = ExtResource("4_weaponmod")
 allowed_sizes = Array[int]([1, 2, 3])
@@ -26,3 +27,4 @@ sp_cost = 2
 system_tags = 1
 charges_max = 3
 metadata/_custom_type_script = "uid://ckrv6mvs5q65e"
+icon_override = ExtResource("8_icon")

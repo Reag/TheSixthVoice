@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- action_supporting_fire : Reag-TheSixthVoice Hazard icon, SP5 (buff_supporting_fire/buff_supporting_fire_cost share this texture) -->
+<path d="M8,50 L30,20 L34,24 L14,52 Z"/>
+<path d="M34,20 L56,50 L52,52 L30,24 Z"/>
+<path d="M22,10 L26,10 L26,16 L22,16 Z M38,10 L42,10 L42,16 L38,16 Z"/>
+</svg>

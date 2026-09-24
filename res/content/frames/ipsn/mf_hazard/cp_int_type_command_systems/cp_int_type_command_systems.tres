@@ -6,12 +6,18 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_hazard/cp_int_type_command_systems/action_supporting_fire.tres" id="4_sf"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_hazard/cp_int_type_command_systems/action_dont_give_up_the_mech.tres" id="5_dgutm"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_hazard/cp_int_type_command_systems/passive_dgutm_immunity.tres" id="6_aura"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_int_type_command_systems.svg" id="7_icon"]
 
 ; INT-TYPE COMMAND SYSTEMS, the core system (design 1.4): two actions, each in its own usage group,
 ; and the immunity aura the active switches on. SUPPORTING FIRE is the passive (NEW_TURN POST); the
 ; Kit's .effect row is that sentence. DONT GIVE UP THE MECH is the active (QUICK, consumes_cp).
+; SP5: three glyphs - the Kit's own bare beacon, SUPPORTING FIRE's own family (a show_in_tooltip
+; override on the action, the Stalk the Horizon shape, since its effect row duplicated the Kit's
+; text and hid), and DONT GIVE UP THE MECH's own family (buff_dgutm_active shares its texture). See
+; test_content_integrity.gd's ICON_TARGETS row.
 [resource]
 script = ExtResource("1_kit")
 actions = Array[ExtResource("2_action")]([ExtResource("4_sf"), ExtResource("5_dgutm")])
 passives = Array[ExtResource("3_passive")]([ExtResource("6_aura")])
 is_trait = true
+icon_override = ExtResource("7_icon")

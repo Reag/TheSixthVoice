@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- ms_brigid_class_nhp : Reag-TheSixthVoice Hazard icon, SP5 (action_rallying_cry shares this texture) -->
+<path d="M20,6 L26,6 L26,58 L20,58 Z"/>
+<path d="M26,10 L54,16 L26,30 Z"/>
+<path d="M32,36 a4,4 0 1,0 0.01,0 Z M20,44 A18,18 0 0,1 40,44" stroke="white" stroke-width="3" fill="none"/>
+</svg>

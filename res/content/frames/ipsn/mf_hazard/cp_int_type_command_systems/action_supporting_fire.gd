@@ -27,6 +27,13 @@ extends ActionReaction
 @export var ally_buff:Buff
 @export var cost_buff:Buff
 
+## ALWAYS DRAWN ON THE KIT (SP5, the Stalk the Horizon shape - design 5's "exactly two families" for
+## this core power). Without this override the effect row duplicates the Kit's own text (the Kit's
+## .effect IS this sentence) and action.gd:350-352 hides it, leaving Supporting Fire with no
+## player-facing surface to hang a glyph on. Forced to draw, it hides the Kit's duplicate plain text
+## instead (tooltip_organ_kit.gd:77-83), so the passive appears once, under its own name and glyph.
+func show_in_tooltip(_kit:Kit) -> bool: return not is_situationally_activated
+
 func get_per_round_hard_limit(_specific:SpecificAction) -> int: return 1
 
 func get_required_triggering_context() -> Array[Context.PROP]:
