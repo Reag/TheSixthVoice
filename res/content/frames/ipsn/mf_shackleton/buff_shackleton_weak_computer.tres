@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BuffSkillSave" format=3]
+
+[ext_resource type="Script" uid="uid://d1ariwna5bslg" path="res://engine/character/buff/archtypes/buff_skill_save.gd" id="1_buffskillsave"]
+; The Fitzgerald's buff_weak_computer.tres copied, per design ruling 2: set explicitly because
+; ICON_TARGETS/VISIBLE_BUFFS check the raw field (get_icon() would fall back to it for mod<0 anyway).
+[ext_resource type="Texture2D" path="res://assets/icons/inaccuracy.svg" id="2_icon"]
+
+; save_type 2 = SYSTEMS; roll_check is the one path both make_systems_check and make_systems_save
+; reach, so one buff covers "checks and saves" (unit_hasecheck.gd:161-193).
+[resource]
+script = ExtResource("1_buffskillsave")
+save_type = 2
+mod = -1
+to = &"save"
+icon = ExtResource("2_icon")
+metadata/_custom_type_script = "uid://d1ariwna5bslg"

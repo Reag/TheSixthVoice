@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.12.1'
+const EXPECTED_VERSION := '0.13.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -288,6 +288,24 @@ const LEOLETH_LOCALIZATION_ROWS:Array[String] = [
 
 func test_the_leoleths_unguarded_rows_resolve():
 	for key:String in LEOLETH_LOCALIZATION_ROWS:
+		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+
+## The Shackleton's crater rows (SP2) - the Vauban pair's case exactly: both belong to a MARKER, and
+## no surface a spec can reach renders them. Plus the core's own rows, belt-and-braces with
+## test_unfathomable_weight.gd / test_calamitous_impact.gd, which read the action names off the
+## compiled artifact through their prompt titles.
+const SHACKLETON_LOCALIZATION_ROWS:Array[String] = [
+	'frame.dep_shackleton_crater.name',
+	'gear.mt_shackleton_crater.name',
+	'gear.cp_force_distribution_programs.name',
+	'gear.cp_force_distribution_programs.flavor',
+	'gear.cp_force_distribution_programs.action_unfathomable_weight.effect',
+	'gear.cp_force_distribution_programs.action_calamitous_impact.name',
+	'gear.cp_force_distribution_programs.action_calamitous_impact.effect',
+]
+
+func test_the_shackletons_unguarded_rows_resolve():
+	for key:String in SHACKLETON_LOCALIZATION_ROWS:
 		assert_ne(tr(key), key, '%s resolves to real text.' % key)
 
 ## The Rend Axe's three rows (SP2 Task 1, Primrose). Unlike the three lists above, these ARE also
@@ -936,6 +954,21 @@ const ICON_TARGETS := {
 	# SP4 Task 2 (Hazard). Brigid-Class NHP: Rallying Cry is the one button, and the design's family
 	# is {the Kit, Rallying Cry} (design 5), so KIT - the Morrigan's row.
 	&'ms_brigid_class_nhp': {&'action_rallying_cry': KIT},
+	# SP1 (Shackleton). Spatial Rerouting: no passive and no action - the rule is the mod's
+	# common_action_util.gd_ext.gd keyed on this Kit's id - so the Kit is its only surface. SP3: icon.
+	&'mt_spatial_rerouting': {},
+	# SP1 (Shackleton). Mobilized Hydraulics: two hidden buffs and a yes/no, no action of its own; the
+	# prompt's brochure is the Kit's card. One family (design 3). SP3: icon.
+	&'mt_mobilized_hydraulics': {},
+	# SP1 (Shackleton). Weak Computer, its own copy (ruling 2): the Fitzgerald's inaccuracy.svg reuse.
+	&'mt_shackleton_weak_computer': {},
+	# SP2 (Shackleton). FORCE DISTRIBUTION PROGRAMS: two pressables, each its own glyph family (the
+	# icon directive's "a two-part core power is exactly two families"). The collision reaction is
+	# hidden (localization_key_override, action.gd:348) and shares Unfathomable Weight's family at SP3.
+	&'cp_force_distribution_programs': {&'action_unfathomable_weight': &'action_unfathomable_weight', &'action_calamitous_impact': &'action_calamitous_impact'},
+	# SP2 (Shackleton). The crater's zone trait, on the MARKER dep_shackleton_crater - the mt_maar_terrain
+	# shape. It shares Calamitous Impact's family at SP3.
+	&'mt_shackleton_crater': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1186,6 +1219,9 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# SP1 Task 4 (Hazard). DONT GIVE UP THE MECH's switch on the Hazard - the only sign the immunity
 	# aura is up for the rest of the scene (its two immunity buffs are hidden). Its own rows.
 	&'buff_dgutm_active',
+	# SP1 (Shackleton). Weak Computer's permanent chip, buff_weak_computer's reasoning: the drawback is
+	# legible on the token. Its text falls through to gear.mt_shackleton_weak_computer's rows.
+	&'buff_shackleton_weak_computer',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -1383,6 +1419,8 @@ const BUFFS_THAT_BORROW_A_CARD := {
 	# by mistake - the hazard the Rend Nexus hit needs a MULTI-action or a weapon Kit.
 	&'buff_wicked_host': 'gear.mt_wicked_host.effect',
 	&'buff_weak_computer': 'gear.mt_weak_computer.effect',
+	# SP1 (Shackleton). The Shackleton's own Weak Computer copy (design ruling 2), the same case.
+	&'buff_shackleton_weak_computer': 'gear.mt_shackleton_weak_computer.effect',
 	&'buff_gravity_well': 'gear.mt_gravity_well.effect',
 	# ADDED AT THE LEOLETH FRAME CLOSE, 2026-09-22, and the Leoleth's own new name guard is what
 	# found it: the 43 As chip is the fourth instance of the trait-chip case directly above, and SP1

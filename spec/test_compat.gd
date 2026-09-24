@@ -24,6 +24,7 @@ const LeolethFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/leoleth_
 const NagaFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/naga_fixture.gd')
 const PurpleThornFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/purple_thorn_fixture.gd')
 const HazardFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/hazard_fixture.gd')
+const ShackletonFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/shackleton_fixture.gd')
 ## Read-only here: the Mark's retort case asserts the dome is untouched between its two halves.
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
 
@@ -1179,3 +1180,46 @@ func test_house_guard_on_the_hazard_lets_supporting_fire_trigger_two_tiles_out()
 	assert_true(UnitCondition.has_buff(far_ally, HazardFixture.SF_BUFF),
 		'RULED: Supporting Fire triggered for the widened ally.')
 	assert_true(UnitCondition.has_buff(hazard, HazardFixture.SF_COST_BUFF), 'And the Hazard paid.')
+
+
+# ===================== THE RULING: UNFATHOMABLE WEIGHT'S BURST IS NOT ADJACENCY =====================
+
+## RULING, 2026-09-24, the Shackleton design's `Contested seams:` line (adjacency - IGNORED, by
+## geometry). Deferred from SP1 to SP2 with the burst it pins.
+##
+## Unfathomable Weight's "Burst 1 area around you" is UnitTile.get_aoe_tiles(unit, BURST, 1) -
+## AoeCalculator.burst over the footprint - and never UnitRelation.adjacent_characters, which is the
+## only thing House Guard overrides. House Guard is also only_to_allies and the card pushes only
+## hostiles, so today no unit can be widened INTO this card at all; what this pins is the geometry,
+## so that re-implementing the burst through adjacency, or the talents mod widening hostiles, turns
+## it red rather than silently pushing units two tiles out.
+##
+## LIVENESS FIRST, as every pin in this file: an ally two tiles out IS adjacent under the buff.
+func test_house_guard_does_not_widen_unfathomable_weights_burst() -> void:
+	if skipped_without_talents(): return
+	if is_instance_valid(SpecFactory.current_responder):
+		SpecFactory.current_responder.choose_yesnos = false
+		SpecFactory.current_responder.choose_moves = false
+	var made:Array = ShackletonFixture.create_game(self)
+	var sgame:Gamemaster = made[0]
+	var sresponder = made[1]
+	# Size 2 at (5,5) covers (5..6, 5..6); its Burst 1 stops at x = 4 and x = 7.
+	var shackleton := ShackletonFixture.create_shackleton(sgame, Vector2i(5, 5))
+	var far_ally := ShackletonFixture.create_dummy(sgame, Vector2i(8, 5), -10, Faction.PLAYER)
+	var far_hostile := ShackletonFixture.create_dummy(sgame, Vector2i(3, 5))
+	var near_hostile := ShackletonFixture.create_dummy(sgame, Vector2i(7, 6))
+	var burst_before := UnitTile.get_aoe_tiles(shackleton, Lancer.AOE_TYPE.BURST, 1)
+	widen_adjacency_on(shackleton)
+	UnitTile.update_tracking_and_statuses(sgame.map)
+	assert_true(UnitRelation.adjacent_characters(shackleton).has(far_ally),
+		'LIVENESS: House Guard widens adjacency two tiles out.')
+	assert_eq(UnitTile.get_aoe_tiles(shackleton, Lancer.AOE_TYPE.BURST, 1), burst_before,
+		'RULED: the burst is geometry, untouched by the widening.')
+
+	await ShackletonFixture.open_turn(sgame, shackleton)
+	sresponder.yesno_queue.assign([true])
+	sresponder.move_tile_queue.assign([Vector2i(9, 6)])
+	await SpecFactory.use(sgame, shackleton, ShackletonFixture.CORE_ID, ShackletonFixture.WEIGHT_ID)
+	assert_eq(near_hostile.tile(), Vector2i(9, 6), 'A hostile inside the burst is pushed - the press ran.')
+	assert_eq(far_hostile.tile(), Vector2i(3, 5), 'RULED: one two tiles out is not.')
+	assert_eq(far_ally.tile(), Vector2i(8, 5), 'Nor the widened ally.')

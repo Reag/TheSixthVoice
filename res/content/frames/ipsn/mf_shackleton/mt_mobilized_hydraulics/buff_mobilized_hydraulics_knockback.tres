@@ -1,0 +1,8 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/mt_mobilized_hydraulics/buff_mobilized_hydraulics_knockback.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+to = &"extra_knockback"
+hide_from_player = true

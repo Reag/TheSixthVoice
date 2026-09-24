@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- mt_spatial_rerouting : Reag-TheSixthVoice Shackleton icon, SP3. A ceiling bar (blocked above) over a wide downward chevron (free below) -->
+<path d="M14,8 L50,8 L50,16 L14,16 Z"/>
+<path d="M16,24 L32,44 L48,24 L48,34 L32,54 L16,34 Z"/>
+</svg>
