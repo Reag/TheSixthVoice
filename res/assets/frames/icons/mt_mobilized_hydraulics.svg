@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- mt_mobilized_hydraulics : Reag-TheSixthVoice Shackleton icon, SP3. Piston cylinder driving a rod out to a thrust point -->
+<path d="M8,22 L28,22 L28,42 L8,42 Z"/>
+<path d="M28,26 L46,26 L46,38 L28,38 Z"/>
+<path d="M46,18 L60,32 L46,46 Z"/>
+</svg>

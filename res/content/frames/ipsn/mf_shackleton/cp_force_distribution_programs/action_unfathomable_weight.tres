@@ -1,9 +1,11 @@
 [gd_resource type="Resource" script_class="ActionSystem" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/cp_force_distribution_programs/action_unfathomable_weight.gd" id="1_weight"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_unfathomable_weight.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_weight")
+icon_override = ExtResource("2_icon")
 ; QUICK, per the LCP's "activation": "Quick", and "frequency": "Unlimited" - no charges, no core point.
 action_type = 1
 ; ITS OWN GROUP. Three actions on this Kit, three groups (the Subutai SP2 lesson).

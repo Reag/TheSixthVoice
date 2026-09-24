@@ -5,9 +5,11 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/cp_force_distribution_programs/action_unfathomable_weight.tres" id="3_weight"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/cp_force_distribution_programs/action_unfathomable_weight_collide.tres" id="4_collide"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/cp_force_distribution_programs/action_calamitous_impact.tres" id="5_impact"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_force_distribution_programs.svg" id="6_icon"]
 
 [resource]
 script = ExtResource("1_kit")
+icon_override = ExtResource("6_icon")
 ; FORCE DISTRIBUTION PROGRAMS, the Shackleton's core system (SP2, design rulings 8-15).
 ;
 ; THE cp_ PREFIX IS WHAT ROUTES IT TO THE CORE SYSTEM BOX (resgrp_kits' **/cp_*.tres glob), not the

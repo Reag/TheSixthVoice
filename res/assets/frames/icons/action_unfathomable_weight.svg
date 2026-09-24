@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- action_unfathomable_weight : Reag-TheSixthVoice Shackleton icon, SP3 (shared with the collision reaction, hidden). A Burst 1 shockwave ring radiating knockback in all four directions -->
+<path d="M32,14 L50,32 L32,50 L14,32 Z M32,20 L20,32 L32,44 L44,32 Z"/>
+<path d="M26,10 L38,10 L32,2 Z"/>
+<path d="M26,54 L38,54 L32,62 Z"/>
+<path d="M10,26 L10,38 L2,32 Z"/>
+<path d="M54,26 L54,38 L62,32 Z"/>
+</svg>

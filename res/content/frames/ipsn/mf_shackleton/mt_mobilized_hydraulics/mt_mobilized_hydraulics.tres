@@ -6,10 +6,11 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="4_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/mt_mobilized_hydraulics/buff_mobilized_hydraulics.tres" id="5_offer"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/mt_mobilized_hydraulics/buff_mobilized_hydraulics_knockback.tres" id="6_knockback"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_mobilized_hydraulics.svg" id="7_icon"]
 
 ; MOBILIZED HYDRAULICS (design ruling 7). Two hidden buffs: the melee on-attack offer (1/round,
 ; hand-rolled) and the +2 EXTRA_KNOCKBACK it arms for the rest of that attack. Knock 'em down's
-; applicator shape. Icon: SP3.
+; applicator shape.
 [sub_resource type="Resource" id="Resource_applicator"]
 script = ExtResource("3_applicator")
 applied_buffs = Array[ExtResource("2_buff")]([ExtResource("5_offer"), ExtResource("6_knockback")])
@@ -19,3 +20,4 @@ reapply_at_the_start_of_each_turn = true
 script = ExtResource("4_kit")
 passives = Array[ExtResource("1_passive")]([SubResource("Resource_applicator")])
 is_trait = true
+icon_override = ExtResource("7_icon")

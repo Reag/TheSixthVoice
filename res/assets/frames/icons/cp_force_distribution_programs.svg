@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- cp_force_distribution_programs : Reag-TheSixthVoice Shackleton icon, SP3. The core's own bare glyph: a hub distributing force to four axis-aligned load points -->
+<path d="M32,24 L40,32 L32,40 L24,32 Z"/>
+<path d="M29,14 L35,14 L35,24 L29,24 Z"/>
+<path d="M26,6 L38,6 L38,14 L26,14 Z"/>
+<path d="M29,40 L35,40 L35,50 L29,50 Z"/>
+<path d="M26,50 L38,50 L38,58 L26,58 Z"/>
+<path d="M14,29 L24,29 L24,35 L14,35 Z"/>
+<path d="M6,26 L14,26 L14,38 L6,38 Z"/>
+<path d="M40,29 L50,29 L50,35 L40,35 Z"/>
+<path d="M50,26 L58,26 L58,38 L50,38 Z"/>
+</svg>

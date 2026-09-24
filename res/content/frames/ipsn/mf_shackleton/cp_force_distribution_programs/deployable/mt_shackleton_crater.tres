@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://bhirgicgi66th" path="res://engine/gamemaster/map/terrain/terrain_data.gd" id="4_terraindata"]
 [ext_resource type="Script" uid="uid://c0yv6pnw2be6l" path="res://engine/character/gear_action/resources/range_pattern.gd" id="5_rangepattern"]
 [ext_resource type="PackedScene" path="res://unpacked/Reag-TheSixthVoice/res/content/fx_endless/gear/fxe_reag_shattered_ground.tscn" id="6_fxe"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_calamitous_impact.svg" id="7_icon"]
 
 ; BURST 2 (Lancer.AOE_TYPE.BURST == 4), design ruling 14. From a SIZE-2 origin a burst covers the
 ; whole footprint plus the radius (AoeCalculator.burst iterates range(-radius, size+radius)), so this
@@ -35,6 +36,8 @@ fxe = ExtResource("6_fxe")
 [resource]
 script = ExtResource("1_kit")
 ; The crater's only content: the ground it makes difficult. No mt_die_on_owner_death - it outlives the
-; Shackleton ("for the rest of the scene").
+; Shackleton ("for the rest of the scene"). Shares Calamitous Impact's texture (icon directive, "a
+; visible chip joins its family").
 passives = Array[ExtResource("2_passive")]([SubResource("Resource_zone")])
 is_trait = true
+icon_override = ExtResource("7_icon")
