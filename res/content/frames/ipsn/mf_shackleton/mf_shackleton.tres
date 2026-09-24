@@ -11,6 +11,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/mt_spatial_rerouting.tres" id="9_rerouting"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/mt_mobilized_hydraulics/mt_mobilized_hydraulics.tres" id="10_hydraulics"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/mt_shackleton_weak_computer.tres" id="11_weakcomputer"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/cp_force_distribution_programs/cp_force_distribution_programs.tres" id="12_core"]
 
 ; DERIVED FROM THE SPRITE ART (the Vauban's SP5 ruling, re-run as the Naga's was). Measured
 ; 2026-09-24 with the shader-literal test palette_swap_func.gdshaderinc uses (pixel == (v,0,0)/
@@ -47,13 +48,12 @@ systems_points = 6
 reactions = 1
 activations = 1
 
-; SHEET ORDER. The core system (cp_force_distribution_programs) lands at SP2 - an ext_resource to a
-; file that does not exist yet would fail the whole frame out of ContentLibrary.
+; SHEET ORDER: the three traits, then the core system (appended at SP2).
 [resource]
 script = ExtResource("1_frame")
 default_color_scheme = SubResource("Resource_colorscheme")
 sprites = Array[Texture2D]([ExtResource("8_sprite")])
-traits = Array[ExtResource("7_kit")]([ExtResource("9_rerouting"), ExtResource("10_hydraulics"), ExtResource("11_weakcomputer")])
+traits = Array[ExtResource("7_kit")]([ExtResource("9_rerouting"), ExtResource("10_hydraulics"), ExtResource("11_weakcomputer"), ExtResource("12_core")])
 mount_types = Array[ExtResource("4_mounttype")]([ExtResource("5_mountflex"), ExtResource("5_mountflex"), ExtResource("6_mountmainaux")])
 stat = SubResource("Resource_statblock")
 role_primary = 3

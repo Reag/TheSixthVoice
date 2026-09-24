@@ -30,8 +30,8 @@ const SHEET_STATS := {
 	systems_points = 6, reactions = 1, activations = 1, limited_bonus = 0,
 }
 
-## The sheet's trait order. The core system is appended at SP2.
-const SHEET_TRAITS:Array[StringName] = [&'mt_spatial_rerouting', &'mt_mobilized_hydraulics', &'mt_shackleton_weak_computer']
+## The sheet's trait order, then the core system (SP2).
+const SHEET_TRAITS:Array[StringName] = [&'mt_spatial_rerouting', &'mt_mobilized_hydraulics', &'mt_shackleton_weak_computer', &'cp_force_distribution_programs']
 
 func _frame() -> Frame:
 	return ContentLibrary.get_mech_frame(FRAME_ID)
@@ -186,7 +186,7 @@ func test_the_traits_are_the_sheet_traits_in_sheet_order():
 	if frame == null: return
 	var ids:Array[StringName] = []
 	for kit:Kit in frame.traits: ids.append(kit.compcon_id)
-	assert_eq(ids, SHEET_TRAITS, 'Spatial Rerouting, Mobilized Hydraulics, Weak Computer - and nothing else.')
+	assert_eq(ids, SHEET_TRAITS, 'Spatial Rerouting, Mobilized Hydraulics, Weak Computer, Force Distribution Programs - and nothing else.')
 
 func test_every_trait_kit_is_in_the_content_library():
 	for trait_id:StringName in SHEET_TRAITS:

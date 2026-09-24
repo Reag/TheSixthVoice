@@ -290,6 +290,24 @@ func test_the_leoleths_unguarded_rows_resolve():
 	for key:String in LEOLETH_LOCALIZATION_ROWS:
 		assert_ne(tr(key), key, '%s resolves to real text.' % key)
 
+## The Shackleton's crater rows (SP2) - the Vauban pair's case exactly: both belong to a MARKER, and
+## no surface a spec can reach renders them. Plus the core's own rows, belt-and-braces with
+## test_unfathomable_weight.gd / test_calamitous_impact.gd, which read the action names off the
+## compiled artifact through their prompt titles.
+const SHACKLETON_LOCALIZATION_ROWS:Array[String] = [
+	'frame.dep_shackleton_crater.name',
+	'gear.mt_shackleton_crater.name',
+	'gear.cp_force_distribution_programs.name',
+	'gear.cp_force_distribution_programs.flavor',
+	'gear.cp_force_distribution_programs.action_unfathomable_weight.effect',
+	'gear.cp_force_distribution_programs.action_calamitous_impact.name',
+	'gear.cp_force_distribution_programs.action_calamitous_impact.effect',
+]
+
+func test_the_shackletons_unguarded_rows_resolve():
+	for key:String in SHACKLETON_LOCALIZATION_ROWS:
+		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+
 ## The Rend Axe's three rows (SP2 Task 1, Primrose). Unlike the three lists above, these ARE also
 ## guarded where they are used - test_rend_axe.gd's test_the_name_and_flavour_and_effect_resolve
 ## reads the same keys off this mod's own compiled artifact - so this entry is belt-and-braces
@@ -944,6 +962,13 @@ const ICON_TARGETS := {
 	&'mt_mobilized_hydraulics': {},
 	# SP1 (Shackleton). Weak Computer, its own copy (ruling 2): the Fitzgerald's inaccuracy.svg reuse.
 	&'mt_shackleton_weak_computer': {},
+	# SP2 (Shackleton). FORCE DISTRIBUTION PROGRAMS: two pressables, each its own glyph family (the
+	# icon directive's "a two-part core power is exactly two families"). The collision reaction is
+	# hidden (localization_key_override, action.gd:348) and shares Unfathomable Weight's family at SP3.
+	&'cp_force_distribution_programs': {&'action_unfathomable_weight': &'action_unfathomable_weight', &'action_calamitous_impact': &'action_calamitous_impact'},
+	# SP2 (Shackleton). The crater's zone trait, on the MARKER dep_shackleton_crater - the mt_maar_terrain
+	# shape. It shares Calamitous Impact's family at SP3.
+	&'mt_shackleton_crater': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

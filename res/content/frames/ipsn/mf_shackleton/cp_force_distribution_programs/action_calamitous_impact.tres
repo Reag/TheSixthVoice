@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ActionSystem" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/cp_force_distribution_programs/action_calamitous_impact.gd" id="1_impact"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/cp_force_distribution_programs/deployable/dep_shackleton_crater.tres" id="2_crater"]
+
+[resource]
+script = ExtResource("1_impact")
+crater = ExtResource("2_crater")
+; QUICK, per the LCP's "activation": "Quick".
+action_type = 1
+; The core point (action_charge_rail.tres / action_step_of_mist_and_thunder.tres precedent).
+consumes_cp = true
+; ITS OWN GROUP.
+usage_group = &"calamitous_impact"
+; "a free space within sensors" - Sensors, not sight. The leap's own candidate set is built without
+; line of sight; this is the Action-level half.
+requires_line_of_sight_baseline = false

@@ -28,11 +28,15 @@ const PromptWatcher := preload('res://testkit/prompt_watcher.gd')
 const FRAME_ID := &'mf_shackleton'
 const LICENSE_ID := &'li_nelson'
 
-## The three sheet traits, in sheet order. The core system lands at SP2.
+## The three sheet traits, in sheet order, then the core system (SP2).
 const REROUTING_ID := &'mt_spatial_rerouting'
 const HYDRAULICS_ID := &'mt_mobilized_hydraulics'
 const WEAK_COMPUTER_ID := &'mt_shackleton_weak_computer'
 const HYDRAULICS_USAGE := &'mobilized_hydraulics'
+const CORE_ID := &'cp_force_distribution_programs'
+const WEIGHT_ID := &'action_unfathomable_weight'
+const IMPACT_ID := &'action_calamitous_impact'
+const CRATER_ID := &'dep_shackleton_crater'
 
 ## IPS-N War Pike: MAIN MELEE, 1d6, Knockback 1, reach 1. The Nelson's own rank-1 weapon.
 const PIKE := &'mw_war_pike'
@@ -49,7 +53,7 @@ static func create_game(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> A
 	var game := SpecFactory.setup_gamemaster(test, false,
 		SpecFactory.create_combat(Landscape.create_default(map_size)), {}, false)
 	game.map.shape.forbidden_interiors_enabled = true
-	var responder = test.add_child_autoqfree(load('res://testkit/mod_choice_responder.gd').new())
+	var responder = test.add_child_autoqfree(MoveQueueResponder.new())
 	var watcher = test.add_child_autoqfree(PromptWatcher.new())
 	return [game, responder, watcher]
 
@@ -121,3 +125,22 @@ static func spend_hydraulics(unit:Unit) -> void:
 static func hydraulics_uses(unit:Unit) -> int:
 	var gear:GearCore = unit.get_gear(HYDRAULICS_ID)
 	return gear.get_uses_this_round_alt(HYDRAULICS_USAGE) if GearCore.is_valid(gear) else -1
+
+## The testkit responder plus a QUEUE of move-tile answers (SP2). SpecFactory's responder has ONE
+## chosen_move_tile that answers every later move request, and Calamitous Impact opens several in a
+## row - the leap, then one knockback per target - that want different answers. Each move request
+## takes the next queued tile; once a queue has been used and runs dry, chosen_move_tile goes back to
+## INVALID so later requests take the stock default instead of the last queued tile. A spec that never
+## touches move_tile_queue sees the stock responder exactly.
+class MoveQueueResponder extends "res://testkit/mod_choice_responder.gd":
+	var move_tile_queue:Array[Vector2i] = []
+	var _queued := false
+
+	func choose_move_tile(request:ChoiceRequest):
+		if not move_tile_queue.is_empty():
+			chosen_move_tile = move_tile_queue.pop_front()
+			_queued = true
+		elif _queued:
+			chosen_move_tile = Tile.INVALID
+			_queued = false
+		await super(request)
