@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="3_passive"]
+[ext_resource type="Script" uid="uid://ch8avblisp8j1" path="res://engine/character/gear_passive/passive_weapon_mod.gd" id="4_weaponmod"]
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="5_buff"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/wm_statistical_compensator/action_statistical_compensator.tres" id="6_prompt"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/wm_statistical_compensator/buff_statistical_compensator.tres" id="7_reliable"]
+
+; STATISTICAL COMPENSATOR, the Hazard's rank-II weapon mod (SP3 Task 2, design ruling 11). SP 2,
+; UNIQUE (system_tags 1), LIMITED 3 (charges_max). Fits Rifle (3), Cannon (1), Launcher (4), CQB (0),
+; Nexus (5), Melee (2) - the card's order - at Main (1), Heavy (2), Superheavy (3). No added_tags: the
+; +2 is optional and charged, so it is the applied buff, armed per attack by the prompt. SP5: the icon.
+[sub_resource type="Resource" id="Resource_compensator"]
+script = ExtResource("4_weaponmod")
+allowed_sizes = Array[int]([1, 2, 3])
+allowed_types = Array[int]([3, 1, 4, 0, 5, 2])
+applied_buffs = Array[ExtResource("5_buff")]([ExtResource("7_reliable")])
+
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("6_prompt")])
+passives = Array[ExtResource("3_passive")]([SubResource("Resource_compensator")])
+sp_cost = 2
+system_tags = 1
+charges_max = 3
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

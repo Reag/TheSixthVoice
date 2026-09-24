@@ -701,3 +701,12 @@ gear.ms_emergency_armature.action_activate_emergency_armature.trigger,You take d
 gear.ms_emergency_armature.action_activate_emergency_armature.effect,"Expend a charge, you reduce the incoming damage by 1d6 and may move two spaces. This movement ignores engagement and doesn’t provoke reactions."
 gear.buff_emergency_armature_reduce.name,Activate Emergency Armature
 gear.buff_emergency_armature_reduce.effect,"Expend a charge, you reduce the incoming damage by 1d6 and may move two spaces. This movement ignores engagement and doesn’t provoke reactions."
+gear.mw_panic_breaker.name,Panic Breaker
+gear.mw_panic_breaker.flavor,"The Panic Breaker is the most popular item in the Hazard Licensing scheme due to its ability to turn the tides in even the most dangerous situations. This sheer power under pressure lends it its namesake and has earned it a special place in the hearts of all those pilots who prefer the most direct method of problem solving."
+gear.wm_statistical_compensator.name,Statistical Compensator
+gear.wm_statistical_compensator.flavor,"The Statistical Compensator is the product of IPS-N's brief foray into paracausal technology. While any actually paracausal iterations were tested out, it operates on a similar fulcrum, unavoidable weight of fire. The compensator itself is a mixture of a small targeting computer and an ammo feed modifier, by shooting out additional timed shots, it is able to adjust for unexpected movements leading to much more consistent outcomes in the case of a missed shot."
+gear.wm_statistical_compensator.effect,"When you make an attack roll with the weapon this mod is applied to, you may expend a charge to gain +2 |Reliable| for that attack."
+gear.wm_statistical_compensator.action_statistical_compensator.name,Statistical Compensator
+gear.wm_statistical_compensator.action_statistical_compensator.effect,"When you make an attack roll with the weapon this mod is applied to, you may expend a charge to gain +2 |Reliable| for that attack."
+gear.buff_statistical_compensator.name,Statistical Compensator
+gear.buff_statistical_compensator.effect,"When you make an attack roll with the weapon this mod is applied to, you may expend a charge to gain +2 |Reliable| for that attack."

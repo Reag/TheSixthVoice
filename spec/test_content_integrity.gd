@@ -920,6 +920,12 @@ const ICON_TARGETS := {
 	# show_in_tooltip - the reaction IS the card) and never reaches the gear bar, so KIT, the
 	# Jormungandr's Automatic Retaliation row. Its reduction buff is hidden. SP5: the icon.
 	&'ms_emergency_armature': {&'action_activate_emergency_armature': KIT},
+	# SP3 Task 1 (Hazard). Panic Breaker: one Kit, one profile, so KIT. SP5: the icon.
+	&'mw_panic_breaker': {&'action_panic_breaker': KIT},
+	# SP3 Task 2 (Hazard). Statistical Compensator: a weapon mod (wm_ripper_mod's shape) whose prompt
+	# reaction is hidden (show_in_tooltip false) and whose Reliable buff is hidden, so nothing but the
+	# Kit's own icon is ever shown - `{}`. The prompt shares the Kit's glyph (design 5). SP5: the icon.
+	&'wm_statistical_compensator': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

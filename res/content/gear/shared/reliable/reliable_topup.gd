@@ -1,5 +1,6 @@
 # RELIABLE TOP-UP - the shared payout for "increase Reliable" effects (Hazard: Weight of Fire, and
-# the Statistical Compensator at SP3). Author's ruling 2026-09-24, taken at Hazard SP1 Task 2: EXACT.
+# the Statistical Compensator, which joined at SP3 - its +2 is armed per attack by a stamp on the
+# DeclaredAttackSummary, because a FINISH_DAMAGE buff is gone before this POST runs). Author's ruling 2026-09-24, taken at Hazard SP1 Task 2: EXACT.
 #
 # WHY THIS EXISTS. The engine reads the Reliable floor ONCE, from the weapon action's own export, at
 # content/events/event_unit_attack/event_unit_attack_declared.gd:82
@@ -40,7 +41,7 @@
 extends RefCounted
 
 ## The WEAPON_TAG Reliable buffs this helper pays for.
-const OPTED_IN:Array[StringName] = [&'buff_weight_of_fire']
+const OPTED_IN:Array[StringName] = [&'buff_weight_of_fire', &'buff_statistical_compensator']
 
 ## The gear-state-free stamp on the DeclaredAttackSummary.
 const PAID_META := &'reag_reliable_topup_paid'
