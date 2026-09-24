@@ -746,6 +746,8 @@ bark.nhp_brigid.destroy_ally.2,We need you here!
 bark.nhp_brigid.destroy_ally.3,I will mourn you.
 bark.nhp_brigid.friendly_fire_self.1,Its alright! dont worry!
 bark.nhp_brigid.friendly_fire_self.2,Im sure it was an accident.
+bark.nhp_brigid.friendly_fire_target.1,Oh no I'm so sorry!
+bark.nhp_brigid.friendly_fire_target.2,That wasnt supposed to happen!
 bark.nhp_brigid.core_power.1,LETS GET THIS DONE!
 bark.nhp_brigid.core_power.2,WE GOT THIS IN THE BAG
 bark.nhp_brigid.overcharge.1,Till the day is won!
