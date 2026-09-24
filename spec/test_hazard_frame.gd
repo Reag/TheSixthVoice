@@ -155,7 +155,9 @@ func test_the_licence_grants_exactly_the_gear_built_so_far():
 	var license := _license()
 	assert_not_null(license, 'fixture: the licence loads.')
 	if license == null or license.rank_1 == null or license.rank_2 == null or license.rank_3 == null: return
-	assert_eq(license.rank_1.granted_gear.size(), 0, 'Rank 1 grants nothing yet (SP2).')
+	var rank_1_ids:Array = license.rank_1.granted_gear.map(func(k:Kit) -> StringName: return k.compcon_id)
+	assert_eq(rank_1_ids, [&'mw_wavemaker_grenade_launcher', &'ms_emergency_armature'] as Array,
+		'Rank 1 grants the Wavemaker and the Emergency Armature, in the sheet\'s order (SP2).')
 	assert_eq(license.rank_2.granted_gear.size(), 0, 'Rank 2 grants no gear yet (SP3).')
 	assert_eq(license.rank_3.granted_gear.size(), 0, 'Rank 3 grants nothing yet (SP4).')
 

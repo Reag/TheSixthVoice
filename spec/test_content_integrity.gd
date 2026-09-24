@@ -913,6 +913,13 @@ const ICON_TARGETS := {
 	# own passive text and reaches no surface of its own today - whether it gets a second family row
 	# the way Stalk the Horizon did at the Thorn's SP5 is SP5's call (design 5: exactly two families).
 	&'cp_int_type_command_systems': {&'action_dont_give_up_the_mech': &'action_dont_give_up_the_mech'},
+	# SP2 Task 1 (Hazard). Wavemaker Grenade Launcher: one Kit, one profile, so KIT (the Blink Bolt
+	# Launcher's row). SP5: the icon.
+	&'mw_wavemaker_grenade_launcher': {&'action_wavemaker_grenade_launcher': KIT},
+	# SP2 Task 2 (Hazard). Emergency Armature: one Kit, one reaction that draws on the card (it keeps
+	# show_in_tooltip - the reaction IS the card) and never reaches the gear bar, so KIT, the
+	# Jormungandr's Automatic Retaliation row. Its reduction buff is hidden. SP5: the icon.
+	&'ms_emergency_armature': {&'action_activate_emergency_armature': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

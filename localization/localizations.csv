@@ -689,3 +689,15 @@ gear.buff_dgutm_knockback.name,DONT GIVE UP THE MECH
 gear.buff_dgutm_knockback.effect,"All allied characters within |SENSORS| may move up to their speed as a |reaction|. For the rest of the scene, you and all adjacent allied characters can not be pushed, pulled, knocked back, or knocked |Prone|."
 gear.buff_dgutm_prone.name,DONT GIVE UP THE MECH
 gear.buff_dgutm_prone.effect,"All allied characters within |SENSORS| may move up to their speed as a |reaction|. For the rest of the scene, you and all adjacent allied characters can not be pushed, pulled, knocked back, or knocked |Prone|."
+
+gear.mw_wavemaker_grenade_launcher.name,Wavemaker Grenade Launcher
+gear.mw_wavemaker_grenade_launcher.flavor,"As the current lead in IPS-N's mid-range crowd control option, the Wavemaker has seen use again and again. Built upon the IPS-N Cartridge system, its ability to reliably push back advancing hostiles has lead to its near ubiquity on the front lines."
+
+gear.ms_emergency_armature.name,Emergency Armature
+gear.ms_emergency_armature.flavor,"Consisting of flash printed armor plates, the Emergency Armature package is meant to be another set of redundancies to keep pilots alive. While originally developed to have repair functionalities, testing found that most pilots preferred its preventative features and as such, they were removed to keep the system as lightweight as possible."
+gear.ms_emergency_armature.effect,You gain the Activate Emergency Armature reaction.
+gear.ms_emergency_armature.action_activate_emergency_armature.name,Activate Emergency Armature
+gear.ms_emergency_armature.action_activate_emergency_armature.trigger,You take damage from a hostile character.
+gear.ms_emergency_armature.action_activate_emergency_armature.effect,"Expend a charge, you reduce the incoming damage by 1d6 and may move two spaces. This movement ignores engagement and doesn’t provoke reactions."
+gear.buff_emergency_armature_reduce.name,Activate Emergency Armature
+gear.buff_emergency_armature_reduce.effect,"Expend a charge, you reduce the incoming damage by 1d6 and may move two spaces. This movement ignores engagement and doesn’t provoke reactions."

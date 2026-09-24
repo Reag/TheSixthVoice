@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/weapons/mw_wavemaker_grenade_launcher/action_wavemaker_grenade_launcher.tres" id="3_launcher"]
+
+; WAVEMAKER GRENADE LAUNCHER, the Hazard's rank-I weapon (SP2 Task 1, design ruling 8). Pure .tres.
+; LIMITED 4 = charges_max: each shot spends one through the default consumes_charges
+; (unit_action.gd:274) and an empty launcher is refused (:153), the Bristlecrown's rule. SP5: the icon.
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("3_launcher")])
+sp_cost = 0
+charges_max = 4
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"
