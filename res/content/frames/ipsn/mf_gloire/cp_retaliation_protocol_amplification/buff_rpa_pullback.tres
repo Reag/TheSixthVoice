@@ -1,0 +1,11 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/cp_retaliation_protocol_amplification/buff_rpa_pullback.gd" id="1_buff"]
+
+; RPA Pullback's variant menu (design ruling 11): "for the rest of the scene" = until MANUAL, the
+; default. VISIBLE: no hide_from_player, so the chip is the on-map sign that the protocol is running.
+; Its rows are its own (gear.buff_rpa_pullback.*). Icon: SP3 (RPA Pullback's glyph family).
+[resource]
+script = ExtResource("1_buff")
+to = &"variant_actions"
+log_on_application = true

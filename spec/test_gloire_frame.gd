@@ -30,7 +30,7 @@ const SHEET_STATS := {
 }
 
 ## The sheet's trait order (Guardian is vanilla's shared Kit), then the core system (SP2).
-const SHEET_TRAITS:Array[StringName] = [&'mt_guardian', &'mt_hydraulic_punisher', &'mt_extended_zone_control']
+const SHEET_TRAITS:Array[StringName] = [&'mt_guardian', &'mt_hydraulic_punisher', &'mt_extended_zone_control', &'cp_retaliation_protocol_amplification']
 
 func _frame() -> Frame:
 	return ContentLibrary.get_mech_frame(FRAME_ID)
@@ -189,7 +189,7 @@ func test_the_traits_are_the_sheet_traits_in_sheet_order():
 	if frame == null: return
 	var ids:Array[StringName] = []
 	for kit:Kit in frame.traits: ids.append(kit.compcon_id)
-	assert_eq(ids, SHEET_TRAITS, 'Guardian, Hydraulic Punisher, Extended Zone Control - and nothing else.')
+	assert_eq(ids, SHEET_TRAITS, 'Guardian, Hydraulic Punisher, Extended Zone Control, the core system (SP2) - and nothing else.')
 
 func test_guardian_is_the_tortugas_own_resource_not_a_copy():
 	var frame:Frame = _frame()

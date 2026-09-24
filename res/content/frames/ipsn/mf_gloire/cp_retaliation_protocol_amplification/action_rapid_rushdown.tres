@@ -1,0 +1,37 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/cp_retaliation_protocol_amplification/action_rapid_rushdown.gd" id="1_rushdown"]
+[ext_resource type="Script" uid="uid://udxarj3kb6nm" path="res://engine/character/unit/movement_type.gd" id="2_movetype"]
+
+; "may move 4 spaces in any direction in a straight line. This movement ignores engagement and
+; doesn't provoke reactions." - and NOTHING else (design ruling 7): must_move_max_possible stays
+; false (UP TO 4), can_move_through_enemies false (the card does not say so), spend_move false (the
+; 4 spaces are the card's, not this turn's movement), flying false (a flying Gloire flies the line
+; through merge_with_standard_move_type, which is the default). action_full_speed_ahead.tres is the
+; shape.
+[sub_resource type="Resource" id="Resource_rushdown_move"]
+script = ExtResource("2_movetype")
+straight_line = true
+ignore_engagement = true
+ignore_rxns = true
+
+[resource]
+script = ExtResource("1_rushdown")
+; QUICK, per the LCP's "activation": "Quick". "1/round" is the script's own hard limit.
+action_type = 1
+; "You take 2 heat": Action.self_heat_dice (action.gd:39), paid by spend_actions
+; (unit_action.gd:227-229). Ramjet's shape. A cancelled reticle never reaches the spend.
+self_heat_dice = "2"
+; "4 spaces": the fixed budget (action_system_movement.gd:31-36). 0 would mean Speed.
+movement_range_fixed = 4
+movement_type = SubResource("Resource_rushdown_move")
+; "may move": the reticle can be cancelled, and a cancel spends nothing (the script's header).
+is_mandatory = false
+; Slowed refuses it (RAW: "special moves granted by systems"); this is the archetype's default,
+; stated so the reading is on record.
+can_use_while_slowed = false
+; ITS OWN GROUP: a protocol and a pressable on one Kit need a usage_group EACH
+; (unit_action.gd:167-168, the Subutai SP2 lesson). Three actions, three groups.
+usage_group = &"rapid_rushdown"
+; A self-aimed dash: no unit target, so the line-of-sight default has nothing to gate.
+requires_line_of_sight_baseline = false

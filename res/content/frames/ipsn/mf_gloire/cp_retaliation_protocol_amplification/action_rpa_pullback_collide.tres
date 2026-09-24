@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ActionReaction" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/cp_retaliation_protocol_amplification/action_rpa_pullback_collide.gd" id="1_collide"]
+
+[resource]
+script = ExtResource("1_collide")
+; The Shackleton's collide reaction's shape (action_unfathomable_weight_collide.tres): POST on the
+; virtual event_unit_collide, which owns TRIGGER.COLLISION.
+triggers_on = Array[StringName]([&"collision"])
+; Not a reaction point, and so not 1/round (action_reaction.gd:67 answers 99): every collision a
+; Pullback line causes is answered.
+consumes_rxn = false
+; ITS OWN GROUP (unit_action.gd:167-168): three actions on this Kit, three groups.
+usage_group = &"rpa_pullback_collide"
+; THE LOG SAYS "RPA Pullback", and the Kit card does not list this reaction: Translate.action reads
+; gear.<override>.<property> (translate.gd:23-24), and a non-empty override is also what makes
+; Action.show_in_tooltip answer false (action.gd:348).
+localization_key_override = "cp_retaliation_protocol_amplification.action_rpa_pullback"

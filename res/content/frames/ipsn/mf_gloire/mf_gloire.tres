@@ -13,6 +13,7 @@
 [ext_resource type="Resource" uid="uid://cnx62bb0ihjrr" path="res://content/frames/shared/mt_guardian/mt_guardian.tres" id="9_guardian"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/mt_hydraulic_punisher/mt_hydraulic_punisher.tres" id="10_punisher"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/mt_extended_zone_control/mt_extended_zone_control.tres" id="11_zonecontrol"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/cp_retaliation_protocol_amplification/cp_retaliation_protocol_amplification.tres" id="12_core"]
 
 ; DERIVED FROM THE SPRITE ART (the Vauban's SP5 ruling, re-run as the Shackleton's was). Measured
 ; 2026-09-24 with the shader-literal test palette_swap_func.gdshaderinc uses (pixel == (v,0,0)/
@@ -49,14 +50,14 @@ systems_points = 6
 reactions = 1
 activations = 1
 
-; SHEET ORDER: Guardian, Hydraulic Punisher, Extended Zone Control, then the core system (appended
-; at SP2). Design ruling 14 enumerates the same four; the sheet fixes the order, as every frame
+; SHEET ORDER: Guardian, Hydraulic Punisher, Extended Zone Control, then the core system (SP2).
+; Design ruling 14 enumerates the same four; the sheet fixes the order, as every frame
 ; here (mf_shackleton.tres) follows it.
 [resource]
 script = ExtResource("1_frame")
 default_color_scheme = SubResource("Resource_colorscheme")
 sprites = Array[Texture2D]([ExtResource("8_sprite")])
-traits = Array[ExtResource("7_kit")]([ExtResource("9_guardian"), ExtResource("10_punisher"), ExtResource("11_zonecontrol")])
+traits = Array[ExtResource("7_kit")]([ExtResource("9_guardian"), ExtResource("10_punisher"), ExtResource("11_zonecontrol"), ExtResource("12_core")])
 mount_types = Array[ExtResource("4_mounttype")]([ExtResource("5_mountmain"), ExtResource("5_mountmain"), ExtResource("6_mountheavy")])
 stat = SubResource("Resource_statblock")
 role_primary = 1

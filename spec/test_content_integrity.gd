@@ -975,6 +975,12 @@ const ICON_TARGETS := {
 	# SP1 (Gloire). Extended Zone Control: two hidden range buffs, no action - the wider Ram reticle is
 	# the on-map sign. SP3: icon.
 	&'mt_extended_zone_control': {},
+	# SP2 (Gloire). RETALIATION PROTOCOL AMPLIFICATION: two pressables, each its own glyph family (the
+	# icon directive's "a two-part core power is exactly two families"; design section 3). The
+	# collision reaction is hidden (localization_key_override, action.gd:348) and shares RPA
+	# Pullback's family at SP3, as do the two hidden pull pieces. Rapid Rushdown's armour chip wears
+	# Rapid Rushdown's.
+	&'cp_retaliation_protocol_amplification': {&'action_rapid_rushdown': &'action_rapid_rushdown', &'action_rpa_pullback': &'action_rpa_pullback'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1232,6 +1238,14 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# "Impaired because the Gloire floored me, until I stand up" (design ruling 4). Its text falls
 	# through to gear.mt_hydraulic_punisher's rows.
 	&'buff_hydraulic_punisher',
+	# SP2 (Gloire). RPA Pullback's variant chip, on the Gloire: the on-map sign the protocol is running
+	# for the rest of the scene (design ruling 11). Its rows are its own (gear.buff_rpa_pullback.*).
+	# The hidden pull carrier beside it is correctly absent from this list.
+	&'buff_rpa_pullback',
+	# SP2 (Gloire). Rapid Rushdown's +1 armour, the DISPLAY half of the mod's armour pair (design
+	# ruling 9): the chip is how the player reads "braced until my next turn". Its own rows. The
+	# reduction half is hidden and correctly absent.
+	&'buff_rapid_rushdown_armor',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

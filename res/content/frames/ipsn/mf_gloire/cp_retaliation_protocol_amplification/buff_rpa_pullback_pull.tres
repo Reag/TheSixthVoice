@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="BuffWeaponTypeOnHit" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/cp_retaliation_protocol_amplification/buff_rpa_pullback_pull.gd" id="1_buff"]
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="2_onhit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/cp_retaliation_protocol_amplification/onhit_rpa_pullback.tres" id="3_pull"]
+
+; The pull's carrier (design ruling 12): hidden, MANUAL ("for the rest of the scene"), keyed by the
+; script to attacks composed with the rpa_pullback variant. buff_rpa_pullback.tres is the visible
+; half; this one is bookkeeping and correctly absent from VISIBLE_BUFFS.
+[resource]
+script = ExtResource("1_buff")
+effects = Array[ExtResource("2_onhit")]([ExtResource("3_pull")])
+to = &"onhit_effect"
+hide_from_player = true
+; THE LOG SAYS "RPA Pullback" when this lands (log_on_application is off, but Translate.buff is
+; consulted regardless): without an override the name falls through to the Kit's SOLO action, which
+; is Rapid Rushdown - measured 2026-09-24, "buff_rpa_pullback_pull: Rapid Rushdown". The override
+; points it at the protocol's own rows.
+localization_key_override = "cp_retaliation_protocol_amplification.action_rpa_pullback"

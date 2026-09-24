@@ -37,6 +37,18 @@ const ZONE_CONTROL_ID := &'mt_extended_zone_control'
 const ZONE_CONTROL_RAM_BUFF := &'buff_extended_zone_control_ram'
 const ZONE_CONTROL_CQB_BUFF := &'buff_extended_zone_control_cqb'
 const CORE_ID := &'cp_retaliation_protocol_amplification'
+## The core system's three actions (SP2): the passive Rapid Rushdown, the RPA Pullback protocol, and
+## the protocol's hidden collision reaction.
+const RUSHDOWN_ID := &'action_rapid_rushdown'
+const RUSHDOWN_USAGE := &'rapid_rushdown'
+const RUSHDOWN_ARMOR_BUFF := &'buff_rapid_rushdown_armor'
+const RUSHDOWN_REDUCTION_BUFF := &'buff_rapid_rushdown_armor_reduction'
+const PULLBACK_ID := &'action_rpa_pullback'
+const PULLBACK_BUFF := &'buff_rpa_pullback'
+const PULLBACK_PULL_BUFF := &'buff_rpa_pullback_pull'
+const PULLBACK_COLLIDE_ID := &'action_rpa_pullback_collide'
+## The variant key RPA Pullback puts on every non-Superheavy weapon.
+const PULLBACK_VARIANT := &'rpa_pullback'
 
 ## The basic Ram: weapon_type MELEE, size NONE, threat 1, Knockback 1, Prone through the ordinary
 ## on_hit. Every unit carries one.
@@ -48,13 +60,26 @@ const STAND_UP := &'ms_stand_up'
 const SHOTGUN := &'mw_shotgun'
 ## The plain vanilla rifle: MAIN RIFLE, Range 10 - the ranged negative control.
 const RIFLE := &'mw_assault_rifle'
+## IPS-N War Pike: MAIN MELEE, threat 3, Knockback 1 - the "push then pull" subject under RPA
+## Pullback, and the melee weapon the variant must appear on.
+const PIKE := &'mw_war_pike'
+## GMS Heavy Machine Gun: HEAVY RIFLE, Range 8 - a Heavy the variant must appear on.
+const HMG := &'mw_heavy_machine_gun'
+## GMS Cyclone Pulse Rifle: SUPERHEAVY - the one size the variant must NOT appear on.
+const SUPERHEAVY := &'mw_cyclone_pulse_rifle'
 
 const DEFAULT_MAP_SIZE := Vector2i(16, 12)
 
-## [game, responder, watcher] - the Shackleton fixture's game, which carries the queueing responder
-## every knockback reticle here is answered by.
+## [game, responder, watcher] - the Shackleton fixture's game with THIS frame's responder (below),
+## which carries the queueing responder every knockback reticle here is answered by, plus the
+## target-picker abort SP2's cancel tests need.
 static func create_game(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> Array:
-	return ShackletonFixture.create_game(test, map_size)
+	var game := SpecFactory.setup_gamemaster(test, false,
+		SpecFactory.create_combat(Landscape.create_default(map_size)), {}, false)
+	game.map.shape.forbidden_interiors_enabled = true
+	var responder = test.add_child_autoqfree(GloireResponder.new())
+	var watcher = test.add_child_autoqfree(PromptWatcher.new())
+	return [game, responder, watcher]
 
 ## A Gloire with its traits' passive buffs applied (Guardian's, Extended Zone Control's two).
 ## PLAYER faction unless told otherwise.
@@ -126,3 +151,77 @@ static func build_wall_at(game:Gamemaster, x:int, base_tile:Vector2i) -> void:
 	for y:int in game.map.size.y: wall.append(Vector2i(x, y))
 	SpecFactory.set_tiles_elevation(game.map, game.map.elevation(base_tile) + 6, wall)
 	UnitTile.update_tracking_and_statuses(game.map)
+
+# ---------------------------------------------------------------- SP2 helpers
+
+## Press Rapid Rushdown aimed at `destination` (an anchor tile). target_tiles is how a spec aims a
+## movement action (test_full_speed_ahead.gd's header: TEST_MODE makes the activation's target_tiles
+## the list the reticle is asked to pick from). The turn must already be open.
+static func rushdown_to(game:Gamemaster, unit:Unit, destination:Vector2i) -> void:
+	await SpecFactory.use(game, unit, CORE_ID, RUSHDOWN_ID, [destination])
+
+static func rushdown_specific(unit:Unit) -> SpecificAction:
+	var gear:GearCore = unit.get_gear(CORE_ID)
+	return SpecificAction.create(unit, gear, gear.kit.get_action(RUSHDOWN_ID))
+
+static func pullback_specific(unit:Unit) -> SpecificAction:
+	var gear:GearCore = unit.get_gear(CORE_ID)
+	return SpecificAction.create(unit, gear, gear.kit.get_action(PULLBACK_ID))
+
+## Press the RPA Pullback protocol from a freshly STARTED turn (a protocol needs the window,
+## unit_action.gd:144). Returns whether the variant buff landed.
+static func press_pullback(game:Gamemaster, unit:Unit) -> bool:
+	await SpecFactory.start_turn(game, unit)
+	await SpecFactory.use(game, unit, CORE_ID, PULLBACK_ID)
+	return has_pullback(unit)
+
+static func has_pullback(unit:Unit) -> bool:
+	return UnitCondition.has_buff(unit, PULLBACK_BUFF)
+
+static func rushdown_uses(unit:Unit) -> int:
+	var gear:GearCore = unit.get_gear(CORE_ID)
+	return gear.get_uses_this_round_alt(RUSHDOWN_USAGE) if GearCore.is_valid(gear) else -1
+
+static func is_braced(unit:Unit) -> bool:
+	return UnitCondition.has_buff(unit, RUSHDOWN_ARMOR_BUFF) and UnitCondition.has_buff(unit, RUSHDOWN_REDUCTION_BUFF)
+
+## Fire one weapon Kit at `target` from an already-open turn WITH the rpa_pullback variant enforced
+## (event_gear_activate.gd:135-142 filters the menu to the required key and makes it non-blankable,
+## so the responder's default index 0 IS the variant). `hits` are the d20s, one per line target, in
+## the order the engine rolls them (measured 2026-09-24: NOT closest first - the picked target rolled
+## before a nearer one on the same line, so a spec with two targets on the line orders `hits` by
+## that). `tail` is every die after them: the weapon's damage dice - the 1d6 rifle popped TWO for a
+## two-target line - and then the collision save's d20, read from the same queue. One value serves
+## both because the damage lands on a 200-HP dummy and only the save's outcome matters: 1 fails any
+## Hull save (1 + hull against 10), 20 passes. Eight copies, so however many damage dice the attack
+## pops the save still reads `tail`; after_each clears the rest.
+static func fire_pulled(game:Gamemaster, attacker:Unit, target:Unit, kit_id:StringName, hits:Array[int] = [10], tail:int = 1) -> void:
+	await open_turn(game, attacker)
+	Dice.CHEAT_ROLL_QUEUE.append_array(hits)
+	for i in 8: Dice.CHEAT_ROLL_QUEUE.append(tail)
+	await SpecFactory.use_solo(game, attacker, kit_id, target, [], PULLBACK_VARIANT)
+
+## The variant groups a weapon offers this unit right now, by group key.
+static func variant_keys_for(unit:Unit, kit_id:StringName) -> Array[StringName]:
+	var specific := weapon_specific(unit, kit_id)
+	var keys:Array[StringName] = []
+	for group:VariantActionGroup in specific.action.get_alternate_actions(specific):
+		for variant:VariantAction in group.list: keys.append(variant.key)
+	return keys
+
+## The Shackleton's MoveQueueResponder plus an ABORT for the next target picker(s) - SP2's "the free
+## Ram's cancel costs nothing" needs the Ram's compcon_plan request refused while the dash's
+## move_tile reticle before it is still answered, which abort_all cannot express (it aborts both).
+## Each aborted request consumes one count; a spec that never sets it sees the queueing responder
+## exactly.
+class GloireResponder extends ShackletonFixture.MoveQueueResponder:
+	var abort_plans:int = 0
+
+	func choose_compcon_plan(request:ChoiceRequest):
+		if abort_plans > 0:
+			abort_plans -= 1
+			choices_made += 1
+			await get_tree().process_frame
+			request.abort()
+			return
+		await super(request)

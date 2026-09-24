@@ -1,0 +1,27 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/armor/buff_armor_statblock.gd" id="1_statblock"]
+
+[resource]
+script = ExtResource("1_statblock")
+; RAPID RUSHDOWN: "Until the start of your next turn, you gain +1 Armor" - the DISPLAY half (design
+; ruling 9). Read buff_armor_statblock.gd's header, and its sibling buff_armor_reduction.gd's: an
+; armor grant in this mod is always TWO buffs, because Buff.to holds a single StringName and no
+; engine channel grants real armor. This one shows the number and blunts nothing;
+; buff_rapid_rushdown_armor_reduction.tres blunts the damage and shows nothing.
+; action_rapid_rushdown.gd applies both, right after the move confirms and before the free Ram, and
+; neither alone is the mechanic. Author's ruling 2026-09-14 (rulings.md row 37).
+to = &"statblock"
+armor_amount = 1
+; DELIBERATELY VISIBLE: the chip is the on-map sign that the Gloire is braced this round.
+; VISIBLE_BUFFS lists it. Icon: SP3 (Rapid Rushdown's own glyph family, design section 3).
+;
+; START_OF_TURN (Lancer.UNTIL, lancer.gd:46-56, so 3): "until the start of your next turn". The
+; holder is the Gloire itself, so UnitCondition.new_turn_for_statuses clears it at the Gloire's own
+; next turn start (unit_condition.gd:22-23). Ramjet's three buffs use the same until for the same
+; clause.
+;
+; IT MUST MATCH buff_rapid_rushdown_armor_reduction.tres's `until` EXACTLY. The two halves
+; disagreeing is how this mechanic tears in half - a chip that no longer blunts anything, or damage
+; quietly going missing with nothing on screen to explain it.
+until = 3
