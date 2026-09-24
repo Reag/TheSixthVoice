@@ -20,17 +20,18 @@
 #
 # THE CARD IS NOT THE DAMAGE. This buff's WEAPON_TAG half reaches get_weapon_tags - the weapon card -
 # and nothing else: the engine reads the Reliable floor from the action's printed export only
-# (event_unit_attack_declared.gd:82). So the buff ALSO triggers at ATTACK_DECLARED POST, on the
-# holder's own attacks, and hands the payout to the shared helper, reliable_topup.gd, which floors
-# every roll of the attack exactly as the engine would have with the raised Reliable (author's
-# ruling 2026-09-24: EXACT). See that file's header for the arithmetic and the one residue.
+# (event_unit_attack_declared.gd:82). So the buff ALSO triggers at ATTACK_DECLARED PRE, on the
+# holder's own attacks, and has the shared native_reliable.gd raise that export for the length of
+# the attack - the engine then floors every roll itself (author's ruling 2026-09-24: EXACT). Until
+# 2026-09-24 this paid a second damage event at POST through reliable_topup.gd; see
+# native_reliable.gd's header for why that changed and how the shared export is kept safe.
 #
 # The size filter lives on the .tres: MAIN, HEAVY, SUPERHEAVY ("non-Auxiliary"), and allow_basic
 # stays false, so a basic attack (size NONE) gets nothing.
 extends BuffWeaponTypeTag
 
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
-const ReliableTopup := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/reliable/reliable_topup.gd')
+const NativeReliable := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/reliable/native_reliable.gd')
 
 ## Half the Grit of the Hazard whose aura put this buff here; 0 if that Hazard is gone.
 static func bonus_for(core:BuffCore, map:MapState) -> int:
@@ -46,19 +47,19 @@ func get_values(core:BuffCore, context:Context) -> Context:
 		number = bonus_for(core, context.map),
 	})
 
-# ---------------------------------------------------------------- the payout (ATTACK_DECLARED POST)
+# ---------------------------------------------------------------- the raise (ATTACK_DECLARED PRE)
 
 func get_required_triggering_context() -> Array[Context.PROP]:
 	return [Context.PROP.unit, Context.PROP.action, Context.PROP.resource]
 
-## The holder's own weapon attack, not already paid, that this buff actually raises. PURE: the bus
-## may poll it more than once.
+## The holder's own weapon attack that this buff actually raises. PURE: the bus may poll it more
+## than once, and native_reliable.gd ignores a second raise from us on the same attack.
 func triggers_on_event(core:BuffCore, unit:Unit, triggering_event:EventCore) -> bool:
 	var context:Context = triggering_event.context
 	if context.unit != unit: return false
-	if ReliableTopup.is_paid(context): return false
-	if not check_if_passive_applies(core, context): return false
-	return ReliableTopup.extra_for(unit, context) > 0
+	if not DeclaredAttackSummary.is_valid(context.resource): return false
+	return check_if_passive_applies(core, context)
 
-func activate(_core:BuffCore, activation:EventCore) -> void:
-	await ReliableTopup.pay(activation, activation.context.event.context)
+func activate(core:BuffCore, activation:EventCore) -> void:
+	var declared:EventCore = activation.context.event
+	NativeReliable.raise(declared, bonus_for(core, declared.context.map), &'weight_of_fire')

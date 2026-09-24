@@ -4,7 +4,7 @@
 #    Reliable equal to half Grit. If they do not have Reliable, they instead gain that much."
 #
 # Two halves, tested separately: the CARD (the engine's own tag fold, ActionAttackWeapon.get_weapon_tags)
-# and the DAMAGE (real shots, paid by reliable_topup.gd at ATTACK_DECLARED POST - the engine reads the
+# and the DAMAGE (real shots; native_reliable.gd raises the export at ATTACK_DECLARED PRE - the engine reads the
 # Reliable floor from the printed export only, so the tag alone never reaches a roll).
 #
 # THE HAZARD'S GRIT IS 4 AND EVERY ALLY'S IS 1 unless a case says otherwise: half(4) = 2 and
@@ -120,10 +120,10 @@ func test_the_ally_loses_it_when_the_hazard_dies():
 	UnitTile.update_tracking_and_statuses(game.map)
 	assert_eq(Fixture.reliable(ally, Fixture.MAIN_RIFLE), 2, 'With no Hazard the ally is back to printed Reliable.')
 
-# ---------------------------------------------------------------- the payout (reliable_topup.gd)
+# ---------------------------------------------------------------- the damage (native_reliable.gd)
 #
 # The WEAPON_TAG half only reaches the card; these prove the damage. Author's ruling 2026-09-24:
-# EXACT - (dealt + top-up) must equal what ONE event of the raised floor would have dealt.
+# EXACT - one event of the raised floor, which is now literally what the engine deals.
 
 func armored_hostile(armor:int) -> Unit:
 	var hostile := Fixture.create_hostile(game, TARGET_TILE)

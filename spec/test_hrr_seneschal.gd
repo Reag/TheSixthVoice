@@ -111,7 +111,7 @@ func test_a_miss_still_deals_reliable_two():
 	assert_eq(hostile.current_damage(), 2, 'A miss: RELIABLE 2 lands anyway.')
 
 func test_under_weight_of_fire_the_reliable_rises_by_half_grit():
-	# Grit 4: Weight of Fire adds +2 to a non-Auxiliary weapon (ruling 2), paid by reliable_topup.gd.
+	# Grit 4: Weight of Fire adds +2 to a non-Auxiliary weapon (ruling 2), raised by native_reliable.gd.
 	Fixture.set_grit(hazard, 4)
 	SpecFactory.apply_passive_buffs(hazard)
 	UnitTile.update_tracking_and_statuses(game.map)

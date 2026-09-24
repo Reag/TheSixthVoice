@@ -1,6 +1,8 @@
-# HAZARD SP3 PROBE (design §3.0, amended by SP1): the Statistical Compensator's "+2 Reliable" is
-# paid by the shared reliable_topup.gd at ATTACK_DECLARED POST, so whatever carries the +2 must
-# still be readable THERE - not merely where the engine reads `reliable` (:82).
+# HAZARD SP3 PROBE (design §3.0, amended by SP1): the Statistical Compensator's "+2 Reliable" was
+# paid by the shared reliable_topup.gd at ATTACK_DECLARED POST, so whatever carried the +2 had to
+# still be readable THERE - not merely where the engine reads `reliable` (:82). HISTORICAL since
+# 2026-09-24: native_reliable.gd raises at PRE and the payout is gone, but the three seams measured
+# here are still engine facts, and the stamp (probe B) is still what gates the offer.
 #
 # PROBE A - the ruled carrier. A WEAPON_TAG buff with until = FINISH_DAMAGE, hung on the attacker at
 # ATTACK_DECLARED PRE, is still on the attacker at ATTACK_DECLARED POST. Code read says NO:
