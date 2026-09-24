@@ -936,6 +936,14 @@ const ICON_TARGETS := {
 	# SP4 Task 2 (Hazard). Brigid-Class NHP: Rallying Cry is the one button, and the design's family
 	# is {the Kit, Rallying Cry} (design 5), so KIT - the Morrigan's row.
 	&'ms_brigid_class_nhp': {&'action_rallying_cry': KIT},
+	# SP1 (Shackleton). Spatial Rerouting: no passive and no action - the rule is the mod's
+	# common_action_util.gd_ext.gd keyed on this Kit's id - so the Kit is its only surface. SP3: icon.
+	&'mt_spatial_rerouting': {},
+	# SP1 (Shackleton). Mobilized Hydraulics: two hidden buffs and a yes/no, no action of its own; the
+	# prompt's brochure is the Kit's card. One family (design 3). SP3: icon.
+	&'mt_mobilized_hydraulics': {},
+	# SP1 (Shackleton). Weak Computer, its own copy (ruling 2): the Fitzgerald's inaccuracy.svg reuse.
+	&'mt_shackleton_weak_computer': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1186,6 +1194,9 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# SP1 Task 4 (Hazard). DONT GIVE UP THE MECH's switch on the Hazard - the only sign the immunity
 	# aura is up for the rest of the scene (its two immunity buffs are hidden). Its own rows.
 	&'buff_dgutm_active',
+	# SP1 (Shackleton). Weak Computer's permanent chip, buff_weak_computer's reasoning: the drawback is
+	# legible on the token. Its text falls through to gear.mt_shackleton_weak_computer's rows.
+	&'buff_shackleton_weak_computer',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -1383,6 +1394,8 @@ const BUFFS_THAT_BORROW_A_CARD := {
 	# by mistake - the hazard the Rend Nexus hit needs a MULTI-action or a weapon Kit.
 	&'buff_wicked_host': 'gear.mt_wicked_host.effect',
 	&'buff_weak_computer': 'gear.mt_weak_computer.effect',
+	# SP1 (Shackleton). The Shackleton's own Weak Computer copy (design ruling 2), the same case.
+	&'buff_shackleton_weak_computer': 'gear.mt_shackleton_weak_computer.effect',
 	&'buff_gravity_well': 'gear.mt_gravity_well.effect',
 	# ADDED AT THE LEOLETH FRAME CLOSE, 2026-09-22, and the Leoleth's own new name guard is what
 	# found it: the 43 As chip is the fourth instance of the trait-chip case directly above, and SP1

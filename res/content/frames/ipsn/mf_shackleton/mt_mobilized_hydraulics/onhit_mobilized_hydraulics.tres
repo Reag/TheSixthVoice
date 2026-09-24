@@ -1,0 +1,9 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/mt_mobilized_hydraulics/onhit_mobilized_hydraulics.gd" id="1_onhit"]
+
+; apply_on 0 = ON_ATTACK: after the roll is settled, BEFORE action.on_hit queues the knockback
+; (the script's header).
+[resource]
+script = ExtResource("1_onhit")
+apply_on = 0

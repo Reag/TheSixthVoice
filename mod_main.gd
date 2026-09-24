@@ -13,6 +13,7 @@ const EXTENDED_RESOURCES:Array[String] = [
 	'res://content/licenses/horus/li_gorgon.tres', # Myconid, the Gorgon alt, appended to rank 2
 	'res://content/licenses/ssc/li_mourning_cloak.tres', # Maiden's Blush, the Mourning Cloak alt, appended to rank 2
 	'res://content/licenses/ha/li_iskander.tres', # Vauban, the Iskander alt, appended to rank 2
+	'res://content/licenses/ipsn/li_nelson.tres', # Shackleton, the Nelson alt, appended to rank 2
 ]
 
 ## Stamped on each resource INSTANCE we have edited, so a re-activation never edits it twice. On the
@@ -33,6 +34,7 @@ const MOD_LIBRARY := 'res://engine/mod/mod_library.gd'
 const EXTENDED_AUTOLOADS := {
 	&'UnitRelation': 'res://engine/character/unit/service/unit_relation.gd', # Primrose: Superheavy Overwatch under Wormhole Grasp
 	&'UnitPrinter': 'res://engine/character/unit/service/unit_printer.gd', # Leoleth: the Thermal Death Axe is destructible at zero charges
+	&'CommonActionUtil': 'res://engine/utils/common_action_util.gd', # Shackleton: Spatial Rerouting's any-direction knockback
 }
 
 ## Terms this mod's rule text uses in |markup| that the base game's glossary does not list.

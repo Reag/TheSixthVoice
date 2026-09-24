@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+
+; SPATIAL REROUTING (design ruling 3). NO passive of its own: the rule lives in the mod's
+; common_action_util.gd_ext.gd, which asks whether the knocking unit carries this Kit by id. The Kit
+; is the card and the switch. Icon: SP3.
+[resource]
+script = ExtResource("1_kit")
+is_trait = true

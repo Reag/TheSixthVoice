@@ -718,6 +718,15 @@ gear.ms_brigid_class_nhp.effect,Your mech gains the AI tag and the Rallying Cry 
 gear.ms_brigid_class_nhp.action_rallying_cry.name,Rallying Cry
 gear.ms_brigid_class_nhp.action_rallying_cry.effect,"1/scene, expend a charge and choose an allied mech character within sensors. They clear Impaired, Shredded, and Slowed if they weren't self-inflicted. If they are prone, they stand up. They also clear 1d6+1 Heat."
 gear.ms_brigid_class_nhp.default_name,Brigid
+frame.mf_shackleton.name,Shackleton
+frame.mf_shackleton.flavor.short,Heavy. Dense. Immutable.
+frame.mf_shackleton.flavor,"Mass. The universe is constructed of building blocks, every object everywhere is constrained by the bounds of physics. Every mech, every weapon, every pilot each one bound to this undeniable code. Bullets fired, pneumatics engaged, momentum routed, heat vented, metal bent and broken and repaired. Even paracausality falls prey to its form, understanding is no prerequisite for obedience. Time and Space are prisoners to these universal laws. Here at IPS-N we do not need to fight physics, we work with it. To master each atom individually. To build from them a whole so complete and powerful that it becomes as undeniable as gravity. The Shackleton is heavy. It is dense. It is immutable, it has ceased to be a thing at all. The Shackleton is a fact."
+gear.mt_spatial_rerouting.name,Spatial Rerouting
+gear.mt_spatial_rerouting.effect,Knockback the Shackleton inflicts can be in any direction other than up.
+gear.mt_mobilized_hydraulics.name,Mobilized Hydraulics
+gear.mt_mobilized_hydraulics.effect,"1/round, when the Shackleton hits an enemy with a |melee| attack, it may have that attack gain Knockback 2."
+gear.mt_shackleton_weak_computer.name,Weak Computer
+gear.mt_shackleton_weak_computer.effect,The Shackleton receives |+1 Difficulty| on Systems checks and saves.
 bark.nhp_brigid,NHP Brigid
 bark.nhp_brigid.deploy.1,Up and at em!
 bark.nhp_brigid.deploy.2,Everyone ready?
