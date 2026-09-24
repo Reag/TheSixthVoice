@@ -162,6 +162,44 @@ func test_declining_the_offer_forces_no_save() -> void:
 	assert_false(run.target.has_status(Lancer.STATUS.PRONE), '"you may" - declined.')
 	assert_eq(Dice.CHEAT_ROLL_QUEUE.size(), 1, 'and no save was rolled.')
 
+func test_every_collision_in_one_shockwave_is_offered() -> void:
+	# The reaction is free (consumes_rxn = false): a second collision in the same shockwave still gets
+	# its offer after the first spent nothing. Frame-close review, 2026-09-24. East: (7,5) stops at
+	# (8,5) against (9,5). West: (4,6) stops at (3,6) against (2,6). Both are one space from the
+	# footprint, so farthest_first keeps their burst order.
+	var east := Fixture.create_dummy(game, TARGET_TILE)
+	Fixture.create_dummy(game, BLOCKER_TILE)
+	var west := Fixture.create_dummy(game, Vector2i(4, 6))
+	Fixture.create_dummy(game, Vector2i(2, 6))
+	Dice.CHEAT_ROLL_QUEUE.assign([FAIL, FAIL])
+	# The answers follow the action's own order, read from its own statics.
+	var weight_script = load('res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/cp_force_distribution_programs/action_unfathomable_weight.gd')
+	var targets:Array[Unit] = weight_script.hostile_characters_in(shackleton,
+		UnitTile.get_aoe_tiles(shackleton, Lancer.AOE_TYPE.BURST, 1))
+	weight_script.farthest_first(shackleton, targets)
+	assert_eq(targets.size(), 2, 'fixture: both hostiles are in the burst, the blockers are not.')
+	var moves:Array[Vector2i] = []
+	for target:Unit in targets: moves.append(SHORT_TILE if target == east else Vector2i(3, 6))
+	var from := await press([true, true, true], moves)
+	assert_eq(east.tile(), SHORT_TILE, 'east stopped short.')
+	assert_eq(west.tile(), Vector2i(3, 6), 'west stopped short.')
+	assert_eq(weight_prompts(from) - 1, 2, 'both collisions offered the save.')
+	assert_true(east.has_status(Lancer.STATUS.PRONE) and west.has_status(Lancer.STATUS.PRONE), 'both Prone.')
+
+func test_the_collision_offer_wears_unfathomable_weights_glyph() -> void:
+	# The reaction is off the card but its yes/no draws the action panel with its own icon
+	# (action.gd:320-326); without an override that is the core Kit's hub glyph.
+	var kit:Kit = ContentLibrary.get_kit(Fixture.CORE_ID)
+	var weight:Action = null
+	var collide:Action = null
+	for action:Action in kit.actions:
+		if action.get_id() == Fixture.WEIGHT_ID: weight = action
+		elif action.get_id() == &'action_unfathomable_weight_collide': collide = action
+	assert_not_null(weight); assert_not_null(collide)
+	if weight == null or collide == null: return
+	assert_not_null(collide.icon_override, 'the reaction carries its own icon.')
+	assert_eq(collide.icon_override, weight.icon_override, 'and it is the one Unfathomable Weight wears.')
+
 func test_no_collision_no_offer() -> void:
 	var target := Fixture.create_dummy(game, TARGET_TILE)
 	Dice.CHEAT_ROLL_QUEUE.assign([FAIL])

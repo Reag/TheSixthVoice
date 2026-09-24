@@ -46,5 +46,12 @@ static func generate_knockback_events(
 	if specific == null or not Unit.is_valid(specific.unit): return events
 	if not GearCore.is_valid(specific.unit.get_gear(SPATIAL_REROUTING)): return events
 	for event:EventCore in events:
-		if event.context.flags.has(EventUnitPickMove.FLAG.KNOCKBACK): event.context.array = []
+		var flags:Array = event.context.flags
+		# An AUTO_FURTHEST push is resolved with no picker (event_unit_pick_move.gd:118-123): with its
+		# origin emptied the source becomes the mover's own tile, every tile at the distance ties, and
+		# Tile.get_furthest_pair_between shuffles the ties - a random direction nobody chose. Those
+		# (Siege Specialist, Repulser Field, Stormbringer, Agni) keep vanilla's deterministic "away",
+		# which is one of the directions the trait allows. Frame-close review, 2026-09-24.
+		if flags.has(EventUnitPickMove.FLAG.KNOCKBACK) and not flags.has(EventUnitPickMove.FLAG.AUTO_FURTHEST):
+			event.context.array = []
 	return events

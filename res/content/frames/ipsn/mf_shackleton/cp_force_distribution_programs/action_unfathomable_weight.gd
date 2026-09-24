@@ -52,6 +52,8 @@ func activate(context:Context, activation:EventCore) -> void:
 	await run_system_fxgs(unit, [], tiles)
 	if activation.abort_without_unit(unit): return
 
+	# The awaits above yield; drop anything freed meanwhile before the sort measures it.
+	Util.filter(targets, Unit.is_valid)
 	farthest_first(unit, targets)
 	for target:Unit in targets:
 		if not Unit.is_valid(target): continue

@@ -102,6 +102,21 @@ func test_the_rule_keys_on_the_knocker_not_the_knocked() -> void:
 	assert_true(movement.straight_line and movement.must_move_max_possible and movement.cannot_move_uphill,
 		'and the movement type is vanilla\'s: straight, the full distance, never uphill.')
 
+func test_an_automatic_push_keeps_vanillas_away() -> void:
+	# AUTO_FURTHEST resolves with no picker (event_unit_pick_move.gd:118-123); emptying its origin
+	# would make every direction tie and the engine shuffle them - a random push. Those keep their
+	# origin, so vanilla's deterministic "away" stands. Frame-close review, 2026-09-24.
+	var shackleton := Fixture.create_shackleton(game, SHACKLETON_TILE)
+	var own_pike := Fixture.equip(shackleton, Fixture.PIKE)
+	target = Fixture.create_dummy(game, TARGET_TILE)
+	var events:Array[EventCore] = CommonActionUtil.generate_knockback_events(
+		target, 1, SpecificAction.create(shackleton, own_pike, own_pike.get_solo_action()),
+		[], [EventUnitPickMove.FLAG.AUTO_FURTHEST])
+	assert_eq(events.size(), 1, 'one pick-move event.')
+	if events.size() != 1: return
+	assert_has(events[0].context.flags, EventUnitPickMove.FLAG.AUTO_FURTHEST)
+	assert_false(Array(events[0].context.array).is_empty(), 'an automatic push keeps its origin tiles.')
+
 func test_an_ai_shackleton_pushes_without_asking() -> void:
 	# The deciding party is vanilla's (target_action_util.gd:38-39, :60-66): an AI knocker picks the
 	# worst tile for its enemy itself.

@@ -111,6 +111,7 @@ func test_a_vetoed_leap_is_spent_and_does_nothing_else() -> void:
 	assert_eq(named_prompts('gear.mt_uncertainty_field.name', from), 1, 'fixture: the field offered the veto.')
 	assert_eq(shackleton.tile(), START_TILE, 'the leap was vetoed.')
 	assert_false(shackleton.core.has_core_power, 'the core point is spent anyway (ruling 11).')
+	assert_eq(shackleton.state.actions, 1, 'and so is the Quick action.')
 	assert_eq(near.tile(), LANDING + Vector2i(-1, 0), 'no burst.')
 	assert_eq(hp(near), 200, 'no damage.')
 	assert_eq(craters().size(), 0, 'no crater.')

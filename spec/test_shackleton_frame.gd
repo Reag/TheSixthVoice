@@ -165,6 +165,8 @@ func test_the_instance_content_library_serves_is_the_one_mod_main_retains():
 	if embassy == null: return
 	var retained:Array = embassy.get('_retained_resources')
 	var tree := _license()
+	assert_not_null(retained, 'mod_main still exposes _retained_resources.')
+	assert_not_null(tree, 'ContentLibrary serves li_nelson.')
 	if retained == null or tree == null: return
 	var same := false
 	for resource in retained: if resource == tree: same = true

@@ -1,9 +1,13 @@
 [gd_resource type="Resource" script_class="ActionReaction" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/cp_force_distribution_programs/action_unfathomable_weight_collide.gd" id="1_collide"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_unfathomable_weight.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_collide")
+; Unfathomable Weight's own glyph: the card hides this reaction, but its "you may" prompt draws the
+; action panel with this action's icon (action.gd:320-326), as Ferrous Lash's collide reaction does.
+icon_override = ExtResource("2_icon")
 ; Ferrous Lash's collide reaction's shape (action_ferrous_lash_collide.tres): POST on the virtual
 ; event_unit_collide, which owns TRIGGER.COLLISION.
 triggers_on = Array[StringName]([&"collision"])
