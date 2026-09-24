@@ -1,0 +1,28 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://vi3dfs5ql3lg" path="res://engine/character/gear_action/action_attack_weapon.gd" id="1_attack"]
+[ext_resource type="Script" uid="uid://c0yv6pnw2be6l" path="res://engine/character/gear_action/resources/range_pattern.gd" id="2_pattern"]
+[ext_resource type="PackedScene" uid="uid://c1njoajkcg1u" path="res://content/fx_groups/weapons/launchers/fxg_rocket_propelled_grenade.tscn" id="3_fxg"]
+
+; Main (1) Launcher (4), 1d6 Explosive (2), Range 10, Blast 1 (Hazard design ruling 8). ARCING,
+; RELIABLE 2 and INACCURATE in the card's order; LIMITED 4 is the Kit's charges_max. No script:
+; ARCING waives LOS inside ActionAttackWeapon, RELIABLE's value is reliable_damage, and the
+; INACCURATE d6 comes from attack_accuracy (attack_roll.gd:145-151) - the tag only draws it, the
+; vanilla Mortar's pairing. The Blast sub-resource is the Mortar's (pattern 1, value 1); the FX is
+; the Rocket-Propelled Grenade's, the nearest vanilla launcher grenade.
+[sub_resource type="Resource" id="Resource_blast1"]
+script = ExtResource("2_pattern")
+pattern = 1
+value = 1
+
+[resource]
+script = ExtResource("1_attack")
+damage_type = 2
+damage_dice = "1d6"
+weapon_type = 4
+aim_range = 10
+tags = Array[StringName]([&"arcing", &"reliable", &"inaccurate"])
+reliable_damage = "2"
+range_pattern = SubResource("Resource_blast1")
+attack_accuracy = "-1"
+attack_fxg_override = ExtResource("3_fxg")

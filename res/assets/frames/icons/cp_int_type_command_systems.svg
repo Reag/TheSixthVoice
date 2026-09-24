@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- cp_int_type_command_systems : Reag-TheSixthVoice Hazard icon, SP5 (the Kit's own bare glyph) -->
+<path d="M29,10 L35,10 L35,30 L29,30 Z"/>
+<path d="M32,34 a6,6 0 1,0 0.01,0 Z" fill="none" stroke="white" stroke-width="4"/>
+<path d="M32,2 L36,10 L28,10 Z"/>
+<path d="M14,14 A26,26 0 0,1 22,8 M42,8 A26,26 0 0,1 50,14 M8,32 A26,26 0 0,1 12,20 M56,20 A26,26 0 0,1 60,32" stroke="white" stroke-width="3" fill="none"/>
+</svg>

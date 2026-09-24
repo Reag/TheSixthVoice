@@ -657,3 +657,101 @@ gear.ms_superpositional_profile.action_shimmer.name,Shimmer
 gear.ms_superpositional_profile.action_shimmer.trigger,You are targeted by a |ranged attack|.
 gear.ms_superpositional_profile.action_shimmer.effect,"Expend a charge, the attack gains |+2 DIFFICULTY=lancer.term.difficulty|, if the attack misses you may immediately |teleport| to a space within range 3."
 gear.ms_superpositional_profile.action_shimmer_blink.name,Shimmer
+,
+frame.mf_hazard.name,Hazard
+frame.mf_hazard.flavor.short,Common Soldier
+frame.mf_hazard.flavor,"The Hazard is IPS-N's experimental attempt to create a mech that is able to operate at full efficiency in every possible situation. Incorporating many of the lessons learned from the Broadcasts, it utilizes a wide array of IPS-N technologies; self-shielding, multifaceted armature, redundant ammo feeds, and universal ammunition for all theater deployment. Due to its heavily standardized nature as a infantry mech, many pilots opt to decorate their Hazard to fit their personality. IPS-N encourages this behavior and it is common to see them heavily modded, flying flags of every nationality, planet, or group imaginable, emblazoned with pride and glory. At its core, the Hazard speaks to some irrepressible part of the human spirit. It does not stand for some warlord in a tower, or a king upon his throne. The Hazard is the common soldier, side by side, marching to war. The true bravery that comes with the storm of bullets and whizzing shrapnel. Those who win the day again and again, spending their blood, sweat, and tears for each mile of progress. Those who spend their lives so that others may see each new day upon the horizon. The Hazard. Dont give up the ship."
+,
+gear.mt_weight_of_fire.name,Weight of Fire
+gear.mt_weight_of_fire.effect,"All non-|Auxiliary| weapons mounted on the Hazard and adjacent allied mechs increase their |Reliable| equal to half |Grit|. If they do not have Reliable, they instead gain that much."
+gear.buff_weight_of_fire.name,Weight of Fire
+gear.buff_weight_of_fire.effect,"All non-|Auxiliary| weapons mounted on the Hazard and adjacent allied mechs increase their |Reliable| equal to half |Grit|. If they do not have Reliable, they instead gain that much."
+,
+gear.mt_shield_wall.name,Shield Wall
+gear.mt_shield_wall.effect,"At the end of the Hazards turn, it may choose an adjacent allied character, they gain |OVERSHIELD| equal to 1+|GRIT|."
+gear.mt_shield_wall.action_shield_wall.name,Shield Wall
+gear.mt_shield_wall.action_shield_wall.effect,"At the end of the Hazards turn, it may choose an adjacent allied character, they gain |OVERSHIELD| equal to 1+|GRIT|."
+,
+gear.cp_int_type_command_systems.name,INT-Type Command Systems
+gear.cp_int_type_command_systems.flavor,"IPS-N's INT type systems provide real-time statistics and helpful recommendations to pilots during combat scenarios in an effort to increase overall metrics. While not particularly popular amongst users, the results remain positive with a notable 15% productivity increase and higher operation success rates in moderate to severe theaters."
+gear.cp_int_type_command_systems.effect,"1/round, when an adjacent allied character starts their turn, you may choose to give the first attack they make +1 |Accuracy|. Until the end of your next turn, the next attack you make has +1 |Difficulty|."
+gear.cp_int_type_command_systems.action_supporting_fire.name,Supporting Fire
+gear.cp_int_type_command_systems.action_supporting_fire.effect,"1/round, when an adjacent allied character starts their turn, you may choose to give the first attack they make +1 |Accuracy|. Until the end of your next turn, the next attack you make has +1 |Difficulty|."
+gear.buff_supporting_fire.name,Supporting Fire
+gear.buff_supporting_fire.effect,"1/round, when an adjacent allied character starts their turn, you may choose to give the first attack they make +1 |Accuracy|. Until the end of your next turn, the next attack you make has +1 |Difficulty|."
+gear.buff_supporting_fire_cost.name,Supporting Fire
+gear.buff_supporting_fire_cost.effect,"1/round, when an adjacent allied character starts their turn, you may choose to give the first attack they make +1 |Accuracy|. Until the end of your next turn, the next attack you make has +1 |Difficulty|."
+gear.cp_int_type_command_systems.action_dont_give_up_the_mech.name,DONT GIVE UP THE MECH
+gear.cp_int_type_command_systems.action_dont_give_up_the_mech.effect,"All allied characters within |SENSORS| may move up to their speed as a |reaction|. For the rest of the scene, you and all adjacent allied characters can not be pushed, pulled, knocked back, or knocked |Prone|."
+gear.buff_dgutm_active.name,DONT GIVE UP THE MECH
+gear.buff_dgutm_active.effect,"All allied characters within |SENSORS| may move up to their speed as a |reaction|. For the rest of the scene, you and all adjacent allied characters can not be pushed, pulled, knocked back, or knocked |Prone|."
+gear.buff_dgutm_knockback.name,DONT GIVE UP THE MECH
+gear.buff_dgutm_knockback.effect,"All allied characters within |SENSORS| may move up to their speed as a |reaction|. For the rest of the scene, you and all adjacent allied characters can not be pushed, pulled, knocked back, or knocked |Prone|."
+gear.buff_dgutm_prone.name,DONT GIVE UP THE MECH
+gear.buff_dgutm_prone.effect,"All allied characters within |SENSORS| may move up to their speed as a |reaction|. For the rest of the scene, you and all adjacent allied characters can not be pushed, pulled, knocked back, or knocked |Prone|."
+
+gear.mw_wavemaker_grenade_launcher.name,Wavemaker Grenade Launcher
+gear.mw_wavemaker_grenade_launcher.flavor,"As the current lead in IPS-N's mid-range crowd control option, the Wavemaker has seen use again and again. Built upon the IPS-N Cartridge system, its ability to reliably push back advancing hostiles has lead to its near ubiquity on the front lines."
+
+gear.ms_emergency_armature.name,Emergency Armature
+gear.ms_emergency_armature.flavor,"Consisting of flash printed armor plates, the Emergency Armature package is meant to be another set of redundancies to keep pilots alive. While originally developed to have repair functionalities, testing found that most pilots preferred its preventative features and as such, they were removed to keep the system as lightweight as possible."
+gear.ms_emergency_armature.effect,You gain the Activate Emergency Armature reaction.
+gear.ms_emergency_armature.action_activate_emergency_armature.name,Activate Emergency Armature
+gear.ms_emergency_armature.action_activate_emergency_armature.trigger,You take damage from a hostile character.
+gear.ms_emergency_armature.action_activate_emergency_armature.effect,"Expend a charge, you reduce the incoming damage by 1d6 and may move two spaces. This movement ignores engagement and doesn’t provoke reactions."
+gear.buff_emergency_armature_reduce.name,Activate Emergency Armature
+gear.buff_emergency_armature_reduce.effect,"Expend a charge, you reduce the incoming damage by 1d6 and may move two spaces. This movement ignores engagement and doesn’t provoke reactions."
+gear.mw_panic_breaker.name,Panic Breaker
+gear.mw_panic_breaker.flavor,"The Panic Breaker is the most popular item in the Hazard Licensing scheme due to its ability to turn the tides in even the most dangerous situations. This sheer power under pressure lends it its namesake and has earned it a special place in the hearts of all those pilots who prefer the most direct method of problem solving."
+gear.wm_statistical_compensator.name,Statistical Compensator
+gear.wm_statistical_compensator.flavor,"The Statistical Compensator is the product of IPS-N's brief foray into paracausal technology. While any actually paracausal iterations were tested out, it operates on a similar fulcrum, unavoidable weight of fire. The compensator itself is a mixture of a small targeting computer and an ammo feed modifier, by shooting out additional timed shots, it is able to adjust for unexpected movements leading to much more consistent outcomes in the case of a missed shot."
+gear.wm_statistical_compensator.effect,"When you make an attack roll with the weapon this mod is applied to, you may expend a charge to gain +2 |Reliable| for that attack."
+gear.wm_statistical_compensator.action_statistical_compensator.name,Statistical Compensator
+gear.wm_statistical_compensator.action_statistical_compensator.effect,"When you make an attack roll with the weapon this mod is applied to, you may expend a charge to gain +2 |Reliable| for that attack."
+gear.buff_statistical_compensator.name,Statistical Compensator
+gear.buff_statistical_compensator.effect,"When you make an attack roll with the weapon this mod is applied to, you may expend a charge to gain +2 |Reliable| for that attack."
+gear.mw_hrr_seneschal.name,HRR-SENESCHAL
+gear.mw_hrr_seneschal.flavor,"The most experimental weapon IPS-N has put to mainline production, the HRR-SENESHAL is the hallmark of planet side line infantry. With its massive operational range, consistent output, and ability to capitalize on more complex terrain, its mere presence has ended battles before they have even begun."
+gear.ms_brigid_class_nhp.name,Brigid-Class NHP
+gear.ms_brigid_class_nhp.flavor,"The Brigid-Class NHP was designed to be an all-purpose battlefield companion, integrating the latest in IPS-N's rapid adjustment goal oriented design. Able to be engaged as a continuous presence, Brigid serves as a comrade in arms that is able to provide moral support and tactical input both in and out of engagements. With a tendency for supportive, friendly, and highly protective personalities, plus their ability to turn the tide in sticky situations, many pilots consider them their guardian angels on the battlefield. ""The cowards fears death The courageous fear failure [Fear neither] says Brigid, [You shall face each when you are ready, and no sooner]"""
+gear.ms_brigid_class_nhp.effect,Your mech gains the AI tag and the Rallying Cry quick action.
+gear.ms_brigid_class_nhp.action_rallying_cry.name,Rallying Cry
+gear.ms_brigid_class_nhp.action_rallying_cry.effect,"1/scene, expend a charge and choose an allied mech character within sensors. They clear Impaired, Shredded, and Slowed if they weren't self-inflicted. If they are prone, they stand up. They also clear 1d6+1 Heat."
+gear.ms_brigid_class_nhp.default_name,Brigid
+bark.nhp_brigid,NHP Brigid
+bark.nhp_brigid.deploy.1,Up and at em!
+bark.nhp_brigid.deploy.2,Everyone ready?
+bark.nhp_brigid.deploy.3,We got this in the bag!
+bark.nhp_brigid.start_turn.1,Lets get to work!
+bark.nhp_brigid.start_turn.2,No use dilly dallying
+bark.nhp_brigid.crit_target.1,That was good!
+bark.nhp_brigid.crit_target.2,Good work hun!
+bark.nhp_brigid.structure_target.1,Serves you right!
+bark.nhp_brigid.structure_target.2,Decisive!
+bark.nhp_brigid.stress_target.1,Now! Seize the day!
+bark.nhp_brigid.stress_target.2,Onward! Press the advantage!
+bark.nhp_brigid.stress_target.3,Get em!
+bark.nhp_brigid.destroy_target.1,There!
+bark.nhp_brigid.destroy_target.2,Easy peazy!
+bark.nhp_brigid.destroy_target.3,I knew you could do it!
+bark.nhp_brigid.structure_self.1,Oh my
+bark.nhp_brigid.structure_self.2,Careful now!
+bark.nhp_brigid.stress_self.1,Lets not get carried away!
+bark.nhp_brigid.stress_self.2,Oops
+bark.nhp_brigid.destroy_self.1,Its gonna be alright!
+bark.nhp_brigid.destroy_self.2,"I'll be okay, keep going!"
+bark.nhp_brigid.destroy_self.3,You'll do great without me!
+bark.nhp_brigid.destroy_ally.1,Wait! No! Dont go!
+bark.nhp_brigid.destroy_ally.2,We need you here!
+bark.nhp_brigid.destroy_ally.3,I will mourn you.
+bark.nhp_brigid.friendly_fire_self.1,Its alright! dont worry!
+bark.nhp_brigid.friendly_fire_self.2,Im sure it was an accident.
+bark.nhp_brigid.core_power.1,LETS GET THIS DONE!
+bark.nhp_brigid.core_power.2,WE GOT THIS IN THE BAG
+bark.nhp_brigid.overcharge.1,Till the day is won!
+bark.nhp_brigid.overcharge.2,No stopping now!
+bark.nhp_brigid.brace.1,You are under my protection!
+bark.nhp_brigid.brace.2,Try not to take another one of those please.
+bark.nhp_brigid.leader_accuracy.1,Aim true!
+bark.nhp_brigid.leader_damage.1,There we go!
+bark.nhp_brigid.leader_reduce.1,Isn't that better?

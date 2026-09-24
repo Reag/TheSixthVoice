@@ -1,0 +1,14 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_emergency_armature/action_activate_emergency_armature.gd" id="1_action"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_emergency_armature/buff_emergency_armature_reduce.tres" id="2_reduce"]
+
+; ACTIVATE EMERGENCY ARMATURE (ruling 9; the script's header). DAMAGE PRE (trigger_timing 0), a
+; REAL reaction (consumes_rxn at its default true): the point is the 1/round. Its own usage group.
+[resource]
+script = ExtResource("1_action")
+reduce_buff = ExtResource("2_reduce")
+usage_group = &"emergency_armature"
+triggers_on = Array[StringName]([&"damage"])
+trigger_timing = 0
+emit_text_popcorn_on_use = true

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_emergency_armature/buff_emergency_armature_reduce.gd" id="1_buff"]
+
+; "reduce the incoming damage by 1d6": the Leader's buff_leadership_reduce.tres shape (a REDUCE, all
+; non-heat types), but the 1d6 is rolled ONCE by the reaction and drawn as a pool across the hit's
+; damage types - the script's header. reduction_amount is display only; get_values never rolls it.
+; until 9 = FINISH_DAMAGE, the backstop beside is_onetime. Hidden: the hit resolves while it exists.
+[resource]
+script = ExtResource("1_buff")
+resist_everything = true
+reduce_instead_of_resist = true
+reduction_amount = "1d6"
+to = &"resist_damage"
+until = 9
+is_onetime = true
+hide_from_player = true

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://vi3dfs5ql3lg" path="res://engine/character/gear_action/action_attack_weapon.gd" id="1_attack"]
+
+; Heavy (2) Cannon (1), a flat 6 Kinetic (0), Range 3 (Hazard design ruling 10). RELIABLE 4 and
+; KNOCKBACK 2 in the card's order; each tag's value is its own field (reliable_damage, knockback -
+; the Siege Cannon's pairing). No FX override: vanilla's default heavy cannon (default_weapon_fxg).
+[resource]
+script = ExtResource("1_attack")
+damage_type = 0
+damage_dice = "6"
+weapon_size = 2
+weapon_type = 1
+aim_range = 3
+tags = Array[StringName]([&"reliable", &"knockback"])
+reliable_damage = "4"
+knockback = "2"

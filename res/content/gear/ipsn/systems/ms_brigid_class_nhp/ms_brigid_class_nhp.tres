@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_brigid_class_nhp/action_rallying_cry.tres" id="3_cry"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="5_passive"]
+[ext_resource type="Script" uid="uid://blv61i0a1ghms" path="res://engine/character/gear_passive/passive_ai_privilege.gd" id="6_ai_privilege"]
+[ext_resource type="JSON" path="res://unpacked/Reag-TheSixthVoice/res/content/portraits/default_nhps/brigid.json" id="7_portrait"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/barks/bark_nhp_brigid.tres" id="8_barkset"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_brigid_class_nhp.svg" id="9_icon"]
+
+[sub_resource type="Resource" id="Resource_brigid_ai"]
+script = ExtResource("6_ai_privilege")
+; THE FACE, THE NAME AND THE VOICE, from UnitPrinter.full_repair ->
+; PassiveAiPrivilege.inherit_default_nhp_settings (passive_ai_privilege.gd:61-79) - the Morrigan's
+; wiring verbatim; ms_the_morrigan_class_nhp.tres has the long form. The name is gated on the
+; portrait, so both ship together; brigid.json ships is_stock TRUE (the portrait editor exports
+; false) so a player who later swaps NHPs gets that NHP's face. Limit flags at their defaults: an
+; ordinary one-per-mech AI.
+default_portrait = ExtResource("7_portrait")
+default_barkset = ExtResource("8_barkset")
+
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("3_cry")])
+passives = Array[ExtResource("5_passive")]([SubResource("Resource_brigid_ai")])
+sp_cost = 2
+; Unique 1 + AI 4 + NHP 8 = 13. The card prints LIMITED 4, AI, UNIQUE, and design ruling 13 set 5;
+; SP4 corrected it to 13 because UnitCore.has_nhp_copilot() reads the NHP bit and nothing else
+; (unit_core.gd:319), and that is what lets the NHP speak (unit_bark.gd:39) and shows her face on
+; the token, tooltip, sheet and roster. With 5 the barkset and portrait would be adopted and never
+; used. Every vanilla NHP, the Morrigan and the Jormungandr carry 13. The one visible cost is an NHP
+; chip on the character sheet's tag row (kit.gd:99-100).
+system_tags = 13
+; LIMITED 4: each Rallying Cry spends one through the default consumes_charges; an empty Kit is
+; not a destruction candidate (unit_printer.gd:311-319, vanilla).
+charges_max = 4
+; 1/scene (unit_action.gd:147, REASON.PER_SCENE), reset by GearCore.short_repair (gear_core.gd:133),
+; which leaves the charges alone. ONE ACTION, so no usage_group: the tally falls back to the Kit id.
+uses_per_scene = 1
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"
+icon_override = ExtResource("9_icon")

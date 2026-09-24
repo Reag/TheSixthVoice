@@ -1,0 +1,14 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_brigid_class_nhp/action_rallying_cry.gd" id="1_cry"]
+
+[resource]
+script = ExtResource("1_cry")
+; QUICK (Lancer.ACTION.QUICK == 1). Not tech: the card says quick action, not quick tech.
+action_type = 1
+; "an allied mech character within sensors", split the way ActionSystemTargetUnit splits it; the
+; .gd's can_target_unit narrows is_character() to is_mech() and refuses self.
+target_range_is_sensors = true
+can_target_enemies = false
+can_target_allies = true
+requires_target_character = true

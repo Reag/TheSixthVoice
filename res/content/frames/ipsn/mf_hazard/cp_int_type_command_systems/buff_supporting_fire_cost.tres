@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BuffBonus" format=3]
+
+[ext_resource type="Script" uid="uid://bav10yhc56w73" path="res://engine/character/buff/archtypes/buff_bonus.gd" id="1_bonus"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_supporting_fire.svg" id="2_icon"]
+
+; SUPPORTING FIRE's +1 DIFFICULTY on the HAZARD (ruling 5): accuracy -1 on its own attack_roll,
+; one-time - "the next attack you make". Until the end of the Hazard's NEXT turn (END_OF_NEXT_TURN
+; = 1: converts at its next turn start, clears at that turn's end). VISIBLE: the price is shown,
+; wearing the family's texture (design 5).
+[resource]
+script = ExtResource("1_bonus")
+bonus_subtype = &"accuracy"
+bonus_value = -1
+until = 1
+to = &"attack_roll"
+is_onetime = true
+icon = ExtResource("2_icon")

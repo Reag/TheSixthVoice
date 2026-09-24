@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BuffStatusImmunity" format=3]
+
+[ext_resource type="Script" uid="uid://cm107udeeibkt" path="res://engine/character/buff/archtypes/buff_status_immunity.gd" id="1_immunity"]
+
+; "or knocked Prone": the Drake's buff_fortress_immunity.tres minus Dazed. Prone from ANY source is
+; refused (STATUS_IMMUNITY) - the card is unqualified, and vanilla's Fortress Protocol makes the same
+; call. Hidden; the aura owns its lifetime.
+[resource]
+script = ExtResource("1_immunity")
+immune_to_statuses = Array[StringName]([&"prone"])
+to = &"status_immunity"
+until = 0
+hide_from_player = true

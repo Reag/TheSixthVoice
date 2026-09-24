@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- wm_statistical_compensator : Reag-TheSixthVoice Hazard icon, SP5 (its prompt reaction shares this texture) -->
+<path d="M32,4 a28,28 0 1,0 0.01,0 Z M32,10 a22,22 0 1,1 -0.01,0 Z"/>
+<path d="M18,42 L24,42 L24,30 L18,30 Z M27,42 L33,42 L33,22 L27,22 Z M36,42 L42,42 L42,34 L36,34 Z"/>
+</svg>

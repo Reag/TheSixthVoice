@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.10.0'
+const EXPECTED_VERSION := '0.11.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -902,6 +902,40 @@ const ICON_TARGETS := {
 	# the gear bar), so KIT - Load Munitions and its chip share the system's own glyph (design 5).
 	# SP5: the icon.
 	&'ms_hyper_engineered_munitions': {&'action_load_munitions': KIT},
+	# SP1 Task 2 (Hazard). Weight of Fire: a passive aura trait, no action - its one surface is the
+	# Kit. Its buff is hidden (the weapon card's Reliable number is where it shows).
+	&'mt_weight_of_fire': {},
+	# SP1 Task 3 (Hazard). Shield Wall: one trait, one hidden duplicate-text reaction (Halo's shape),
+	# so `{}` - the reaction wears the Kit's glyph if it is ever drawn.
+	&'mt_shield_wall': {},
+	# SP1 Task 4 (Hazard), SP5's call made (design 5: exactly two families). INT-TYPE COMMAND
+	# SYSTEMS: DONT GIVE UP THE MECH (the active, whose switch chip buff_dgutm_active wears the same
+	# texture) is one named family. SUPPORTING FIRE is the other - SP5 gave it the Stalk the
+	# Horizon shape (a show_in_tooltip override on action_supporting_fire.gd, since its effect row
+	# duplicated the Kit's own text and hid); its two chips (buff_supporting_fire,
+	# buff_supporting_fire_cost) wear its texture too.
+	&'cp_int_type_command_systems': {
+		&'action_dont_give_up_the_mech': &'action_dont_give_up_the_mech',
+		&'action_supporting_fire': &'action_supporting_fire',
+	},
+	# SP2 Task 1 (Hazard). Wavemaker Grenade Launcher: one Kit, one profile, so KIT (the Blink Bolt
+	# Launcher's row).
+	&'mw_wavemaker_grenade_launcher': {&'action_wavemaker_grenade_launcher': KIT},
+	# SP2 Task 2 (Hazard). Emergency Armature: one Kit, one reaction that draws on the card (it keeps
+	# show_in_tooltip - the reaction IS the card) and never reaches the gear bar, so KIT, the
+	# Jormungandr's Automatic Retaliation row. Its reduction buff is hidden.
+	&'ms_emergency_armature': {&'action_activate_emergency_armature': KIT},
+	# SP3 Task 1 (Hazard). Panic Breaker: one Kit, one profile, so KIT.
+	&'mw_panic_breaker': {&'action_panic_breaker': KIT},
+	# SP3 Task 2 (Hazard). Statistical Compensator: a weapon mod (wm_ripper_mod's shape) whose prompt
+	# reaction is hidden (show_in_tooltip false) and whose Reliable buff is hidden, so nothing but the
+	# Kit's own icon is ever shown - `{}`. The prompt shares the Kit's glyph (design 5).
+	&'wm_statistical_compensator': {},
+	# SP4 Task 1 (Hazard). HRR-SENESCHAL: one Kit, one profile, so KIT.
+	&'mw_hrr_seneschal': {&'action_hrr_seneschal': KIT},
+	# SP4 Task 2 (Hazard). Brigid-Class NHP: Rallying Cry is the one button, and the design's family
+	# is {the Kit, Rallying Cry} (design 5), so KIT - the Morrigan's row.
+	&'ms_brigid_class_nhp': {&'action_rallying_cry': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1145,6 +1179,13 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# SP4 Task 1 (Purple Thorn). Load Munitions' chip on the Thorn - the only on-token sign of which
 	# mount is loaded and when the window ends. Its own rows.
 	&'buff_loaded_munitions',
+	# SP1 Task 4 (Hazard). Supporting Fire's two chips: the ally's +1 Accuracy and the Hazard's +1
+	# Difficulty - each side's only sign of the trade and when it lapses. Their own rows.
+	&'buff_supporting_fire',
+	&'buff_supporting_fire_cost',
+	# SP1 Task 4 (Hazard). DONT GIVE UP THE MECH's switch on the Hazard - the only sign the immunity
+	# aura is up for the rest of the scene (its two immunity buffs are hidden). Its own rows.
+	&'buff_dgutm_active',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

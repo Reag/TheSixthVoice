@@ -1,0 +1,18 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/wm_statistical_compensator/buff_statistical_compensator.gd" id="1_buff"]
+
+; The mod's +2 Reliable (the script's header): silent until the prompt stamps the attack.
+; from_weapon_mod: only the weapon this mod is fitted to. MANUAL and HIDDEN - the mod applies it for
+; the combat, and the weapon card's own Reliable number is where the player sees it.
+[resource]
+script = ExtResource("1_buff")
+to = &"weapon_tag"
+added_tag = &"reliable"
+added_tag_value = 2
+from_weapon_mod = true
+until = 0
+hide_from_player = true
+; THE PAYOUT: the holder's own armed attacks, after all their damage has landed.
+triggers_on = Array[StringName]([&"attack_declared"])
+trigger_timing = 1

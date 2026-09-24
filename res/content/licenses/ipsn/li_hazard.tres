@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="UnlockTree" format=3]
+
+[ext_resource type="Script" uid="uid://dq0jowvw37x6i" path="res://engine/character/unit_core/unlock_tree.gd" id="1_unlocktree"]
+[ext_resource type="Script" uid="uid://ctb1pfqlfgmni" path="res://engine/character/unit_core/unlock_rank.gd" id="2_unlockrank"]
+[ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="3_frame"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="4_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_hazard/mf_hazard.tres" id="5_mf_hazard"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ipsn/mf_hazard/mf_hazard.png" id="6_icon"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/weapons/mw_wavemaker_grenade_launcher/mw_wavemaker_grenade_launcher.tres" id="7_wavemaker"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_emergency_armature/ms_emergency_armature.tres" id="8_armature"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/weapons/mw_panic_breaker/mw_panic_breaker.tres" id="9_breaker"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/wm_statistical_compensator/wm_statistical_compensator.tres" id="10_compensator"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/weapons/mw_hrr_seneschal/mw_hrr_seneschal.tres" id="11_seneschal"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_brigid_class_nhp/ms_brigid_class_nhp.tres" id="12_brigid"]
+
+; THE HAZARD'S OWN FULL LICENCE (design 1.1, ruling 15; the IPS-N README: a full licence is a new
+; file here, an alt extends). Rank 2 grants the frame; each granted_gear is filled by its own
+; sub-project - SP2 (Wavemaker Grenade Launcher, Emergency Armature) at rank 1, SP3 (Panic Breaker,
+; Statistical Compensator) at rank 2, SP4 (HRR-SENESCHAL, Brigid-Class NHP) at rank 3. The licence
+; has no name row of its own: UnlockTree.license_name reads rank_2's granted frame
+; (unlock_tree.gd:28-32), so an empty rank_2 would rename it "???" - test_hazard_frame.gd pins it.
+[sub_resource type="Resource" id="Resource_rank1"]
+script = ExtResource("2_unlockrank")
+granted_gear = Array[ExtResource("4_kit")]([ExtResource("7_wavemaker"), ExtResource("8_armature")])
+
+[sub_resource type="Resource" id="Resource_rank2"]
+script = ExtResource("2_unlockrank")
+granted_frames = Array[ExtResource("3_frame")]([ExtResource("5_mf_hazard")])
+granted_gear = Array[ExtResource("4_kit")]([ExtResource("9_breaker"), ExtResource("10_compensator")])
+
+[sub_resource type="Resource" id="Resource_rank3"]
+script = ExtResource("2_unlockrank")
+granted_gear = Array[ExtResource("4_kit")]([ExtResource("11_seneschal"), ExtResource("12_brigid")])
+
+[resource]
+script = ExtResource("1_unlocktree")
+icon = ExtResource("6_icon")
+rank_1 = SubResource("Resource_rank1")
+rank_2 = SubResource("Resource_rank2")
+rank_3 = SubResource("Resource_rank3")
