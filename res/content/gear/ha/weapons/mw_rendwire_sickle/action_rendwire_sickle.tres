@@ -1,0 +1,32 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://vi3dfs5ql3lg" path="res://engine/character/gear_action/action_attack_weapon.gd" id="1_attack"]
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="2_onhiteffect"]
+
+; THE RENDWIRE SICKLE's swing (Koremasa rank II, design ruling 32): Main Melee, 1d3+1 Energy, Threat 3,
+; OVERKILL, AP. weapon_size 1 = MAIN, weapon_type 2 = MELEE, damage_type 1 = ENERGY (lancer.gd:104,
+; :107, :110). aim_range 0: a melee weapon attacks at threat only.
+;
+; THE ON-HIT IS THE CONCUSSION MISSILES' SHAPE (mw_concussion_missiles.tres:15-16): an inline
+; OnHitEffect, Impaired, save_to_avoid. save_type is OMITTED - HULL is 0 and the export's default
+; (Lancer.HASE). The duration is Impaired's standard END_OF_NEXT_TURN
+; (OnHitEffect.get_applied_duration_for_statuses -> StatusType.get_standard_until), which is the
+; card's "until the end of their next turn". A crit impairs exactly as a hit does.
+;
+; NO icon_override: SP6 gives the Kit its glyph and this action inherits it (a KIT row in
+; test_content_integrity.ICON_TARGETS).
+[sub_resource type="Resource" id="Resource_onhit"]
+script = ExtResource("2_onhiteffect")
+statuses = Array[StringName]([&"impaired"])
+save_to_avoid = true
+
+[resource]
+script = ExtResource("1_attack")
+damage_type = 1
+damage_dice = "1d3+1"
+weapon_size = 1
+weapon_type = 2
+aim_range = 0
+threat = 3
+tags = Array[StringName]([&"overkill", &"ap"])
+on_hit_effects = Array[ExtResource("2_onhiteffect")]([SubResource("Resource_onhit")])

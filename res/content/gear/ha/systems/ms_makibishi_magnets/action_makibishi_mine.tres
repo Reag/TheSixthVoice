@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ActionSystemDeploy" format=3]
+
+[ext_resource type="Script" uid="uid://2wdyuf507vdl" path="res://engine/character/gear_action/archtypes/action_system_deploy.gd" id="1_deploy"]
+[ext_resource type="Script" uid="uid://df1yicp7kbf3x" path="res://engine/character/gear_action/resources/target_requirements.gd" id="2_reqs"]
+[ext_resource type="Texture2D" uid="uid://m7th0lci63tc" path="res://assets/frames/deployables/mine.png" id="3_mine_sprite"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_makibishi_magnets/deployable/dep_makibishi_magnets.tres" id="4_frame"]
+
+[sub_resource type="Resource" id="Resource_reqs"]
+script = ExtResource("2_reqs")
+preview_sprite = ExtResource("3_mine_sprite")
+can_target_empty_tiles = true
+can_target_units = false
+requires_free_space = true
+
+; THE MINE (Quick to deploy): vanilla's action_havok_mine.tres line for line - deploy range 1, a free
+; space, the mine sprite as preview. Shares the throw's usage group: one charge pool, LIMITED 2.
+[resource]
+script = ExtResource("1_deploy")
+deployable_frame = ExtResource("4_frame")
+deploy_range = 1
+action_type = 1
+target_requirements_override = SubResource("Resource_reqs")
+usage_group = &"makibishi_magnets"

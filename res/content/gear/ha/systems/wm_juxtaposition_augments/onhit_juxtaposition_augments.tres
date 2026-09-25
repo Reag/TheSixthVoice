@@ -1,0 +1,9 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/wm_juxtaposition_augments/onhit_juxtaposition_augments.gd" id="1_onhit"]
+
+; JUXTAPOSITION AUGMENTS' spend: apply_on 0 = ON_ATTACK. No statuses, buffs or save - the script's
+; on_attack is the whole effect (ruling 30).
+[resource]
+script = ExtResource("1_onhit")
+apply_on = 0

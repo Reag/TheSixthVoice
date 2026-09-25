@@ -1,0 +1,70 @@
+[gd_resource type="Resource" script_class="Frame" format=3]
+
+[ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="1_frame"]
+[ext_resource type="Script" uid="uid://bxpc46igtsmvw" path="res://engine/character/unit/statblock.gd" id="2_statblock"]
+[ext_resource type="Script" uid="uid://dch85ypcupfgo" path="res://engine/character/unit_core/color_scheme.gd" id="3_colorscheme"]
+[ext_resource type="Texture2D" uid="uid://f4wtf6eaedu8" path="res://assets/palettes/toneramps/tone_highcontrast.png" id="4_toneramp"]
+[ext_resource type="Script" uid="uid://djuk56crywqss" path="res://engine/character/unit_core/mount_type.gd" id="5_mounttype"]
+[ext_resource type="Resource" uid="uid://bsktp4ushq6g1" path="res://content/mounts/mount_flex.tres" id="6_mountflex"]
+[ext_resource type="Resource" uid="uid://ct04xdxr561wg" path="res://content/mounts/mount_main_aux.tres" id="7_mountmainaux"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ha/mf_koremasa/mf_koremasa.png" id="9_sprite"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_koremasa/mt_plasma_shimmer/mt_plasma_shimmer.tres" id="10_shimmer"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_koremasa/mt_exploit_weakness/mt_exploit_weakness.tres" id="11_exploit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_koremasa/mt_entrap/mt_entrap.tres" id="12_entrap"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_koremasa/cp_overdrive_exploitation_sequences/cp_overdrive_exploitation_sequences.tres" id="13_core"]
+
+; DERIVED FROM THE SPRITE ART (the Gloire's and the Grutte Pier's method). Measured 2026-09-25 with the
+; shader-literal test palette_swap_func.gdshaderinc uses (pixel == (v,0,0)/(0,v,0)/(0,0,v)/(0,v,v)):
+; mf_koremasa.png (80x80, the size-1 token canvas a size-1/2 frame uses, as the Fitzgerald's does;
+; 1,314 opaque pixels) has ZERO channel-encoded pixels, so this scheme is INERT on this sprite - it
+; cannot repaint the token (memory frame-sprites-not-channel-encoded). The art is painted (1,088
+; distinct colours; the top single colour is 18px), so an exact census fragments; base_0..2 are the
+; centroids of a 3-means (seeded by luminance terciles, converged in 4 passes) over the 1,306 opaque
+; pixels brighter than the outline (max channel >= 30): the grey-violet plate (98,95,107 - 591px), the
+; pale cyan plasma (151,183,192 - 367px) and the dark violet shadow (59,51,61 - 348px), most-used
+; first per the Iskander's slot convention. palette_2 keeps the Iskander's HA ramp, as the Leoleth's
+; does.
+[sub_resource type="Resource" id="Resource_colorscheme"]
+script = ExtResource("3_colorscheme")
+palette_2 = ExtResource("4_toneramp")
+base_0 = Color(0.38431373, 0.37254902, 0.41960784, 1)
+base_1 = Color(0.59215686, 0.71764706, 0.75294118, 1)
+base_2 = Color(0.23137255, 0.2, 0.23921569, 1)
+
+; The sheet (specs/sixth-voice/16-koremasa.md), design ruling 33. SIZE 1/2 IS `size = 1` PLUS
+; `is_size_half = true` - the Fitzgerald's form (mf_fitzgerald.tres:25-26); UnitCore.is_size_half()
+; reads the flag (unit_core.gd:391). armor = 0 is written though it is the default, so a reader need
+; not know the export's default to know the card.
+[sub_resource type="Resource" id="Resource_statblock"]
+script = ExtResource("2_statblock")
+size = 1
+is_size_half = true
+structure = 4
+stress = 4
+health = 6
+armor = 0
+evasion = 10
+edef = 8
+speed = 4
+heat = 8
+save_target = 10
+sensor_range = 5
+tech_attack = 1
+repairs = 4
+systems_points = 6
+reactions = 1
+activations = 1
+
+[resource]
+script = ExtResource("1_frame")
+default_color_scheme = SubResource("Resource_colorscheme")
+sprites = Array[Texture2D]([ExtResource("9_sprite")])
+; SHEET ORDER: Plasma Shimmer, Exploit Weakness, Entrap, then the core system (SP2, design ruling 33).
+traits = Array[ExtResource("8_kit")]([ExtResource("10_shimmer"), ExtResource("11_exploit"), ExtResource("12_entrap"), ExtResource("13_core")])
+; Flex, Main/Aux - the sheet's order.
+mount_types = Array[ExtResource("5_mounttype")]([ExtResource("6_mountflex"), ExtResource("7_mountmainaux")])
+stat = SubResource("Resource_statblock")
+; STRIKER (1) then CONTROLLER (3) - Lancer.SQUAD_ROLE, lancer.gd:181.
+role_primary = 1
+role_secondary = 3

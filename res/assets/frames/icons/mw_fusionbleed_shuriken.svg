@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- mw_fusionbleed_shuriken : Reag-TheSixthVoice Koremasa icon, SP6. A thrown star that keeps bleeding heat into whatever else is close -->
+<path d="M32,6 L40,24 L58,32 L40,40 L32,58 L24,40 L6,32 L24,24 Z"/>
+<path d="M42,44 Q44,48 46,44 Q44,52 42,44 Z"/>
+</svg>

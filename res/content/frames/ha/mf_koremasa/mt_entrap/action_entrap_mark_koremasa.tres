@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ActionReactionAttacked" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_koremasa/mt_entrap/action_entrap_mark_koremasa.gd" id="1_watch"]
+
+[resource]
+script = ExtResource("1_watch")
+; ATTACKER (1), ENEMIES (2), a HIT.
+require_unit_to_be = 1
+require_defender_relation = 2
+; is_character() admits drones; the script tests is_actor() (rulings row 301).
+require_defender_to_be_character = false
+require_hit = true
+; TECH ONLY, basic included: the Invade (ms_fragment_signal) is basic gear.
+allow_weapon = false
+allow_tech = true
+allow_basic = true
+; ATTACK at POST (TIMING.POST = 1): roll.hit exists only there.
+triggers_on = Array[StringName]([&"attack"])
+trigger_timing = 1
+; Not a reaction point, and no limit of its own.
+consumes_rxn = false
+usage_group = &"entrap_mark"
+; HIDDEN: the card lists only the reaction (action.gd:348).
+localization_key_override = "mt_entrap"

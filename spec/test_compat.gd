@@ -27,6 +27,7 @@ const HazardFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/hazard_fi
 const ShackletonFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/shackleton_fixture.gd')
 const GloireFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/gloire_fixture.gd')
 const GruttePierFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/grutte_pier_fixture.gd')
+const KoremasaFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/koremasa_fixture.gd')
 const PatienceReduce := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/buff_patience_reduce.gd')
 ## Read-only here: the Mark's retort case asserts the dome is untouched between its two halves.
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
@@ -1331,3 +1332,44 @@ func test_zwarte_hoops_reliable_and_the_clarks_module_add_and_both_come_off() ->
 	assert_eq(before - target.core.current.health, 5, 'A miss: 2 printed + 2 Zwarte Hoop + 1 (the Clark, one damage die).')
 	var action:ActionAttackWeapon = ContentLibrary.get_kit(GruttePierFixture.RIFLE).actions[0]
 	assert_eq(action.reliable_damage, '2', 'The shared rifle reads its printed Reliable 2 afterwards.')
+
+
+# ===================== KOREMASA: RIDING MEASURES A RADIUS (design ruling 11) =====================
+
+## RULING, 2026-09-25 (Koremasa design, ruling 11): Lassissian Folly and begin-riding measure
+## "adjacent" as a RADIUS, distance_between <= 1 (UnitRelation.get_units_within), and IGNORE House
+## Guard's widening - the card describes a physical climb into the mount's space.
+##
+## WHY THE ALLY IS HERE. House Guard's rank-1 buff is only_to_allies (see
+## test_house_guard_does_not_widen_the_leaps_adjacent_pick), so it can never pull a HOSTILE into
+## adjacent_characters - and a mount is always hostile. Asserting "the hostile two tiles out is not
+## a mount" alone would therefore pass even if our code read is_adjacent. The ally two tiles out is
+## the proof the widening is LIVE on this Koremasa at the moment of the check; the hostile is the
+## ruling. Recorded plainly: for this card the widening cannot reach a mount by either route.
+const KOREMASA_TILE := Vector2i(10, 2)
+const KOREMASA_MOUNT_FAR := Vector2i(12, 2)  # size 2, (12,2)..(13,3): 2 from the Koremasa
+const KOREMASA_MOUNT_NEAR := Vector2i(11, 3) # size 2, (11,3)..(12,4): 1 from the Koremasa (the same mount, moved)
+const KOREMASA_ALLY := Vector2i(10, 4)       # 2 from the Koremasa
+
+func test_house_guard_does_not_widen_the_koremasas_reach_to_a_mount() -> void:
+	if skipped_without_talents(): return
+	var koremasa := KoremasaFixture.create_koremasa(game, KOREMASA_TILE)
+	var far_mount := KoremasaFixture.create_mount(game, KOREMASA_MOUNT_FAR)
+	var far_ally := KoremasaFixture.create_ally(game, KOREMASA_ALLY)
+	KoremasaFixture.core(koremasa).wake_action(KoremasaFixture.BEGIN_RIDING_ACTION)
+	await KoremasaFixture.open_turn(game, koremasa)
+	var begin := KoremasaFixture.specific(koremasa, KoremasaFixture.BEGIN_RIDING_ACTION)
+
+	assert_eq(UnitRelation.distance_between(koremasa, far_mount), 2, 'fixture: the mount is two tiles out.')
+	assert_false(UnitAction.can_activate_gear(begin), 'CONTROL: two tiles out is no mount before the buff.')
+
+	widen_adjacency_on(koremasa)
+	assert_true(UnitRelation.adjacent_characters(koremasa).has(far_ally),
+		'VACUITY: House Guard is live on the Koremasa - the ally two tiles out now counts as adjacent.')
+	assert_false(UnitAction.can_activate_gear(begin), 'RULED: begin-riding still does not reach two tiles out.')
+
+	UnitTile.move_to(far_mount, KOREMASA_MOUNT_NEAR)
+	UnitTile.update_tracking_and_statuses(game.map)
+	assert_eq(UnitRelation.distance_between(koremasa, far_mount), 1, 'fixture: the mount stepped in.')
+	assert_true(UnitAction.can_activate_gear(begin), 'A mount genuinely one tile out is still offered with the widening on.')
+

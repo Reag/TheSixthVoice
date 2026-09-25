@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- action_lassissian_folly : Reag-TheSixthVoice Koremasa icon, SP6. A saddle and a stirrup - the ride itself, shared by every action the Folly creates -->
+<path d="M14,40 Q14,20 32,20 Q50,20 50,40 L50,48 Q32,40 14,48 Z"/>
+<path d="M18,46 L30,46 L30,60 L18,60 Z M21,49 L21,57 L27,57 L27,49 Z"/>
+</svg>

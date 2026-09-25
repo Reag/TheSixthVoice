@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- wm_juxtaposition_augments : Reag-TheSixthVoice Koremasa icon, SP6. Two arrows chasing each other in a circle - the one attack this turn that gets to happen twice -->
+<path d="M8,10 L46,10 L46,4 L60,15 L46,26 L46,20 L8,20 Z"/>
+<path d="M56,54 L18,54 L18,60 L4,49 L18,38 L18,44 L56,44 Z"/>
+</svg>

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/wm_juxtaposition_augments/buff_juxtaposition_augments.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/wm_juxtaposition_augments.svg" id="2_icon"]
+
+; JUXTAPOSITION AUGMENTS' reroll chip (design ruling 30): Neurolink's settings (buff_neurolink.tres) -
+; step 3 = reroll_take_second (event_unit_attack.gd:132-139), confirmed by the player, weapon attacks
+; only, one use. VISIBLE (ruling 34): the chip says the chance is still live this turn. Its own rows,
+; gear.buff_juxtaposition_augments.*, titled for the mod. MANUAL (the default): it lasts until the
+; weapon's first attack spends it, or the next turn start re-arms it.
+;
+[resource]
+script = ExtResource("1_buff")
+step = 3
+needs_confirmation = true
+allow_tech = false
+to = &"modify_attack_roll"
+is_onetime = true
+icon = ExtResource("2_icon")

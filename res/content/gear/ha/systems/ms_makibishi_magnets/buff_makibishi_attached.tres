@@ -1,0 +1,15 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_makibishi_magnets/buff_makibishi_attached.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_makibishi_magnets.svg" id="2_icon"]
+
+; VISIBLE: the victim wears the magnets (VISIBLE_BUFFS). until 0 = MANUAL. triggers_on step: the
+; Drag Down shape; new_turn: the detach's usage reset at the victim's turn start (frame-close I-1).
+; log_on_application pops the name as it lands. SP6 draws its icon (the Makibishi family).
+[resource]
+script = ExtResource("1_buff")
+applies_statuses = Array[StringName]([&"impaired"])
+until = 0
+triggers_on = Array[StringName]([&"step", &"new_turn"])
+log_on_application = true
+icon = ExtResource("2_icon")

@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="2_passive"]
+[ext_resource type="Script" uid="uid://ch8avblisp8j1" path="res://engine/character/gear_passive/passive_weapon_mod.gd" id="3_weaponmod"]
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="4_buff"]
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="5_onhiteffect"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/wm_juxtaposition_augments/buff_juxtaposition_augments.tres" id="6_chip"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/wm_juxtaposition_augments/onhit_juxtaposition_augments.tres" id="7_spend"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/wm_juxtaposition_augments.svg" id="8_icon"]
+
+; JUXTAPOSITION AUGMENTS, the Koremasa's rank-III weapon mod (SP5, design ruling 30). SP 2; fits
+; Melee (weapon_type 2) of sizes Auxiliary, Main, Heavy (0, 1, 2 - not Superheavy), lancer.gd:104,
+; :107. system_tags 1 is UNIQUE (kit.gd:30), the sheet's "Adds tags: UNIQUE" - the wm_greenlight_projection
+; reading.
+;
+; The chip is re-armed at every turn start and applied at combat start; the ON_ATTACK effect spends it
+; after the weapon's first attack whether it applied or not.
+;
+; NO icon_override yet: SP6.
+[sub_resource type="Resource" id="Resource_juxtaposition"]
+script = ExtResource("3_weaponmod")
+allowed_sizes = Array[int]([0, 1, 2])
+allowed_types = Array[int]([2])
+on_hit_effects = Array[ExtResource("5_onhiteffect")]([ExtResource("7_spend")])
+applied_buffs = Array[ExtResource("4_buff")]([ExtResource("6_chip")])
+reapply_at_the_start_of_each_turn = true
+
+[resource]
+script = ExtResource("1_kit")
+passives = Array[ExtResource("2_passive")]([SubResource("Resource_juxtaposition")])
+sp_cost = 2
+system_tags = 1
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"
+icon_override = ExtResource("8_icon")

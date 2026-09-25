@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.15.0'
+const EXPECTED_VERSION := '0.16.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -1025,6 +1025,68 @@ const ICON_TARGETS := {
 	# shape) and also owns the counter badge and the +Range variant row; PATIENCE IN ALL THINGS is the
 	# protocol, and its chip wears its glyph. Every other action on the Kit is a hidden reaction. SP3: icons.
 	&'cp_inevitability_core': {&'action_zwarte_hoop_spend': &'action_zwarte_hoop_spend', &'action_patience_in_all_things': &'action_patience_in_all_things'},
+	# SP1 (Koremasa). Plasma Shimmer: one applicator, one VISIBLE chip that wears the trait's glyph,
+	# no action. SP6: icon.
+	&'mt_plasma_shimmer': {},
+	# SP1 (Koremasa). Exploit Weakness: one hidden ATTACK POST reaction (localization_key_override,
+	# action.gd:348); the Kit is its only surface. SP6: icon.
+	&'mt_exploit_weakness': {},
+	# SP1 (Koremasa). Entrap: the REACTION is on the card (its own trigger row, action.gd:344), the
+	# Solfataric Breach shape, so it inherits the Kit's glyph (KIT); the tech-hit watcher is hidden and
+	# the visible mark shares the family at SP6.
+	&'mt_entrap': {&'action_entrap_koremasa': KIT},
+	# SP2 (Koremasa). OVERDRIVE EXPLOITATION SEQUENCES: exactly two families (the icon directive's
+	# two-part core power). LASSISSIAN FOLLY is the pressable, and the ride machinery it creates wears
+	# its glyph: begin-riding and the climb-off on the Koremasa's own bar, the buck on the MOUNT's
+	# (situational, path 4). GUT REACTOR reaches the card through its own rows. The ride break is
+	# hidden (localization_key_override, action.gd:348). SP6: icons.
+	&'cp_overdrive_exploitation_sequences': {
+		&'action_lassissian_folly': &'action_lassissian_folly',
+		&'action_gut_reactor': &'action_gut_reactor',
+		&'action_begin_riding': &'action_lassissian_folly',
+		&'action_climb_off': &'action_lassissian_folly',
+		&'action_buck_koremasa': &'action_lassissian_folly',
+	},
+	# SP3 (Koremasa). MAKIBISHI MAGNETS: ONE family (design 6) - throw, mine, attached buff, detach.
+	# The throw and the mine are KIT rows. The second-mine reaction is hidden
+	# (localization_key_override, action.gd:348).
+	#
+	# FRAME CLOSE (finding M1): the family spans THREE Kits, and all three Kits wear
+	# ms_makibishi_magnets.svg as their own icon_override - so every row below is a KIT row, and the
+	# family is pinned Kit-to-Kit by test_makibishi_magnets.gd's
+	# test_the_detach_and_the_mines_trait_wear_the_makibishi_glyph, not by a family name here (a
+	# named family cannot express it: a row wearing its own Kit's texture must be a KIT row, the
+	# assert_ne in test_every_player_facing_kit_and_action_has_a_real_icon). SP6 had drawn two extra
+	# glyphs, bt_makibishi_magnets.svg and mt_makibishi_magnets_detonation.svg; both are gone.
+	&'ms_makibishi_magnets': {&'action_throw_magnets': KIT, &'action_makibishi_mine': KIT},
+	# SP3 (Koremasa). The detach, on the VICTIM's bar (situational gear the attached buff carries, the
+	# Hornet's bt_lock_hold_javelins_hornet). A KIT row: the Kit wears the Makibishi glyph.
+	&'bt_makibishi_magnets': {&'action_makibishi_detach': KIT},
+	# SP3 (Koremasa). The mine's trait, on the MARKER dep_makibishi_magnets - vanilla's arm and trigger
+	# plus our detonation, the mt_mesmer_mine_detonation shape.
+	#
+	# CORRECTED AT SP6: the SP3 comment claimed "nothing on it is pressable", but
+	# action_makibishi_detonation is neither an ActionReaction nor is_situationally_activated, so
+	# _action_reaches_a_player_facing_surface's second clause returns true for it regardless -
+	# starts_hibernating is per-instance runtime state, not a fixed shape, and has no clause here (the
+	# same reasoning the Rend Axe's hide_if_disabled gets, :642-645). A KIT row: the action carries no
+	# icon_override of its own and inherits the Kit's glyph - the Makibishi glyph (frame-close M1).
+	&'mt_makibishi_magnets_detonation': {&'action_makibishi_detonation': KIT},
+	# SP3 (Koremasa). PHASE CLOUD: Vanish is on the card (its own trigger row), a KIT row.
+	&'ms_phase_cloud': {&'action_vanish': KIT},
+	# SP3 (Koremasa). Vanish's smoke zone, on the MARKER dep_phase_cloud_smoke - the mt_maar_terrain
+	# shape. Shares Vanish's family at SP6.
+	&'mt_phase_cloud_smoke': {},
+	# SP4 (Koremasa). RENDWIRE SICKLE: one Kit, one swing, a KIT row (the Thunder Sword's shape).
+	&'mw_rendwire_sickle': {&'action_rendwire_sickle': KIT},
+	# SP4 (Koremasa). BLINKBLADE SLICE: Slash is the Kit's only action, a KIT row.
+	&'ms_blinkblade_slice': {&'action_slash': KIT},
+	# SP5 (Koremasa). FUSIONBLEED SHURIKEN: one Kit, one attack profile (the secondary is a runtime
+	# duplicate of it, never a second action), a KIT row.
+	&'mw_fusionbleed_shuriken': {&'action_fusionbleed_shuriken': KIT},
+	# SP5 (Koremasa). JUXTAPOSITION AUGMENTS: a weapon mod with no actions (the wm_ddmr shape) - only
+	# the Kit's own icon is ever shown, and its chip wears the same glyph at SP6.
+	&'wm_juxtaposition_augments': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1298,6 +1360,24 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# ruling 14): the one on-board sign the protocol is on. Its rows are the protocol's
 	# (localization_key_override). The reduction it arms on every hostile is hidden (ruling 19).
 	&'buff_patience_in_all_things',
+	# SP1 (Koremasa). Plasma Shimmer's -1, on the Koremasa: attack_roll.gd:189 draws base.icon RAW
+	# beside it, and it is the player's reminder that running hot shields them. Its text falls through
+	# to gear.mt_plasma_shimmer's rows (BUFFS_THAT_BORROW_A_CARD).
+	&'buff_plasma_shimmer',
+	# SP1 (Koremasa). Entrap's mark, on a hostile the Koremasa tech-hit this round (design ruling 16):
+	# the chip is how the player reads who can be Entrapped. Its rows are the reaction's
+	# (localization_key_override).
+	&'buff_entrap_mark',
+	# SP2 (Koremasa). The ride chip, on the MOUNT: it IS the mount's Impaired (design ruling 12), and
+	# it is how both players read "this mech is being ridden". Its rows are the Folly's
+	# (localization_key_override). The single-roll reduction beside it and the crit rule on the
+	# rider are hidden and correctly absent.
+	&'buff_lassissian_folly_ride',
+	&'buff_makibishi_attached',
+	# SP5 (Koremasa). Juxtaposition's reroll chip, on the Koremasa while the modded weapon's first
+	# attack this turn is still to come (ruling 30): the player's reminder that the chance is live.
+	# Its own rows, titled for the mod.
+	&'buff_juxtaposition_augments',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -1522,6 +1602,10 @@ const BUFFS_THAT_BORROW_A_CARD := {
 	# a DRAWN buff (HIDDEN_BUFFS_NEEDING_ICONS above). It has no standalone name row of its own -
 	# Shimmer's card IS its card - so it borrows Shimmer's own action row, name and effect both.
 	&'buff_shimmer_difficulty': 'gear.ms_superpositional_profile.action_shimmer.effect',
+	# SP1 (Koremasa). Plasma Shimmer's chip: the Gravity Well's case - mt_plasma_shimmer carries no
+	# actions, so the fallback lands on the trait's own rows, and the roll breakdown names the trait
+	# beside the -1.
+	&'buff_plasma_shimmer': 'gear.mt_plasma_shimmer.effect',
 }
 
 func test_every_visible_buff_renders_real_text_rather_than_a_raw_key():

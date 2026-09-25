@@ -1,0 +1,14 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_makibishi_magnets/action_makibishi_second_mine.gd" id="1_rxn"]
+
+; HIDDEN (no effect row, and localization_key_override names the Kit - the Exploit Weakness shape,
+; action.gd:348), no reaction point, free-action gated to the Koremasa's own turn (the Mine Deployers'
+; counts_as_free_action). Its own usage group, so it can never spend the mine's.
+[resource]
+script = ExtResource("1_rxn")
+triggers_on = Array[StringName]([&"unit_action"])
+consumes_rxn = false
+counts_as_free_action = true
+localization_key_override = "ms_makibishi_magnets"
+usage_group = &"makibishi_second_mine"

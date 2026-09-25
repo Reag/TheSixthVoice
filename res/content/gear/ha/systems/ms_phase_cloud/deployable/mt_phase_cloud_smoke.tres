@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="2_passive"]
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_phase_cloud/deployable/passive_footprint_smoke_zone.gd" id="3_zone"]
+[ext_resource type="Script" uid="uid://bhirgicgi66th" path="res://engine/gamemaster/map/terrain/terrain_data.gd" id="4_terraindata"]
+[ext_resource type="Script" uid="uid://c0yv6pnw2be6l" path="res://engine/character/gear_action/resources/range_pattern.gd" id="5_rangepattern"]
+[ext_resource type="PackedScene" uid="uid://csuoaqowxt0k7" path="res://content/fx_endless/gear/fxe_smoke_cloud.tscn" id="6_fxe"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_phase_cloud.svg" id="7_icon"]
+
+; BURST 1 (Lancer.AOE_TYPE.BURST == 4) from the laying Koremasa's FOOTPRINT (the zone script): a 3x3
+; around a Koremasa on foot - exactly "a Blast one area centered on you" - and the mount's footprint
+; plus 1 around a rider. Vanilla's own smoke clouds are BLAST 2/3 around one tile (mt_smoke_cloud_2.tres).
+[sub_resource type="Resource" id="Resource_burst1"]
+script = ExtResource("5_rangepattern")
+pattern = 4
+value = 1
+
+; SOFT cover (TerrainData.COVER.SOFT == 1), vanilla's smoke terrain exactly.
+[sub_resource type="Resource" id="Resource_soft"]
+script = ExtResource("4_terraindata")
+cover = 1
+
+[sub_resource type="Resource" id="Resource_zone"]
+script = ExtResource("3_zone")
+terrain_data = SubResource("Resource_soft")
+range_pattern = SubResource("Resource_burst1")
+fxe = ExtResource("6_fxe")
+
+; Vanish's smoke. The cloud exists while its marker does; mt_expiration beside it on the frame ends
+; that at the end of the Koremasa's next turn.
+[resource]
+script = ExtResource("1_kit")
+passives = Array[ExtResource("2_passive")]([SubResource("Resource_zone")])
+is_trait = true
+icon_override = ExtResource("7_icon")

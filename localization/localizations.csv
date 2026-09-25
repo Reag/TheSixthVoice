@@ -828,3 +828,61 @@ gear.cp_inevitability_core.zwarte_hoop.range.name,Zwarte Hoop
 gear.cp_inevitability_core.zwarte_hoop.range.effect,Gain +1 range on the attack.
 gear.cp_inevitability_core.zwarte_hoop.range.option_1,+1 range (1 charge)
 gear.cp_inevitability_core.zwarte_hoop.range.option_2,+2 range (2 charges)
+frame.mf_koremasa.name,Koremasa
+frame.mf_koremasa.flavor.short,Discrete Operative
+frame.mf_koremasa.flavor,"Developed in several blacksites on Ras Shamra and various diasporan worlds, the Koremasa was Harrison Armories main foray into Broadcast technology. Meant to stand up to other manufactures reconnaissance, espionage, and dueling frames it eschews convention to push the boundaries of system/reactor targeting. The Koremasa blends industry standard signal disruption with Harrison Armory exploitation sequences, to rapidly focus down problematic targets and evade oncoming fire. Its small size and relatively high mobility even allow it to be used outside of mechanized combat and it has become standard for many discrete operatives. So standardized in fact, that it has begun to double as ceremonial attire, with many pilots using it as a symbol of status and prestige. As an additional utility for the more experienced pilots, the Koremasa comes with powerful magnetic grip adjustment and protocols for clambering up hostile mechs. While Harrison Armory does not condone the regular use of such systems, their inclusion remains as an option for the desperate, foolhardy, or courageous pilots who value results over continued survival."
+gear.mt_plasma_shimmer.name,Plasma Shimmer
+gear.mt_plasma_shimmer.effect,"While it’s in the |DANGER ZONE|, attacks against the Koremasa have |+1 Difficulty|."
+gear.mt_exploit_weakness.name,Exploit Weakness
+gear.mt_exploit_weakness.effect,"1/Round, when the Koremasa critically hits a hostile |character| with a |melee| weapon, they take |1 Heat| for each condition they have up to a maximum of 4."
+gear.mt_entrap.name,Entrap
+gear.mt_entrap.effect,Gain the Entrap |reaction|.
+gear.mt_entrap.action_entrap_koremasa.name,Entrap
+gear.mt_entrap.action_entrap_koremasa.trigger,The Koremasa hits a hostile |character| with a |melee attack| that it has already successfully hit with |tech attack| that round.
+gear.mt_entrap.action_entrap_koremasa.effect,That character takes |1 Heat|.
+gear.cp_overdrive_exploitation_sequences.name,Overdrive Exploitation Sequences
+gear.cp_overdrive_exploitation_sequences.action_lassissian_folly.name,Lassissian Folly
+gear.cp_overdrive_exploitation_sequences.action_lassissian_folly.effect,"Throwing caution to the wind, you clamber up on an enemy mech and wreak havoc upon it. Move up to your |speed| towards a larger hostile mech |character|. If you end this movement adjacent to them you move into their space and start riding them. While riding a mech in this way, you occupy the same space as them, move when they move (even if you are |Slowed| or |Immobilized|), and all of your attacks against them are considered |critical hits|. Resulting damage is not rolled twice. A mounted mech is |impaired| as long as you are riding them and may attempt to throw you off with a contested |Hull| check as a |Quick action|. For the rest of the scene, when you are adjacent to a larger hostile mech |character|, you may begin riding them as a |quick action|."
+gear.cp_overdrive_exploitation_sequences.action_gut_reactor.name,Gut Reactor
+gear.cp_overdrive_exploitation_sequences.action_gut_reactor.effect,"1/round, when you deal damage to an |exposed| character, they take |1d3+1 Energy| damage and must succeed an |Engineering| save or else be knocked |prone| and become |impaired| until the end of their next turn."
+gear.cp_overdrive_exploitation_sequences.action_lassissian_folly.ride_now,"A larger hostile mech is already beside you. Start riding it now, without moving?"
+gear.cp_overdrive_exploitation_sequences.action_begin_riding.name,Begin Riding
+gear.cp_overdrive_exploitation_sequences.action_climb_off.name,Climb Off
+gear.cp_overdrive_exploitation_sequences.action_buck_koremasa.name,Throw Off
+gear.ms_makibishi_magnets.name,Makibishi Magnets
+gear.ms_makibishi_magnets.flavor,"Built upon legacy caltrop technology, the Makibishi Magnets leverage their powerful ferromagnetic properties to stick into targets. Once embedded, any movement from the victim drives the spikes in deeper, necessitating their hasty removal."
+gear.ms_makibishi_magnets.effect,"On use, you may choose to expend a second charge, if you do, you may deploy a second mine in valid space."
+gear.ms_makibishi_magnets.action_throw_magnets.name,Throw Magnets
+gear.ms_makibishi_magnets.action_throw_magnets.effect,Throw Magnets at a |character| within |Range 5|. They must make an |agility save| or have the Magnets attach to them. Characters to whom they are attached are |impaired| and take |1 AP Kinetic| damage for each space they voluntarily move up to a maximum of 5. Characters can detach makibishi magnets from themselves by passing an |Agility save| as a |quick action| on their turn. All magnets detach at the end of the scene.
+gear.ms_makibishi_magnets.action_makibishi_mine.name,Makibishi Magnets
+gear.ms_makibishi_magnets.action_makibishi_mine.effect,"When a |character| moves over or adjacent to this mine, they must make an |Agility save| or it attaches to them and deals |1d3 AP Kinetic| damage. Characters to whom they are attached are |impaired| and take |1 AP Kinetic| damage for each space they voluntarily move up to a maximum of 5. Characters can detach makibishi magnets from themselves by passing an |Agility save| as a |quick action| on their turn. All mines detach at the end of the scene."
+frame.dep_makibishi_magnets.name,Makibishi Magnets
+gear.mt_makibishi_magnets_detonation.name,Makibishi Magnets
+gear.buff_makibishi_attached.name,Makibishi Magnets
+gear.buff_makibishi_attached.effect,Characters to whom they are attached are |impaired| and take |1 AP Kinetic| damage for each space they voluntarily move up to a maximum of 5. Characters can detach makibishi magnets from themselves by passing an |Agility save| as a |quick action| on their turn. All magnets detach at the end of the scene.
+gear.bt_makibishi_magnets.name,Makibishi Magnets
+gear.bt_makibishi_magnets.action_makibishi_detach.name,Detach Magnets
+gear.bt_makibishi_magnets.action_makibishi_detach.effect,Characters can detach makibishi magnets from themselves by passing an |Agility save| as a |quick action| on their turn.
+gear.ms_phase_cloud.name,Phase Cloud
+gear.ms_phase_cloud.flavor,"A combination of Harrison Armory proprietary technology, the Phase Cloud systems provide a reliable escape from dangerous situations. When each cell is thrown, it bursts into a cloud of thick smoke, engineered to be as disorienting as possible for targeting systems. Additionally, it activates a short range blink charge that can propel the user into a more advantageous position."
+gear.ms_phase_cloud.effect,You gain the Vanish |reaction|.
+gear.ms_phase_cloud.action_vanish.name,Vanish
+gear.ms_phase_cloud.action_vanish.trigger,You take damage from a hostile |character| within |sensors|.
+gear.ms_phase_cloud.action_vanish.effect,"Expend a charge, a Blast one area centered on you is engulfed in smoke. All objects and characters within benefit from |soft cover| until the end of your next turn, at which point the smoke vanishes. You may |teleport| to a free space within range 5."
+frame.dep_phase_cloud_smoke.name,Phase Cloud
+gear.mt_phase_cloud_smoke.name,Phase Cloud
+gear.mw_rendwire_sickle.name,Rendwire Sickle
+gear.mw_rendwire_sickle.flavor,"A combined weapon, integrating a filament chain with a charged bladed edge, the Rendwire Sickle allows users to directly lacerate targets, and tangle their limbs simultaneously."
+gear.mw_rendwire_sickle.on_hit,Targets must succeed on a |Hull save| or become |Impaired| until the end of their next turn.
+gear.ms_blinkblade_slice.name,Blinkblade Slice
+gear.ms_blinkblade_slice.flavor,"A short blade with integrated blinkspace technology, it allows the user to rapidly dash forward while moving through enemy combatants. It has the added benefit that while channeled into the user, the blade switches into realspace while moving with its wielder. While technically a fully viable sword independent of these blink capabilities, its propensity to destabilize on repeated impacts has lead to the Blinkblade being relegated to an auxiliary option in place of more reliable mainline alternatives."
+gear.ms_blinkblade_slice.action_slash.name,Slash
+gear.ms_blinkblade_slice.action_slash.effect,"Expend a charge and move up to five spaces in a straight line, ignoring terrain penalties, passing through |characters|, and ignoring |reactions| and |engagement|. Any hostile |character| you moved through must make a |Hull Save| or take 3 |Kinetic| damage and become |Locked On|."
+gear.mw_fusionbleed_shuriken.name,Fusionbleed shuriken
+gear.mw_fusionbleed_shuriken.flavor,"Developed to capitalize on unready targets, the Fusionbleed Shuriken contain miniature plasma cells, that both act as a method of additional propulsion upon impact, and as a way to destabilize reactors. Coming in a wide variety of shapes and sizes pilots can pick and choose which versions they prefer, both for aesthetics, and aerodynamic functionality. They have become a symbol of infiltrators and the cunning, and are often just as much a status symbol as a weapon of war."
+gear.mw_fusionbleed_shuriken.on_hit,You may also make a secondary attack against a different |character| within range 5 of the target. Any further hits cannot repeat this effect. Attacks made this way do not cause you to take any additional |heat|
+gear.wm_juxtaposition_augments.name,Juxtaposition Augments
+gear.wm_juxtaposition_augments.flavor,"Harrison Armories paracausal modifications were a fully robust system even before the Broadcasts, now with additional variable technology, they have been brought to the next level. By forcing direct chronological displacement under high pressure situations, the augments are able to provide optimal difference calculations to ensure the highest possible chance of landing a blow. Use of such technology is strictly regulated with only select pilots receiving fabrication codes, and regular temporal inspections to make sure causality problems are avoided."
+gear.wm_juxtaposition_augments.effect,"While you are in the |Danger Zone|, you may reroll the first attack made with this weapon each round, but must keep the second result."
+gear.buff_juxtaposition_augments.name,Juxtaposition Augments
+gear.buff_juxtaposition_augments.effect,"While you are in the |Danger Zone|, you may reroll the first attack made with this weapon each round, but must keep the second result."

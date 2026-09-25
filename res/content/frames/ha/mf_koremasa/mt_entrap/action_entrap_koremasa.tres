@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ActionReactionAttacked" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_koremasa/mt_entrap/action_entrap_koremasa.gd" id="1_entrap"]
+
+[resource]
+script = ExtResource("1_entrap")
+; ATTACKER (1), ENEMIES (2), a HIT.
+require_unit_to_be = 1
+require_defender_relation = 2
+; is_character() admits drones; the script tests is_actor() (rulings row 301).
+require_defender_to_be_character = false
+require_hit = true
+; MELEE (2, Lancer.WEAPON_TYPE); the script adds threat > 0 (no thrown attacks). No basic gear.
+weapon_types = Array[int]([2])
+allow_basic = false
+; ATTACK at POST (TIMING.POST = 1).
+triggers_on = Array[StringName]([&"attack"])
+trigger_timing = 1
+; A REAL reaction: consumes_rxn stays at its default (true), so the point is the price and the
+; 1/round is ActionReaction's own (action_reaction.gd:69). Its own group.
+usage_group = &"entrap"

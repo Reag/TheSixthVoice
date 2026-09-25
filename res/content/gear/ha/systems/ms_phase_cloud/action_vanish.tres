@@ -1,0 +1,14 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_phase_cloud/action_vanish.gd" id="1_rxn"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_phase_cloud/deployable/dep_phase_cloud_smoke.tres" id="2_smoke"]
+
+; A REAL reaction (consumes_rxn at its default true). trigger_timing 1 = POST: the damage number is
+; final. Its own usage group, so nothing else can spend its round.
+[resource]
+script = ExtResource("1_rxn")
+smoke = ExtResource("2_smoke")
+triggers_on = Array[StringName]([&"damage"])
+trigger_timing = 1
+usage_group = &"vanish"
+emit_text_popcorn_on_use = true

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Frame" format=3]
+
+[ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="1_frame"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Texture2D" uid="uid://che1iapn1u0c1" path="res://assets/frames/shared/blank.png" id="3_sprite"]
+[ext_resource type="Resource" uid="uid://d0o7enanuy6q2" path="res://content/gear/shared/statblock_zero.tres" id="4_stat"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_phase_cloud/deployable/mt_phase_cloud_smoke.tres" id="5_zone"]
+[ext_resource type="Resource" uid="uid://bqvl3duf1hnwo" path="res://content/gear/shared/expiration/mt_expiration.tres" id="6_expiration"]
+
+; VANISH'S SMOKE: vanilla's dep_smoke_cloud_2.tres with the mod's own zone. A blank MARKER, not an
+; obstruction, with vanilla's expiration trait - buff_expiration.gd ticks on the OWNER's turns
+; (Terrain.lay records the Koremasa), so the cloud outlasts the turn it is laid in and dies at the end
+; of the Koremasa's next one: "until the end of your next turn, at which point the smoke vanishes".
+[resource]
+script = ExtResource("1_frame")
+sprites = Array[Texture2D]([ExtResource("3_sprite")])
+traits = Array[ExtResource("2_kit")]([ExtResource("5_zone"), ExtResource("6_expiration")])
+stat = ExtResource("4_stat")
+entity_type = 2
+is_obstruction = false
+; Vanilla smoke's own line: the cloud lingers if the Koremasa dies, and buff_expiration's NEW_ROUND
+; branch ends it a round later instead.
+is_deactivated_on_owner_death = false

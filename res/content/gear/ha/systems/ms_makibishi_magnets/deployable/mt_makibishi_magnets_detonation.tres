@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="3_passive"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_makibishi_magnets/deployable/action_makibishi_detonation.tres" id="4_detonation"]
+[ext_resource type="Resource" uid="uid://h2r5bsdwnhme" path="res://content/gear/shared/mine/action_mine_arm.tres" id="5_arm"]
+[ext_resource type="Resource" uid="uid://xs6lvqx632yu" path="res://content/gear/shared/mine/action_mine_trigger.tres" id="6_trigger"]
+[ext_resource type="Resource" uid="uid://ci15ddvp3deew" path="res://content/gear/shared/invulnerability/passive_invulnerability.tres" id="7_invulnerable"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_makibishi_magnets.svg" id="8_icon"]
+
+; The mine's trait: mt_mesmer_mine_detonation.tres with our detonation - vanilla's arm and trigger,
+; vanilla's invulnerability. Wears the MAKIBISHI glyph (one family; frame-close M1).
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("4_detonation"), ExtResource("5_arm"), ExtResource("6_trigger")])
+passives = Array[ExtResource("3_passive")]([ExtResource("7_invulnerable")])
+is_trait = true
+icon_override = ExtResource("8_icon")

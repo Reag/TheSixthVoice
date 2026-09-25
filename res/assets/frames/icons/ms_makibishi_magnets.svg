@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- ms_makibishi_magnets : Reag-TheSixthVoice Koremasa icon, SP6. A caltrop, four spikes with no safe side down - thrown or laid, it still attaches -->
+<path d="M29,29 L35,29 L35,35 L29,35 Z"/>
+<path d="M29,29 L32,6 L35,29 Z"/> <path d="M29,35 L32,58 L35,35 Z"/> <path d="M29,29 L6,32 L29,35 Z"/> <path d="M35,29 L58,32 L35,35 Z"/>
+</svg>
