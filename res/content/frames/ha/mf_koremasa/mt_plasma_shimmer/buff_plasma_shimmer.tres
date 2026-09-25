@@ -1,0 +1,15 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_koremasa/mt_plasma_shimmer/buff_plasma_shimmer.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+to = &"attack_roll_incoming"
+bonus_subtype = &"accuracy"
+bonus_value = -1
+; MANUAL. The trait's applicator owns this chip for the scene; its gate decides when it bites.
+until = 0
+; VISIBLE, and listed in test_content_integrity's VISIBLE_BUFFS: attack_roll.gd:189 passes base.icon
+; RAW into the roll breakdown beside the -1, and it is the Koremasa's own reminder that running hot
+; shields it. Its text falls through to gear.mt_plasma_shimmer's rows (Translate.buff). SP6: icon.
+hide_from_player = false

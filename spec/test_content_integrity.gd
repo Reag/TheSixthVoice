@@ -1025,6 +1025,16 @@ const ICON_TARGETS := {
 	# shape) and also owns the counter badge and the +Range variant row; PATIENCE IN ALL THINGS is the
 	# protocol, and its chip wears its glyph. Every other action on the Kit is a hidden reaction. SP3: icons.
 	&'cp_inevitability_core': {&'action_zwarte_hoop_spend': &'action_zwarte_hoop_spend', &'action_patience_in_all_things': &'action_patience_in_all_things'},
+	# SP1 (Koremasa). Plasma Shimmer: one applicator, one VISIBLE chip that wears the trait's glyph,
+	# no action. SP6: icon.
+	&'mt_plasma_shimmer': {},
+	# SP1 (Koremasa). Exploit Weakness: one hidden ATTACK POST reaction (localization_key_override,
+	# action.gd:348); the Kit is its only surface. SP6: icon.
+	&'mt_exploit_weakness': {},
+	# SP1 (Koremasa). Entrap: the REACTION is on the card (its own trigger row, action.gd:344), the
+	# Solfataric Breach shape, so it inherits the Kit's glyph (KIT); the tech-hit watcher is hidden and
+	# the visible mark shares the family at SP6.
+	&'mt_entrap': {&'action_entrap_koremasa': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1298,6 +1308,14 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# ruling 14): the one on-board sign the protocol is on. Its rows are the protocol's
 	# (localization_key_override). The reduction it arms on every hostile is hidden (ruling 19).
 	&'buff_patience_in_all_things',
+	# SP1 (Koremasa). Plasma Shimmer's -1, on the Koremasa: attack_roll.gd:189 draws base.icon RAW
+	# beside it, and it is the player's reminder that running hot shields them. Its text falls through
+	# to gear.mt_plasma_shimmer's rows (BUFFS_THAT_BORROW_A_CARD).
+	&'buff_plasma_shimmer',
+	# SP1 (Koremasa). Entrap's mark, on a hostile the Koremasa tech-hit this round (design ruling 16):
+	# the chip is how the player reads who can be Entrapped. Its rows are the reaction's
+	# (localization_key_override).
+	&'buff_entrap_mark',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -1522,6 +1540,10 @@ const BUFFS_THAT_BORROW_A_CARD := {
 	# a DRAWN buff (HIDDEN_BUFFS_NEEDING_ICONS above). It has no standalone name row of its own -
 	# Shimmer's card IS its card - so it borrows Shimmer's own action row, name and effect both.
 	&'buff_shimmer_difficulty': 'gear.ms_superpositional_profile.action_shimmer.effect',
+	# SP1 (Koremasa). Plasma Shimmer's chip: the Gravity Well's case - mt_plasma_shimmer carries no
+	# actions, so the fallback lands on the trait's own rows, and the roll breakdown names the trait
+	# beside the -1.
+	&'buff_plasma_shimmer': 'gear.mt_plasma_shimmer.effect',
 }
 
 func test_every_visible_buff_renders_real_text_rather_than_a_raw_key():

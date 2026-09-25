@@ -1,0 +1,19 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_koremasa/mt_entrap/buff_entrap_mark.gd" id="1_mark"]
+
+[resource]
+script = ExtResource("1_mark")
+; VISIBLE (design ruling 34): the chip tells the player who can be Entrapped this round. SP6: icon,
+; shared with the reaction's glyph family.
+hide_from_player = false
+; ITS ROWS ARE THE REACTION'S, named here rather than left to the fallback. mt_entrap carries two
+; actions, and a nameless buff's chain ends at kit.actions[0] (gear_core.gd:337-339) - which happens to
+; be the reaction today, but only by array order (memory lancer-tactics-buff-card-fallback). The
+; override makes it a claim: the chip is titled "Entrap" and reads the reaction's effect.
+localization_key_override = "mt_entrap.action_entrap_koremasa"
+; MANUAL: the round stamp is the lifetime, cleared by the NEW_ROUND trigger below.
+until = 0
+; NEW_ROUND at PRE (TIMING.PRE = 0): round_count is already raised (event_round_new.gd:31, :40).
+triggers_on = Array[StringName]([&"new_round"])
+trigger_timing = 0
