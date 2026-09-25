@@ -824,3 +824,7 @@ gear.cp_inevitability_core.zwarte_hoop.option.heat,Clear +1 heat on hit ({count}
 gear.cp_inevitability_core.zwarte_hoop.done,Done
 gear.cp_inevitability_core.zwarte_hoop.twice,Already chosen twice
 gear.cp_inevitability_core.zwarte_hoop.not_weapon,Not a weapon
+gear.cp_inevitability_core.zwarte_hoop.range.name,Zwarte Hoop
+gear.cp_inevitability_core.zwarte_hoop.range.effect,Gain +1 range on the attack.
+gear.cp_inevitability_core.zwarte_hoop.range.option_1,+1 range (1 charge)
+gear.cp_inevitability_core.zwarte_hoop.range.option_2,+2 range (2 charges)

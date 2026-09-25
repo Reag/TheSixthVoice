@@ -987,6 +987,11 @@ const ICON_TARGETS := {
 	# Pullback's family at SP3, as do the two hidden pull pieces. Rapid Rushdown's armour chip wears
 	# Rapid Rushdown's.
 	&'cp_retaliation_protocol_amplification': {&'action_rapid_rushdown': &'action_rapid_rushdown', &'action_rpa_pullback': &'action_rpa_pullback'},
+	# SP2 (Grutte Pier). THE INEVITABILITY CORE: exactly two families (design section 3). ZWARTE HOOP
+	# reaches the card through its spend reaction (show_in_tooltip forced true, the Supporting Fire
+	# shape) and also owns the counter badge and the +Range variant row; PATIENCE IN ALL THINGS is the
+	# protocol, and its chip wears its glyph. Every other action on the Kit is a hidden reaction. SP3: icons.
+	&'cp_inevitability_core': {&'action_zwarte_hoop_spend': &'action_zwarte_hoop_spend', &'action_patience_in_all_things': &'action_patience_in_all_things'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1256,6 +1261,10 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# ruling 9): the chip is how the player reads "braced until my next turn". Its own rows. The
 	# reduction half is hidden and correctly absent.
 	&'buff_rapid_rushdown_armor',
+	# SP2 (Grutte Pier). Patience in All Things' chip, on the Pier for the rest of the scene (design
+	# ruling 14): the one on-board sign the protocol is on. Its rows are the protocol's
+	# (localization_key_override). The reduction it arms on every hostile is hidden (ruling 19).
+	&'buff_patience_in_all_things',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

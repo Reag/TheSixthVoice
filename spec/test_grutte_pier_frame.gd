@@ -29,8 +29,8 @@ const SHEET_STATS := {
 	systems_points = 5, reactions = 1, activations = 1, limited_bonus = 0,
 }
 
-## The sheet's trait order. The core system joins at SP2, and this list with it.
-const SHEET_TRAITS:Array[StringName] = [&'mt_panoply_coat', &'mt_bulwark']
+## The sheet's trait order, then the core system (SP2).
+const SHEET_TRAITS:Array[StringName] = [&'mt_panoply_coat', &'mt_bulwark', &'cp_inevitability_core']
 
 func _frame() -> Frame:
 	return ContentLibrary.get_mech_frame(FRAME_ID)
@@ -189,7 +189,7 @@ func test_the_traits_are_the_sheet_traits_in_sheet_order():
 	if frame == null: return
 	var ids:Array[StringName] = []
 	for kit:Kit in frame.traits: ids.append(kit.compcon_id)
-	assert_eq(ids, SHEET_TRAITS, 'Panoply Coat, Bulwark (the core system joins at SP2) - and nothing else.')
+	assert_eq(ids, SHEET_TRAITS, 'Panoply Coat, Bulwark, the Inevitability Core - and nothing else.')
 
 func test_no_drake_trait_is_shared():
 	# The alt carries none of the Drake's traits (design ruling 18).

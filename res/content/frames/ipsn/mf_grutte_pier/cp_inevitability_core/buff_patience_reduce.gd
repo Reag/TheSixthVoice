@@ -83,12 +83,20 @@ func confirm_modification(core:BuffCore, roll:AttackRoll, activation:EventCore) 
 	Core.set_charges(pier, gear, Core.charges(gear) - spend)
 	gear.increment_action_usage(Core.PATIENCE_REDUCE_USAGE)
 	roll.roll_modifications.append(MARK)
-	roll.total_roll -= spend
-	roll.base_roll = maxi(1, roll.base_roll - spend)
+	lower(roll, spend)
 
 	if roll.total_roll < roll.pre.target_defense: return true # prospective_miss clears hit and crit
 	roll.crit = false # lowered below 20 but still a hit: prospective_crit confirms a plain hit
 	return false
+
+## "reduce the number rolled by that much": the total AND the d20 together, so anything reading
+## `total - (base + accuracy + flat)` - House Guard's other_bonus, the talents mod's
+## action_shield_of_the_legion_miss.gd:83 - sees the same difference before and after (test_compat
+## pins it). The one exception is the clamp: a base driven below 1 stops at 1 (the auto-hit branch is
+## base <= 0), which only a flat bonus big enough to hit off a 1 or 2 could reach.
+static func lower(roll:AttackRoll, spend:int) -> void:
+	roll.total_roll -= spend
+	roll.base_roll = maxi(1, roll.base_roll - spend)
 
 ## [{spend:int, result:String}], the least spend that reaches each outcome the roll can be lowered
 ## to, affordable ones only. `result` is the event.unit_attack.<result> row vanilla's own log uses.

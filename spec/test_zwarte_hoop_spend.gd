@@ -204,3 +204,32 @@ func test_overshield_is_not_granted_on_a_miss():
 	await ready_pier(1, [OVERSHIELD])
 	await shoot(target, Fixture.RIFLE, [10, 6])
 	assert_eq(Overshield.current(pier), 0, '"on hit".')
+
+# ---------------------------------------------------------------- a reaction attack (ruling 9, measured)
+
+## Overwatch fires the weapon through CommonActionUtil.choose_and_use with these two flags
+## (action_overwatch.gd:32-39); this is that activation without the weapon pick.
+func overwatch(at:Unit) -> void:
+	Dice.CHEAT_ROLL_QUEUE.append_array([10, 6])
+	await SpecFactory.use_solo(game, pier, Fixture.RIFLE, at, [Action.FLAG.CAN_FOLLOWUP, Action.FLAG.IS_OVERWATCH])
+
+func test_an_overwatch_before_the_piers_turn_is_the_first_attack_roll():
+	Fixture.give_patience(pier) # banked charges are only there before its turn under Patience
+	Fixture.set_charges(pier, 3)
+	await SpecFactory.start_turn(game, target) # the hostile's turn; the Pier is not taking one
+	responder.multiple_choice_queue.assign([ATTACK_ROLL, DONE])
+	await overwatch(target)
+	assert_eq(prompts().size(), 2, 'The loop runs on the reaction attack.')
+	assert_eq(Fixture.charges(pier), 2)
+	await SpecFactory.end_turn(game, target)
+	await Fixture.open_turn(game, pier)
+	await shoot(target, Fixture.RIFLE, [10, 6])
+	assert_eq(prompts().size(), 2, 'Its own later attack that round is not the first.')
+
+func test_the_range_row_is_offered_on_a_reaction_attack_too():
+	Fixture.set_charges(pier, 2)
+	var gear := pier.get_gear(Fixture.RIFLE)
+	var specific := SpecificAction.create(pier, gear, gear.get_solo_action())
+	var keys:Array = specific.action.get_alternate_actions(specific, [Action.FLAG.CAN_FOLLOWUP, Action.FLAG.IS_OVERWATCH]).map(
+		func(group:VariantActionGroup) -> StringName: return group.key)
+	assert_has(keys, &'zwarte_hoop_range', 'MEASURED: the variant row reads no flags, so an Overwatch offers it.')

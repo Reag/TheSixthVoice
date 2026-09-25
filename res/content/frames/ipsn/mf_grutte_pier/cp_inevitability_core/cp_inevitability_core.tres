@@ -11,6 +11,13 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/action_zwarte_hoop_lapse.tres" id="9_lapse"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/action_patience_charge.tres" id="10_charge"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/action_zwarte_hoop_spend.tres" id="11_spend"]
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="12_buffscript"]
+[ext_resource type="Script" uid="uid://dy4kg537rc55e" path="res://engine/character/gear_passive/passive_buff_applicator.gd" id="13_applicator"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/buff_zwarte_hoop_range.tres" id="14_range"]
+
+[sub_resource type="Resource" id="Resource_range_applicator"]
+script = ExtResource("13_applicator")
+applied_buffs = Array[ExtResource("12_buffscript")]([ExtResource("14_range")])
 
 [resource]
 script = ExtResource("1_kit")
@@ -25,6 +32,8 @@ script = ExtResource("1_kit")
 ; THE PROTOCOL IS actions[0] ON PURPOSE: get_solo_action() is kit.actions[0] (gear_core.gd:337-339).
 ; Every other action is a hidden reaction, never on the gear bar or the card.
 actions = Array[ExtResource("2_action")]([ExtResource("6_patience"), ExtResource("11_spend"), ExtResource("7_tally"), ExtResource("8_gain"), ExtResource("9_lapse"), ExtResource("10_charge")])
-passives = Array[ExtResource("3_passive")]([ExtResource("4_charges"), ExtResource("5_aura")])
+; passives[1] hangs the +Range variant buff (ruling 10) on the Pier for good; the buff offers its row
+; only while it applies (buff_zwarte_hoop_range.offered).
+passives = Array[ExtResource("3_passive")]([ExtResource("4_charges"), SubResource("Resource_range_applicator"), ExtResource("5_aura")])
 ; A frame trait, not equippable gear: no SP, cannot be unequipped.
 is_trait = true
