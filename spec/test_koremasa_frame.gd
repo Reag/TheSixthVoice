@@ -220,14 +220,17 @@ func test_the_licence_grants_the_frame_at_rank_two_and_nowhere_else():
 	assert_true(license.rank_1.granted_frames.is_empty(), 'rank_1 grants no frame.')
 	assert_true(license.rank_3.granted_frames.is_empty(), 'rank_3 grants no frame.')
 
-func test_the_licence_grants_no_gear_yet():
-	# SP3 fills rank 1 (Makibishi Magnets, Phase Cloud), SP4 rank 2 (Rendwire Sickle, Blinkblade
-	# Slice), SP5 rank 3 (Fusionbleed shuriken, Juxtaposition Augments). Each empty line reddens
-	# exactly once, in the sub-project that fills it.
+func test_the_licence_grants_its_gear_rank_by_rank():
+	# SP3 filled rank 1 (Makibishi Magnets, Phase Cloud); SP4 fills rank 2 (Rendwire Sickle,
+	# Blinkblade Slice), SP5 rank 3 (Fusionbleed shuriken, Juxtaposition Augments). Each empty line
+	# reddens exactly once, in the sub-project that fills it.
 	var license := _license()
 	assert_not_null(license, 'fixture: the licence loads.')
 	if license == null or license.rank_1 == null or license.rank_2 == null or license.rank_3 == null: return
-	assert_true(license.rank_1.granted_gear.is_empty(), 'Rank 1 grants no gear yet (SP3).')
+	var rank_1:Array[StringName] = []
+	for kit:Kit in license.rank_1.granted_gear: rank_1.append(kit.compcon_id)
+	assert_eq(rank_1, [&'ms_makibishi_magnets', &'ms_phase_cloud'] as Array[StringName],
+		'Rank 1: Makibishi Magnets and Phase Cloud, in sheet order (SP3).')
 	assert_true(license.rank_2.granted_gear.is_empty(), 'Rank 2 grants no gear yet (SP4).')
 	assert_true(license.rank_3.granted_gear.is_empty(), 'Rank 3 grants no gear yet (SP5).')
 

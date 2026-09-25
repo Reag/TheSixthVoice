@@ -218,3 +218,42 @@ static func ride_buffs_on(unit:Unit, rider:Unit) -> Array[BuffCore]:
 static func gut_reactor_uses(unit:Unit) -> int:
 	var gear := core(unit)
 	return gear.get_uses_this_round_alt(GUT_REACTOR_USAGE) if GearCore.is_valid(gear) else -1
+
+# ---------------------------------------------------------------- SP3: rank I
+
+const PHASE_CLOUD_ID := &'ms_phase_cloud'
+const VANISH_ACTION := &'action_vanish'
+const VANISH_USAGE := &'vanish'
+## The smoke Vanish lays: a MARKER deployable whose Kit projects a soft-cover zone over the
+## Koremasa's footprint plus 1 (design 3.2, rulings 26-28).
+const SMOKE_FRAME := &'dep_phase_cloud_smoke'
+const SMOKE_KIT := &'mt_phase_cloud_smoke'
+
+const MAKIBISHI_ID := &'ms_makibishi_magnets'
+const THROW_MAGNETS_ACTION := &'action_throw_magnets'
+const MAKIBISHI_MINE_ACTION := &'action_makibishi_mine'
+const SECOND_MINE_ACTION := &'action_makibishi_second_mine'
+const MAKIBISHI_USAGE := &'makibishi_magnets'
+const MAKIBISHI_BUFF := &'buff_makibishi_attached'
+const MAKIBISHI_MINE_FRAME := &'dep_makibishi_magnets'
+## The victim's own way out: a situational Kit the attached buff carries (the Hornet's javelins).
+const DETACH_KIT := &'bt_makibishi_magnets'
+const DETACH_ACTION := &'action_makibishi_detach'
+
+## Deal `amount` damage to `unit`, recorded as `dealer`'s (event_unit_damage's optional
+## target_unit, the Excommunicate idiom). Kinetic unless told otherwise.
+static func damage(game:Gamemaster, unit:Unit, amount:int, dealer:Unit,
+		type:Lancer.DAMAGE_TYPE = Lancer.DAMAGE_TYPE.KINETIC) -> void:
+	var data := {unit = unit, number = amount, category = type}
+	if Unit.is_valid(dealer): data.target_unit = dealer
+	await game.execute_event(&'event_unit_damage', data)
+
+## Every unit on the map built from the frame `frame_id` (markers and deployables included).
+static func units_of_frame(game:Gamemaster, frame_id:StringName) -> Array[Unit]:
+	return game.map.get_all_units().filter(func(unit:Unit) -> bool:
+		return unit.core.frame != null and unit.core.frame.resource_path.get_file().get_basename() == frame_id
+	)
+
+static func charges(unit:Unit, kit_id:StringName) -> int:
+	var gear := unit.get_gear(kit_id)
+	return gear.charges_current if GearCore.is_valid(gear) else -1

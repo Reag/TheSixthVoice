@@ -5,6 +5,9 @@
 [ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="3_frame"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_koremasa/mf_koremasa.tres" id="4_mf_koremasa"]
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ha/mf_koremasa/mf_koremasa.png" id="5_icon"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="6_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_makibishi_magnets/ms_makibishi_magnets.tres" id="7_makibishi"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_phase_cloud/ms_phase_cloud.tres" id="8_phase_cloud"]
 
 ; THE KOREMASA'S OWN LICENCE (design ruling 33): a full licence, not an alt, so a new file beside
 ; li_leoleth.tres rather than an extension of a vanilla one. Gear lands rank by rank as each
@@ -15,6 +18,7 @@
 ; A rank with no gear yet is still written, so UnlockTree never meets a null rank.
 [sub_resource type="Resource" id="Resource_rank1"]
 script = ExtResource("2_unlockrank")
+granted_gear = Array[ExtResource("6_kit")]([ExtResource("7_makibishi"), ExtResource("8_phase_cloud")])
 
 [sub_resource type="Resource" id="Resource_rank2"]
 script = ExtResource("2_unlockrank")

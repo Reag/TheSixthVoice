@@ -1047,6 +1047,21 @@ const ICON_TARGETS := {
 		&'action_climb_off': &'action_lassissian_folly',
 		&'action_buck_koremasa': &'action_lassissian_folly',
 	},
+	# SP3 (Koremasa). MAKIBISHI MAGNETS: one family (design 6) - the throw and the mine are KIT rows,
+	# the attached buff and the victim's detach wear the same glyph at SP6. The second-mine reaction is
+	# hidden (localization_key_override, action.gd:348).
+	&'ms_makibishi_magnets': {&'action_throw_magnets': KIT, &'action_makibishi_mine': KIT},
+	# SP3 (Koremasa). The detach, on the VICTIM's bar (situational gear the attached buff carries, the
+	# Hornet's bt_lock_hold_javelins_hornet). Its own row now; SP6 gives it the Makibishi glyph.
+	&'bt_makibishi_magnets': {&'action_makibishi_detach': &'action_makibishi_detach'},
+	# SP3 (Koremasa). The mine's trait, on the MARKER dep_makibishi_magnets - vanilla's arm and trigger
+	# plus our detonation, the mt_mesmer_mine_detonation shape. Nothing on it is pressable.
+	&'mt_makibishi_magnets_detonation': {},
+	# SP3 (Koremasa). PHASE CLOUD: Vanish is on the card (its own trigger row), a KIT row.
+	&'ms_phase_cloud': {&'action_vanish': KIT},
+	# SP3 (Koremasa). Vanish's smoke zone, on the MARKER dep_phase_cloud_smoke - the mt_maar_terrain
+	# shape. Shares Vanish's family at SP6.
+	&'mt_phase_cloud_smoke': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1333,6 +1348,7 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# (localization_key_override). The single-roll reduction beside it and the crit rule on the
 	# rider are hidden and correctly absent.
 	&'buff_lassissian_folly_ride',
+	&'buff_makibishi_attached',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

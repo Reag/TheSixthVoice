@@ -849,3 +849,25 @@ gear.cp_overdrive_exploitation_sequences.action_lassissian_folly.ride_now,"A lar
 gear.cp_overdrive_exploitation_sequences.action_begin_riding.name,Begin Riding
 gear.cp_overdrive_exploitation_sequences.action_climb_off.name,Climb Off
 gear.cp_overdrive_exploitation_sequences.action_buck_koremasa.name,Throw Off
+gear.ms_makibishi_magnets.name,Makibishi Magnets
+gear.ms_makibishi_magnets.flavor,"Built upon legacy caltrop technology, the Makibishi Magnets leverage their powerful ferromagnetic properties to stick into targets. Once embedded, any movement from the victim drives the spikes in deeper, necessitating their hasty removal."
+gear.ms_makibishi_magnets.effect,"On use, you may choose to expend a second charge, if you do, you may deploy a second mine in valid space."
+gear.ms_makibishi_magnets.action_throw_magnets.name,Throw Magnets
+gear.ms_makibishi_magnets.action_throw_magnets.effect,Throw Magnets at a |character| within |Range 5|. They must make an |agility save| or have the Magnets attach to them. Characters to whom they are attached are |impaired| and take |1 AP Kinetic| damage for each space they voluntarily move up to a maximum of 5. Characters can detach makibishi magnets from themselves by passing an |Agility save| as a |quick action| on their turn. All magnets detach at the end of the scene.
+gear.ms_makibishi_magnets.action_makibishi_mine.name,Makibishi Magnets
+gear.ms_makibishi_magnets.action_makibishi_mine.effect,"When a |character| moves over or adjacent to this mine, they must make an |Agility save| or it attaches to them and deals |1d3 AP Kinetic| damage. Characters to whom they are attached are |impaired| and take |1 AP Kinetic| damage for each space they voluntarily move up to a maximum of 5. Characters can detach makibishi magnets from themselves by passing an |Agility save| as a |quick action| on their turn. All mines detach at the end of the scene."
+frame.dep_makibishi_magnets.name,Makibishi Magnets
+gear.mt_makibishi_magnets_detonation.name,Makibishi Magnets
+gear.buff_makibishi_attached.name,Makibishi Magnets
+gear.buff_makibishi_attached.effect,Characters to whom they are attached are |impaired| and take |1 AP Kinetic| damage for each space they voluntarily move up to a maximum of 5. Characters can detach makibishi magnets from themselves by passing an |Agility save| as a |quick action| on their turn. All magnets detach at the end of the scene.
+gear.bt_makibishi_magnets.name,Makibishi Magnets
+gear.bt_makibishi_magnets.action_makibishi_detach.name,Detach Magnets
+gear.bt_makibishi_magnets.action_makibishi_detach.effect,Characters can detach makibishi magnets from themselves by passing an |Agility save| as a |quick action| on their turn.
+gear.ms_phase_cloud.name,Phase Cloud
+gear.ms_phase_cloud.flavor,"A combination of Harrison Armory proprietary technology, the Phase Cloud systems provide a reliable escape from dangerous situations. When each cell is thrown, it bursts into a cloud of thick smoke, engineered to be as disorienting as possible for targeting systems. Additionally, it activates a short range blink charge that can propel the user into a more advantageous position."
+gear.ms_phase_cloud.effect,You gain the Vanish |reaction|.
+gear.ms_phase_cloud.action_vanish.name,Vanish
+gear.ms_phase_cloud.action_vanish.trigger,You take damage from a hostile |character| within |sensors|.
+gear.ms_phase_cloud.action_vanish.effect,"Expend a charge, a Blast one area centered on you is engulfed in smoke. All objects and characters within benefit from |soft cover| until the end of your next turn, at which point the smoke vanishes. You may |teleport| to a free space within range 5."
+frame.dep_phase_cloud_smoke.name,Phase Cloud
+gear.mt_phase_cloud_smoke.name,Phase Cloud

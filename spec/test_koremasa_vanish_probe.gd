@@ -1,5 +1,6 @@
-# PROBE: VANISH WHILE RIDING (Koremasa SP3, design 3.0, ruling 28). Throwaway; folded into
-# test_phase_cloud.gd's riding tests, then deleted, once Vanish is built on what it measures.
+# PROBE: VANISH WHILE RIDING (Koremasa SP3, design 3.0, ruling 28). Kept until the frame close, as the
+# spike-7 probe is: test_phase_cloud.gd's riding tests cover its behaviour through Vanish itself, but
+# the unstacked shape's tile set equalling a real dismount's is asserted only here.
 #
 # The question: in ONE activation, can the ride be ended (koremasa_ride.gd's dismount, no relocation)
 # and a PREVENTABLE teleport then be pathfound from the Koremasa's own tile - which is still the
