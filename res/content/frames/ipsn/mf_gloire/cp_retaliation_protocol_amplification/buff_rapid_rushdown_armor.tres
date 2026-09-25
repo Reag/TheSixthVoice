@@ -1,6 +1,7 @@
 [gd_resource type="Resource" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/armor/buff_armor_statblock.gd" id="1_statblock"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_rapid_rushdown.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_statblock")
@@ -14,7 +15,7 @@ script = ExtResource("1_statblock")
 to = &"statblock"
 armor_amount = 1
 ; DELIBERATELY VISIBLE: the chip is the on-map sign that the Gloire is braced this round.
-; VISIBLE_BUFFS lists it. Icon: SP3 (Rapid Rushdown's own glyph family, design section 3).
+; VISIBLE_BUFFS lists it. Wears Rapid Rushdown's own glyph family (SP3, design section 3).
 ;
 ; START_OF_TURN (Lancer.UNTIL, lancer.gd:46-56, so 3): "until the start of your next turn". The
 ; holder is the Gloire itself, so UnitCondition.new_turn_for_statuses clears it at the Gloire's own
@@ -25,3 +26,4 @@ armor_amount = 1
 ; disagreeing is how this mechanic tears in half - a chip that no longer blunts anything, or damage
 ; quietly going missing with nothing on screen to explain it.
 until = 3
+icon = ExtResource("2_icon")

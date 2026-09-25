@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- mt_extended_zone_control : Reag-TheSixthVoice Gloire icon, SP3. A reticle pushed wide, corner brackets marching outward - the Ram and CQB reach extended -->
+<path d="M8,8 L22,8 L22,12 L12,12 L12,22 L8,22 Z"/>
+<path d="M56,8 L42,8 L42,12 L52,12 L52,22 L56,22 Z"/>
+<path d="M8,56 L22,56 L22,52 L12,52 L12,42 L8,42 Z"/>
+<path d="M56,56 L42,56 L42,52 L52,52 L52,42 L56,42 Z"/>
+<path d="M2,2 L10,4 L4,10 Z"/>
+<path d="M62,2 L54,4 L60,10 Z"/>
+<path d="M2,62 L10,60 L4,54 Z"/>
+<path d="M62,62 L54,60 L60,54 Z"/>
+</svg>

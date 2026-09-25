@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- cp_retaliation_protocol_amplification : Reag-TheSixthVoice Gloire icon, SP3. The core's own bare glyph: a double-headed arrow, driven out and hauled in - the redraw after the first hub-and-arms draft went muddy at 24px -->
+<path d="M6,32 L22,20 L22,26 L42,26 L42,20 L58,32 L42,44 L42,38 L22,38 L22,44 Z"/>
+</svg>

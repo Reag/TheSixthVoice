@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/cp_retaliation_protocol_amplification/action_rapid_rushdown.tres" id="3_rushdown"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/cp_retaliation_protocol_amplification/action_rpa_pullback.tres" id="4_pullback"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/cp_retaliation_protocol_amplification/action_rpa_pullback_collide.tres" id="5_collide"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_retaliation_protocol_amplification.svg" id="6_icon"]
 
 [resource]
 script = ExtResource("1_kit")
@@ -21,8 +22,10 @@ script = ExtResource("1_kit")
 actions = Array[ExtResource("2_action")]([ExtResource("3_rushdown"), ExtResource("4_pullback"), ExtResource("5_collide")])
 ; A frame trait, not equippable gear: no SP, cannot be unequipped.
 is_trait = true
+icon_override = ExtResource("6_icon")
 ;
 ; NO INTEGRATED WEAPON and NO .effect ROW: the LCP gives this core a passive ACTION and an active,
-; and their own rows carry the text. The .flavor row is the LCP's description, verbatim. Icon: SP3
-; (exactly two glyph families - Rapid Rushdown with its armour chip, RPA Pullback with its chip and
-; its hidden pull and collision pieces; design section 3).
+; and their own rows carry the text. The .flavor row is the LCP's description, verbatim. SP3: the
+; Kit's own bare glyph (a third, distinct family) plus exactly two pressable families - Rapid
+; Rushdown with its armour chip, RPA Pullback with its chip and its hidden pull and collision pieces;
+; design section 3.

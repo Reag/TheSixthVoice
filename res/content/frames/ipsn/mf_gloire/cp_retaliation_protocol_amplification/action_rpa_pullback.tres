@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/cp_retaliation_protocol_amplification/buff_rpa_pullback.tres" id="3_variant"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/cp_retaliation_protocol_amplification/buff_rpa_pullback_pull.tres" id="4_pull"]
 [ext_resource type="PackedScene" uid="uid://bfq34dqe4ydxy" path="res://content/fx_groups/actions/fxg_super_activation.tscn" id="5_superfx"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_rpa_pullback.svg" id="6_icon"]
 
 ; RPA PULLBACK, the Retaliation Protocol Amplification's active - a PROTOCOL that costs the core
 ; point and hangs two scene-long buffs on the Gloire (design ruling 10). Agni Protocol's
@@ -30,3 +31,5 @@ usage_group = &"rpa_pullback"
 ; The core-power activation flash, as cp_fortress and cp_siege_engine use.
 fxg_use = ExtResource("5_superfx")
 emit_text_popcorn_on_use = true
+; SP3: its own glyph family, shared with buff_rpa_pullback's chip and the hidden pull/collide pieces.
+icon_override = ExtResource("6_icon")

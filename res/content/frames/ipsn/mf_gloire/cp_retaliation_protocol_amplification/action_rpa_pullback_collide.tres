@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="ActionReaction" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/cp_retaliation_protocol_amplification/action_rpa_pullback_collide.gd" id="1_collide"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_rpa_pullback.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_collide")
@@ -16,3 +17,6 @@ usage_group = &"rpa_pullback_collide"
 ; gear.<override>.<property> (translate.gd:23-24), and a non-empty override is also what makes
 ; Action.show_in_tooltip answer false (action.gd:348).
 localization_key_override = "cp_retaliation_protocol_amplification.action_rpa_pullback"
+; Never drawn (a reaction, gear_bar.gd:145) - shares RPA Pullback's glyph family for consistency,
+; the Shackleton's action_unfathomable_weight_collide.tres shape.
+icon_override = ExtResource("2_icon")
