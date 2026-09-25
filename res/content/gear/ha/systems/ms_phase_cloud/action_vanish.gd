@@ -22,7 +22,7 @@
 ## reticle's cancel. NO line of sight, the mod's standing teleport reading (Blinkspace, Vigil ruling 3,
 ## the Shackleton's leap); the design's `los` placeholder named the parameter, not a value.
 ##
-## WHILE RIDING (ruling 28, measured by spec/test_koremasa_vanish_probe.gd): the teleport ENDS THE
+## WHILE RIDING (ruling 28, measured by the SP3 probe at fca423a; pinned in spec/test_phase_cloud.gd): the teleport ENDS THE
 ## RIDE, but only once a tile is taken - a declined teleport leaves the Koremasa mounted. So the tiles
 ## and the pathfinder are built BEFORE anything changes, from the rider's own unstacked shape: the
 ## Mule Harness climb-off's trick (action_mule_harness_climb_off.gd, stackup_order briefly -1) plus

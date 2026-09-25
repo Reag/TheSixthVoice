@@ -1047,13 +1047,21 @@ const ICON_TARGETS := {
 		&'action_climb_off': &'action_lassissian_folly',
 		&'action_buck_koremasa': &'action_lassissian_folly',
 	},
-	# SP3 (Koremasa). MAKIBISHI MAGNETS: one family (design 6) - the throw and the mine are KIT rows,
-	# the attached buff and the victim's detach wear the same glyph at SP6. The second-mine reaction is
-	# hidden (localization_key_override, action.gd:348).
+	# SP3 (Koremasa). MAKIBISHI MAGNETS: ONE family (design 6) - throw, mine, attached buff, detach.
+	# The throw and the mine are KIT rows. The second-mine reaction is hidden
+	# (localization_key_override, action.gd:348).
+	#
+	# FRAME CLOSE (finding M1): the family spans THREE Kits, and all three Kits wear
+	# ms_makibishi_magnets.svg as their own icon_override - so every row below is a KIT row, and the
+	# family is pinned Kit-to-Kit by test_makibishi_magnets.gd's
+	# test_the_detach_and_the_mines_trait_wear_the_makibishi_glyph, not by a family name here (a
+	# named family cannot express it: a row wearing its own Kit's texture must be a KIT row, the
+	# assert_ne in test_every_player_facing_kit_and_action_has_a_real_icon). SP6 had drawn two extra
+	# glyphs, bt_makibishi_magnets.svg and mt_makibishi_magnets_detonation.svg; both are gone.
 	&'ms_makibishi_magnets': {&'action_throw_magnets': KIT, &'action_makibishi_mine': KIT},
 	# SP3 (Koremasa). The detach, on the VICTIM's bar (situational gear the attached buff carries, the
-	# Hornet's bt_lock_hold_javelins_hornet). Its own row now; SP6 gives it the Makibishi glyph.
-	&'bt_makibishi_magnets': {&'action_makibishi_detach': &'action_makibishi_detach'},
+	# Hornet's bt_lock_hold_javelins_hornet). A KIT row: the Kit wears the Makibishi glyph.
+	&'bt_makibishi_magnets': {&'action_makibishi_detach': KIT},
 	# SP3 (Koremasa). The mine's trait, on the MARKER dep_makibishi_magnets - vanilla's arm and trigger
 	# plus our detonation, the mt_mesmer_mine_detonation shape.
 	#
@@ -1062,7 +1070,7 @@ const ICON_TARGETS := {
 	# _action_reaches_a_player_facing_surface's second clause returns true for it regardless -
 	# starts_hibernating is per-instance runtime state, not a fixed shape, and has no clause here (the
 	# same reasoning the Rend Axe's hide_if_disabled gets, :642-645). A KIT row: the action carries no
-	# icon_override of its own and inherits the Kit's glyph.
+	# icon_override of its own and inherits the Kit's glyph - the Makibishi glyph (frame-close M1).
 	&'mt_makibishi_magnets_detonation': {&'action_makibishi_detonation': KIT},
 	# SP3 (Koremasa). PHASE CLOUD: Vanish is on the card (its own trigger row), a KIT row.
 	&'ms_phase_cloud': {&'action_vanish': KIT},

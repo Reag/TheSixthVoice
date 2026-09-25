@@ -16,7 +16,7 @@
 # - and which dies at the end of the Koremasa's next turn (vanilla's mt_expiration). The teleport is
 # the frozen Teleport helper's PREVENTABLE route: the reticle's cancel is the "may".
 #
-# WHILE RIDING (ruling 28, and the probe test_koremasa_vanish_probe.gd): the reticle is planned from
+# WHILE RIDING (ruling 28, and the SP3 probe at fca423a, ported to the end of this file): the reticle is planned from
 # the rider's own unstacked shape BEFORE anything changes, so a DECLINED teleport leaves it mounted;
 # a taken one dismounts first and then teleports from the Koremasa's own tile.
 #
@@ -26,6 +26,7 @@ extends GutTest
 const Fixture := preload('res://unpacked/Reag-TheSixthVoice/spec/koremasa_fixture.gd')
 const PromptWatcher := preload('res://testkit/prompt_watcher.gd')
 const Teleport := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/teleport/teleport.gd')
+const Ride := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_koremasa/cp_overdrive_exploitation_sequences/koremasa_ride.gd')
 
 const KOREMASA_TILE := Vector2i(4, 5)
 const NEAR := Vector2i(8, 5)        ## 4 away: inside sensors 5
@@ -149,6 +150,16 @@ func test_a_hostile_drones_damage_counts_as_its_owners():
 	drone.state.set_owner(owner_unit)
 	await hit(drone)
 	assert_true(vanished(), 'A drone\'s hit is its owner\'s, and the owner is within sensors.')
+
+## The discriminating half (close review): the drone above and its owner are BOTH within 5, so a
+## Vanish measuring to the drone would pass it too. Here the drone is close and the owner is not.
+func test_a_close_drone_whose_owner_is_outside_sensors_does_not():
+	on_foot()
+	var owner_unit := Fixture.create_hostile(game, FAR)
+	var drone := Fixture.create_hostile_drone(game, Vector2i(6, 6))
+	drone.state.set_owner(owner_unit)
+	await hit(drone)
+	assert_nothing_spent()
 
 func test_no_charge_no_vanish():
 	on_foot()
@@ -302,3 +313,38 @@ func test_a_rider_whose_teleport_is_vetoed_lands_beside_the_mount_not_inside_it(
 	var overlap := koremasa.occupied_tiles().filter(func(tile:Vector2i) -> bool: return mount.occupied_tiles().has(tile))
 	assert_true(overlap.is_empty(), 'Not left standing inside the mount: relocated like any dismount.')
 	assert_eq(UnitRelation.distance_between(koremasa, mount), 1, 'Beside it.')
+
+# ---------------------------------------------------------------- the planned shape (ex-probe, the close)
+
+## Ported from spec/test_koremasa_vanish_probe.gd at the frame close, and run through Vanish's OWN
+## plan_teleport rather than the probe's copy - which had measured with line of sight ON while
+## production passes it off (action_vanish.gd:126). The reticle is planned from the rider's unstacked
+## shape BEFORE the dismount, so it must offer exactly what a real dismount would.
+func vanish_action() -> Action:
+	return ContentLibrary.get_kit(Fixture.PHASE_CLOUD_ID).get_action(Fixture.VANISH_ACTION)
+
+func test_a_riders_planned_teleport_offers_what_a_real_dismount_would():
+	var mount := await riding()
+	var planned:Pathfinder = await vanish_action().plan_teleport(koremasa, true)
+	assert_true(Fixture.is_riding(koremasa, mount), 'Still riding after the plan: nothing changed.')
+	assert_eq(koremasa.occupied_tiles().size(), 4, 'The rider still spans the mount.')
+	assert_not_null(planned, 'A pathfinder was planned.')
+	if planned == null: return
+	var virtual:Array[Vector2i] = planned.movable_tiles.duplicate()
+	Ride.dismount(SpecFactory.dummy_event(), koremasa, Fixture.core(koremasa), false)
+	var real:Pathfinder = await vanish_action().plan_teleport(koremasa, false)
+	assert_not_null(real, 'fixture: a real dismount plans too.')
+	if real == null: return
+	var real_tiles:Array[Vector2i] = real.movable_tiles.duplicate()
+	virtual.sort()
+	real_tiles.sort()
+	assert_false(virtual.is_empty(), 'fixture: something is offered.')
+	assert_eq(virtual, real_tiles, 'The unstacked plan offers exactly the real dismount\'s tiles.')
+
+## The control: planned as a rider (no unstacking), nothing is reachable - a rider has no movement
+## of its own (pathfinder.gd:343), so the unstacked shape is what makes the escape possible.
+func test_control_planned_without_unstacking_a_rider_reaches_nothing():
+	await riding()
+	var planned:Pathfinder = await vanish_action().plan_teleport(koremasa, false)
+	var reachable := planned != null and planned.is_reachable(RIDE_AWAY)
+	assert_false(reachable, 'Still stacked, the escape tile is unreachable.')

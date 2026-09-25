@@ -26,6 +26,7 @@
 extends GutTest
 
 const Fixture := preload('res://unpacked/Reag-TheSixthVoice/spec/koremasa_fixture.gd')
+const FrameIsolation := preload('res://testkit/frame_isolation.gd')
 
 const KOREMASA_TILE := Vector2i(4, 5)
 const VICTIM_TILE := Vector2i(8, 5)   ## 4 away: inside Range 5
@@ -138,6 +139,21 @@ func test_the_attached_buff_is_visible_manual_and_impairs():
 	assert_eq(buff.applies_statuses, [Lancer.STATUS.IMPAIRED] as Array[StringName], 'Impaired.')
 	assert_false(buff.is_cleared_on_owner_death(), 'Magnets outlive the Koremasa (ruling 25).')
 
+## ONE GLYPH FAMILY (design 6, the icon-glyph-families directive): the throw, the mine, the attached
+## buff and the detach. The detach's Kit and the mine's trait Kit wear the Makibishi Kit's own glyph
+## rather than two of their own (frame-close finding M1).
+func test_the_detach_and_the_mines_trait_wear_the_makibishi_glyph():
+	var kit:Kit = ContentLibrary.get_kit(Fixture.MAKIBISHI_ID)
+	var detach_kit:Kit = ContentLibrary.get_kit(Fixture.DETACH_KIT)
+	var detonation_kit:Kit = ContentLibrary.get_kit(&'mt_makibishi_magnets_detonation')
+	assert_true(Kit.is_valid(kit) and Kit.is_valid(detach_kit) and Kit.is_valid(detonation_kit), 'fixture: all three Kits load.')
+	if not (Kit.is_valid(kit) and Kit.is_valid(detach_kit) and Kit.is_valid(detonation_kit)): return
+	assert_not_null(kit.icon_override, 'fixture: the Makibishi Kit has its glyph.')
+	assert_eq(detach_kit.icon_override, kit.icon_override, 'The detach Kit wears the Makibishi glyph.')
+	assert_eq(detonation_kit.icon_override, kit.icon_override, 'The mine\'s trait wears the Makibishi glyph.')
+	var detach:Action = detach_kit.get_action(Fixture.DETACH_ACTION)
+	assert_eq(detach.get_icon(detach_kit), kit.icon_override, 'And so does the detach button the victim sees.')
+
 # ---------------------------------------------------------------- Throw Magnets
 
 func test_a_failed_agility_save_attaches_and_impairs():
@@ -195,6 +211,26 @@ func test_the_cap_is_5_per_turn():
 	before = damage_taken(victim)
 	await walk(victim, VICTIM_TILE + Vector2i(3, 2))
 	assert_eq(damage_taken(victim) - before, 2, 'A new turn: the cap is fresh.')
+
+## Frame-close finding I-2: a same-source magnet landing mid-turn REPLACES the old buff core
+## (unit_condition.gd:741-747), and the cap's counter must survive that, or one turn costs up to 10.
+func test_the_cap_survives_a_same_source_magnet_replacing_the_first_mid_turn():
+	await throw_at(victim, FAIL) # the first charge
+	await Fixture.cycle_turn(game, koremasa) # throw and deploy share a usage group: one per turn
+	await deploy_mine(MINE_TILE) # the second charge; armed at the Koremasa's end of turn below
+	assert_eq(mines().size(), 1, 'fixture: one mine laid.')
+	await open_victims_turn()
+	var before := damage_taken(victim)
+	await walk(victim, VICTIM_TILE + Vector2i(0, 5)) # (8,10): five spaces, never within 1 of the mine
+	assert_eq(damage_taken(victim) - before, 5, 'fixture: five spaces, capped.')
+	# The victim is already Impaired, so its save also rolls a d6 of difficulty: 2 for that and for
+	# the mine's 1d3, whichever comes first.
+	Fixture.queue([FAIL, 2, 2])
+	await walk(victim, MINE_TILE + Vector2i(1, 1)) # (6,6): adjacent to the mine - it goes off
+	assert_true(mines().is_empty(), 'fixture: the mine went off.')
+	assert_eq(attached(victim).size(), 1, 'fixture: one magnet - the mine\'s replaced the thrown one (ruling 22).')
+	await walk(victim, MINE_TILE + Vector2i(1, 4)) # (6,9): three more voluntary spaces
+	assert_eq(damage_taken(victim) - before - 2, 5, 'Per-step damage this turn, less the mine\'s 1d3 (2): still capped at 5 (ruling 21).')
 
 func test_an_involuntary_move_costs_nothing():
 	await throw_at(victim, FAIL)
@@ -256,6 +292,59 @@ func test_the_magnets_survive_the_koremasas_death_and_can_still_be_detached():
 	assert_true(is_attached(victim), 'Still attached after the Koremasa is gone.')
 	await Fixture.cycle_turn(game, victim)
 	assert_eq(detaches_offered(victim).size(), 1, 'And the victim can still try to get them off.')
+
+## Frame-close finding I-1: the detach is spent BEFORE its save (action_system_clear_buff.gd:72),
+## and the engine's per-turn usage reset never reaches a buff's situational gear
+## (unit_action.gd:85-88), so a failed detach used to lock it for the rest of the scene. The card:
+## "by passing an Agility save as a quick action on their turn" - every turn.
+func test_a_failed_detach_can_be_tried_again_on_the_next_turn():
+	await throw_at(victim, FAIL)
+	await open_victims_turn()
+	var offered := detaches_offered(victim)
+	assert_eq(offered.size(), 1, 'LIVENESS: offered.')
+	if offered.is_empty(): return
+	Fixture.queue([FAIL])
+	await SpecFactory.use_specific(game, offered.front())
+	assert_true(is_attached(victim), 'fixture: the detach failed.')
+	assert_eq(detaches_offered(victim).size(), 0, 'Control: a quick action once a turn - not again this turn.')
+	await SpecFactory.end_turn(game, victim)
+	await Fixture.new_round(game)
+	await Fixture.cycle_turn(game, victim)
+	offered = detaches_offered(victim)
+	assert_eq(offered.size(), 1, 'The victim\'s next turn: offered again.')
+	if offered.is_empty(): return
+	Fixture.queue([PASS])
+	await SpecFactory.use_specific(game, offered.front())
+	assert_false(is_attached(victim), 'And it works: detached.')
+
+## With the Koremasa gone the save has no applier, so the archetype falls back to a DC 10 Agility
+## check (action_system_clear_buff.gd:78-82, ruling 25). The Koremasa's save target is raised to 18
+## first, so a 15 passes ONLY through the fallback: against the Koremasa it would fail.
+func test_with_the_koremasa_gone_the_detach_is_a_dc_10_check_passed():
+	FrameIsolation.isolate_frame(koremasa)
+	koremasa.core.frame.stat.save_target = 18
+	await throw_at(victim, FAIL)
+	await SpecFactory.end_turn(game, koremasa)
+	await game.execute_event(&'event_unit_die', {unit = koremasa})
+	await Fixture.cycle_turn(game, victim)
+	var offered := detaches_offered(victim)
+	assert_eq(offered.size(), 1, 'LIVENESS: offered.')
+	if offered.is_empty(): return
+	Fixture.queue([PASS])
+	await SpecFactory.use_specific(game, offered.front())
+	assert_false(is_attached(victim), '15 (less Impaired\'s difficulty) against DC 10: detached.')
+
+func test_with_the_koremasa_gone_the_detach_is_a_dc_10_check_failed():
+	await throw_at(victim, FAIL)
+	await SpecFactory.end_turn(game, koremasa)
+	await game.execute_event(&'event_unit_die', {unit = koremasa})
+	await Fixture.cycle_turn(game, victim)
+	var offered := detaches_offered(victim)
+	assert_eq(offered.size(), 1, 'LIVENESS: offered.')
+	if offered.is_empty(): return
+	Fixture.queue([FAIL])
+	await SpecFactory.use_specific(game, offered.front())
+	assert_true(is_attached(victim), '5 against DC 10: still attached.')
 
 # ---------------------------------------------------------------- the mine (rulings 24, 25)
 

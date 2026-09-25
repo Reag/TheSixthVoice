@@ -196,7 +196,7 @@ static func use_core(game:Gamemaster, unit:Unit, action_id:StringName, targets =
 	await open_turn(game, unit)
 	await SpecFactory.use(game, unit, CORE_ID, action_id, targets, flags)
 
-## The whole stackup, the way spec/test_spike_riding.gd's assert_riding reads it.
+## The whole stackup, the way the spike-7 probe's assert_riding read it (1dce97b).
 static func is_riding(rider:Unit, mount:Unit) -> bool:
 	return (
 		Unit.is_valid(rider) and Unit.is_valid(mount) and

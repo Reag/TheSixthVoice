@@ -3,11 +3,12 @@
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_makibishi_magnets/action_makibishi_detach.tres" id="3_detach"]
-[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/bt_makibishi_magnets.svg" id="4_icon"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_makibishi_magnets.svg" id="4_icon"]
 
 ; The victim's way out, carried by buff_makibishi_attached as situational gear (the Hornet's
 ; bt_lock_hold_javelins_hornet.tres). bt_ lands it in the KITS index, where GearCore.create_from_id
-; finds it.
+; finds it. Wears the MAKIBISHI glyph (one family - throw, mine, attached buff, detach; frame-close
+; M1): the detach inherits it as a KIT row.
 [resource]
 script = ExtResource("2_kit")
 actions = Array[ExtResource("1_action")]([ExtResource("3_detach")])

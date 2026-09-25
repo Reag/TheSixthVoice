@@ -20,6 +20,7 @@
 extends GutTest
 
 const Fixture := preload('res://unpacked/Reag-TheSixthVoice/spec/koremasa_fixture.gd')
+const PromptWatcher := preload('res://testkit/prompt_watcher.gd')
 
 const KOREMASA_TILE := Vector2i(4, 4)
 const ADJACENT := Vector2i(5, 4)
@@ -33,17 +34,21 @@ const TECH_MISS := 1
 const HIT := 15
 
 var game:Gamemaster
+var responder
 var koremasa:Unit
 var hostile:Unit
 
 func before_each() -> void:
-	game = Fixture.create_game(self)
+	var pair:Array = Fixture.create_game_with_prompts(self)
+	game = pair[0]
+	responder = pair[1]
 	koremasa = Fixture.create_koremasa(game, KOREMASA_TILE)
 	hostile = Fixture.create_hostile(game, ADJACENT)
 	Fixture.equip(koremasa, Fixture.MELEE)
 
 func after_each() -> void:
 	Dice.CHEAT_ROLL_QUEUE.clear()
+	responder.yesno_queue.clear()
 
 func invade(target:Unit, d20:int, attacker:Unit = koremasa) -> void:
 	await Fixture.attack(game, attacker, Fixture.TECH, target, d20)
@@ -102,6 +107,39 @@ func test_a_tech_hit_then_a_melee_hit_deals_one_heat():
 	await invade(hostile, TECH_HIT)
 	assert_eq(await swing_delta(hostile), 1, 'Entrap: one heat on top of the swing.')
 	assert_eq(koremasa.core.current.reactions, 0, 'And the reaction point is spent.')
+
+## A REAL REACTION IS A CHOICE (ruling 16, "prompts"): nothing asks on a reaction's behalf
+## (reaction_bus.gd:114-122 only checks eligibility), so the reaction confirms inside its own activate,
+## as Warp Shield and Vanish do. Found by the close review: Entrap spent the point unasked.
+func test_entrap_asks_once_before_it_spends():
+	await invade(hostile, TECH_HIT)
+	var watcher = add_child_autoqfree(PromptWatcher.new())
+	assert_eq(await swing_delta(hostile), 1, 'fixture: accepted, Entrap dealt its heat.')
+	assert_eq(watcher.kinds(PromptWatcher.KIND.yesno).size(), 1, 'Entrap asked exactly once.')
+
+func test_declining_entrap_spends_nothing():
+	await invade(hostile, TECH_HIT)
+	responder.yesno_queue.assign([false])
+	assert_eq(await swing_delta(hostile), 0, 'Declined: no heat.')
+	assert_eq(koremasa.core.current.reactions, koremasa.core.get_reactions_max(), 'The point is untouched.')
+
+func test_a_melee_hit_without_a_tech_hit_asks_nothing():
+	var watcher = add_child_autoqfree(PromptWatcher.new())
+	await swing_delta(hostile)
+	assert_eq(watcher.kinds(PromptWatcher.KIND.yesno).size(), 0, 'No mark, no question.')
+
+## A drone is not a "hostile character" here (ruling 16's actor check), on either half.
+func test_a_tech_hit_on_a_drone_marks_nothing():
+	var drone := Fixture.create_hostile_drone(game, OTHER_ADJACENT)
+	await invade(drone, TECH_HIT)
+	assert_false(Fixture.is_marked(drone), 'The watcher skips a drone.')
+
+func test_a_live_mark_on_a_drone_arms_nothing():
+	var drone := Fixture.create_hostile_drone(game, OTHER_ADJACENT)
+	UnitCondition.apply_buff_id(SpecFactory.dummy_event(), drone, Fixture.ENTRAP_MARK, koremasa.get_gear(Fixture.ENTRAP_ID))
+	assert_true(Fixture.is_marked(drone), 'fixture: a live mark hung on the drone by hand.')
+	assert_eq(await swing_delta(drone), 0, 'The reaction skips a drone too.')
+	assert_eq(koremasa.core.current.reactions, koremasa.core.get_reactions_max(), 'The point is untouched.')
 
 func test_a_melee_hit_without_a_tech_hit_does_nothing():
 	assert_eq(await swing_delta(hostile), 0, 'No tech hit this round, no Entrap.')

@@ -10,6 +10,10 @@
 ## why this file does NOT override it (the Jormungandr's ruling). It resets at the Koremasa's own turn
 ## start (ruling 18).
 ##
+## AND SO A CHOICE: nothing asks on a reaction's behalf (reaction_bus.gd:114-122 only checks it is
+## eligible), so it confirms in activate before spending, as Warp Shield and Vanish do. An AI Koremasa
+## answers through ai_confirms_use. (Close review: it used to spend the point unasked.)
+##
 ## "A MELEE ATTACK" IS A MELEE WEAPON AT THREAT (ruling 14's "attack" half). The .tres filters
 ## weapon_types = [MELEE] and allow_basic = false (no Ram, Grapple or Improvised Attack); this file
 ## adds `threat > 0`, because a THROWN attack is the same weapon with threat 0
@@ -43,6 +47,8 @@ static func has_live_mark(defender:Unit, gear:GearCore, map:MapState) -> bool:
 func activate(context:Context, activation:EventCore) -> void:
 	var defender:Unit = context.event.context.target_unit
 	if activation.abort_without_unit(defender): return
+	var confirmed:bool = await CommonActionUtil.confirm_use(context, [defender] as Array[Unit])
+	if activation.abort_when(not confirmed): return
 	spend_actions(activation)
 	# THE UNIT, NOT A SPECIFIC (action_combust.gd's reasoning).
 	CommonActionUtil.queue_damage_events(

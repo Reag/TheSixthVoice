@@ -134,6 +134,17 @@ func test_a_crit_impairs_as_a_hit_does():
 	await swing(CRIT, FAIL)
 	assert_true(hostile.has_status(Lancer.STATUS.IMPAIRED), 'A crit is a hit: Impaired on a failed save.')
 
+## Ruling 13: Exploit Weakness counts at ATTACK POST, so the Impaired THIS crit's on-hit applied
+## counts (on-hit statuses land inline, event_unit_attack.gd:84-87, before POST reactions queue).
+func test_exploit_weakness_counts_the_impaired_this_crit_applied():
+	await swing(CRIT, FAIL)
+	assert_true(hostile.has_status(Lancer.STATUS.IMPAIRED), 'fixture: impaired by this swing.')
+	assert_eq(Fixture.heat(hostile), 1, 'One condition, and it came from this very attack.')
+
+func test_control_a_passed_save_leaves_exploit_weakness_nothing_to_count():
+	await swing(CRIT, PASS)
+	assert_eq(Fixture.heat(hostile), 0, 'No condition, no heat.')
+
 func test_armor_does_not_reduce_it():
 	hostile.core.frame.stat.armor = 2
 	hostile.core.full_repair()

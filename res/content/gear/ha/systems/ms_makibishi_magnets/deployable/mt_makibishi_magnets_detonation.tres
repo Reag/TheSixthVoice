@@ -7,10 +7,10 @@
 [ext_resource type="Resource" uid="uid://h2r5bsdwnhme" path="res://content/gear/shared/mine/action_mine_arm.tres" id="5_arm"]
 [ext_resource type="Resource" uid="uid://xs6lvqx632yu" path="res://content/gear/shared/mine/action_mine_trigger.tres" id="6_trigger"]
 [ext_resource type="Resource" uid="uid://ci15ddvp3deew" path="res://content/gear/shared/invulnerability/passive_invulnerability.tres" id="7_invulnerable"]
-[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_makibishi_magnets_detonation.svg" id="8_icon"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_makibishi_magnets.svg" id="8_icon"]
 
 ; The mine's trait: mt_mesmer_mine_detonation.tres with our detonation - vanilla's arm and trigger,
-; vanilla's invulnerability.
+; vanilla's invulnerability. Wears the MAKIBISHI glyph (one family; frame-close M1).
 [resource]
 script = ExtResource("2_kit")
 actions = Array[ExtResource("1_action")]([ExtResource("4_detonation"), ExtResource("5_arm"), ExtResource("6_trigger")])

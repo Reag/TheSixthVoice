@@ -8,12 +8,13 @@
 #    For the rest of the scene, when you are adjacent to a larger hostile mech character, you may
 #    begin riding them as a quick action."
 #
-# THE RIDE IS THE ENGINE'S OWN STACKUP (spike 7, spec/test_spike_riding.gd): PassiveAttachment
-# is_stackup on the core Kit, CommonActionUtil.start_riding, and three buffs from the core Kit - the
-# VISIBLE ride chip on the mount (it IS the Impaired, ruling 12), the hidden single-roll reduction
-# beside it, and the hidden crit rule on the rider. This file covers what the probe did (tests a-c,
-# g-j) against the PRODUCTION Kit, plus everything the probe never had: the move, the pick, "ride
-# now", and begin-riding's hibernation. The dismount side (climb-off, buck, what ends a ride) is
+# THE RIDE IS THE ENGINE'S OWN STACKUP (spike 7; its probe spec/test_spike_riding.gd is at 1dce97b,
+# deleted at the frame close): PassiveAttachment is_stackup on the core Kit,
+# CommonActionUtil.start_riding, and three buffs from the core Kit - the VISIBLE ride chip on the
+# mount (it IS the Impaired, ruling 12), the hidden single-roll reduction beside it, and the hidden
+# crit rule on the rider. This file covers what the probe did (tests a-c, g-j; a's engagement, b's
+# Overwatch and c's knockback were ported here at the close) against the PRODUCTION Kit, plus
+# everything the probe never had: the move, the pick, "ride now", and begin-riding's hibernation. The dismount side (climb-off, buck, what ends a ride) is
 # spec/test_koremasa_dismount.gd; Gut Reactor is spec/test_gut_reactor.gd.
 #
 # GEOMETRY. The mount is SIZE 2 anchored at (7,3): it occupies (7,3) (8,3) (7,4) (8,4), and
@@ -272,6 +273,43 @@ func test_the_rider_moves_with_its_mount_even_immobilized_and_slowed():
 	assert_true(Fixture.is_riding(koremasa, mount), 'Still along for the ride.')
 	assert_true(mount.has_status(Lancer.STATUS.IMPAIRED), 'Still impaired.')
 
+## Ruling 4 (the author's "kept"), measured by spike test b and pinned here at the close: the rider's
+## basic Overwatch fires when its mount WALKS (a hostile starting a move inside threat 1), and not
+## when the mount is shoved. The hit is on the mount, so it is a crit rolled once: 1 + 2.
+func test_the_riders_overwatch_fires_when_its_mount_walks():
+	await folly(LANDING)
+	var before := mount.core.current.health
+	Fixture.queue([11, 1, 6])
+	await SpecFactory.move(game, mount, RIDE_TO)
+	assert_true(Fixture.is_riding(koremasa, mount), 'fixture: still riding.')
+	assert_eq(health_lost(mount, before), 1 + 2, 'Overwatch took its shot at the walking mount.')
+
+func test_control_the_riders_overwatch_ignores_a_shove():
+	await folly(LANDING)
+	var before := mount.core.current.health
+	Fixture.queue([11, 1, 6])
+	await SpecFactory.move(game, mount, SHOVE_TO, MovementType.create_for_involuntary(mount))
+	assert_true(Fixture.is_riding(koremasa, mount), 'fixture: still riding.')
+	assert_eq(health_lost(mount, before), 0, 'An involuntary move provokes nothing.')
+
+## Spike tests a and c, the two engine facts SP2 had not re-pinned: rider and mount ENGAGE each other
+## (two hostiles at distance 0; design's Contested seams line), and a rider cannot be knocked off
+## (unit_condition.gd:552).
+func test_rider_and_mount_are_engaged_with_each_other():
+	assert_false(koremasa.has_status(Lancer.STATUS.ENGAGED), 'fixture: four apart, not engaged.')
+	await folly(LANDING)
+	assert_true(koremasa.has_status(Lancer.STATUS.ENGAGED), 'The rider is Engaged with its mount.')
+	assert_true(mount.has_status(Lancer.STATUS.ENGAGED), 'The mount is Engaged with its rider.')
+
+func test_the_rider_cannot_be_knocked_off():
+	var shove := MovementType.create_for_involuntary(koremasa)
+	var by_mount := SpecificAction.create(mount, null, null)
+	assert_false(UnitCondition.is_immune_to_knockback_from(koremasa, by_mount, shove, false), 'fixture: on foot it can be knocked back.')
+	await folly(LANDING)
+	assert_true(UnitCondition.is_immune_to_knockback_from(koremasa, by_mount, shove, false), 'Riding, it is immune to knockback.')
+	await SpecFactory.move(game, koremasa, SHOVE_TO, shove)
+	assert_true(Fixture.is_riding(koremasa, mount), 'A shove aimed at the rider leaves it riding.')
+
 func test_the_rider_cannot_move_by_itself():
 	await folly(LANDING)
 	await Fixture.cycle_turn(game, koremasa)
@@ -297,6 +335,34 @@ func test_a_natural_crit_on_the_mount_is_rolled_once_too():
 	var before := mount.core.current.health
 	await slash(mount, 20, 1, 6)
 	assert_eq(health_lost(mount, before), 1 + 2, '"Resulting damage is not rolled twice" covers every attack on the mount.')
+
+## A MAXIMIZED crit deals get_maximized(), not get_crits() (attack_util.gd:118-121) - Brutal's
+## Predator on a natural 20 (event_unit_attack.gd:72-74), the Naga's BATS. There is no second roll
+## to undo, so the reduction must stand aside (close review): 1d6+2 maximized is 8.
+func test_a_maximized_crit_on_the_mount_deals_the_maximum():
+	await folly(LANDING)
+	UnitCondition.apply_buff_id(SpecFactory.dummy_event(), koremasa, &'buff_predator', Fixture.core(koremasa))
+	var before := mount.core.current.health
+	await slash(mount, 20, 1, 6)
+	assert_eq(health_lost(mount, before), 6 + 2, 'Predator maximizes the natural 20: the blade\'s maximum, nothing taken off.')
+
+## Exposed doubles the incoming number before armor and every reduction (damage_modifications.gd:
+## 55-57, then :62-68), so the reduction doubles with it (buff_lassissian_folly_single_roll.gd). A
+## doubled crit of 8 is 16; less armor 2 and the doubled difference (8 - 3) * 2 is 4 - which is the
+## single roll's (1 + 2) * 2 - 2. Unexercised until the close review (every other mount has armor 0
+## and is not Exposed): drop the doubling and the hit deals 9. An Exposed target also wakes the
+## Koremasa's own Gut Reactor (no AttackRoll, so no reduction): 1d3+1 on the fixture's 3s is 4,
+## doubled 8, less armor 6.
+func test_an_exposed_armored_mount_takes_the_single_roll_doubled_less_armor():
+	mount.core.frame.stat.armor = 2
+	mount.core.full_repair()
+	await folly(LANDING)
+	SpecFactory.apply(mount, Lancer.STATUS.EXPOSED)
+	assert_eq(mount.core.get_armor(), 2, 'fixture: armor 2.')
+	var before := mount.core.current.health
+	await slash(mount, 11, 1, 6)
+	assert_eq(Fixture.gut_reactor_uses(koremasa), 1, 'fixture: Gut Reactor fired on the Exposed mount.')
+	assert_eq(health_lost(mount, before), ((1 + 2) * 2 - 2) + ((3 + 1) * 2 - 2), 'The single roll doubled less armor, plus the Gut Reactor bonus.')
 
 func test_control_the_same_hit_unmounted_is_a_plain_hit():
 	place(koremasa, BESIDE)

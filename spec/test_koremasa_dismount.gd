@@ -229,6 +229,33 @@ func test_the_mount_exiled_ends_the_ride():
 	assert_true(Fixture.ride_buffs_on(koremasa, koremasa).is_empty(), 'Nothing of the ride on the rider.')
 	assert_true(Fixture.ride_buffs_on(mount, koremasa).is_empty(), 'Nothing of the ride on the exiled mount.')
 
+## INVULNERABLE and a DIRECT Intangible detach the stackup ENGINE-side (Katamari.dettach_everything,
+## unit_condition.gd:156-157; handle_intangibilty_changing, :256-273) and raise only a statuses_changed
+## event - no exile or intangible trigger. The Stasis Generator and the Specter's Ghostwalk
+## (action_ghostwalk_specter.gd:7) are the vanilla sources. Found by the close review: the break used
+## to take a status only on the rider and only Stunned, so the ride buffs outlived the ride.
+func test_the_mount_made_invulnerable_ends_the_ride():
+	await ride()
+	await afflict(mount, Lancer.STATUS.INVULNERABLE)
+	assert_true(mount.has_status(Lancer.STATUS.INVULNERABLE), 'fixture: the mount is invulnerable.')
+	assert_dismounted()
+
+func test_the_mount_made_intangible_ends_the_ride():
+	await ride()
+	await afflict(mount, Lancer.STATUS.INTANGIBLE)
+	assert_true(mount.has_status(Lancer.STATUS.INTANGIBLE), 'fixture: the mount is intangible.')
+	assert_dismounted()
+
+func test_the_rider_made_invulnerable_ends_the_ride():
+	await ride()
+	await afflict(koremasa, Lancer.STATUS.INVULNERABLE)
+	assert_dismounted()
+
+func test_the_rider_made_intangible_ends_the_ride():
+	await ride()
+	await afflict(koremasa, Lancer.STATUS.INTANGIBLE)
+	assert_dismounted()
+
 func test_the_break_is_hidden_from_the_card():
 	var kit:Kit = ContentLibrary.get_kit(Fixture.CORE_ID)
 	var action:Action = kit.get_action(Fixture.RIDE_BREAK_ACTION)

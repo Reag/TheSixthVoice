@@ -20,33 +20,64 @@
 ## spaces_moved_this_turn, which resets at EVERY unit's turn start (unit_action.gd:67-72). Only the
 ## current key is kept, so the state never grows.
 ##
+## THE CAP SURVIVES A REPLACEMENT (frame-close finding I-2): a same-source magnet landing mid-turn -
+## the mine's after a throw - clears the old core (unit_condition.gd:741-747) before appending the
+## new one (:757), which would restart the count and let one turn cost 10. The two calls share one
+## EventCore, so on_clear leaves the outgoing core on it as meta and on_application picks it up: the
+## key and count carry over, and so does the detach's GearCore with its usage (one quick action a
+## turn). The meta only bridges that gap; the state itself stays in the serialized BuffCore.
+##
 ## THE DETACH is situational gear the buff carries (the Hornet's javelins,
 ## buff_lock_hold_javelins_hornet.gd): it reaches the victim whatever becomes of the Koremasa, since
-## the magnets outlive it (ruling 25).
+## the magnets outlive it (ruling 25). The engine resets per-turn usage only on a unit's LOADOUT
+## (unit_action.gd:85-88), never on a buff's situational gear, and the archetype spends before its
+## save (action_system_clear_buff.gd:72) - so a failed detach would lock it for the scene (frame-close
+## finding I-1). The buff also triggers on NEW_TURN and clears the detach's usage at the start of
+## the victim's own turn (the Swarm Body's two-trigger shape, buff_swarm_body.gd).
 extends Buff
 
 const DETACH_KIT := &'bt_makibishi_magnets'
 const CAP := 5
 const TURN_KEY := 'reag_makibishi_turn'
 const STEPS_KEY := 'reag_makibishi_steps'
+const OUTGOING_META := &'reag_makibishi_outgoing'
 
 func is_cleared_on_owner_death() -> bool: return false
 
 func on_application(event:EventCore, core:BuffCore, unit:Unit) -> void:
-	core.situational_gear = GearCore.create_from_id(DETACH_KIT)
+	var outgoing:BuffCore = null
+	if event != null and event.has_meta(OUTGOING_META):
+		var left:Dictionary = event.get_meta(OUTGOING_META)
+		event.remove_meta(OUTGOING_META)
+		if left.unit == unit and left.core != core: outgoing = left.core
+	if outgoing == null or not GearCore.is_valid(outgoing.situational_gear):
+		core.situational_gear = GearCore.create_from_id(DETACH_KIT)
+		return
+	core.situational_gear = outgoing.situational_gear
+	core.set_state(TURN_KEY, outgoing.get_state(TURN_KEY, ''))
+	core.set_state(STEPS_KEY, outgoing.get_state(STEPS_KEY, 0))
+
+func on_clear(event:EventCore, core:BuffCore, unit:Unit) -> void:
+	if event != null: event.set_meta(OUTGOING_META, {unit = unit, core = core})
 
 func get_required_triggering_context() -> Array[Context.PROP]:
-	return [Context.PROP.unit, Context.PROP.resource]
+	return [Context.PROP.unit]
 
 func triggers_on_event(core:BuffCore, unit:Unit, triggering_event:EventCore) -> bool:
 	var context := triggering_event.context
 	if context.unit != unit: return false
+	if triggering_event.base.event_type == &'event_turn_start': return true
 	if not MovementType.is_valid(context.resource): return false
 	if not context.resource.voluntary: return false
 	return steps_this_turn(core, unit) < CAP
 
 func activate(core:BuffCore, activation:EventCore) -> void:
 	var context := activation.context
+	if context.event.base.event_type == &'event_turn_start':
+		if GearCore.is_valid(core.situational_gear):
+			core.situational_gear.uses_this_turn.clear()
+			core.situational_gear.uses_this_round.clear()
+		return
 	var victim:Unit = context.event.context.unit
 	if not Unit.is_valid(victim): return
 	var steps := steps_this_turn(core, victim) # read BEFORE the key moves, or a new turn inherits the old count
