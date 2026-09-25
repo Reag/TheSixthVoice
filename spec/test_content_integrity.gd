@@ -975,6 +975,12 @@ const ICON_TARGETS := {
 	# SP1 (Gloire). Extended Zone Control: two hidden range buffs, no action - the wider Ram reticle is
 	# the on-map sign. SP3: icon.
 	&'mt_extended_zone_control': {},
+	# SP1 (Grutte Pier). Panoply Coat: one hidden resistance buff, no action - the halved damage is the
+	# on-map sign. SP3: icon.
+	&'mt_panoply_coat': {},
+	# SP1 (Grutte Pier). Bulwark: one hidden NEW_ROUND reaction (localization_key_override,
+	# action.gd:348), a hidden gate buff and a visible cover chip that wears the trait's glyph. SP3: icon.
+	&'mt_bulwark': {},
 	# SP2 (Gloire). RETALIATION PROTOCOL AMPLIFICATION: two pressables, each its own glyph family (the
 	# icon directive's "a two-part core power is exactly two families"; design section 3). The
 	# collision reaction is hidden (localization_key_override, action.gd:348) and shares RPA
@@ -1238,6 +1244,10 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# "Impaired because the Gloire floored me, until I stand up" (design ruling 4). Its text falls
 	# through to gear.mt_hydraulic_punisher's rows.
 	&'buff_hydraulic_punisher',
+	# SP1 (Grutte Pier). Bulwark's soft cover, hung on each sheltered ALLY: the chip is how a player
+	# reads "covered by the Grutte Pier until its turn" (design ruling 5). Its text falls through to
+	# gear.mt_bulwark's rows.
+	&'buff_bulwark_cover',
 	# SP2 (Gloire). RPA Pullback's variant chip, on the Gloire: the on-map sign the protocol is running
 	# for the rest of the scene (design ruling 11). Its rows are its own (gear.buff_rpa_pullback.*).
 	# The hidden pull carrier beside it is correctly absent from this list.
@@ -1450,6 +1460,10 @@ const BUFFS_THAT_BORROW_A_CARD := {
 	# Kit or its first action it lands on) reads the trait's effect row, which says exactly what the
 	# chip does. Design ruling 4.
 	&'buff_hydraulic_punisher': 'gear.mt_hydraulic_punisher.effect',
+	# SP1 (Grutte Pier). Bulwark's cover chip: the Kit's one action is the hidden round-start reaction
+	# whose localization_key_override points back at the Kit's rows, so the fallback reads the trait's
+	# effect row, which says exactly what the chip does. Design ruling 5.
+	&'buff_bulwark_cover': 'gear.mt_bulwark.effect',
 	&'buff_gravity_well': 'gear.mt_gravity_well.effect',
 	# ADDED AT THE LEOLETH FRAME CLOSE, 2026-09-22, and the Leoleth's own new name guard is what
 	# found it: the 43 As chip is the fourth instance of the trait-chip case directly above, and SP1

@@ -791,3 +791,10 @@ bark.nhp_brigid.brace.2,Try not to take another one of those please.
 bark.nhp_brigid.leader_accuracy.1,Aim true!
 bark.nhp_brigid.leader_damage.1,There we go!
 bark.nhp_brigid.leader_reduce.1,Isn't that better?
+frame.mf_grutte_pier.name,Grutte Pier
+frame.mf_grutte_pier.flavor.short,Slow and Steady
+frame.mf_grutte_pier.flavor,"At first glance the Grutte Pier is IPS-N's idea of irony. Naming a small mech after one of the largest pirates to ever sail the seas, can seem like a joke to those not in on its true meaning. The Grutte Pier is not big in stature, no, but it is big in results. Every ounce of its design is condensed and boiled down to a singular point: Patience. Those infinitesimal seconds before the hail of gunfire, each one drawn out to its fullest potential, a seed of possibility encased within lead and brass. Those quiet moments in the lull of combat, the rhythm and sway of violence drawing ever closer to that inevitable end. It is here and now that the war will be won, inch by inch, mile by mile. You cannot rush perfection. You cannot rush the Grutte Pier."
+gear.mt_panoply_coat.name,Panoply Coat
+gear.mt_panoply_coat.effect,The Grutte Pier has |Resistance| to all damage and heat from attacks that originate from beyond Range 10.
+gear.mt_bulwark.name,Bulwark
+gear.mt_bulwark.effect,"At the start of each round, until the Grutte Pier takes its turn, all allied |characters| within Range 3 have |soft cover|."

@@ -15,6 +15,7 @@ const EXTENDED_RESOURCES:Array[String] = [
 	'res://content/licenses/ha/li_iskander.tres', # Vauban, the Iskander alt, appended to rank 2
 	'res://content/licenses/ipsn/li_nelson.tres', # Shackleton, the Nelson alt, appended to rank 2
 	'res://content/licenses/ipsn/li_tortuga.tres', # Gloire, the Tortuga alt, appended to rank 2
+	'res://content/licenses/ipsn/li_drake.tres', # Grutte Pier, the Drake alt, appended to rank 2
 ]
 
 ## Stamped on each resource INSTANCE we have edited, so a re-activation never edits it twice. On the
