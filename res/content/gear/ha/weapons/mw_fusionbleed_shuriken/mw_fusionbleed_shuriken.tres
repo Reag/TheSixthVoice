@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_fusionbleed_shuriken/action_fusionbleed_shuriken.tres" id="3_throw"]
+
+; THE FUSIONBLEED SHURIKEN, the Koremasa's rank-III Auxiliary Melee weapon (SP5). SP 0, one action, no
+; passives; the secondary is a runtime duplicate of that action, never a second one - see
+; action_fusionbleed_shuriken.gd.
+;
+; NO gear.mw_fusionbleed_shuriken.effect ROW, on purpose: a weapon's card text is its on_hit row
+; (mw_rendwire_sickle.tres records the same).
+;
+; NO icon_override yet: SP6.
+[resource]
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("3_throw")])
+sp_cost = 0
+metadata/_custom_type_script = "uid://ckrv6mvs5q65e"

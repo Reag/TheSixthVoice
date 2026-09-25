@@ -10,6 +10,8 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_phase_cloud/ms_phase_cloud.tres" id="8_phase_cloud"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_rendwire_sickle/mw_rendwire_sickle.tres" id="9_rendwire_sickle"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_blinkblade_slice/ms_blinkblade_slice.tres" id="10_blinkblade_slice"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_fusionbleed_shuriken/mw_fusionbleed_shuriken.tres" id="11_fusionbleed_shuriken"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/wm_juxtaposition_augments/wm_juxtaposition_augments.tres" id="12_juxtaposition_augments"]
 
 ; THE KOREMASA'S OWN LICENCE (design ruling 33): a full licence, not an alt, so a new file beside
 ; li_leoleth.tres rather than an extension of a vanilla one. Gear lands rank by rank as each
@@ -29,6 +31,7 @@ granted_gear = Array[ExtResource("6_kit")]([ExtResource("9_rendwire_sickle"), Ex
 
 [sub_resource type="Resource" id="Resource_rank3"]
 script = ExtResource("2_unlockrank")
+granted_gear = Array[ExtResource("6_kit")]([ExtResource("11_fusionbleed_shuriken"), ExtResource("12_juxtaposition_augments")])
 
 [resource]
 script = ExtResource("1_unlocktree")

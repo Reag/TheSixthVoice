@@ -1066,6 +1066,12 @@ const ICON_TARGETS := {
 	&'mw_rendwire_sickle': {&'action_rendwire_sickle': KIT},
 	# SP4 (Koremasa). BLINKBLADE SLICE: Slash is the Kit's only action, a KIT row.
 	&'ms_blinkblade_slice': {&'action_slash': KIT},
+	# SP5 (Koremasa). FUSIONBLEED SHURIKEN: one Kit, one attack profile (the secondary is a runtime
+	# duplicate of it, never a second action), a KIT row.
+	&'mw_fusionbleed_shuriken': {&'action_fusionbleed_shuriken': KIT},
+	# SP5 (Koremasa). JUXTAPOSITION AUGMENTS: a weapon mod with no actions (the wm_ddmr shape) - only
+	# the Kit's own icon is ever shown, and its chip wears the same glyph at SP6.
+	&'wm_juxtaposition_augments': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1353,6 +1359,10 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# rider are hidden and correctly absent.
 	&'buff_lassissian_folly_ride',
 	&'buff_makibishi_attached',
+	# SP5 (Koremasa). Juxtaposition's reroll chip, on the Koremasa while the modded weapon's first
+	# attack this turn is still to come (ruling 30): the player's reminder that the chance is live.
+	# Its own rows, titled for the mod.
+	&'buff_juxtaposition_augments',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

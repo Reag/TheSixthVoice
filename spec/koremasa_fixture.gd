@@ -266,3 +266,26 @@ const SICKLE_ACTION := &'action_rendwire_sickle'
 ## Limited 3, Unique; SLASH moves 5 in a straight line through characters (ruling 29).
 const BLINKBLADE_ID := &'ms_blinkblade_slice'
 const SLASH_ACTION := &'action_slash'
+
+# ---------------------------------------------------------------- SP5: rank III
+
+## Aux Melee, THROWN 5, HEAT SELF 1, 1 Energy + 1 Heat, Threat 1; on a hit a secondary attack against a
+## different character within range 5 of the target, no extra heat, never chained (ruling 31).
+const SHURIKEN_ID := &'mw_fusionbleed_shuriken'
+const SHURIKEN_ACTION := &'action_fusionbleed_shuriken'
+## The marker the secondary's duplicated action carries in modified_by_variants.
+const SHURIKEN_SECONDARY := &'reag_fusionbleed_secondary'
+## The weapon mod (melee; aux, main, heavy; UNIQUE) and its one-time reroll chip (ruling 30).
+const JUXTAPOSITION_ID := &'wm_juxtaposition_augments'
+const JUXTAPOSITION_BUFF := &'buff_juxtaposition_augments'
+
+## Fit a weapon mod onto an equipped weapon Kit and hand back the mod's GearCore (null if refused).
+## Re-applies passive buffs afterwards, so the mod's chip is on the unit (the DDMR spec's order).
+static func fit_mod(unit:Unit, mod_id:StringName, weapon_id:StringName) -> GearCore:
+	var weapon := unit.get_gear(weapon_id)
+	if not GearCore.is_valid(weapon): return null
+	var mod := unit.core.loadout.equip_weapon_mod(mod_id, weapon)
+	if mod == null: return null
+	SpecFactory.apply_passive_buffs(unit)
+	UnitTile.update_tracking_and_statuses(unit.map)
+	return unit.get_gear(mod_id)

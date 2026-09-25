@@ -235,7 +235,10 @@ func test_the_licence_grants_its_gear_rank_by_rank():
 	for kit:Kit in license.rank_2.granted_gear: rank_2.append(kit.compcon_id)
 	assert_eq(rank_2, [&'mw_rendwire_sickle', &'ms_blinkblade_slice'] as Array[StringName],
 		'Rank 2: Rendwire Sickle and Blinkblade Slice, in sheet order (SP4).')
-	assert_true(license.rank_3.granted_gear.is_empty(), 'Rank 3 grants no gear yet (SP5).')
+	var rank_3:Array[StringName] = []
+	for kit:Kit in license.rank_3.granted_gear: rank_3.append(kit.compcon_id)
+	assert_eq(rank_3, [&'mw_fusionbleed_shuriken', &'wm_juxtaposition_augments'] as Array[StringName],
+		'Rank 3: Fusionbleed shuriken and Juxtaposition Augments, in sheet order (SP5).')
 
 func test_the_licence_names_itself_after_the_frame_and_wears_its_sprite():
 	# UnlockTree.license_name reads rank_2.granted_frames.front() (unlock_tree.gd:28-32): no row of

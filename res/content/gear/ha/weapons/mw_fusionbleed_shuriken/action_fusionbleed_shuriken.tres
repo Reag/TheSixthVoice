@@ -1,0 +1,33 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_fusionbleed_shuriken/action_fusionbleed_shuriken.gd" id="1_attack"]
+[ext_resource type="Script" uid="uid://cs5u2sk1kig6i" path="res://engine/character/gear_action/resources/damage_value.gd" id="2_damagevalue"]
+
+; THE FUSIONBLEED SHURIKEN's attack (Koremasa rank III, design ruling 31): Auxiliary Melee, THROWN 5,
+; HEAT SELF 1, 1 Energy + 1 Heat, Threat 1. weapon_size 0 = AUX, weapon_type 2 = MELEE, damage_type
+; 1 = ENERGY, DamageValue type 3 = HEAT (lancer.gd:104, :107, :110). aim_range 0: a melee weapon
+; attacks at threat, or thrown (the engine's own 'thrown' variant sets threat 0).
+;
+; The extra Heat is additional_damage_values, the Andromeda heavy laser rifle's shape
+; (mw_andromeda_pattern_heavy_laser_rifle.tres:11-24). self_heat_dice "1" is HEAT SELF 1; the
+; secondary never pays it (action_fusionbleed_shuriken.gd).
+;
+; NO icon_override: SP6 gives the Kit its glyph and this action inherits it (a KIT row in
+; test_content_integrity.ICON_TARGETS).
+[sub_resource type="Resource" id="Resource_heat"]
+script = ExtResource("2_damagevalue")
+dice = "1"
+type = 3
+
+[resource]
+script = ExtResource("1_attack")
+damage_type = 1
+damage_dice = "1"
+weapon_size = 0
+weapon_type = 2
+aim_range = 0
+threat = 1
+tags = Array[StringName]([&"thrown"])
+thrown = 5
+additional_damage_values = Array[ExtResource("2_damagevalue")]([SubResource("Resource_heat")])
+self_heat_dice = "1"
