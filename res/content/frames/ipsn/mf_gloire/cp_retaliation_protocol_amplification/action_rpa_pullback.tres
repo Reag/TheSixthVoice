@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="ActionSystemApplyBuff" format=3]
+
+[ext_resource type="Script" uid="uid://cm50wdj5g8syg" path="res://engine/character/gear_action/archtypes/action_system_apply_buff.gd" id="1_applybuff"]
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="2_buff"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/cp_retaliation_protocol_amplification/buff_rpa_pullback.tres" id="3_variant"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/cp_retaliation_protocol_amplification/buff_rpa_pullback_pull.tres" id="4_pull"]
+[ext_resource type="PackedScene" uid="uid://bfq34dqe4ydxy" path="res://content/fx_groups/actions/fxg_super_activation.tscn" id="5_superfx"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_rpa_pullback.svg" id="6_icon"]
+
+; RPA PULLBACK, the Retaliation Protocol Amplification's active - a PROTOCOL that costs the core
+; point and hangs two scene-long buffs on the Gloire (design ruling 10). Agni Protocol's
+; action_agni_protocol.tres line for line, plus the Nelson's core flash. PURE .tres: the archetype
+; applies the buffs and the buffs do the work - buff_rpa_pullback is the variant on every
+; non-Superheavy weapon (ruling 11, VISIBLE: the chip is the sign the protocol is on), and
+; buff_rpa_pullback_pull is the hidden on-hit effect that pulls (ruling 12).
+[resource]
+script = ExtResource("1_applybuff")
+buffs = Array[ExtResource("2_buff")]([ExtResource("3_variant"), ExtResource("4_pull")])
+; Lancer.ACTION.PROTOCOL (lancer.gd:27 - NONE, QUICK, FULL, FREE, PROTOCOL, RXN, so PROTOCOL is 4).
+; unit_action.gd:144 confines it to the turn's protocol window.
+action_type = 4
+; The core point: once a mission (cp_fortress, cp_siege_engine, action_fungal_network.tres).
+consumes_cp = true
+; Self only, range 0, the unit itself the one legal target.
+apply_range = 0
+apply_only_to_self = true
+can_apply_to_self = true
+; ITS OWN GROUP: a protocol and a pressable on one Kit need a usage_group EACH
+; (unit_action.gd:167-168, the Subutai SP2 lesson).
+usage_group = &"rpa_pullback"
+; The core-power activation flash, as cp_fortress and cp_siege_engine use.
+fxg_use = ExtResource("5_superfx")
+emit_text_popcorn_on_use = true
+; SP3: its own glyph family, shared with buff_rpa_pullback's chip and the hidden pull/collide pieces.
+icon_override = ExtResource("6_icon")

@@ -25,6 +25,7 @@ const NagaFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/naga_fixtur
 const PurpleThornFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/purple_thorn_fixture.gd')
 const HazardFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/hazard_fixture.gd')
 const ShackletonFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/shackleton_fixture.gd')
+const GloireFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/gloire_fixture.gd')
 ## Read-only here: the Mark's retort case asserts the dome is untouched between its two halves.
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
 
@@ -1223,3 +1224,43 @@ func test_house_guard_does_not_widen_unfathomable_weights_burst() -> void:
 	assert_eq(near_hostile.tile(), Vector2i(9, 6), 'A hostile inside the burst is pushed - the press ran.')
 	assert_eq(far_hostile.tile(), Vector2i(3, 5), 'RULED: one two tiles out is not.')
 	assert_eq(far_ally.tile(), Vector2i(8, 5), 'Nor the widened ally.')
+
+
+# ===================== GLOIRE (SP1): THE KNOCKBACK-DIRECTION SEAM, OURS =====================
+
+## The one seam the Gloire's design found REACHED is our own: the Shackleton's
+## common_action_util.gd_ext.gd overrides generate_knockback_events for every push on the map, and
+## every push the Gloire inflicts - the Ram's Knockback 1 here, a Panic Breaker under RPA Pullback at
+## SP2 - goes through it. The override acts only when the KNOCKER wears mt_spatial_rerouting, so the
+## Gloire's pushes keep vanilla's away-cone (design, Contested seams). What this pins is that reading:
+## a Gloire Ram from Extended Zone Control's Range 3 offers the cone, never every direction. A later
+## widening of the extender's gate (say, to "any IPS-N frame") turns this red instead of silently
+## handing the Gloire the Shackleton's trait.
+##
+## LIVENESS FIRST, as every pin in this file: the live CommonActionUtil node carries the extension.
+func test_the_gloires_ram_keeps_vanillas_knockback_cone_with_the_rerouting_extender_live() -> void:
+	var script:Script = CommonActionUtil.get_script()
+	var found := false
+	while script != null:
+		if script.source_code.contains('SPATIAL_REROUTING'): found = true
+		script = script.get_base_script()
+	assert_true(found, 'LIVENESS: the CommonActionUtil node carries the Shackleton\'s extension in its chain.')
+	if is_instance_valid(SpecFactory.current_responder):
+		SpecFactory.current_responder.choose_yesnos = false
+		SpecFactory.current_responder.choose_moves = false
+	var made:Array = GloireFixture.create_game(self)
+	var ggame:Gamemaster = made[0]
+	var gwatcher = made[2]
+	# Size 2 at (4,4) covers (4..5, 4..5); the hostile at (8,4) is 3 from the east edge - a Ram only
+	# Extended Zone Control can reach, so the pin is on the Gloire's own reach.
+	var gloire := GloireFixture.create_gloire(ggame, Vector2i(4, 4))
+	var hostile := GloireFixture.create_dummy(ggame, Vector2i(8, 4))
+	var before:int = gwatcher.prompts.size()
+	await GloireFixture.ram(ggame, gloire, hostile)
+	var pools:Array = GloireFixture.offered_pools(gwatcher, before)
+	assert_eq(pools.size(), 1, 'the Ram hit from three away: one knockback reticle was offered.')
+	if pools.size() != 1: return
+	var pool:Array = pools[0]
+	assert_has(pool, Vector2i(9, 4), 'RULED: the push is offered away from the Gloire,')
+	assert_does_not_have(pool, Vector2i(7, 4), 'and never back toward it - vanilla\'s cone, not the Shackleton\'s every-direction offer.')
+	assert_false(GearCore.is_valid(gloire.get_gear(&'mt_spatial_rerouting')), 'fixture: the Gloire does not wear Spatial Rerouting.')

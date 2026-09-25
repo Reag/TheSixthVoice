@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- action_rapid_rushdown : Reag-TheSixthVoice Gloire icon, SP3. A shield braced behind a straight-line dash - the free Ram and the armour it stands on -->
+<path d="M2,14 L14,14 L14,34 L8,46 L2,34 Z"/>
+<path d="M14,26 L34,26 L34,14 L56,32 L34,50 L34,38 L14,38 Z"/>
+</svg>

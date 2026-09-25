@@ -1,0 +1,38 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/armor/buff_armor_reduction.gd" id="1_reduction"]
+
+[resource]
+script = ExtResource("1_reduction")
+; RAPID RUSHDOWN: "Until the start of your next turn, you gain +1 Armor" - the MITIGATING half, and
+; the half nobody can see (design ruling 9). Its sibling buff_rapid_rushdown_armor.tres wears the
+; chip. Read buff_armor_reduction.gd's header for the whole account: why there are two files, why a
+; STATBLOCK buff reduces nothing, why the AP guard is there, why damage_types is spelled out instead
+; of resist_everything, and the four accepted divergences from real armor. None of that is repeated
+; here; only what is specific to this user is.
+to = &"resist_damage"
+; REDUCE, not resist and not cap: a flat subtraction, which is what armor is.
+reduce_instead_of_resist = true
+; Rolled through Dice.roll_string (buff_resist_damage.gd:73), so a literal is a constant 1.
+reduction_amount = "1"
+; KINETIC, ENERGY, EXPLOSIVE (lancer.gd:110) - the three armor reduces - and deliberately NOT heat or
+; burn. Spelled out rather than resist_everything, which excludes HEAT but NOT burn.
+damage_types = Array[int]([0, 1, 2])
+; Real armor covers self-inflicted non-AP damage, so a Gloire standing in its own area damage is
+; covered as armor would cover it.
+resist_self_inflicted = true
+; Invisible on purpose: the STATBLOCK half already wears the chip, and two chips for one effect would
+; read as two effects. test_content_integrity.gd's VISIBLE_BUFFS therefore must NOT list this file.
+hide_from_player = true
+; START_OF_TURN (3), matching buff_rapid_rushdown_armor.tres exactly - the Gloire's own next turn
+; start. See that file's note on why the two must never disagree.
+;
+; is_onetime IS DELIBERATELY ABSENT and its false default is load-bearing - setting it true would
+; turn 1 armor into a single-use shield. buff_armor_reduction.gd's header has the mechanism.
+until = 3
+; WHAT THE BATTLE LOG CALLS THIS (buff_armor_reduction.gd, divergence 4): a blunted hit logs the
+; reducing buff's NAME. This buff has no row of its own, so Translate.buff falls through to
+; gear.<kit_id>.<SOLO ACTION>.* - get_solo_action() is kit.actions[0] (gear_core.gd:337-339), and
+; this Kit's actions are [rushdown, pullback, collide], so the log says "Rapid Rushdown": the right
+; card, by the ORDER of the Kit's actions. Cosmetic, and pinned by
+; test_rapid_rushdown.gd's log-name test so a reorder cannot change it unnoticed.

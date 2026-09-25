@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.13.0'
+const EXPECTED_VERSION := '0.14.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -969,6 +969,18 @@ const ICON_TARGETS := {
 	# SP2 (Shackleton). The crater's zone trait, on the MARKER dep_shackleton_crater - the mt_maar_terrain
 	# shape. It shares Calamitous Impact's family at SP3.
 	&'mt_shackleton_crater': {},
+	# SP1 (Gloire). Hydraulic Punisher: one hidden reaction (localization_key_override, action.gd:348)
+	# and a visible buff that wears the trait's glyph; the Kit is its only pressable surface. SP3: icon.
+	&'mt_hydraulic_punisher': {},
+	# SP1 (Gloire). Extended Zone Control: two hidden range buffs, no action - the wider Ram reticle is
+	# the on-map sign. SP3: icon.
+	&'mt_extended_zone_control': {},
+	# SP2 (Gloire). RETALIATION PROTOCOL AMPLIFICATION: two pressables, each its own glyph family (the
+	# icon directive's "a two-part core power is exactly two families"; design section 3). The
+	# collision reaction is hidden (localization_key_override, action.gd:348) and shares RPA
+	# Pullback's family at SP3, as do the two hidden pull pieces. Rapid Rushdown's armour chip wears
+	# Rapid Rushdown's.
+	&'cp_retaliation_protocol_amplification': {&'action_rapid_rushdown': &'action_rapid_rushdown', &'action_rpa_pullback': &'action_rpa_pullback'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1222,6 +1234,18 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# SP1 (Shackleton). Weak Computer's permanent chip, buff_weak_computer's reasoning: the drawback is
 	# legible on the token. Its text falls through to gear.mt_shackleton_weak_computer's rows.
 	&'buff_shackleton_weak_computer',
+	# SP1 (Gloire). Hydraulic Punisher's Impaired, hung on the TARGET: the chip is how a player reads
+	# "Impaired because the Gloire floored me, until I stand up" (design ruling 4). Its text falls
+	# through to gear.mt_hydraulic_punisher's rows.
+	&'buff_hydraulic_punisher',
+	# SP2 (Gloire). RPA Pullback's variant chip, on the Gloire: the on-map sign the protocol is running
+	# for the rest of the scene (design ruling 11). Its rows are its own (gear.buff_rpa_pullback.*).
+	# The hidden pull carrier beside it is correctly absent from this list.
+	&'buff_rpa_pullback',
+	# SP2 (Gloire). Rapid Rushdown's +1 armour, the DISPLAY half of the mod's armour pair (design
+	# ruling 9): the chip is how the player reads "braced until my next turn". Its own rows. The
+	# reduction half is hidden and correctly absent.
+	&'buff_rapid_rushdown_armor',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -1421,6 +1445,11 @@ const BUFFS_THAT_BORROW_A_CARD := {
 	&'buff_weak_computer': 'gear.mt_weak_computer.effect',
 	# SP1 (Shackleton). The Shackleton's own Weak Computer copy (design ruling 2), the same case.
 	&'buff_shackleton_weak_computer': 'gear.mt_shackleton_weak_computer.effect',
+	# SP1 (Gloire). Hydraulic Punisher's Impaired: the Kit's one action is the hidden reaction whose
+	# localization_key_override points back at the Kit's own rows, so the fallback (whichever of the
+	# Kit or its first action it lands on) reads the trait's effect row, which says exactly what the
+	# chip does. Design ruling 4.
+	&'buff_hydraulic_punisher': 'gear.mt_hydraulic_punisher.effect',
 	&'buff_gravity_well': 'gear.mt_gravity_well.effect',
 	# ADDED AT THE LEOLETH FRAME CLOSE, 2026-09-22, and the Leoleth's own new name guard is what
 	# found it: the 43 As chip is the fourth instance of the trait-chip case directly above, and SP1

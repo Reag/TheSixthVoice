@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- mt_hydraulic_punisher : Reag-TheSixthVoice Gloire icon, SP3. A piston driving down onto a plate, impact below - the Gloire grinding a floored foe -->
+<path d="M18,6 L46,6 L40,18 L37,18 L37,40 L27,40 L27,18 L24,18 Z"/>
+<path d="M12,40 L52,40 L52,48 L12,48 Z"/>
+<path d="M14,50 L32,58 L50,50 L50,54 L32,62 L14,54 Z"/>
+</svg>

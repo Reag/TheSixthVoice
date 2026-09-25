@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="Frame" format=3]
+
+[ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="1_frame"]
+[ext_resource type="Script" uid="uid://bxpc46igtsmvw" path="res://engine/character/unit/statblock.gd" id="2_statblock"]
+[ext_resource type="Script" uid="uid://dch85ypcupfgo" path="res://engine/character/unit_core/color_scheme.gd" id="3_colorscheme"]
+[ext_resource type="Script" uid="uid://djuk56crywqss" path="res://engine/character/unit_core/mount_type.gd" id="4_mounttype"]
+[ext_resource type="Resource" uid="uid://dvhgasnfwqbym" path="res://content/mounts/mount_main.tres" id="5_mountmain"]
+[ext_resource type="Resource" uid="uid://dj0bl2ve85q5o" path="res://content/mounts/mount_heavy.tres" id="6_mountheavy"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="7_kit"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ipsn/mf_gloire/mf_gloire.png" id="8_sprite"]
+; GUARDIAN IS VANILLA'S (design ruling 2): the same shared resource mf_tortuga.tres wires in. No
+; file of ours, no localization row.
+[ext_resource type="Resource" uid="uid://cnx62bb0ihjrr" path="res://content/frames/shared/mt_guardian/mt_guardian.tres" id="9_guardian"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/mt_hydraulic_punisher/mt_hydraulic_punisher.tres" id="10_punisher"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/mt_extended_zone_control/mt_extended_zone_control.tres" id="11_zonecontrol"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_gloire/cp_retaliation_protocol_amplification/cp_retaliation_protocol_amplification.tres" id="12_core"]
+
+; DERIVED FROM THE SPRITE ART (the Vauban's SP5 ruling, re-run as the Shackleton's was). Measured
+; 2026-09-24 with the shader-literal test palette_swap_func.gdshaderinc uses (pixel == (v,0,0)/
+; (0,v,0)/(0,0,v)/(0,v,v)): mf_gloire.png (160x160, 12,814 opaque pixels) has 52 channel-encoded
+; pixels (0.4%) - anti-aliasing noise, not encoding - so this scheme is INERT on this sprite like the
+; Shackleton's, Naga's, Vauban's, Sluagh's and Primrose's. The art is anti-aliased steel in one hue
+; (3,369 distinct colours; the top single colour is 135px of 12,814), so an exact census fragments;
+; base_0..2 are the centroids of a 3-means over the 11,458 pixels brighter than the outline (max
+; channel >= 30): the dark slate plate (50,56,59 - 5,870px), the mid steel (87,97,101 - 3,808px) and
+; the light steel highlight (125,140,145 - 1,780px), most-used first per the Iskander's slot
+; convention.
+[sub_resource type="Resource" id="Resource_colorscheme"]
+script = ExtResource("3_colorscheme")
+base_0 = Color(0.1960784, 0.2196078, 0.2313725, 1)
+base_1 = Color(0.3411765, 0.3803922, 0.3960784, 1)
+base_2 = Color(0.4901961, 0.5490196, 0.5686275, 1)
+
+[sub_resource type="Resource" id="Resource_statblock"]
+script = ExtResource("2_statblock")
+size = 2
+structure = 4
+stress = 4
+health = 8
+armor = 2
+evasion = 6
+edef = 7
+speed = 3
+heat = 5
+save_target = 10
+sensor_range = 8
+tech_attack = -1
+repairs = 6
+systems_points = 6
+reactions = 1
+activations = 1
+
+; SHEET ORDER: Guardian, Hydraulic Punisher, Extended Zone Control, then the core system (SP2).
+; Design ruling 14 enumerates the same four; the sheet fixes the order, as every frame
+; here (mf_shackleton.tres) follows it.
+[resource]
+script = ExtResource("1_frame")
+default_color_scheme = SubResource("Resource_colorscheme")
+sprites = Array[Texture2D]([ExtResource("8_sprite")])
+traits = Array[ExtResource("7_kit")]([ExtResource("9_guardian"), ExtResource("10_punisher"), ExtResource("11_zonecontrol"), ExtResource("12_core")])
+mount_types = Array[ExtResource("4_mounttype")]([ExtResource("5_mountmain"), ExtResource("5_mountmain"), ExtResource("6_mountheavy")])
+stat = SubResource("Resource_statblock")
+role_primary = 1
+role_secondary = 2
