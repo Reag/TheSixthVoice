@@ -92,14 +92,24 @@ func test_the_variant_appears_on_every_non_superheavy_weapon_and_nowhere_else() 
 
 # ---------------------------------------------------------------- the pull
 
-func test_a_line_5_hit_pulls_the_target_adjacent_by_the_straight_route() -> void:
+## THE PULL ENDS INTO THE GLOIRE (the author, 2026-09-25, reversing ruling 13's "arriving is not
+## hitting"): a hostile pulled all the way collides with the Gloire itself and makes the Hull save.
+func test_a_line_5_hit_pulls_the_target_into_the_gloire_by_the_straight_route() -> void:
 	await arm(Fixture.RIFLE)
 	var target := Fixture.create_dummy(game, FAR)
 	var health:int = target.core.current.health
 	await Fixture.fire_pulled(game, gloire, target, Fixture.RIFLE)
 	assert_lt(target.core.current.health, health, 'fixture: the line hit it (a Range-10 rifle fired as a line 5 reaches (10,4)).')
-	assert_eq(target.tile(), ADJACENT, 'RULED: pulled straight west along the row until adjacent.')
-	assert_false(target.has_status(Lancer.STATUS.PRONE), 'nothing was hit on the way: no save, no Prone.')
+	assert_eq(target.tile(), ADJACENT, 'RULED: pulled straight west along the row, stopped against the Gloire.')
+	assert_true(target.has_status(Lancer.STATUS.PRONE), 'RULED (author): it hit the Gloire - a Hull save, failed: Prone.')
+	assert_true(Fixture.is_punished(target), 'and the Prone is the Gloire\'s, so Hydraulic Punisher fires.')
+
+func test_a_target_that_passes_the_save_against_the_gloire_is_not_prone() -> void:
+	await arm(Fixture.RIFLE)
+	var target := Fixture.create_dummy(game, FAR)
+	await Fixture.fire_pulled(game, gloire, target, Fixture.RIFLE, [HIT], PASS)
+	assert_eq(target.tile(), ADJACENT)
+	assert_false(target.has_status(Lancer.STATUS.PRONE), 'passed: not Prone.')
 
 func test_a_pike_hit_pushes_then_pulls_and_the_target_ends_adjacent() -> void:
 	# The War Pike's own Knockback 1 resolves FIRST (the author's ruling 12): the push is queued by
@@ -110,8 +120,8 @@ func test_a_pike_hit_pushes_then_pulls_and_the_target_ends_adjacent() -> void:
 	var from:int = watcher.prompts.size()
 	await Fixture.fire_pulled(game, gloire, target, Fixture.PIKE)
 	assert_eq(Fixture.offered_pools(watcher, from).size(), 1, 'the pike\'s knockback reticle was offered (the push happened).')
-	assert_eq(target.tile(), ADJACENT, 'RULED: pushed, then pulled back adjacent.')
-	assert_false(target.has_status(Lancer.STATUS.PRONE), 'no collision.')
+	assert_eq(target.tile(), ADJACENT, 'RULED: pushed, then pulled back into the Gloire.')
+	assert_true(target.has_status(Lancer.STATUS.PRONE), 'the pull ends in the Gloire: a save, failed.')
 
 func test_a_target_pulled_into_a_third_unit_saves_and_a_failure_is_prone_plus_impaired() -> void:
 	await arm(Fixture.RIFLE)
@@ -134,16 +144,15 @@ func test_a_passed_save_is_neither() -> void:
 	assert_false(target.has_status(Lancer.STATUS.PRONE), 'passed: not Prone,')
 	assert_false(is_impaired(target), 'not Impaired.')
 
-## The pull stops one short of the footprint (onhit_rpa_pullback.gd's header: without the cap a
-## flier flew onto the Gloire and bounced to (5,3)). A target already adjacent is not moved at all
-## and never saves - arriving is not hitting (ruling 13).
-func test_an_adjacent_target_is_not_moved_and_does_not_save() -> void:
+## A target ALREADY adjacent is pulled one space into the Gloire and collides at once (the author,
+## 2026-09-25: "it saves too" - the pull is one space into the Gloire for everyone).
+func test_an_adjacent_target_collides_with_the_gloire_at_once_and_saves() -> void:
 	await arm(Fixture.RIFLE)
 	var target := Fixture.create_dummy(game, ADJACENT)
 	var from:int = watcher.prompts.size()
 	await Fixture.fire_pulled(game, gloire, target, Fixture.RIFLE, [HIT], FAIL)
-	assert_eq(target.tile(), ADJACENT, 'unmoved.')
-	assert_false(target.has_status(Lancer.STATUS.PRONE), 'RULED: no save for standing where the pull ends.')
+	assert_eq(target.tile(), ADJACENT, 'it cannot move into the Gloire: it stays put,')
+	assert_true(target.has_status(Lancer.STATUS.PRONE), 'RULED (author): and saves for hitting it - failed, Prone.')
 	assert_eq(Fixture.offered_pools(watcher, from).size(), 0, 'and no reticle of any kind.')
 
 func test_a_knockback_immune_target_is_not_pulled() -> void:
@@ -163,8 +172,9 @@ func test_a_flying_target_is_landed_when_the_gloire_is_not_flying() -> void:
 	var health:int = target.core.current.health
 	await Fixture.fire_pulled(game, gloire, target, Fixture.RIFLE)
 	assert_lt(target.core.current.health, health, 'fixture: the line hit the flier.')
-	assert_eq(target.tile(), ADJACENT, 'pulled adjacent,')
-	assert_false(target.has_status(Lancer.STATUS.FLYING), 'RULED: and landed (force_to_land, the Omni Harpoon\'s reading).')
+	assert_eq(target.tile(), ADJACENT, 'pulled into the Gloire and stopped against it, not across its footprint,')
+	assert_false(target.has_status(Lancer.STATUS.FLYING), 'RULED: landed (force_to_land, the Omni Harpoon\'s reading) -')
+	assert_true(target.has_status(Lancer.STATUS.PRONE), 'BEFORE the pull, so it hits the grounded Gloire and saves (failed).')
 
 func test_a_pulled_ally_saves_too() -> void:
 	# The Gloire's own line catches an ally; "a character" saves whatever its side. The friendly-fire
@@ -177,6 +187,16 @@ func test_a_pulled_ally_saves_too() -> void:
 	assert_true(ally.has_status(Lancer.STATUS.PRONE), 'RULED: an ally saves too, and this one failed.')
 	assert_false(Fixture.is_punished(ally), 'but Hydraulic Punisher wants a HOSTILE: no Impaired.')
 
+## An ALLY is not pulled into the Gloire: the engine lets a unit forced by an ally pass through that
+## ally's allies (event_unit_move.gd:428-429), so the step would carry it INTO the footprint. It stops
+## adjacent, as before, and saves only for something else in the way.
+func test_an_ally_pulled_all_the_way_stops_adjacent_and_does_not_save() -> void:
+	await arm(Fixture.RIFLE)
+	var ally := Fixture.create_dummy(game, FAR, -10, Faction.PLAYER)
+	await Fixture.fire_pulled(game, gloire, ally, Fixture.RIFLE, [HIT], FAIL)
+	assert_eq(ally.tile(), ADJACENT, 'pulled adjacent, not into the footprint.')
+	assert_false(ally.has_status(Lancer.STATUS.PRONE), 'no save against its own side\'s Gloire.')
+
 ## SP2's measurement, pinned (2026-09-24): the pulls run at on_resolution, AFTER every roll and the
 ## damage, closest first - see onhit_rpa_pullback.gd's header for why a pull queued at on_hit
 ## beside the weapon's push cannot work, and why the effect sorts (the line rolled the far, picked
@@ -187,11 +207,12 @@ func test_two_targets_on_one_line_are_pulled_after_every_roll_closest_first() ->
 	var near := Fixture.create_dummy(game, BLOCKER_TILE)
 	var far := Fixture.create_dummy(game, FAR)
 	await Fixture.fire_pulled(game, gloire, far, Fixture.RIFLE, [HIT, HIT], FAIL)
-	assert_eq(near.tile(), ADJACENT, 'the near target settled adjacent first,')
+	assert_eq(near.tile(), ADJACENT, 'the near target was pulled into the Gloire first,')
+	assert_true(near.has_status(Lancer.STATUS.PRONE), 'and saved against it (failed): Prone,')
+	assert_true(Fixture.is_punished(near), 'Hydraulic Punisher took the round on it -')
 	assert_eq(far.tile(), BLOCKER_TILE, 'the far one was dragged up behind it and stopped,')
-	assert_true(far.has_status(Lancer.STATUS.PRONE), 'saved against the collision and failed: Prone.')
-	assert_false(near.has_status(Lancer.STATUS.PRONE), 'the one it hit is not.')
-	assert_true(Fixture.is_punished(far), 'Hydraulic Punisher took the round on it.')
+	assert_true(far.has_status(Lancer.STATUS.PRONE), 'saved against the collision and failed: Prone,')
+	assert_false(Fixture.is_punished(far), 'but the Punisher is once a round.')
 
 # ---------------------------------------------------------------- close review, 2026-09-25
 
@@ -221,10 +242,12 @@ func test_the_weapons_own_knockback_into_a_wall_forces_no_save() -> void:
 	Fixture.build_wall_at(game, SHORT.x, GLOIRE_TILE) # every tile east of it: the push can only collide
 	responder.move_tile_queue.assign([SHORT])
 	var from:int = watcher.prompts.size()
-	await Fixture.fire_pulled(game, gloire, target, Fixture.PIKE, [HIT], FAIL)
+	# One save only, the pull's into the Gloire: it takes the PASS (after the two damage dice, hit and crit). Had the push saved too, the push
+	# would have taken the PASS and the pull the FAIL behind it.
+	await Fixture.fire_pulled(game, gloire, target, Fixture.PIKE, [HIT, 3, 3, PASS], FAIL)
 	assert_eq(Fixture.offered_pools(watcher, from).size(), 1, 'fixture: the pike\'s knockback reticle was offered.')
-	assert_eq(target.tile(), ADJACENT, 'the push hit the wall, then the pull brought it in.')
-	assert_false(target.has_status(Lancer.STATUS.PRONE), 'the push is the weapon\'s Knockback, not "this movement": no save.')
+	assert_eq(target.tile(), ADJACENT, 'the push hit the wall, then the pull brought it into the Gloire.')
+	assert_false(target.has_status(Lancer.STATUS.PRONE), 'the push is the weapon\'s Knockback, not "this movement": its only save was the pull\'s, passed.')
 
 ## The protocol makes the line an OPTION ("may be fired as if"): the same rifle fired normally is an
 ## ordinary shot, and nothing is pulled.
