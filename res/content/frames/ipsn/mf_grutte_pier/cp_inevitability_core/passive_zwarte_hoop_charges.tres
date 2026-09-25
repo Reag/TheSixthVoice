@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="PassiveDieCounter" format=3]
+
+[ext_resource type="Script" path="res://engine/character/gear_passive/passive_die_counter.gd" id="1_counter"]
+
+; ZWARTE HOOP's charges (design ruling 6). passives[0] of cp_inevitability_core, which the gear bar's
+; badge needs (linked_gear_bar_button.gd:49-56). max_value 99 is "unbounded": only the GAIN from
+; hostile activations is capped at 5 (ruling 11), and under Patience the bank passes it.
+[resource]
+script = ExtResource("1_counter")
+key = "charges"
+starting_value = 0
+max_value = 99
+min_value = 0
+resets_on_repair = true
+resets_on_spawn = true
+log_changes = true
+show_in_tooltips = true

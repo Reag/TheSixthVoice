@@ -1,0 +1,8 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/onhit_zwarte_hoop.gd" id="1_onhit"]
+
+[resource]
+script = ExtResource("1_onhit")
+; OnHitEffect.STAGE.ON_HIT
+apply_on = 1

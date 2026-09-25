@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+
+; BULWARK's window (design ruling 4): the Pier carries this from NEW_ROUND POST until ITS OWN turn
+; starts. until = START_OF_TURN (3) is cleared on the HOLDER at its turn start (unit_condition.gd:23),
+; and the holder is the Pier. NO `to`: it exists to be READ, by passive_bulwark_cover_aura's
+; requires_buff (passive_aura.gd:40). Applying or clearing it re-runs every aura, because its source
+; gear (mt_bulwark) holds a PassiveAura (unit_condition.gd:765-768, :987-989) - so the cover switches
+; on at round start and off at the Pier's turn start in the same event. Hidden: the cover chip on the
+; sheltered allies is the on-map sign.
+[resource]
+script = ExtResource("1_buff")
+until = 3
+hide_from_player = true

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_patience_in_all_things.svg" id="2_icon"]
+
+; PATIENCE IN ALL THINGS' chip on the Pier, for the rest of the scene (design ruling 14). A plain Buff
+; with no `to`: it DOES nothing itself. It is the key three things read by id - passive_patience_aura's
+; requires_buff, action_patience_charge's +3, and action_zwarte_hoop_lapse's "no longer lose charges".
+; VISIBLE: the one sign on the board that the protocol is on. SP3: wears the protocol's own glyph.
+[resource]
+script = ExtResource("1_buff")
+; Lancer.UNTIL.MANUAL: the only scene-long lifetime.
+until = 0
+localization_key_override = "cp_inevitability_core.action_patience_in_all_things"
+icon = ExtResource("2_icon")

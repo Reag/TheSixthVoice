@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- mt_bulwark : Reag-TheSixthVoice Grutte Pier icon, SP3 (shared with the cover chip). A crenellated rampart - the Pier standing between its allies and the enemy's line of fire -->
+<path d="M10,30 L54,30 L54,56 L10,56 Z"/>
+<path d="M10,18 L20,18 L20,30 L10,30 Z M27,18 L37,18 L37,30 L27,30 Z M44,18 L54,18 L54,30 L44,30 Z"/>
+</svg>

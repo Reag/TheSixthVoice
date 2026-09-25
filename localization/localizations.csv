@@ -791,3 +791,40 @@ bark.nhp_brigid.brace.2,Try not to take another one of those please.
 bark.nhp_brigid.leader_accuracy.1,Aim true!
 bark.nhp_brigid.leader_damage.1,There we go!
 bark.nhp_brigid.leader_reduce.1,Isn't that better?
+frame.mf_grutte_pier.name,Grutte Pier
+frame.mf_grutte_pier.flavor.short,Slow and Steady
+frame.mf_grutte_pier.flavor,"At first glance the Grutte Pier is IPS-N's idea of irony. Naming a small mech after one of the largest pirates to ever sail the seas, can seem like a joke to those not in on its true meaning. The Grutte Pier is not big in stature, no, but it is big in results. Every ounce of its design is condensed and boiled down to a singular point: Patience. Those infinitesimal seconds before the hail of gunfire, each one drawn out to its fullest potential, a seed of possibility encased within lead and brass. Those quiet moments in the lull of combat, the rhythm and sway of violence drawing ever closer to that inevitable end. It is here and now that the war will be won, inch by inch, mile by mile. You cannot rush perfection. You cannot rush the Grutte Pier."
+gear.mt_panoply_coat.name,Panoply Coat
+gear.mt_panoply_coat.effect,The Grutte Pier has |Resistance| to all damage and heat from attacks that originate from beyond Range 10.
+gear.mt_bulwark.name,Bulwark
+gear.mt_bulwark.effect,"At the start of each round, until the Grutte Pier takes its turn, all allied |characters| within Range 3 have |soft cover|."
+gear.cp_inevitability_core.name,Inevitability Core
+gear.cp_inevitability_core.flavor,"The Inevitability Core is the basis on which the entirety of the Grutte Pier operates. Upon its activation it records all ongoing stimuli for a short period, after which, it tailors its next actions to perfectly suit the situation at hand."
+gear.cp_inevitability_core.charges,Charges
+gear.cp_inevitability_core.action_zwarte_hoop_spend.name,Zwarte Hoop
+gear.cp_inevitability_core.action_zwarte_hoop_spend.effect,"At the start of your turn, this system gains charges equal to the number of hostile activations that have already happened that round, to a maximum of 5. On your first attack roll each round, you may expend any number of charges. For each charge expended choose one of the following options:
+- Gain +1 |Reliable| for the attack.
+- Gain +1 range on the attack.
+- Gain +1 |KNOCKBACK| on the attack.
+- Gain +1 to the attack roll.
+- Increase your |Overshield| by +1 on hit.
+- Clear +1 |heat| on hit.
+You may choose the same option up to twice, and you lose all charges at the end of your turn."
+gear.cp_inevitability_core.action_patience_in_all_things.name,Patience in All Things
+gear.cp_inevitability_core.action_patience_in_all_things.effect,"For the rest of the scene you gain the following effects: At the start of your turn, Zwarte Hoop gains 3 additional charges, and you no longer lose charges at the end of your turn. 1/round, when a hostile character in |Line of Sight| has rolled an attack roll, you may spend any number of charges to reduce the number rolled by that much."
+gear.cp_inevitability_core.patience.prompt,{unit} rolled {total} against {target}. Spend Zwarte Hoop charges to reduce it?
+gear.cp_inevitability_core.patience.spend,"Spend {n}: {total}, {result}"
+gear.cp_inevitability_core.patience.decline,Don't spend
+gear.cp_inevitability_core.zwarte_hoop.prompt,{charges} charges left. Spend one on:
+gear.cp_inevitability_core.zwarte_hoop.option.reliable,+1 Reliable ({count}/2)
+gear.cp_inevitability_core.zwarte_hoop.option.knockback,+1 Knockback ({count}/2)
+gear.cp_inevitability_core.zwarte_hoop.option.attack_roll,+1 to the attack roll ({count}/2)
+gear.cp_inevitability_core.zwarte_hoop.option.overshield,+1 Overshield on hit ({count}/2)
+gear.cp_inevitability_core.zwarte_hoop.option.heat,Clear +1 heat on hit ({count}/2)
+gear.cp_inevitability_core.zwarte_hoop.done,Done
+gear.cp_inevitability_core.zwarte_hoop.twice,Already chosen twice
+gear.cp_inevitability_core.zwarte_hoop.not_weapon,Not a weapon
+gear.cp_inevitability_core.zwarte_hoop.range.name,Zwarte Hoop
+gear.cp_inevitability_core.zwarte_hoop.range.effect,Gain +1 range on the attack.
+gear.cp_inevitability_core.zwarte_hoop.range.option_1,+1 range (1 charge)
+gear.cp_inevitability_core.zwarte_hoop.range.option_2,+2 range (2 charges)

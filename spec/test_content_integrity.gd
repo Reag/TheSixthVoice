@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.14.0'
+const EXPECTED_VERSION := '0.15.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -306,6 +306,39 @@ const SHACKLETON_LOCALIZATION_ROWS:Array[String] = [
 
 func test_the_shackletons_unguarded_rows_resolve():
 	for key:String in SHACKLETON_LOCALIZATION_ROWS:
+		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+
+## The Inevitability Core's rows (Grutte Pier close review). The loop, the +Range row and Patience's
+## prompt are answered BY INDEX in every spec, so a stale artifact would draw raw keys on every menu
+## and leave the suite green; nothing else reads these off the compiled translation.
+const GRUTTE_PIER_LOCALIZATION_ROWS:Array[String] = [
+	'gear.cp_inevitability_core.name',
+	'gear.cp_inevitability_core.flavor',
+	'gear.cp_inevitability_core.charges',
+	'gear.cp_inevitability_core.action_zwarte_hoop_spend.name',
+	'gear.cp_inevitability_core.action_zwarte_hoop_spend.effect',
+	'gear.cp_inevitability_core.action_patience_in_all_things.name',
+	'gear.cp_inevitability_core.action_patience_in_all_things.effect',
+	'gear.cp_inevitability_core.patience.prompt',
+	'gear.cp_inevitability_core.patience.spend',
+	'gear.cp_inevitability_core.patience.decline',
+	'gear.cp_inevitability_core.zwarte_hoop.prompt',
+	'gear.cp_inevitability_core.zwarte_hoop.option.reliable',
+	'gear.cp_inevitability_core.zwarte_hoop.option.knockback',
+	'gear.cp_inevitability_core.zwarte_hoop.option.attack_roll',
+	'gear.cp_inevitability_core.zwarte_hoop.option.overshield',
+	'gear.cp_inevitability_core.zwarte_hoop.option.heat',
+	'gear.cp_inevitability_core.zwarte_hoop.done',
+	'gear.cp_inevitability_core.zwarte_hoop.twice',
+	'gear.cp_inevitability_core.zwarte_hoop.not_weapon',
+	'gear.cp_inevitability_core.zwarte_hoop.range.name',
+	'gear.cp_inevitability_core.zwarte_hoop.range.effect',
+	'gear.cp_inevitability_core.zwarte_hoop.range.option_1',
+	'gear.cp_inevitability_core.zwarte_hoop.range.option_2',
+]
+
+func test_the_grutte_piers_core_rows_resolve():
+	for key:String in GRUTTE_PIER_LOCALIZATION_ROWS:
 		assert_ne(tr(key), key, '%s resolves to real text.' % key)
 
 ## The Rend Axe's three rows (SP2 Task 1, Primrose). Unlike the three lists above, these ARE also
@@ -975,12 +1008,23 @@ const ICON_TARGETS := {
 	# SP1 (Gloire). Extended Zone Control: two hidden range buffs, no action - the wider Ram reticle is
 	# the on-map sign. SP3: icon.
 	&'mt_extended_zone_control': {},
+	# SP1 (Grutte Pier). Panoply Coat: one hidden resistance buff, no action - the halved damage is the
+	# on-map sign. SP3: icon.
+	&'mt_panoply_coat': {},
+	# SP1 (Grutte Pier). Bulwark: one hidden NEW_ROUND reaction (localization_key_override,
+	# action.gd:348), a hidden gate buff and a visible cover chip that wears the trait's glyph. SP3: icon.
+	&'mt_bulwark': {},
 	# SP2 (Gloire). RETALIATION PROTOCOL AMPLIFICATION: two pressables, each its own glyph family (the
 	# icon directive's "a two-part core power is exactly two families"; design section 3). The
 	# collision reaction is hidden (localization_key_override, action.gd:348) and shares RPA
 	# Pullback's family at SP3, as do the two hidden pull pieces. Rapid Rushdown's armour chip wears
 	# Rapid Rushdown's.
 	&'cp_retaliation_protocol_amplification': {&'action_rapid_rushdown': &'action_rapid_rushdown', &'action_rpa_pullback': &'action_rpa_pullback'},
+	# SP2 (Grutte Pier). THE INEVITABILITY CORE: exactly two families (design section 3). ZWARTE HOOP
+	# reaches the card through its spend reaction (show_in_tooltip forced true, the Supporting Fire
+	# shape) and also owns the counter badge and the +Range variant row; PATIENCE IN ALL THINGS is the
+	# protocol, and its chip wears its glyph. Every other action on the Kit is a hidden reaction. SP3: icons.
+	&'cp_inevitability_core': {&'action_zwarte_hoop_spend': &'action_zwarte_hoop_spend', &'action_patience_in_all_things': &'action_patience_in_all_things'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1238,6 +1282,10 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# "Impaired because the Gloire floored me, until I stand up" (design ruling 4). Its text falls
 	# through to gear.mt_hydraulic_punisher's rows.
 	&'buff_hydraulic_punisher',
+	# SP1 (Grutte Pier). Bulwark's soft cover, hung on each sheltered ALLY: the chip is how a player
+	# reads "covered by the Grutte Pier until its turn" (design ruling 5). Its text falls through to
+	# gear.mt_bulwark's rows.
+	&'buff_bulwark_cover',
 	# SP2 (Gloire). RPA Pullback's variant chip, on the Gloire: the on-map sign the protocol is running
 	# for the rest of the scene (design ruling 11). Its rows are its own (gear.buff_rpa_pullback.*).
 	# The hidden pull carrier beside it is correctly absent from this list.
@@ -1246,6 +1294,10 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# ruling 9): the chip is how the player reads "braced until my next turn". Its own rows. The
 	# reduction half is hidden and correctly absent.
 	&'buff_rapid_rushdown_armor',
+	# SP2 (Grutte Pier). Patience in All Things' chip, on the Pier for the rest of the scene (design
+	# ruling 14): the one on-board sign the protocol is on. Its rows are the protocol's
+	# (localization_key_override). The reduction it arms on every hostile is hidden (ruling 19).
+	&'buff_patience_in_all_things',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -1450,6 +1502,10 @@ const BUFFS_THAT_BORROW_A_CARD := {
 	# Kit or its first action it lands on) reads the trait's effect row, which says exactly what the
 	# chip does. Design ruling 4.
 	&'buff_hydraulic_punisher': 'gear.mt_hydraulic_punisher.effect',
+	# SP1 (Grutte Pier). Bulwark's cover chip: the Kit's one action is the hidden round-start reaction
+	# whose localization_key_override points back at the Kit's rows, so the fallback reads the trait's
+	# effect row, which says exactly what the chip does. Design ruling 5.
+	&'buff_bulwark_cover': 'gear.mt_bulwark.effect',
 	&'buff_gravity_well': 'gear.mt_gravity_well.effect',
 	# ADDED AT THE LEOLETH FRAME CLOSE, 2026-09-22, and the Leoleth's own new name guard is what
 	# found it: the 43 As chip is the fourth instance of the trait-chip case directly above, and SP1

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="2_passive"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="3_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/mt_bulwark/action_bulwark.tres" id="4_reaction"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/mt_bulwark/passive_bulwark_cover_aura.tres" id="5_aura"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_bulwark.svg" id="6_icon"]
+
+; BULWARK (design rulings 4-5): a hidden NEW_ROUND reaction hangs buff_bulwark_gate on the Pier until
+; its turn starts, and the aura gives every allied character within Range 3 soft cover while the gate
+; is up. No pressable: the Kit's player-facing surfaces are its card and the cover chip. SP3: one
+; glyph family, shared with buff_bulwark_cover.
+[resource]
+script = ExtResource("3_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("4_reaction")])
+passives = Array[ExtResource("2_passive")]([ExtResource("5_aura")])
+is_trait = true
+icon_override = ExtResource("6_icon")

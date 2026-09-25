@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="PassiveAura" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Script" uid="uid://dw0igjjw1k5s3" path="res://engine/character/gear_passive/passive_aura.gd" id="2_aura"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/mt_bulwark/buff_bulwark_cover.tres" id="3_cover"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/mt_bulwark/buff_bulwark_gate.tres" id="4_gate"]
+
+; BULWARK's reach (design ruling 5). NOT passive_bulwark_aura.tres, the name the design gave it: the
+; Leoleth's Hydraulic Excess already owns that basename (mf_leoleth/cp_hydraulic_excess/). Balor's
+; passive_hive_frenzy_cover_aura.tres shape: gated on the Pier carrying buff_bulwark_gate.
+; "allied characters within Range 3": not the Pier itself (it is not its own ally), not hostiles,
+; characters only (drones included - the engine's "character", unit.gd:116). Range is
+; distance_between (closest pair, max of horizontal and vertical), never is_adjacent.
+[resource]
+script = ExtResource("2_aura")
+buffs = Array[ExtResource("1_buff")]([ExtResource("3_cover")])
+aura_range = 3
+applies_to_self = false
+applies_to_enemies = false
+requires_buff = ExtResource("4_gate")

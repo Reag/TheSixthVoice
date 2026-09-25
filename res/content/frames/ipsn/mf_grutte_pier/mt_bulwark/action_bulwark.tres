@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ActionReactionApplyBuff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Script" uid="uid://cq0fuxx7pf0su" path="res://engine/character/gear_action/archtypes/action_reaction_apply_buff.gd" id="2_script"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/mt_bulwark/buff_bulwark_gate.tres" id="3_gate"]
+
+; BULWARK's round-start trigger (design ruling 4): the Bastion's action_deathcounter_bastion_reapply.tres
+; line for line. new_round at POST (the default timing) fires before the round's first activation
+; (event_round_new.gd:77, :84). triggers_when_holder_is = ANY (2), apply_to_unit = HOLDER (3): the
+; round event carries no unit, and the gate goes on the Pier itself.
+[resource]
+script = ExtResource("2_script")
+buffs = Array[ExtResource("1_buff")]([ExtResource("3_gate")])
+triggers_when_holder_is = 2
+apply_to_unit = 3
+triggers_on = Array[StringName]([&"new_round"])
+; Not a reaction point, and no per-round limit beyond the one round event.
+consumes_rxn = false
+usage_group = &"bulwark"
+suppress_logging = true
+; The Kit card does not list this reaction: a non-empty override makes Action.show_in_tooltip answer
+; false (action.gd:348), and Translate.action reads the Kit's own rows (translate.gd:23-24).
+localization_key_override = "mt_bulwark"

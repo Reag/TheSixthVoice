@@ -1,0 +1,16 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/mt_panoply_coat/action_panoply_coat_origin.gd" id="1_action"]
+
+; PANOPLY COAT: records where each attack at the Pier was made from, at ATTACK PRE (trigger_timing 0),
+; before its own Knockback can move the Pier (close review; the script header). Hidden plumbing: no
+; reaction point, never logged, and not on the card - a non-empty override makes
+; Action.show_in_tooltip answer false (action.gd:348) and points its rows at the Kit's own.
+[resource]
+script = ExtResource("1_action")
+triggers_on = Array[StringName]([&"attack"])
+trigger_timing = 0
+consumes_rxn = false
+suppress_logging = true
+usage_group = &"action_panoply_coat_origin"
+localization_key_override = "mt_panoply_coat"

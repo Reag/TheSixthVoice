@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="ActionSystemApplyBuff" format=3]
+
+[ext_resource type="Script" uid="uid://cm50wdj5g8syg" path="res://engine/character/gear_action/archtypes/action_system_apply_buff.gd" id="1_applybuff"]
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="2_buff"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/buff_patience_in_all_things.tres" id="3_patience"]
+[ext_resource type="PackedScene" uid="uid://bfq34dqe4ydxy" path="res://content/fx_groups/actions/fxg_super_activation.tscn" id="4_superfx"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_patience_in_all_things.svg" id="5_icon"]
+
+; PATIENCE IN ALL THINGS, the Inevitability Core's active - a PROTOCOL that costs the core point and
+; hangs one scene-long chip on the Pier (design ruling 14). Agni Protocol's shape, and the Leoleth's
+; RAGE line for line: the chip does nothing itself, three things read it by id (its own note).
+; SP3: its own glyph family, shared with the chip (buff_patience_in_all_things).
+[resource]
+script = ExtResource("1_applybuff")
+buffs = Array[ExtResource("2_buff")]([ExtResource("3_patience")])
+; Lancer.ACTION.PROTOCOL; unit_action.gd:144 confines it to the turn's protocol window.
+action_type = 4
+consumes_cp = true
+apply_range = 0
+apply_only_to_self = true
+can_apply_to_self = true
+can_reapply = false
+; ITS OWN GROUP: a protocol and any other pressable on one Kit need a usage_group EACH.
+usage_group = &"patience_in_all_things"
+fxg_use = ExtResource("4_superfx")
+emit_text_popcorn_on_use = true
+; RULING 15: the pressing turn's +3. A protocol arrives after that turn's new_turn reactions already
+; ran, so the chip's +3 would otherwise start next turn. It kickstarts the +3 ONLY - kickstarting
+; action_zwarte_hoop_gain would add min(5, tally) a second time.
+kickstart_sibling_action = &"action_patience_charge"
+icon_override = ExtResource("5_icon")

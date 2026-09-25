@@ -1,0 +1,20 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/buff_patience_reduce.gd" id="1_reduce"]
+
+; PATIENCE IN ALL THINGS' reduction, hung on every hostile character by passive_patience_aura while
+; the Pier holds buff_patience_in_all_things (design rulings 16-17). The script's confirm_modification
+; is the whole mechanic; its header says why the buff sits on the hostile and not on the Pier.
+[resource]
+script = ExtResource("1_reduce")
+; EventUnitAttack.SEQUENCE_STEP.turn_hit_to_miss (event_unit_attack.gd:132-139).
+step = 4
+; APPLIES_WHEN.attacker: asked only about attacks its HOLDER, the hostile, makes.
+applies_when_holder_is = 0
+needs_confirmation = true
+; Never consumed: is_onetime stays false, and CAN_BANK keeps an unconfirmed ask from queueing it.
+can_bank = true
+to = &"modify_attack_roll"
+; HIDDEN (ruling 19): a chip on every enemy would be noise. The Pier's own chip is the sign.
+hide_from_player = true
+localization_key_override = "cp_inevitability_core.action_patience_in_all_things"

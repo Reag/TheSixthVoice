@@ -26,6 +26,8 @@ const PurpleThornFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/purp
 const HazardFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/hazard_fixture.gd')
 const ShackletonFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/shackleton_fixture.gd')
 const GloireFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/gloire_fixture.gd')
+const GruttePierFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/grutte_pier_fixture.gd')
+const PatienceReduce := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/buff_patience_reduce.gd')
 ## Read-only here: the Mark's retort case asserts the dome is untouched between its two halves.
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
 
@@ -1264,3 +1266,68 @@ func test_the_gloires_ram_keeps_vanillas_knockback_cone_with_the_rerouting_exten
 	assert_has(pool, Vector2i(9, 4), 'RULED: the push is offered away from the Gloire,')
 	assert_does_not_have(pool, Vector2i(7, 4), 'and never back toward it - vanilla\'s cone, not the Shackleton\'s every-direction offer.')
 	assert_false(GearCore.is_valid(gloire.get_gear(&'mt_spatial_rerouting')), 'fixture: the Gloire does not wear Spatial Rerouting.')
+
+
+# ===================== THE GRUTTE PIER (SP2) - attack-roll modification, Reliable =====================
+
+## House Guard's Shield of the Legion (talents mod, rank 3) reads "anything modifying the total" as
+## total - (base + accuracy + flat) (action_shield_of_the_legion_miss.gd:83). Patience in All Things
+## lowers the total AND the d20 together (buff_patience_reduce.lower), so that difference - and with it
+## House Guard's would-have-hit arithmetic - is unchanged by a spend. RULED: composes.
+##
+## Two halves: the talents mod still computes other_bonus that way (reddened by a talents update that
+## changes the formula), and our lowering leaves it where it was (reddened by lowering one without the
+## other).
+const HOUSE_GUARD_MISS_PATH := 'res://unpacked/gavstarb-talents_1st_party/res/content/talents/support/t_house_guard/rank_3/action_shield_of_the_legion_miss.gd'
+const HOUSE_GUARD_OTHER_BONUS := 'attack_roll.total_roll - (attack_roll.base_roll + attack_roll.accuracy_roll + attack_roll.pre.flat_bonus)'
+
+func test_patience_leaves_house_guards_other_bonus_where_it_was() -> void:
+	if not ResourceLoader.exists(HOUSE_GUARD_MISS_PATH):
+		fail_test('%s is resident and must be loaded - restore it with restore-links.ps1.' % TALENTS_MOD)
+		return
+	var source:String = load(HOUSE_GUARD_MISS_PATH).source_code
+	assert_string_contains(source, HOUSE_GUARD_OTHER_BONUS, 'House Guard still reads a modified total this way.')
+	var roll := AttackRoll.create(myconid, AttackRoll.PreAttack.new())
+	roll.base_roll = 11
+	roll.accuracy_roll = 1
+	roll.pre.flat_bonus = 2
+	roll.total_roll = 16 # 2 more than base + accuracy + flat: something else already modified it
+	var other_bonus := roll.total_roll - (roll.base_roll + roll.accuracy_roll + roll.pre.flat_bonus)
+	PatienceReduce.lower(roll, 3)
+	assert_eq(roll.total_roll, 13, 'fixture: the number rolled is 3 lower.')
+	assert_eq(roll.total_roll - (roll.base_roll + roll.accuracy_roll + roll.pre.flat_bonus), other_bonus,
+		'RULED: House Guard sees the same other_bonus after a Patience spend.')
+
+## Zwarte Hoop's +Reliable goes through native_reliable.raise, the same carrier as Weight of Fire, so
+## it and the Clark's Redundant Scattering Module (resident since 2026-09-24) add and both come off
+## the shared rifle export - test_native_reliable.gd pins the carrier's two orders; this pins that the
+## Grutte Pier's loop really uses it. RULED: composes.
+const CLARK_ID := 'fateofman-ipsn_clark'
+const CLARK_MOD := &'wm_redundant_scattering_module'
+
+func test_zwarte_hoops_reliable_and_the_clarks_module_add_and_both_come_off() -> void:
+	if ContentLibrary.get_kit(CLARK_MOD) == null:
+		fail_test('%s is resident and must be loaded - restore it with restore-links.ps1.' % CLARK_ID)
+		return
+	# before_each's stock responder would answer the loop's prompts AND the variant request a second
+	# time ("Attempted to execute an event that is already in progress"); it has no switch for the
+	# latter, so it goes, and the Grutte Pier game's own queue-driven responder answers alone.
+	if is_instance_valid(SpecFactory.current_responder):
+		SpecFactory.current_responder.queue_free()
+		await get_tree().process_frame
+	var made:Array = GruttePierFixture.create_game_with_prompts(self)
+	var pgame:Gamemaster = made[0]
+	var responder = made[1]
+	var pier := GruttePierFixture.create_pier(pgame, Vector2i(2, 5))
+	var target := GruttePierFixture.create_dummy(pgame, Vector2i(5, 5), 30) # every roll misses
+	GruttePierFixture.equip(pier, GruttePierFixture.RIFLE)
+	assert_not_null(pier.core.loadout.equip_weapon_mod(CLARK_MOD, pier.get_gear(GruttePierFixture.RIFLE)), 'fixture: the Clark module fits the rifle.')
+	SpecFactory.apply_passive_buffs(pier)
+	await GruttePierFixture.open_turn(pgame, pier)
+	GruttePierFixture.set_charges(pier, 2)
+	responder.multiple_choice_queue.assign([0, 0]) # +1 Reliable, twice
+	var before := target.core.current.health
+	await GruttePierFixture.attack(pgame, pier, target, GruttePierFixture.RIFLE, [2])
+	assert_eq(before - target.core.current.health, 5, 'A miss: 2 printed + 2 Zwarte Hoop + 1 (the Clark, one damage die).')
+	var action:ActionAttackWeapon = ContentLibrary.get_kit(GruttePierFixture.RIFLE).actions[0]
+	assert_eq(action.reliable_damage, '2', 'The shared rifle reads its printed Reliable 2 afterwards.')
