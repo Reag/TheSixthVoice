@@ -1062,6 +1062,10 @@ const ICON_TARGETS := {
 	# SP3 (Koremasa). Vanish's smoke zone, on the MARKER dep_phase_cloud_smoke - the mt_maar_terrain
 	# shape. Shares Vanish's family at SP6.
 	&'mt_phase_cloud_smoke': {},
+	# SP4 (Koremasa). RENDWIRE SICKLE: one Kit, one swing, a KIT row (the Thunder Sword's shape).
+	&'mw_rendwire_sickle': {&'action_rendwire_sickle': KIT},
+	# SP4 (Koremasa). BLINKBLADE SLICE: Slash is the Kit's only action, a KIT row.
+	&'ms_blinkblade_slice': {&'action_slash': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

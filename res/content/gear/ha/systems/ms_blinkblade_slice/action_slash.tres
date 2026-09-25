@@ -1,0 +1,28 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_blinkblade_slice/action_slash.gd" id="1_movement"]
+[ext_resource type="Script" uid="uid://udxarj3kb6nm" path="res://engine/character/unit/movement_type.gd" id="2_movetype"]
+
+; SLASH (Blinkblade Slice, Koremasa rank II, design ruling 29). Full Speed Ahead's MovementType
+; (action_full_speed_ahead.tres) with flying dropped and the terrain clauses added:
+;   straight_line, can_move_through_enemies  - "in a straight line ... passing through characters"
+;   ignore_rxns, ignore_engagement           - "ignoring reactions and engagement"
+;   ignore_difficult, ignore_dangerous       - "ignoring terrain penalties" (dangerous: author)
+;   ignore_fall_damage                       - no fall damage mid-line (author, at spec review);
+;                                              action_slash.gd re-asserts it after the merge.
+; movement_range_fixed 5: "up to five spaces", not the Koremasa's Speed. action_type 1 = QUICK.
+[sub_resource type="Resource" id="Resource_slash"]
+script = ExtResource("2_movetype")
+ignore_rxns = true
+ignore_engagement = true
+ignore_dangerous = true
+ignore_difficult = true
+straight_line = true
+can_move_through_enemies = true
+ignore_fall_damage = true
+
+[resource]
+script = ExtResource("1_movement")
+action_type = 1
+movement_range_fixed = 5
+movement_type = SubResource("Resource_slash")

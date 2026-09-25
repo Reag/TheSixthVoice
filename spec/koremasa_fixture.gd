@@ -257,3 +257,12 @@ static func units_of_frame(game:Gamemaster, frame_id:StringName) -> Array[Unit]:
 static func charges(unit:Unit, kit_id:StringName) -> int:
 	var gear := unit.get_gear(kit_id)
 	return gear.charges_current if GearCore.is_valid(gear) else -1
+
+# ---------------------------------------------------------------- SP4: rank II
+
+## Main Melee, 1d3+1 Energy, Threat 3, OVERKILL, AP; on hit a Hull save or Impaired (ruling 32).
+const SICKLE_ID := &'mw_rendwire_sickle'
+const SICKLE_ACTION := &'action_rendwire_sickle'
+## Limited 3, Unique; SLASH moves 5 in a straight line through characters (ruling 29).
+const BLINKBLADE_ID := &'ms_blinkblade_slice'
+const SLASH_ACTION := &'action_slash'

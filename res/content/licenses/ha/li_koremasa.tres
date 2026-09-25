@@ -8,6 +8,8 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="6_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_makibishi_magnets/ms_makibishi_magnets.tres" id="7_makibishi"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_phase_cloud/ms_phase_cloud.tres" id="8_phase_cloud"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/weapons/mw_rendwire_sickle/mw_rendwire_sickle.tres" id="9_rendwire_sickle"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_blinkblade_slice/ms_blinkblade_slice.tres" id="10_blinkblade_slice"]
 
 ; THE KOREMASA'S OWN LICENCE (design ruling 33): a full licence, not an alt, so a new file beside
 ; li_leoleth.tres rather than an extension of a vanilla one. Gear lands rank by rank as each
@@ -23,6 +25,7 @@ granted_gear = Array[ExtResource("6_kit")]([ExtResource("7_makibishi"), ExtResou
 [sub_resource type="Resource" id="Resource_rank2"]
 script = ExtResource("2_unlockrank")
 granted_frames = Array[ExtResource("3_frame")]([ExtResource("4_mf_koremasa")])
+granted_gear = Array[ExtResource("6_kit")]([ExtResource("9_rendwire_sickle"), ExtResource("10_blinkblade_slice")])
 
 [sub_resource type="Resource" id="Resource_rank3"]
 script = ExtResource("2_unlockrank")

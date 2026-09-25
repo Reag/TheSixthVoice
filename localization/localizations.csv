@@ -871,3 +871,10 @@ gear.ms_phase_cloud.action_vanish.trigger,You take damage from a hostile |charac
 gear.ms_phase_cloud.action_vanish.effect,"Expend a charge, a Blast one area centered on you is engulfed in smoke. All objects and characters within benefit from |soft cover| until the end of your next turn, at which point the smoke vanishes. You may |teleport| to a free space within range 5."
 frame.dep_phase_cloud_smoke.name,Phase Cloud
 gear.mt_phase_cloud_smoke.name,Phase Cloud
+gear.mw_rendwire_sickle.name,Rendwire Sickle
+gear.mw_rendwire_sickle.flavor,"A combined weapon, integrating a filament chain with a charged bladed edge, the Rendwire Sickle allows users to directly lacerate targets, and tangle their limbs simultaneously."
+gear.mw_rendwire_sickle.on_hit,Targets must succeed on a |Hull save| or become |Impaired| until the end of their next turn.
+gear.ms_blinkblade_slice.name,Blinkblade Slice
+gear.ms_blinkblade_slice.flavor,"A short blade with integrated blinkspace technology, it allows the user to rapidly dash forward while moving through enemy combatants. It has the added benefit that while channeled into the user, the blade switches into realspace while moving with its wielder. While technically a fully viable sword independent of these blink capabilities, its propensity to destabilize on repeated impacts has lead to the Blinkblade being relegated to an auxiliary option in place of more reliable mainline alternatives."
+gear.ms_blinkblade_slice.action_slash.name,Slash
+gear.ms_blinkblade_slice.action_slash.effect,"Expend a charge and move up to five spaces in a straight line, ignoring terrain penalties, passing through |characters|, and ignoring |reactions| and |engagement|. Any hostile |character| you moved through must make a |Hull Save| or take 3 |Kinetic| damage and become |Locked On|."

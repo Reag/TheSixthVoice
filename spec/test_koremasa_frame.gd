@@ -231,7 +231,10 @@ func test_the_licence_grants_its_gear_rank_by_rank():
 	for kit:Kit in license.rank_1.granted_gear: rank_1.append(kit.compcon_id)
 	assert_eq(rank_1, [&'ms_makibishi_magnets', &'ms_phase_cloud'] as Array[StringName],
 		'Rank 1: Makibishi Magnets and Phase Cloud, in sheet order (SP3).')
-	assert_true(license.rank_2.granted_gear.is_empty(), 'Rank 2 grants no gear yet (SP4).')
+	var rank_2:Array[StringName] = []
+	for kit:Kit in license.rank_2.granted_gear: rank_2.append(kit.compcon_id)
+	assert_eq(rank_2, [&'mw_rendwire_sickle', &'ms_blinkblade_slice'] as Array[StringName],
+		'Rank 2: Rendwire Sickle and Blinkblade Slice, in sheet order (SP4).')
 	assert_true(license.rank_3.granted_gear.is_empty(), 'Rank 3 grants no gear yet (SP5).')
 
 func test_the_licence_names_itself_after_the_frame_and_wears_its_sprite():
