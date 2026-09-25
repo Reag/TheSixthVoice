@@ -20,14 +20,22 @@
 ## was the design's open question; the answer is AFTER, by construction. A target the attack killed
 ## is simply not in get_all_hit_units.
 ##
-## THE PULL STOPS ONE SHORT OF THE GLOIRE (ruling 13's "arriving is not hitting", made geometric).
-## Measured 2026-09-24: with max_pull_distance left at 99, generate_pull_events plans the full
-## closest-pair distance, whose LAST step is one of the Gloire's own tiles. A grounded target is
-## blocked there (a collision the reaction below refuses to act on), but a FLYING target is not -
-## create_for_involuntary keeps its flying, and MovementType.moves_through_enemies lets it cross the
-## footprint - so it flew onto (5,4), was landed there, and was bounced off the Gloire to (5,3). The
-## cap is closest-pair distance minus one: a target at distance 1 is already adjacent and is not
-## moved at all, everyone else ends on the near side of the footprint.
+## THE PULL ENDS INTO THE GLOIRE (the author, 2026-09-25, reversing ruling 13's "arriving is not
+## hitting"): a hostile pulled all the way HITS the Gloire - "another mech" - and makes the Hull save.
+## So the pull is planned for the full closest-pair distance, whose LAST step is one of the Gloire's own
+## tiles; the step is refused as a collision (is_next_step_blocked, event_unit_move.gd:419-432) and
+## the reaction answers it like any other. A target ALREADY adjacent is pulled that one step and
+## collides at once (the author: "it saves too").
+##
+## ONLY WHERE THE ENGINE WILL CALL IT A COLLISION. is_next_step_blocked counts a body only when both
+## are flying or both are not (:424), and lets a unit forced by an ally pass through that ally's allies
+## (:428-429). So:
+## - a hostile FLIER is landed BEFORE the pull when the Gloire is not flying (it used to land after, which
+##   let it fly across the footprint - measured 2026-09-24, it crossed onto (5,4) and was bounced to
+##   (5,3)); landed, it is a grounded body and hits the grounded Gloire;
+## - an ALLY, or a flight mismatch that landing did not settle (a flying Gloire and a grounded target,
+##   or a flier with no ms_land), keeps the old cap - closest-pair distance minus one - and stops on the
+##   near side of the footprint with no save against the Gloire.
 ##
 ## THE FOUR FLAGS (memory lancer-tactics-movement-terrain-collisions): create_for_involuntary sets
 ## none of them. straight_line + must_move_max_possible are what is_next_step_blocked calls a
@@ -81,15 +89,22 @@ func on_resolution(activation:EventCore) -> void:
 		if UnitCondition.is_immune_to_knockback_from(target, specific, movement_type, true): continue
 		# Re-measured per target: an earlier pull may have moved a body into the way, and the target
 		# itself may have been pushed since it was hit.
+		if not gloire.has_status(Lancer.STATUS.FLYING) and UnitRelation.are_enemies(gloire, target): # land first (the header)
+			var land_event := CommonActionUtil.force_landing(target)
+			if land_event != null:
+				await activation.execute_events([land_event])
+				if activation.abort_without_units([gloire, target]): return
+				movement_type = movement_type_for(target)
 		var distance:int = Tile.get_closest_pair_between(target.occupied_tiles(), gloire.occupied_tiles()).distance
-		if distance <= 1: continue # already adjacent: nothing to pull
+		var pull:int = distance if collides_with_the_gloire(gloire, target) else distance - 1
+		if pull <= 0: continue # an ally already adjacent: nothing to pull
 		var events := await CommonActionUtil.generate_pull_events(
 			target,
 			gloire.occupied_tiles(),
 			specific,
 			movement_type,
-			not gloire.has_status(Lancer.STATUS.FLYING),
-			distance - 1,
+			not gloire.has_status(Lancer.STATUS.FLYING), # an ally still lands AFTER, as before
+			pull,
 			[EventUnitMove.FLAG.SKIP_CAMERA_FOCUS],
 		)
 		if activation.abort_without_unit(gloire): return
@@ -98,6 +113,12 @@ func on_resolution(activation:EventCore) -> void:
 			if event.context.resource is MovementType: event.context.resource.cannot_move_uphill = true
 		await activation.execute_events(events)
 		if activation.abort_without_unit(gloire): return
+
+## Would the pull's last step into the Gloire be a COLLISION? The two conditions of
+## is_next_step_blocked's body test (event_unit_move.gd:424, :428-429) that can fail here: the same
+## flight state, and not an ally of the Gloire (which pulls it through its own side).
+static func collides_with_the_gloire(gloire:Unit, target:Unit) -> bool:
+	return UnitRelation.are_enemies(gloire, target) and gloire.state.is_flying() == target.state.is_flying()
 
 ## Closest to the Gloire's footprint first, ties in the roll's own order (sort_custom is not stable,
 ## so the tie-break is the index). The Shackleton's farthest_first, inverted.

@@ -10,10 +10,10 @@
 ##
 ## WHAT COUNTS AS AN OBSTRUCTION IS WHAT THE ENGINE CALLS A COLLISION (Shackleton ruling 10): an
 ## obstruction tile, a step uphill, or an obstructing unit (event_unit_move.gd is_next_step_blocked
-## is the only place event_unit_collide is fired from). THE MAP EDGE IS NOT ONE. And THE GLOIRE'S
-## OWN TILES ARE NOT ONE EITHER: arriving is not "hitting another mech", so a collision whose tile
-## is under the Gloire is a non-event here - whatever the pull helper does about the last step, the
-## pulled unit never saves for reaching its destination.
+## is the only place event_unit_collide is fired from). THE MAP EDGE IS NOT ONE. THE GLOIRE ITSELF
+## IS ONE (the author, 2026-09-25, reversing ruling 13's "arriving is not hitting"): the pull is
+## planned one step into the Gloire's footprint, so a hostile pulled all the way hits it and saves -
+## see onhit_rpa_pullback.gd's header for who can and cannot collide with it.
 ##
 ## THE PRONE'S SOURCE IS THIS KIT (action.gd:378-379 uses the activation's gear), so Hydraulic
 ## Punisher's get_origin_unit_for_source resolves the Gloire as the knocker and, once a round, adds
@@ -49,8 +49,6 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if not Action.is_valid(source.action) or not source.action.modified_by_variants.has(VARIANT_KEY): return false
 	var movement_type = movement_context.resource
 	if not (movement_type is MovementType) or not movement_type.other_tags.has(PULL_TAG): return false # "this movement": the pull, not the weapon's own push
-	# arriving is not hitting: a collision with one of the Gloire's own tiles is a non-event
-	if collision_context.target_tiles.any(func(tile:Vector2i) -> bool: return unit.occupied_tiles().has(tile)): return false
 	return true
 
 func activate(context:Context, activation:EventCore) -> void:
