@@ -193,6 +193,51 @@ func test_two_targets_on_one_line_are_pulled_after_every_roll_closest_first() ->
 	assert_false(near.has_status(Lancer.STATUS.PRONE), 'the one it hit is not.')
 	assert_true(Fixture.is_punished(far), 'Hydraulic Punisher took the round on it.')
 
+# ---------------------------------------------------------------- close review, 2026-09-25
+
+## A LEDGE IS AN OBSTRUCTION (ruling 13's "a step uphill"). An involuntary step costs 1 at any height
+## (pathfinder.gd calculate_step_cost_alt), so without cannot_move_uphill the pull hauled the target
+## straight up the step to the Gloire with no save. With it, is_next_step_blocked calls the step a
+## collision (event_unit_move.gd:406-411) - Ferrous Lash's and every Knockback's flag.
+func test_a_target_pulled_into_a_ledge_stops_at_its_foot_and_saves() -> void:
+	await arm(Fixture.RIFLE)
+	var ledge:Array[Vector2i] = [ADJACENT, BLOCKER_TILE]
+	SpecFactory.set_tiles_elevation(game.map, game.map.elevation(FAR) + 1, ledge)
+	UnitTile.update_tracking_and_statuses(game.map)
+	var target := Fixture.create_dummy(game, FAR)
+	var health:int = target.core.current.health
+	await Fixture.fire_pulled(game, gloire, target, Fixture.RIFLE, [HIT], FAIL)
+	assert_lt(target.core.current.health, health, 'fixture: the line hit it over the step.')
+	assert_eq(target.tile(), SHORT, 'the pull stopped at the foot of the step, not up it.')
+	assert_true(target.has_status(Lancer.STATUS.PRONE), '"hit an obstruction": a Hull save, failed - Prone.')
+
+## "THIS MOVEMENT" IS THE PULL. Every forced move of a Pullback attack carries the same composed
+## action (action_attack_weapon.gd:337 queues the weapon's Knockback with it, and it rides to the
+## move's `object`), so keying the save on the variant alone gave the War Pike's own push into a
+## wall a save the card never grants. The pull's MovementType carries a tag the push's does not.
+func test_the_weapons_own_knockback_into_a_wall_forces_no_save() -> void:
+	await arm(Fixture.PIKE)
+	var target := Fixture.create_dummy(game, BLOCKER_TILE)
+	Fixture.build_wall_at(game, SHORT.x, GLOIRE_TILE) # every tile east of it: the push can only collide
+	responder.move_tile_queue.assign([SHORT])
+	var from:int = watcher.prompts.size()
+	await Fixture.fire_pulled(game, gloire, target, Fixture.PIKE, [HIT], FAIL)
+	assert_eq(Fixture.offered_pools(watcher, from).size(), 1, 'fixture: the pike\'s knockback reticle was offered.')
+	assert_eq(target.tile(), ADJACENT, 'the push hit the wall, then the pull brought it in.')
+	assert_false(target.has_status(Lancer.STATUS.PRONE), 'the push is the weapon\'s Knockback, not "this movement": no save.')
+
+## The protocol makes the line an OPTION ("may be fired as if"): the same rifle fired normally is an
+## ordinary shot, and nothing is pulled.
+func test_an_ordinary_shot_with_the_protocol_on_pulls_nothing() -> void:
+	await arm(Fixture.RIFLE)
+	var target := Fixture.create_dummy(game, BLOCKER_TILE)
+	var health:int = target.core.current.health
+	await Fixture.open_turn(game, gloire)
+	Dice.CHEAT_ROLL_QUEUE.append_array([HIT, 3, 3, 3])
+	await SpecFactory.use_solo(game, gloire, Fixture.RIFLE, target)
+	assert_lt(target.core.current.health, health, 'fixture: the ordinary shot hit.')
+	assert_eq(target.tile(), BLOCKER_TILE, 'no variant, no pull.')
+
 # ---------------------------------------------------------------- the card
 
 func test_the_protocol_the_reaction_and_the_rows() -> void:

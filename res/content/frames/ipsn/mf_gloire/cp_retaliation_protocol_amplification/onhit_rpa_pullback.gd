@@ -48,7 +48,22 @@
 ## unit, the weapon and the COMPOSED action (event_gear_activate.gd:88-91 puts the composed context
 ## on the core), so the move event's `object` carries the variant key the collision reaction keys
 ## on (pathfinder.gd:912).
+##
+## THE PULL IS TAGGED (close review, 2026-09-25). That same composed action rides on EVERY forced move
+## of the attack - the weapon's own Knockback is queued with it too (action_attack_weapon.gd:337) - so
+## the variant key alone cannot tell the pull from the push. PULL_TAG on the pull's MovementType is
+## what the collision reaction requires: "this movement" is the pull. And the pull CANNOT MOVE UPHILL,
+## the fifth flag: an involuntary step costs 1 at any height (pathfinder.gd calculate_step_cost_alt),
+## so without it a target was hauled straight up a ledge with no save; with it, is_next_step_blocked
+## calls the step a collision (event_unit_move.gd:406-411), as every Knockback and Ferrous Lash do.
+## BUT IT IS SET ON THE MOVE, NOT THE PLAN - measured: with the flag on at planning,
+## calculate_step_path_for_line ends the path at the foot of the step, the move never attempts it,
+## and nothing collides (the target just stops, unsaved). So the route is planned without it (the
+## step is IN the path, as a body is thanks to can_move_through_enemies) and the flag goes onto the
+## move events' MovementType before they run - the step is attempted, and refused as a collision.
 extends OnHitEffect
+
+const PULL_TAG := &'reag_rpa_pullback_pull'
 
 func on_resolution(activation:EventCore) -> void:
 	var context:Context = activation.context
@@ -79,6 +94,8 @@ func on_resolution(activation:EventCore) -> void:
 		)
 		if activation.abort_without_unit(gloire): return
 		if events.is_empty(): continue
+		for event:EventCore in events: # see the header: planned over the step, refused at it
+			if event.context.resource is MovementType: event.context.resource.cannot_move_uphill = true
 		await activation.execute_events(events)
 		if activation.abort_without_unit(gloire): return
 
@@ -88,16 +105,18 @@ static func closest_first(unit:Unit, targets:Array[Unit]) -> void:
 	var order := {}
 	for i in targets.size(): order[targets[i]] = i
 	targets.sort_custom(func(a:Unit, b:Unit) -> bool:
-		var da := UnitRelation.distance_between(unit, a)
-		var db := UnitRelation.distance_between(unit, b)
+		var da := UnitRelation.distance_between(unit, a, true) # flat, as the pull measures
+		var db := UnitRelation.distance_between(unit, b, true)
 		if da != db: return da < db
 		return order[a] < order[b]
 	)
 
-## Involuntary, straight, must-move-max, through enemies: the four flags a pull needs to collide.
+## Involuntary, straight, must-move-max, through enemies: the four flags a pull needs to collide -
+## plus the tag that marks it as the pull. No climbing is added to the MOVE, after planning (header).
 static func movement_type_for(target:Unit) -> MovementType:
 	var movement_type := MovementType.create_for_involuntary(target)
 	movement_type.straight_line = true
 	movement_type.must_move_max_possible = true
 	movement_type.can_move_through_enemies = true
+	movement_type.other_tags.append(PULL_TAG)
 	return movement_type

@@ -88,11 +88,23 @@ func test_a_ram_from_three_away_pushes_directly_away_from_the_gloire() -> void:
 		assert_true(tile.x > AT_THREE.x, 'every offered tile is further from the Gloire: %s' % tile)
 
 func test_the_ram_never_overwatches() -> void:
+	# The War Pike is the positive control: with nothing equipped the pool is empty and the check
+	# below proves nothing (close review, 2026-09-25).
+	Fixture.equip(gloire, Fixture.PIKE)
 	var hostile := Fixture.create_dummy(game, ADJACENT)
 	var offered:Array[SpecificAction] = UnitRelation.get_weapons_that_can_overwatch(gloire, hostile)
+	var ids:Array = offered.map(func(specific:SpecificAction) -> StringName: return specific.gear.kit.compcon_id)
+	assert_has(ids, Fixture.PIKE, 'CONTROL: the pool is live - the pike overwatches.')
 	for specific:SpecificAction in offered:
 		assert_ne(specific.action.get_id(), Fixture.RAM_ACTION, 'the Ram is basic gear and never in the overwatch pool.')
-	assert_true(true, 'checked %d overwatch weapons.' % offered.size())
+
+## The Ram bonus is the Ram's alone: another melee weapon on the Gloire keeps its printed threat.
+func test_the_gloires_other_melee_weapons_keep_their_threat() -> void:
+	Fixture.equip(gloire, Fixture.PIKE)
+	var specific := Fixture.weapon_specific(gloire, Fixture.PIKE)
+	var weapon:ActionAttackWeapon = specific.action
+	assert_true(UnitAction.is_melee_weapon(weapon, specific.gear), 'fixture: the War Pike is melee.')
+	assert_eq(weapon.threat_distance(specific), weapon.threat, '"Ram targets within Range 3" - not every melee weapon.')
 
 # ---------------------------------------------------------------- the CQB range
 

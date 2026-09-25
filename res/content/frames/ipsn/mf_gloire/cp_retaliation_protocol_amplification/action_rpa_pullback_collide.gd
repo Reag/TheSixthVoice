@@ -23,11 +23,16 @@
 ## Pullback's own, so the log says "RPA Pullback"; the override is also what makes
 ## Action.show_in_tooltip answer false (action.gd:348).
 ##
+## THE MOVE MUST BE THE PULL, not merely Pullback's (close review, 2026-09-25): the weapon's own
+## Knockback carries the same composed action, and "this movement" is the pull alone. The pull's
+## MovementType carries onhit_rpa_pullback.gd's PULL_TAG; a push into a wall never does.
+##
 ## NOT A REACTION POINT and not 1/round: every collision a Pullback line causes is answered
 ## (ActionReaction.get_per_round_hard_limit is 99 when consumes_rxn is false).
 extends ActionReaction
 
 const VARIANT_KEY := &'rpa_pullback'
+const PULL_TAG := &'reag_rpa_pullback_pull' # onhit_rpa_pullback.gd's
 
 func get_required_triggering_context() -> Array[Context.PROP]:
 	return [Context.PROP.event]
@@ -42,6 +47,8 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if not SpecificAction.is_valid(source): return false
 	if source.unit != unit: return false
 	if not Action.is_valid(source.action) or not source.action.modified_by_variants.has(VARIANT_KEY): return false
+	var movement_type = movement_context.resource
+	if not (movement_type is MovementType) or not movement_type.other_tags.has(PULL_TAG): return false # "this movement": the pull, not the weapon's own push
 	# arriving is not hitting: a collision with one of the Gloire's own tiles is a non-event
 	if collision_context.target_tiles.any(func(tile:Vector2i) -> bool: return unit.occupied_tiles().has(tile)): return false
 	return true
