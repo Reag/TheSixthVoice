@@ -308,6 +308,39 @@ func test_the_shackletons_unguarded_rows_resolve():
 	for key:String in SHACKLETON_LOCALIZATION_ROWS:
 		assert_ne(tr(key), key, '%s resolves to real text.' % key)
 
+## The Inevitability Core's rows (Grutte Pier close review). The loop, the +Range row and Patience's
+## prompt are answered BY INDEX in every spec, so a stale artifact would draw raw keys on every menu
+## and leave the suite green; nothing else reads these off the compiled translation.
+const GRUTTE_PIER_LOCALIZATION_ROWS:Array[String] = [
+	'gear.cp_inevitability_core.name',
+	'gear.cp_inevitability_core.flavor',
+	'gear.cp_inevitability_core.charges',
+	'gear.cp_inevitability_core.action_zwarte_hoop_spend.name',
+	'gear.cp_inevitability_core.action_zwarte_hoop_spend.effect',
+	'gear.cp_inevitability_core.action_patience_in_all_things.name',
+	'gear.cp_inevitability_core.action_patience_in_all_things.effect',
+	'gear.cp_inevitability_core.patience.prompt',
+	'gear.cp_inevitability_core.patience.spend',
+	'gear.cp_inevitability_core.patience.decline',
+	'gear.cp_inevitability_core.zwarte_hoop.prompt',
+	'gear.cp_inevitability_core.zwarte_hoop.option.reliable',
+	'gear.cp_inevitability_core.zwarte_hoop.option.knockback',
+	'gear.cp_inevitability_core.zwarte_hoop.option.attack_roll',
+	'gear.cp_inevitability_core.zwarte_hoop.option.overshield',
+	'gear.cp_inevitability_core.zwarte_hoop.option.heat',
+	'gear.cp_inevitability_core.zwarte_hoop.done',
+	'gear.cp_inevitability_core.zwarte_hoop.twice',
+	'gear.cp_inevitability_core.zwarte_hoop.not_weapon',
+	'gear.cp_inevitability_core.zwarte_hoop.range.name',
+	'gear.cp_inevitability_core.zwarte_hoop.range.effect',
+	'gear.cp_inevitability_core.zwarte_hoop.range.option_1',
+	'gear.cp_inevitability_core.zwarte_hoop.range.option_2',
+]
+
+func test_the_grutte_piers_core_rows_resolve():
+	for key:String in GRUTTE_PIER_LOCALIZATION_ROWS:
+		assert_ne(tr(key), key, '%s resolves to real text.' % key)
+
 ## The Rend Axe's three rows (SP2 Task 1, Primrose). Unlike the three lists above, these ARE also
 ## guarded where they are used - test_rend_axe.gd's test_the_name_and_flavour_and_effect_resolve
 ## reads the same keys off this mod's own compiled artifact - so this entry is belt-and-braces

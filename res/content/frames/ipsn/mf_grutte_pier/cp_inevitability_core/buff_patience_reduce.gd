@@ -37,6 +37,9 @@ extends BuffModifyAttackRoll
 const Core := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/inevitability_core.gd')
 
 const MARK := &'reag_patience'
+## Set on a roll the Pier was asked about and declined, so a forced crit - asked again at :225 - is not
+## asked twice (close review).
+const DECLINED_META := &'reag_patience_declined'
 
 func confirm_modification(core:BuffCore, roll:AttackRoll, activation:EventCore) -> bool:
 	var context := activation.context
@@ -46,6 +49,7 @@ func confirm_modification(core:BuffCore, roll:AttackRoll, activation:EventCore) 
 	if not pier.is_player_controlled(): return false
 	if roll.base_roll <= 0: return false # an auto-hit never rolled a number
 	if roll.roll_modifications.has(MARK): return false
+	if roll.has_meta(DECLINED_META): return false
 	if not UnitRelation.can_see(pier, attacker): return false
 
 	var gear := Core.core_gear(pier)
@@ -77,7 +81,9 @@ func confirm_modification(core:BuffCore, roll:AttackRoll, activation:EventCore) 
 		can_voluntarily_cancel = true,
 	})
 	if activation.abort_without_units([pier, attacker]): return false
-	if chosen < 0 or chosen >= options.size(): return false
+	if chosen < 0 or chosen >= options.size():
+		roll.set_meta(DECLINED_META, true)
+		return false
 
 	var spend:int = options[chosen].spend
 	Core.set_charges(pier, gear, Core.charges(gear) - spend)
@@ -104,7 +110,10 @@ static func spend_options(roll:AttackRoll, charges:int) -> Array[Dictionary]:
 	var options:Array[Dictionary] = []
 	if not roll.hit or charges <= 0: return options
 	var to_miss:int = roll.total_roll - roll.pre.target_defense + 1
-	if roll.crit:
+	# "To a hit" only for a crit the NUMBER made (20+). A crit forced on a lower total (Markerlight's
+	# turn_hit_to_crit) is not undone by lowering the number, and total - 19 would be a spend of 0 or
+	# less there - one that ADDED charges (close review).
+	if roll.crit and roll.total_roll >= 20:
 		var to_hit:int = roll.total_roll - 19
 		if to_hit < to_miss and to_hit <= charges:
 			options.append({spend = to_hit, result = 'hit'})

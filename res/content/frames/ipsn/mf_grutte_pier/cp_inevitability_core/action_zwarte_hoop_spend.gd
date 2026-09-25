@@ -59,9 +59,15 @@ const KEY := 'gear.cp_inevitability_core.zwarte_hoop'
 
 func show_in_tooltip(_kit:Kit) -> bool: return true
 
+## "First attack ROLL": an attack that rolls nothing - a Line or Blast at bare ground - neither asks
+## nor stamps the round (close review). The engine makes one roll per attacked unit
+## (event_unit_attack_declared.gd:53-66), and all_attacked_units is settled at targeting, before PRE
+## (action_attack.gd:240-254).
 func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> bool:
 	if not super.triggers_on_event(unit, gear, triggering_event): return false
-	if not DeclaredAttackSummary.is_valid(triggering_event.context.resource): return false
+	var summary = triggering_event.context.resource
+	if not DeclaredAttackSummary.is_valid(summary): return false
+	if summary.all_attacked_units.is_empty(): return false
 	return gear.get_state(Core.SPENT_ROUND, -1) != Core.current_round(unit)
 
 func activate(context:Context, activation:EventCore) -> void:
@@ -107,21 +113,44 @@ func activate(context:Context, activation:EventCore) -> void:
 func apply_picks(picks:Dictionary[PICK, int], pier:Unit, gear:GearCore, declared:EventCore, activation:EventCore) -> void:
 	if picks.get(PICK.RELIABLE, 0) > 0:
 		NativeReliable.raise(declared, picks[PICK.RELIABLE], RELIABLE_SOURCE)
+	var cores:Array[BuffCore] = []
 	if picks.get(PICK.ATTACK_ROLL, 0) > 0:
-		apply_counted(activation, pier, gear, ACCURACY_BUFF, picks[PICK.ATTACK_ROLL])
+		cores.append(apply_counted(activation, pier, gear, ACCURACY_BUFF, picks[PICK.ATTACK_ROLL]))
 	if picks.get(PICK.KNOCKBACK, 0) > 0:
-		apply_counted(activation, pier, gear, KNOCKBACK_BUFF, picks[PICK.KNOCKBACK])
+		cores.append(apply_counted(activation, pier, gear, KNOCKBACK_BUFF, picks[PICK.KNOCKBACK]))
 	var overshield:int = picks.get(PICK.OVERSHIELD, 0)
 	var heat:int = picks.get(PICK.HEAT, 0)
 	if overshield > 0 or heat > 0:
 		declared.context.resource.set_meta(ONHIT_META, {overshield = overshield, heat = heat, done = false})
-		apply_counted(activation, pier, gear, ONHIT_BUFF, 1)
+		cores.append(apply_counted(activation, pier, gear, ONHIT_BUFF, 1))
+	clear_when_the_attack_ends(declared, pier, cores)
 
 ## Hang one of the FINISH_DAMAGE buffs with its count in BuffCore.state['n'].
-static func apply_counted(activation:EventCore, pier:Unit, gear:GearCore, buff_id:StringName, n:int) -> void:
+static func apply_counted(activation:EventCore, pier:Unit, gear:GearCore, buff_id:StringName, n:int) -> BuffCore:
 	var buff:Buff = ContentLibrary.get_buff(buff_id)
 	if buff == null:
 		push_warning('%s: %s is not in the buffs index - the pick does nothing.' % [Core.CORE_ID, buff_id])
-		return
+		return null
 	var core:BuffCore = UnitCondition.apply_buff(activation, pier, buff, gear)
 	if core != null: core.set_state('n', n)
+	return core
+
+## THE PICKS END WITH THE ATTACK, HOWEVER IT ENDS (close review, 2026-09-25). FINISH_DAMAGE clears them
+## only when execute() reaches event_unit_attack_declared.gd:203-205, and a reaction that aborts the
+## DECLARED event - the Gorgon's Basilisk, action_extrude_basilisk_reaction.gd:40 - returns it at :49 /
+## :68 first: the picks would then ride the Pier's NEXT attack. So a sentinel on the attack's own block
+## clears whatever is left, native_reliable's shape: EventBlock runs every unfinished child whether or
+## not the event aborted, and the carrier never runs (native_reliable.gd's header).
+static func clear_when_the_attack_ends(declared:EventCore, pier:Unit, applied:Array[BuffCore]) -> void:
+	var cores:Array[BuffCore] = []
+	cores.assign(applied.filter(func(core:BuffCore) -> bool: return core != null))
+	if cores.is_empty() or not is_instance_valid(declared.block) or not declared.block.is_inside_tree(): return
+	var clear := func() -> bool:
+		if Unit.is_valid(pier):
+			var left:Array[BuffCore] = []
+			left.assign(cores.filter(func(core:BuffCore) -> bool: return pier.state.buffs.has(core)))
+			if not left.is_empty(): UnitCondition.clear_buffs(declared, pier, left)
+		return false # never run the carrier
+	var sentinel := EventBlock.create(NativeReliable.CARRIER_EVENT, {}, 'reag_zwarte_hoop_picks_%s' % declared.id)
+	sentinel.deferred_required_conditions = clear
+	declared.block.queue_block(sentinel, NativeReliable.SENTINEL_PRIORITY)

@@ -22,7 +22,14 @@
 ##
 ## Asked twice per damage event (event_unit_damage.gd:52, :63); context.resource differs between
 ## the two passes, so nothing here reads it.
+##
+## THE DISTANCE IS THE ONE THE ATTACK WAS MADE AT, not the one at the damage (close review,
+## 2026-09-25): the attack's own Knockback has already moved the Pier by then. action_panoply_coat_origin
+## records it at ATTACK PRE on the trait's gear; a live measure is the fallback for an attack that
+## left no record.
 extends BuffResistDamage
+
+const Origin := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/mt_panoply_coat/action_panoply_coat_origin.gd')
 
 const BEYOND_RANGE := 10
 
@@ -31,5 +38,7 @@ func is_buff_context_valid_for_passive(core:BuffCore, context:Context) -> bool:
 
 func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 	if not AttackRoll.is_valid(context.object): return false
-	if UnitRelation.distance_between(context.unit, context.target_unit) <= BEYOND_RANGE: return false
+	var distance := Origin.recorded_distance(core.get_owner_gear(context.map), context.target_unit)
+	if distance < 0: distance = UnitRelation.distance_between(context.unit, context.target_unit)
+	if distance <= BEYOND_RANGE: return false
 	return super(core, context)

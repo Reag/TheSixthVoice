@@ -6,9 +6,13 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="4_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/mt_panoply_coat/buff_panoply_coat.tres" id="5_coat"]
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_panoply_coat.svg" id="6_icon"]
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="7_action"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/mt_panoply_coat/action_panoply_coat_origin.tres" id="8_origin"]
 
 ; PANOPLY COAT (design rulings 2-3). One hidden BuffResistDamage, applied for the scene by the trait;
 ; its script admits only attacks from beyond Range 10. Extended Zone Control's applicator shape.
+; The hidden ATTACK PRE reaction records where each attack at the Pier was made from, before its own
+; Knockback can move the Pier (close review, 2026-09-25). No pressable.
 ; SP3: one glyph family; the buff stays hidden, so only the Kit wears it.
 [sub_resource type="Resource" id="Resource_applicator"]
 script = ExtResource("3_applicator")
@@ -16,6 +20,7 @@ applied_buffs = Array[ExtResource("2_buff")]([ExtResource("5_coat")])
 
 [resource]
 script = ExtResource("4_kit")
+actions = Array[ExtResource("7_action")]([ExtResource("8_origin")])
 passives = Array[ExtResource("1_passive")]([SubResource("Resource_applicator")])
 is_trait = true
 icon_override = ExtResource("6_icon")

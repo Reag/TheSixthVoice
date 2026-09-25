@@ -226,6 +226,35 @@ func test_an_overwatch_before_the_piers_turn_is_the_first_attack_roll():
 	await shoot(target, Fixture.RIFLE, [10, 6])
 	assert_eq(prompts().size(), 2, 'Its own later attack that round is not the first.')
 
+# ---------------------------------------------------------------- close review (2026-09-25)
+
+## An attack a reaction cancels never reaches the FINISH_DAMAGE clear: the Gorgon's Basilisk aborts the
+## DECLARED event from ATTACK PRE (action_extrude_basilisk_reaction.gd:40), and execute() returns at
+## event_unit_attack_declared.gd:68, before :203-205. The picks must not outlive the attack.
+func test_an_attack_a_reaction_cancels_leaves_no_pick_on_the_pier():
+	var basilisk_id := &'cp_basilisk_directed_anticognition_hyperfractal'
+	var basilisk := Fixture.equip(target, basilisk_id)
+	UnitCondition.apply_buff_id(SpecFactory.dummy_event(), target, &'buff_extrude_basilisk', basilisk)
+	await ready_pier(3, [ATTACK_ROLL, ATTACK_ROLL, KNOCKBACK])
+	var taken := await shoot(target, Fixture.RIFLE, [1, 10, 6]) # the Pier's Systems save: a 1
+	assert_true(pier.has_status(Lancer.STATUS.STUNNED), 'fixture: the Basilisk cancelled the attack.')
+	assert_eq(taken, 0, 'fixture: nothing landed.')
+	assert_eq(UnitCondition.get_buffs_to(pier, Buff.TO.ATTACK_ROLL).size(), 0, 'No +attack roll left for a later attack.')
+	assert_eq(UnitCondition.get_buffs_to(pier, Buff.TO.EXTRA_KNOCKBACK).size(), 0, 'No +Knockback either.')
+
+## "On your first attack ROLL each round": a Line fired at bare ground rolls nothing (one roll per
+## attacked unit, event_unit_attack_declared.gd:53-66), so it neither asks nor uses up the round.
+func test_an_attack_that_rolls_nothing_is_not_the_first_attack_roll():
+	Fixture.equip(pier, CANNON)
+	await ready_pier(2, [DONE])
+	responder.yesno_queue.assign([true]) # confirm_aoe_no_targets
+	Dice.CHEAT_ROLL_QUEUE.append_array([3, 3])
+	await SpecFactory.use(game, pier, CANNON, ContentLibrary.get_kit(CANNON).actions[0].get_id(), PIER_TILE + Vector2i(0, 3))
+	assert_eq(prompts().size(), 0, 'Nothing rolled, nothing asked.')
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	await shoot(target, Fixture.RIFLE, [10, 6])
+	assert_eq(prompts().size(), 1, 'The rifle shot is the first attack roll of the round.')
+
 func test_the_range_row_is_offered_on_a_reaction_attack_too():
 	Fixture.set_charges(pier, 2)
 	var gear := pier.get_gear(Fixture.RIFLE)

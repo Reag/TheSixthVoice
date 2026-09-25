@@ -1,10 +1,13 @@
 [gd_resource type="Resource" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/buff_zwarte_hoop_range.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_zwarte_hoop_spend.svg" id="2_icon"]
 
-; Zwarte Hoop: the +Range variant row (ruling 10). Hidden: the row itself is what the player sees.
+; Zwarte Hoop: the +Range variant row (ruling 10). Hidden: the row itself is what the player sees,
+; and it wears Zwarte Hoop's glyph family (design section 3; close review - it drew generic.svg).
 [resource]
 script = ExtResource("1_buff")
 to = &"variant_actions"
 hide_from_player = true
 localization_key_override = "cp_inevitability_core.action_zwarte_hoop_spend"
+icon = ExtResource("2_icon")

@@ -115,6 +115,23 @@ func test_sourceless_damage_does_not_crash_and_is_not_resisted():
 	# Tormentor Spines reads target_unit before checking it; this buff checks first.
 	assert_eq(await hp_lost_to_raw(6, Lancer.DAMAGE_TYPE.KINETIC, null), 4, 'No source: the full 4, and no crash.')
 
+# ---------------------------------------------------------------- where the attack came from (close review)
+
+## The attack's own Knockback moves the Pier BEFORE its damage lands: on_hit queues the push on the
+## per-target attack (action_attack_weapon.gd:337), and the damage events are built and run after
+## every roll (event_unit_attack_declared.gd:147-200). "Originate from beyond Range 10" is where the
+## attack was made from, so the push must not count.
+func test_a_hit_from_ten_that_knocks_the_pier_to_eleven_is_not_resisted():
+	var shooter := hostile_at(AT_TEN)
+	Fixture.equip(shooter, Fixture.RIFLE)
+	await Fixture.open_turn(game, shooter) # before the push: a turn start would clear it
+	var push:BuffCore = UnitCondition.apply_buff_id(SpecFactory.dummy_event(), shooter, &'buff_zwarte_hoop_knockback')
+	push.set_state('n', 1)
+	var before:int = pier.core.current.health
+	await Fixture.attack(game, shooter, pier, Fixture.RIFLE, [HIT, 6])
+	assert_eq(UnitRelation.distance_between(pier, shooter), 11, 'fixture: the hit pushed the Pier out to 11.')
+	assert_eq(before - pier.core.current.health, 4, 'Made from Range 10: the full 4, wherever the push left it.')
+
 func test_the_resistance_is_hidden_and_lives_on_the_pier():
 	assert_true(Fixture.has(pier, Fixture.PANOPLY_BUFF), 'The trait keeps the buff on the Pier.')
 	var kit:Kit = ContentLibrary.get_kit(Fixture.PANOPLY_ID)

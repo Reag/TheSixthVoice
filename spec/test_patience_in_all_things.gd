@@ -183,6 +183,35 @@ func test_an_auto_hit_is_not_offered():
 	assert_eq(responder.multiple_choice_prompts.size(), 0, 'An auto-hit rolled no number to reduce.')
 	assert_eq(taken, DAMAGE_DIE, 'fixture: and it did hit.')
 
+## A FORCED crit (Markerlight's step, turn_hit_to_crit) on a total below 20. prospective_crit asks
+## step 4 again (event_unit_attack.gd:200, :205, :225), and "to a hit" was total - 19: a spend of -1
+## that ADDED a charge. Lowering the number cannot undo a crit nothing rolled (close review).
+func force_crit_on_hostile() -> void:
+	var force_crit := BuffModifyAttackRoll.new()
+	force_crit.step = EventUnitAttack.SEQUENCE_STEP.turn_hit_to_crit
+	force_crit.to = Buff.TO.MODIFY_ATTACK_ROLL
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), hostile, force_crit)
+
+func test_a_forced_crit_below_20_is_never_offered_a_free_uncrit():
+	force_crit_on_hostile()
+	Fixture.set_charges(pier, 3)
+	Fixture.give_patience(pier)
+	responder.multiple_choice_queue.assign([0, 0])
+	await Fixture.attack(game, hostile, ally, Fixture.RIFLE, [18, DAMAGE_DIE, DAMAGE_DIE])
+	assert_eq(Fixture.charges(pier), 3, 'No charge gained or spent: a miss would cost 9.')
+	assert_eq(responder.multiple_choice_prompts.size(), 0, 'Nothing affordable can change the result.')
+
+func test_one_roll_is_asked_about_once_even_when_it_turns_into_a_crit():
+	force_crit_on_hostile()
+	Fixture.set_charges(pier, 12)
+	Fixture.give_patience(pier)
+	responder.multiple_choice_queue.assign([1, 0]) # decline; a second ask would spend
+	await Fixture.attack(game, hostile, ally, Fixture.RIFLE, [18, DAMAGE_DIE, DAMAGE_DIE])
+	assert_eq(responder.multiple_choice_prompts.size(), 1, 'Declined once, not asked again at the crit.')
+	assert_eq(Fixture.charges(pier), 12)
+	for prompt:Dictionary in responder.multiple_choice_prompts:
+		assert_eq(prompt.labels.size(), 2, 'The miss for 9, and decline - no "to a hit" below 20.')
+
 func test_an_ai_controlled_pier_never_spends():
 	var ai_pier := Fixture.create_pier(game, Vector2i(2, 9), Faction.AI_ENEMY)
 	var player_shooter := Fixture.create_dummy(game, Vector2i(10, 9), 8, Faction.PLAYER)

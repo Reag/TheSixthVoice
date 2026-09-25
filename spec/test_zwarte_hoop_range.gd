@@ -92,6 +92,28 @@ func test_not_offered_on_a_tech_attack():
 	Fixture.set_charges(pier, 2)
 	assert_null(range_group(Fixture.INVADE))
 
+## Ruling 19: an AI Pier never spends. The AI composes EVERY variant through
+## VariantActionGroup.get_variant_specifics and ignores is_disabled (variant_action_group.gd:92-99), so
+## a row offered to it is a row it can take - even the +2 on one charge (close review).
+func test_not_offered_to_an_ai_controlled_pier():
+	var ai_pier := Fixture.create_pier(game, Vector2i(2, 9), Faction.AI_ENEMY)
+	Fixture.equip(ai_pier, Fixture.RIFLE)
+	Fixture.set_charges(ai_pier, 2)
+	var gear := ai_pier.get_gear(Fixture.RIFLE)
+	var specific := SpecificAction.create(ai_pier, gear, gear.get_solo_action())
+	var keys:Array = specific.action.get_alternate_actions(specific).map(
+		func(group:VariantActionGroup) -> StringName: return group.key)
+	assert_does_not_have(keys, GROUP)
+
+## Zwarte Hoop's glyph family (design section 3): the row wears it, not generic.svg (close review).
+func test_the_row_wears_zwarte_hoops_glyph():
+	Fixture.set_charges(pier, 2)
+	var group := range_group(Fixture.RIFLE)
+	if group == null: return fail_test('no row')
+	assert_string_ends_with(group.icon.resource_path, 'action_zwarte_hoop_spend.svg')
+	for variant:VariantAction in group.list:
+		assert_string_ends_with(variant.icon.resource_path, 'action_zwarte_hoop_spend.svg')
+
 func test_not_offered_once_the_first_attack_roll_of_the_round_is_made():
 	var target := Fixture.create_dummy(game, Vector2i(6, 5))
 	await Fixture.open_turn(game, pier)

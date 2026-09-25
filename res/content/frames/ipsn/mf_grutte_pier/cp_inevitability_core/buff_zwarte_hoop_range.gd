@@ -33,7 +33,11 @@ func is_buff_context_valid_for_passive(_core:BuffCore, context:Context) -> bool:
 func check_if_passive_applies(_core:BuffCore, context:Context) -> bool:
 	return offered(context.unit, context.action, context.gear)
 
+## NEVER TO AN AI PIER (ruling 19; close review): the AI composes every variant through
+## VariantActionGroup.get_variant_specifics, applying variant_spend and ignoring is_disabled
+## (variant_action_group.gd:92-99), so a row offered to it is a row it takes - +2 on one charge included.
 static func offered(unit:Unit, action:Action, gear:GearCore) -> bool:
+	if not unit.is_player_controlled(): return false
 	if not action is ActionAttackWeapon: return false
 	if UnitAction.is_melee_weapon(action, gear): return false
 	if action.range_pattern and action.range_pattern.pattern == Lancer.AOE_TYPE.BURST: return false
