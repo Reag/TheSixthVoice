@@ -1055,8 +1055,15 @@ const ICON_TARGETS := {
 	# Hornet's bt_lock_hold_javelins_hornet). Its own row now; SP6 gives it the Makibishi glyph.
 	&'bt_makibishi_magnets': {&'action_makibishi_detach': &'action_makibishi_detach'},
 	# SP3 (Koremasa). The mine's trait, on the MARKER dep_makibishi_magnets - vanilla's arm and trigger
-	# plus our detonation, the mt_mesmer_mine_detonation shape. Nothing on it is pressable.
-	&'mt_makibishi_magnets_detonation': {},
+	# plus our detonation, the mt_mesmer_mine_detonation shape.
+	#
+	# CORRECTED AT SP6: the SP3 comment claimed "nothing on it is pressable", but
+	# action_makibishi_detonation is neither an ActionReaction nor is_situationally_activated, so
+	# _action_reaches_a_player_facing_surface's second clause returns true for it regardless -
+	# starts_hibernating is per-instance runtime state, not a fixed shape, and has no clause here (the
+	# same reasoning the Rend Axe's hide_if_disabled gets, :642-645). A KIT row: the action carries no
+	# icon_override of its own and inherits the Kit's glyph.
+	&'mt_makibishi_magnets_detonation': {&'action_makibishi_detonation': KIT},
 	# SP3 (Koremasa). PHASE CLOUD: Vanish is on the card (its own trigger row), a KIT row.
 	&'ms_phase_cloud': {&'action_vanish': KIT},
 	# SP3 (Koremasa). Vanish's smoke zone, on the MARKER dep_phase_cloud_smoke - the mt_maar_terrain

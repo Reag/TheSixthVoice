@@ -1,12 +1,14 @@
 [gd_resource type="Resource" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_koremasa/mt_entrap/buff_entrap_mark.gd" id="1_mark"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_entrap.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1_mark")
 ; VISIBLE (design ruling 34): the chip tells the player who can be Entrapped this round. SP6: icon,
 ; shared with the reaction's glyph family.
 hide_from_player = false
+icon = ExtResource("2_icon")
 ; ITS ROWS ARE THE REACTION'S, named here rather than left to the fallback. mt_entrap carries two
 ; actions, and a nameless buff's chain ends at kit.actions[0] (gear_core.gd:337-339) - which happens to
 ; be the reaction today, but only by array order (memory lancer-tactics-buff-card-fallback). The

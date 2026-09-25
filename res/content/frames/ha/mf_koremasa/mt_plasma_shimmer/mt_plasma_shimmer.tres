@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://dy4kg537rc55e" path="res://engine/character/gear_passive/passive_buff_applicator.gd" id="3_applicator"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="4_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_koremasa/mt_plasma_shimmer/buff_plasma_shimmer.tres" id="5_chip"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_plasma_shimmer.svg" id="6_icon"]
 
 ; PLASMA SHIMMER (design 1.2, ruling 17): the Tokugawa's Plasma Sheath shape (mt_plasma_sheath.tres) -
 ; one applicator hanging one chip on the Koremasa for the scene; the chip's script gates on DANGER
@@ -17,3 +18,4 @@ applied_buffs = Array[ExtResource("2_buff")]([ExtResource("5_chip")])
 script = ExtResource("4_kit")
 passives = Array[ExtResource("1_passive")]([SubResource("Resource_applicator")])
 is_trait = true
+icon_override = ExtResource("6_icon")

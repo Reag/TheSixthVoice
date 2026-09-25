@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_makibishi_magnets/action_throw_magnets.tres" id="3_throw"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_makibishi_magnets/action_makibishi_mine.tres" id="4_mine"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_makibishi_magnets/action_makibishi_second_mine.tres" id="5_second"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_makibishi_magnets.svg" id="6_icon"]
 
 ; MAKIBISHI MAGNETS, the Koremasa's rank-I system (design 3.1): LIMITED 2, GRENADE (the throw's
 ; metatag), not UNIQUE. A grenade-plus-mine Kit, the Havok Charges' shape (ms_havok_charges.tres).
@@ -15,3 +16,4 @@ script = ExtResource("2_kit")
 actions = Array[ExtResource("1_action")]([ExtResource("3_throw"), ExtResource("4_mine"), ExtResource("5_second")])
 sp_cost = 2
 charges_max = 2
+icon_override = ExtResource("6_icon")

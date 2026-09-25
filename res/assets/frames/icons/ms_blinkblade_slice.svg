@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- ms_blinkblade_slice : Reag-TheSixthVoice Koremasa icon, SP6. One cut, the blade already gone before the line finishes drawing itself -->
+<path d="M10,54 L18,46 L56,8 L60,12 L22,50 L14,58 Z"/>
+<path d="M6,50 L10,46 L14,50 L10,54 Z"/> <path d="M16,40 L20,36 L24,40 L20,44 Z"/>
+</svg>

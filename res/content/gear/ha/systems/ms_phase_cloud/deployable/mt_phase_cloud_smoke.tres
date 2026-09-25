@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://bhirgicgi66th" path="res://engine/gamemaster/map/terrain/terrain_data.gd" id="4_terraindata"]
 [ext_resource type="Script" uid="uid://c0yv6pnw2be6l" path="res://engine/character/gear_action/resources/range_pattern.gd" id="5_rangepattern"]
 [ext_resource type="PackedScene" uid="uid://csuoaqowxt0k7" path="res://content/fx_endless/gear/fxe_smoke_cloud.tscn" id="6_fxe"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_phase_cloud.svg" id="7_icon"]
 
 ; BURST 1 (Lancer.AOE_TYPE.BURST == 4) from the laying Koremasa's FOOTPRINT (the zone script): a 3x3
 ; around a Koremasa on foot - exactly "a Blast one area centered on you" - and the mount's footprint
@@ -32,3 +33,4 @@ fxe = ExtResource("6_fxe")
 script = ExtResource("1_kit")
 passives = Array[ExtResource("2_passive")]([SubResource("Resource_zone")])
 is_trait = true
+icon_override = ExtResource("7_icon")

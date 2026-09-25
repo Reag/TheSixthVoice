@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_makibishi_magnets/action_makibishi_detach.gd" id="2_detach"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_makibishi_magnets/buff_makibishi_attached.tres" id="3_attached"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_makibishi_magnets.svg" id="4_icon"]
 
 ; action_lock_hold_javelins_hornet_clear.tres with the card's numbers: an AGILITY save
 ; (make_save_type 1), a SAVE not a check, QUICK (1), SITUATIONAL, its own usage group. Any source's
@@ -16,3 +17,4 @@ buff_needs_to_have_been_applied_by_this = false
 action_type = 1
 is_situationally_activated = true
 usage_group = &"makibishi_detach"
+icon_override = ExtResource("4_icon")
