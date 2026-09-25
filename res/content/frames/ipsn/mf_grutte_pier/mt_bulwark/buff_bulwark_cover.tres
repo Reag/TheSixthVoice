@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="BuffCover" format=3]
 
 [ext_resource type="Script" uid="uid://d0l6p3u6jopti" path="res://engine/character/buff/archtypes/buff_cover.gd" id="1_cover"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_bulwark.svg" id="2_icon"]
 
 ; BULWARK's cover (design ruling 5): SOFT (Lancer.COVER 1) against incoming attacks, on each allied
 ; character within Range 3 of a Pier carrying buff_bulwark_gate. Balor's buff_hive_frenzy_cover_aura
@@ -11,3 +12,4 @@
 script = ExtResource("1_cover")
 cover = 1
 to = &"cover"
+icon = ExtResource("2_icon")

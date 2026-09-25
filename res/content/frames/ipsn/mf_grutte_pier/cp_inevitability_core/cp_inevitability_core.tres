@@ -14,6 +14,7 @@
 [ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="12_buffscript"]
 [ext_resource type="Script" uid="uid://dy4kg537rc55e" path="res://engine/character/gear_passive/passive_buff_applicator.gd" id="13_applicator"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/buff_zwarte_hoop_range.tres" id="14_range"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_inevitability_core.svg" id="15_icon"]
 
 [sub_resource type="Resource" id="Resource_range_applicator"]
 script = ExtResource("13_applicator")
@@ -37,3 +38,4 @@ actions = Array[ExtResource("2_action")]([ExtResource("6_patience"), ExtResource
 passives = Array[ExtResource("3_passive")]([ExtResource("4_charges"), SubResource("Resource_range_applicator"), ExtResource("5_aura")])
 ; A frame trait, not equippable gear: no SP, cannot be unequipped.
 is_trait = true
+icon_override = ExtResource("15_icon")

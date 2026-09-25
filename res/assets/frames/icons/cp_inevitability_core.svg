@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- cp_inevitability_core : Reag-TheSixthVoice Grutte Pier icon, SP3. A hexagonal sensor ring watching every stimulus, closing on the one point it will act on -->
+<path d="M32,6 L54,19 L54,45 L32,58 L10,45 L10,19 Z M32,16 L18,24 L18,40 L32,48 L46,40 L46,24 Z"/>
+<path d="M32,26 L38,32 L32,38 L26,32 Z"/>
+</svg>

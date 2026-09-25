@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://dy4kg537rc55e" path="res://engine/character/gear_passive/passive_buff_applicator.gd" id="3_applicator"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="4_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/mt_panoply_coat/buff_panoply_coat.tres" id="5_coat"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_panoply_coat.svg" id="6_icon"]
 
 ; PANOPLY COAT (design rulings 2-3). One hidden BuffResistDamage, applied for the scene by the trait;
 ; its script admits only attacks from beyond Range 10. Extended Zone Control's applicator shape.
@@ -17,3 +18,4 @@ applied_buffs = Array[ExtResource("2_buff")]([ExtResource("5_coat")])
 script = ExtResource("4_kit")
 passives = Array[ExtResource("1_passive")]([SubResource("Resource_applicator")])
 is_trait = true
+icon_override = ExtResource("6_icon")

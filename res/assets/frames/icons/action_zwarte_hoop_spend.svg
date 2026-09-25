@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- action_zwarte_hoop_spend : Reag-TheSixthVoice Grutte Pier icon, SP3. A growing tally feeding a reticle - the round's watching paid into one shot -->
+<path d="M36,10 L58,32 L36,54 L14,32 Z M36,19 L27,32 L36,45 L45,32 Z"/>
+<path d="M4,12 L12,12 L12,18 L4,18 Z M4,28 L16,28 L16,34 L4,34 Z M4,44 L20,44 L20,50 L4,50 Z"/>
+</svg>
