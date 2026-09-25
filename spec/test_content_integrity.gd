@@ -1035,6 +1035,18 @@ const ICON_TARGETS := {
 	# Solfataric Breach shape, so it inherits the Kit's glyph (KIT); the tech-hit watcher is hidden and
 	# the visible mark shares the family at SP6.
 	&'mt_entrap': {&'action_entrap_koremasa': KIT},
+	# SP2 (Koremasa). OVERDRIVE EXPLOITATION SEQUENCES: exactly two families (the icon directive's
+	# two-part core power). LASSISSIAN FOLLY is the pressable, and the ride machinery it creates wears
+	# its glyph: begin-riding and the climb-off on the Koremasa's own bar, the buck on the MOUNT's
+	# (situational, path 4). GUT REACTOR reaches the card through its own rows. The ride break is
+	# hidden (localization_key_override, action.gd:348). SP6: icons.
+	&'cp_overdrive_exploitation_sequences': {
+		&'action_lassissian_folly': &'action_lassissian_folly',
+		&'action_gut_reactor': &'action_gut_reactor',
+		&'action_begin_riding': &'action_lassissian_folly',
+		&'action_climb_off': &'action_lassissian_folly',
+		&'action_buck_koremasa': &'action_lassissian_folly',
+	},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1316,6 +1328,11 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# the chip is how the player reads who can be Entrapped. Its rows are the reaction's
 	# (localization_key_override).
 	&'buff_entrap_mark',
+	# SP2 (Koremasa). The ride chip, on the MOUNT: it IS the mount's Impaired (design ruling 12), and
+	# it is how both players read "this mech is being ridden". Its rows are the Folly's
+	# (localization_key_override). The single-roll reduction beside it and the crit rule on the
+	# rider are hidden and correctly absent.
+	&'buff_lassissian_folly_ride',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

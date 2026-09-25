@@ -148,3 +148,73 @@ static func exploit_uses(unit:Unit) -> int:
 
 static func is_marked(unit:Unit) -> bool:
 	return UnitCondition.has_buff(unit, ENTRAP_MARK)
+
+# ---------------------------------------------------------------- SP2: the core system
+
+const CORE_ID := &'cp_overdrive_exploitation_sequences'
+const FOLLY_ACTION := &'action_lassissian_folly'
+const BEGIN_RIDING_ACTION := &'action_begin_riding'
+const CLIMB_OFF_ACTION := &'action_climb_off'
+const BUCK_ACTION := &'action_buck_koremasa'
+const RIDE_BREAK_ACTION := &'action_ride_break_koremasa'
+const GUT_REACTOR_ACTION := &'action_gut_reactor'
+const GUT_REACTOR_USAGE := &'gut_reactor'
+## The visible ride chip on the MOUNT (it IS the mount's Impaired, design ruling 12), the hidden
+## single-roll reduction beside it, and the hidden crit rule on the RIDER.
+const RIDE_BUFF := &'buff_lassissian_folly_ride'
+const SINGLE_ROLL_BUFF := &'buff_lassissian_folly_single_roll'
+const CRIT_BUFF := &'buff_lassissian_folly_crit'
+const RIDE_BUFFS:Array[StringName] = [RIDE_BUFF, SINGLE_ROLL_BUFF, CRIT_BUFF]
+
+## A game whose responder answers a SEQUENCE of prompts (testkit/mod_choice_responder.gd), and the
+## responder itself: [game, responder]. Lassissian Folly can ask "ride now?" and then disambiguate a
+## mount in one activation, and the buck's spec declines one prompt of several. add_responder = false
+## stops two responders answering the same request (maidens_blush_fixture.gd's reasoning).
+static func create_game_with_prompts(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> Array:
+	var game := SpecFactory.setup_gamemaster(test, false,
+		SpecFactory.create_combat(Landscape.create_default(map_size)), {}, false)
+	game.map.shape.forbidden_interiors_enabled = true
+	var responder = test.add_child_autoqfree(load('res://testkit/mod_choice_responder.gd').new())
+	return [game, responder]
+
+## A SIZE-2 hostile dummy anchored at `tile`, occupying tile .. tile + (1,1): the larger hostile mech
+## the card rides. change_size refreshes the cached footprint (spec_factory.gd:290-292).
+static func create_mount(game:Gamemaster, tile:Vector2i, size:int = 2,
+		faction:Faction.SIDE = Faction.AI_ENEMY) -> Unit:
+	var mount := create_hostile(game, tile, 10, 8, faction)
+	SpecFactory.change_size(mount, size)
+	UnitTile.update_tracking_and_statuses(game.map)
+	return mount
+
+static func core(unit:Unit) -> GearCore: return unit.get_gear(CORE_ID)
+
+static func specific(unit:Unit, action_id:StringName) -> SpecificAction:
+	return SpecificAction.from_id(unit, CORE_ID, action_id)
+
+## Fire one of the core Kit's own actions from the Koremasa's already-open turn.
+static func use_core(game:Gamemaster, unit:Unit, action_id:StringName, targets = [], flags:Array = []) -> void:
+	await open_turn(game, unit)
+	await SpecFactory.use(game, unit, CORE_ID, action_id, targets, flags)
+
+## The whole stackup, the way spec/test_spike_riding.gd's assert_riding reads it.
+static func is_riding(rider:Unit, mount:Unit) -> bool:
+	return (
+		Unit.is_valid(rider) and Unit.is_valid(mount) and
+		rider.tile() == mount.tile() and
+		Katamari.are_attached(rider, mount) and
+		UnitCondition.is_stackup_rider(rider) and
+		UnitCondition.is_stackup_base(mount)
+	)
+
+## Every buff this core Kit ever hangs, on either unit.
+static func ride_buffs_on(unit:Unit, rider:Unit) -> Array[BuffCore]:
+	var found:Array[BuffCore] = []
+	var gear := core(rider)
+	if not GearCore.is_valid(gear) or not Unit.is_valid(unit): return found
+	for buff_id:StringName in RIDE_BUFFS:
+		found.append_array(UnitCondition.get_buffs(unit, buff_id, gear.persistent_id))
+	return found
+
+static func gut_reactor_uses(unit:Unit) -> int:
+	var gear := core(unit)
+	return gear.get_uses_this_round_alt(GUT_REACTOR_USAGE) if GearCore.is_valid(gear) else -1

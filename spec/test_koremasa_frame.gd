@@ -36,9 +36,11 @@ const SHEET_STATS := {
 	systems_points = 6, reactions = 1, activations = 1,
 }
 
-## The sheet's trait order. The core system (cp_overdrive_exploitation_sequences) is appended at SP2,
-## which is the one sub-project that reddens this pin.
-const SHEET_TRAITS:Array[StringName] = [&'mt_plasma_shimmer', &'mt_exploit_weakness', &'mt_entrap']
+## The sheet's trait order, then the core system (design ruling 33): appended at SP2, the one
+## sub-project that moved this pin.
+const SHEET_TRAITS:Array[StringName] = [
+	&'mt_plasma_shimmer', &'mt_exploit_weakness', &'mt_entrap', &'cp_overdrive_exploitation_sequences',
+]
 
 const KOREMASA_TILE := Vector2i(4, 4)
 
@@ -99,7 +101,7 @@ func test_the_frame_carries_its_traits_in_sheet_order():
 	if frame == null: return
 	var ids:Array[StringName] = []
 	for kit:Kit in frame.traits: ids.append(kit.compcon_id)
-	assert_eq(ids, SHEET_TRAITS, 'Plasma Shimmer, Exploit Weakness, Entrap - the core joins at SP2.')
+	assert_eq(ids, SHEET_TRAITS, 'Plasma Shimmer, Exploit Weakness, Entrap, then the core system.')
 
 func test_every_trait_kit_is_in_the_content_library():
 	for trait_id:StringName in SHEET_TRAITS:
@@ -177,7 +179,9 @@ func test_the_flavour_is_the_lcp_paragraph_entire():
 	assert_eq(flavour.length(), 1134, 'The paragraph entire: 1134 characters.')
 
 func test_the_trait_rows_resolve():
-	for trait_id:StringName in SHEET_TRAITS:
+	# The three traits only: the core system's rows are its actions', not a Kit-level `.effect`
+	# (vanilla's cp_instinct_rig has none either), and the test below checks those.
+	for trait_id:StringName in SHEET_TRAITS.slice(0, 3):
 		for field:String in ['name', 'effect']:
 			var key := 'gear.%s.%s' % [trait_id, field]
 			assert_ne(X.tr(key), key, '%s resolves.' % key)

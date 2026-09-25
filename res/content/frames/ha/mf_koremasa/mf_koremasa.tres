@@ -12,6 +12,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_koremasa/mt_plasma_shimmer/mt_plasma_shimmer.tres" id="10_shimmer"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_koremasa/mt_exploit_weakness/mt_exploit_weakness.tres" id="11_exploit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_koremasa/mt_entrap/mt_entrap.tres" id="12_entrap"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_koremasa/cp_overdrive_exploitation_sequences/cp_overdrive_exploitation_sequences.tres" id="13_core"]
 
 ; DERIVED FROM THE SPRITE ART (the Gloire's and the Grutte Pier's method). Measured 2026-09-25 with the
 ; shader-literal test palette_swap_func.gdshaderinc uses (pixel == (v,0,0)/(0,v,0)/(0,0,v)/(0,v,v)):
@@ -59,10 +60,8 @@ activations = 1
 script = ExtResource("1_frame")
 default_color_scheme = SubResource("Resource_colorscheme")
 sprites = Array[Texture2D]([ExtResource("9_sprite")])
-; SHEET ORDER: Plasma Shimmer, Exploit Weakness, Entrap. The core system,
-; cp_overdrive_exploitation_sequences, is appended at SP2 - an ext_resource pointing at a file that does
-; not exist yet would fail this whole resource to parse, taking the frame out of ContentLibrary silently.
-traits = Array[ExtResource("8_kit")]([ExtResource("10_shimmer"), ExtResource("11_exploit"), ExtResource("12_entrap")])
+; SHEET ORDER: Plasma Shimmer, Exploit Weakness, Entrap, then the core system (SP2, design ruling 33).
+traits = Array[ExtResource("8_kit")]([ExtResource("10_shimmer"), ExtResource("11_exploit"), ExtResource("12_entrap"), ExtResource("13_core")])
 ; Flex, Main/Aux - the sheet's order.
 mount_types = Array[ExtResource("5_mounttype")]([ExtResource("6_mountflex"), ExtResource("7_mountmainaux")])
 stat = SubResource("Resource_statblock")
