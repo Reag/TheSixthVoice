@@ -1,0 +1,13 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/buff_zwarte_hoop_accuracy.gd" id="1_buff"]
+
+; Zwarte Hoop: +N to the attack roll (ruling 13). Hidden; the count is BuffCore.state n.
+[resource]
+script = ExtResource("1_buff")
+bonus_subtype = &"flat"
+to = &"attack_roll"
+; Lancer.UNTIL.FINISH_DAMAGE
+until = 9
+hide_from_player = true
+localization_key_override = "cp_inevitability_core.action_zwarte_hoop_spend"

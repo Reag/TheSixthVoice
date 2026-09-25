@@ -1,0 +1,13 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/action_zwarte_hoop_spend.gd" id="1_action"]
+
+; ZWARTE HOOP: the spend loop, and the face of the passive on the card (see the script header).
+; ATTACK_DECLARED PRE (trigger_timing 0), no reaction point, never logged.
+[resource]
+script = ExtResource("1_action")
+triggers_on = Array[StringName]([&"attack_declared"])
+trigger_timing = 0
+consumes_rxn = false
+suppress_logging = true
+usage_group = &"action_zwarte_hoop_spend"

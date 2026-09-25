@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="2_action"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="3_passive"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/passive_zwarte_hoop_charges.tres" id="4_charges"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/passive_patience_aura.tres" id="5_aura"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/action_patience_in_all_things.tres" id="6_patience"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/action_zwarte_hoop_tally.tres" id="7_tally"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/action_zwarte_hoop_gain.tres" id="8_gain"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/action_zwarte_hoop_lapse.tres" id="9_lapse"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/action_patience_charge.tres" id="10_charge"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/action_zwarte_hoop_spend.tres" id="11_spend"]
+
+[resource]
+script = ExtResource("1_kit")
+; THE INEVITABILITY CORE, the Grutte Pier's core system (SP2, design rulings 6-17).
+;
+; THE cp_ PREFIX IS WHAT ROUTES IT TO THE CORE SYSTEM BOX (resgrp_kits' **/cp_*.tres glob).
+;
+; THE COUNTER IS passives[0] ON PURPOSE: the gear bar draws a Kit's die-counter badge only from its
+; first passive, on a Kit with a visible non-reaction action (linked_gear_bar_button.gd:49-56) - the
+; protocol is that action.
+;
+; THE PROTOCOL IS actions[0] ON PURPOSE: get_solo_action() is kit.actions[0] (gear_core.gd:337-339).
+; Every other action is a hidden reaction, never on the gear bar or the card.
+actions = Array[ExtResource("2_action")]([ExtResource("6_patience"), ExtResource("11_spend"), ExtResource("7_tally"), ExtResource("8_gain"), ExtResource("9_lapse"), ExtResource("10_charge")])
+passives = Array[ExtResource("3_passive")]([ExtResource("4_charges"), ExtResource("5_aura")])
+; A frame trait, not equippable gear: no SP, cannot be unequipped.
+is_trait = true

@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ipsn/mf_grutte_pier/mf_grutte_pier.png" id="8_sprite"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/mt_panoply_coat/mt_panoply_coat.tres" id="9_panoply"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/mt_bulwark/mt_bulwark.tres" id="10_bulwark"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/cp_inevitability_core.tres" id="11_core"]
 
 ; DERIVED FROM THE SPRITE ART (the Gloire's method). Measured 2026-09-25 with the shader-literal test
 ; palette_swap_func.gdshaderinc uses (pixel == (v,0,0)/(0,v,0)/(0,0,v)/(0,v,v)): mf_grutte_pier.png
@@ -50,7 +51,7 @@ activations = 1
 script = ExtResource("1_frame")
 default_color_scheme = SubResource("Resource_colorscheme")
 sprites = Array[Texture2D]([ExtResource("8_sprite")])
-traits = Array[ExtResource("7_kit")]([ExtResource("9_panoply"), ExtResource("10_bulwark")])
+traits = Array[ExtResource("7_kit")]([ExtResource("9_panoply"), ExtResource("10_bulwark"), ExtResource("11_core")])
 mount_types = Array[ExtResource("4_mounttype")]([ExtResource("5_mountmain"), ExtResource("6_mountheavy")])
 stat = SubResource("Resource_statblock")
 role_primary = 2
