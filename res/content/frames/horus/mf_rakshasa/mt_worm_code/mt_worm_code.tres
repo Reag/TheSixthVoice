@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/mt_worm_code/action_worm_code.tres" id="3_worm"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_worm_code.svg" id="4_icon"]
 
 ; WORM CODE (design 1.2): one hidden forced_save POST reaction that, on a hostile character failing a
 ; save the Rakshasa forced, may deal it 2 heat, 1/round. No passive, no pressable: the Kit's card is
@@ -11,3 +12,4 @@
 script = ExtResource("2_kit")
 actions = Array[ExtResource("1_action")]([ExtResource("3_worm")])
 is_trait = true
+icon_override = ExtResource("4_icon")

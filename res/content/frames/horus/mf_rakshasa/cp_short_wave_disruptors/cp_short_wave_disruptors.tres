@@ -8,6 +8,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_soulbind.tres" id="6_soul"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_entrap_rakshasa.tres" id="7_entrap"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_neuro_hijack.tres" id="8_hijack"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_short_wave_disruptors.svg" id="9_icon"]
 
 ; SHORT WAVE DISRUPTORS, the core system (design 1.1, 2). SP1 shipped it empty with its name and
 ; flavour rows; SP2 adds the Mask of Many Faces menu and three of its modes' reactions - Drain,
@@ -23,3 +24,4 @@
 script = ExtResource("2_kit")
 actions = Array[ExtResource("1_action")]([ExtResource("3_mask"), ExtResource("4_drain"), ExtResource("5_stab"), ExtResource("6_soul"), ExtResource("7_entrap"), ExtResource("8_hijack")])
 is_trait = true
+icon_override = ExtResource("9_icon")
