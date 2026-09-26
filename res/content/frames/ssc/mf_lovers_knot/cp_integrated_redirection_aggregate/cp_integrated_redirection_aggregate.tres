@@ -12,6 +12,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/action_efficient_refund.tres" id="10_efficient"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/action_form_of_the_myriad.tres" id="11_myriad"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/efficient/passive_efficient_used.tres" id="12_stamp"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_integrated_redirection_aggregate.svg" id="13_icon"]
 
 ; INTEGRATED REDIRECTION AGGREGATE, the core system (design 1.1). SP2 adds Gemini Charge, the passive
 ; half: one applicator hanging four permanent hidden buffs on the Knot, reapplied each turn - the
@@ -19,7 +20,8 @@
 ; suppression, the scoped picker). The three stand down for any attack the trigger did not record. SP3
 ; adds Form of the Myriad, the active, with its Efficient pair: the Knot's own action_efficient_refund
 ; (the shared reaction script) and the shared passive_efficient_used.tres. The LCP's core_system has no
-; description, so there is no flavour row. SP4: icon.
+; description, so there is no flavour row. SP4: Gemini Charge has no action of its own, so the Kit's
+; glyph IS Gemini's family; Form of the Myriad is its own family, on the action.
 [sub_resource type="Resource" id="Resource_gemini"]
 script = ExtResource("3_applicator")
 applied_buffs = Array[ExtResource("2_buff")]([ExtResource("5_gemini"), ExtResource("6_shared_roll"), ExtResource("7_ignore_cover"), ExtResource("8_leg_tiles")])
@@ -35,3 +37,4 @@ actions = Array[ExtResource("9_action")]([ExtResource("10_efficient"), ExtResour
 ; every spawn runs short_repair - without it the refund's unit_spawn half reads an empty state.
 passives = Array[ExtResource("1_passive")]([SubResource("Resource_gemini"), ExtResource("12_stamp")])
 is_trait = true
+icon_override = ExtResource("13_icon")
