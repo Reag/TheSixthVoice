@@ -20,7 +20,17 @@
 ## ground. The talents mod's unit_tile.gd_ext.gd overrides get_unit_elevation_off_ground and calls
 ## super, so a zero-G unit counts at its hover height too - which is what elevation means on the card.
 ## Do NOT read UnitBattleState.PROP.ELEVATION instead: it likely double-counts flight (:294).
+##
+## A GRAPPLED KNOT TAKES NO REACTIONS. ActionReactionMovement.is_available_to_activate REPLACES
+## ActionReaction's without calling it (action_reaction_movement.gd:44-49), so it checks only Slowed and
+## Immobilized - and the larger party in a grapple is neither (unit_condition.gd:416). The override adds
+## back the one engine rule that says so, UnitAction.can_take_reactions (unit_action.gd:378-386), which
+## is what ActionReaction itself asks. Vanilla Acrobatics has the same gap; close review 2026-09-26.
 extends ActionReactionMovement
+
+func is_available_to_activate(unit:Unit, gear:GearCore) -> bool:
+	if not super(unit, gear): return false
+	return UnitAction.can_take_reactions(unit, Context.create({unit = unit, gear = gear, action = self}))
 
 func get_required_triggering_context() -> Array[Context.PROP]:
 	return [

@@ -82,12 +82,19 @@ func confirm_modification(_core:BuffCore, roll:AttackRoll, activation:EventCore)
 
 ## Cover measured from the leg's own start (ruling 10), as PreAttack.create measures it from the
 ## attacker. The engine's cover from the Knot never reached this roll: buff_gemini_ignore_cover
-## suppressed it.
+## suppressed it. Every gate PreAttack.create applies is applied here too (attack_roll.gd:131, :154-161):
+## the weapon's own ignores_cover, the Knot's attacker-side IGNORE_COVER - Gunslinger III, See Through
+## Seeker - OTHER than Gemini's own suppressor, and the target's refusal.
 static func add_leg_cover(roll:AttackRoll, context:Context, summary) -> void:
 	var action = context.action
 	if not (action is ActionAttackWeapon) or action.ignores_cover(context): return
 	var target:Unit = context.target_unit
 	var knot:Unit = context.unit.get_attacker(context)
+	var knot_ignores:Array[BuffCore] = UnitCondition.get_buffs_to(knot, Buff.TO.IGNORE_COVER, context)
+	Util.filter(knot_ignores, func(core:BuffCore) -> bool: return core.base.compcon_id != Record.GEMINI_IGNORE_COVER)
+	if not knot_ignores.is_empty():
+		roll.pre.applied_buffs.append_array(knot_ignores)
+		return
 	var result := CoverCalculator.determine_cover(target, knot, Record.leg_start_voxels(summary, target))
 	var refusing := UnitCondition.get_buffs_to(target, Buff.TO.IGNORE_COVER, Context.clone(context, {category = result.total}))
 	roll.pre.applied_buffs.append_array(refusing)

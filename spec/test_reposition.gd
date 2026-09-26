@@ -201,3 +201,19 @@ func test_declining_costs_nothing():
 	assert_eq(offers(), 1, 'Fixture: it was offered.')
 	assert_eq(knot.state.tile, KNOT_TILE, 'A declined offer moves nothing.')
 	assert_eq(knot.core.current.reactions, 1, 'And keeps the reaction.')
+
+# A Grappled Knot takes no reactions (UnitAction.can_take_reactions), even as the LARGER party, which
+# is not Immobilized - the one gate ActionReactionMovement's own is_available_to_activate checks
+# (close review 2026-09-26: it replaces ActionReaction's without calling it).
+func test_a_grappled_knot_cannot_reposition():
+	raise_plateau()
+	UnitCondition.apply_status(SpecFactory.dummy_event(), knot, Lancer.STATUS.GRAPPLED, Lancer.UNTIL.MANUAL)
+	knot.state.is_larger_in_grapple = true
+	assert_true(knot.has_status(Lancer.STATUS.GRAPPLED), 'Fixture: Grappled.')
+	assert_false(UnitCondition.is_immobilized(knot), 'Fixture: the larger party, so not Immobilized.')
+	var shooter:Unit = Fixture.create_hostile(game, SHOOTER_TILE)
+	arm(true)
+	await miss_from(shooter)
+	assert_eq(knot.current_damage(), RELIABLE, 'Fixture: the shot went off and missed.')
+	assert_eq(offers(), 0, 'A Grappled Knot is not offered Reposition.')
+	assert_eq(knot.state.tile, KNOT_TILE, 'And does not move.')

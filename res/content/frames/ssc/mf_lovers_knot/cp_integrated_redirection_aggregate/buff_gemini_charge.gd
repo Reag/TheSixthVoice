@@ -17,7 +17,8 @@
 ##   3. The first leg alone gets the yes/no (7, 18). Then vanilla's proxy picker, narrowed to that set
 ##      by buff_gemini_leg_tiles. A decline or a cancel ends the chain, and the round is only stamped
 ##      if a leg was committed.
-##   4. Commit: a Line is cut past the contact - the shot BENDS (13); every leg's units and tiles are
+##   4. Commit: a Line is cut past the contact - the shot BENDS (13) - and, under the Myriad, each leg is
+##      cut again past the character the NEXT leg starts from (18); every leg's units and tiles are
 ##      appended; the declared flags are REPLACED with HALF_DAMAGE added (14); the record goes on the
 ##      summary for the three permanent buffs to read; each leg's tracer is drawn; the round is stamped.
 ##
@@ -33,6 +34,15 @@
 ## THE MYRIAD CHAIN (SP3, rulings 18-19) is already the loop's shape: under buff_form_of_the_myriad
 ## the leg count is 4, every leg has the weapon's full reach, and each leg starts from the character
 ## the previous one reached. Without the chip it is one leg at the remaining reach.
+##
+## A LINE BENDS AT EVERY LEG (ruling 18, confirmed by the author at the close review, 2026-09-26): once
+## the next leg is committed, a Line leg keeps only what it reached up to the character the next leg
+## starts from. The LAST committed leg is never cut - nothing bends it - and a leg whose next picker is
+## cancelled stays whole. Exclusion follows the bend: the next leg may reach a character that lay past
+## it, since the shot never touched them (the SP2 reading of ruling 12, extended).
+##
+## BANNED TARGETS: every aim and every leg's units are also checked against the KNOT's own
+## ACTION_BANNED_UNITS (Record.is_banned) - a leg's SpecificAction is a buffless proxy's.
 extends Buff
 
 const Record := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/gemini_record.gd')
@@ -73,7 +83,7 @@ func activate(core:BuffCore, activation:EventCore) -> void:
 	var kept_tiles:Array[Vector2i] = summary.all_attacked_tiles.duplicate()
 	var kept_units:Array[Unit] = summary.all_attacked_units.duplicate()
 	if line:
-		reach_to_contact = contact_distance_along_line(knot, contact, summary)
+		reach_to_contact = contact_distance_along_line(knot, contact, summary.all_attacked_tiles)
 		Util.filter(kept_tiles, func(tile:Vector2i) -> bool: return Tile.distance(knot.tile(), tile) <= reach_to_contact)
 		Util.filter(kept_units, func(unit:Unit) -> bool:
 			return Unit.is_valid(unit) and unit.occupied_tiles().any(func(tile:Vector2i) -> bool: return kept_tiles.has(tile)))
@@ -81,7 +91,7 @@ func activate(core:BuffCore, activation:EventCore) -> void:
 	var myriad:bool = UnitCondition.has_buff(knot, Record.MYRIAD_CHIP)
 	var max_legs:int = Record.MYRIAD_LEGS if myriad else 1
 	var excluded:Array[Unit] = kept_units.duplicate() # the Knot itself is refused by is_new_character
-	var legs:Array[Dictionary] = [] # {start:Unit, start_voxels, units:Array[Unit], tiles:Array[Vector2i], end:Vector2i}
+	var legs:Array[Dictionary] = [] # {start:Unit, start_voxels, units, tiles, end} (+ bent_units, bent_tiles, bent_end for a Line)
 	var start:Unit = contact
 
 	for leg_index:int in max_legs:
@@ -102,12 +112,13 @@ func activate(core:BuffCore, activation:EventCore) -> void:
 		if activation.abort_without_unit(knot): return
 		if plan == null or plan.aborted: break
 
-		var reached := resolve_leg(knot, plan, start, reach, line, allowed, excluded)
+		var reached := resolve_leg(knot, context.gear, leg, plan, start, reach, line, allowed, excluded)
 		if reached.units.is_empty(): break
+		if line and not legs.is_empty(): bend(legs.back()) # this leg is committed: the previous one bends here
 		reached.start = start
 		reached.start_voxels = UnitTile.get_occupied_voxels(start)
 		legs.append(reached)
-		excluded.append_array(reached.units)
+		excluded.append_array(reached.bent_units if line else reached.units)
 		start = reached.next_start
 
 	if legs.is_empty(): return
@@ -126,16 +137,23 @@ static func make_leg(action:ActionAttackWeapon, reach:int, line:bool) -> ActionA
 		leg.aim_range = reach
 	return leg
 
-## Where a Line first meets the contact: the nearest of the contact's tiles that the line crossed. A
-## Line is drawn in rings of Chebyshev distance from the Knot (aoe_calculator.gd:143), so everything at
-## a greater distance is past the contact.
-static func contact_distance_along_line(knot:Unit, contact:Unit, summary:DeclaredAttackSummary) -> int:
+## Where a Line drawn from `origin` first meets `contact`: the nearest of the contact's tiles that the
+## line crossed. A Line is drawn in rings of Chebyshev distance from its origin (aoe_calculator.gd:143),
+## so everything at a greater distance is past the contact. The first bend measures from the Knot, every
+## later one from the leg's start.
+static func contact_distance_along_line(origin:Unit, contact:Unit, tiles:Array[Vector2i]) -> int:
 	var best := -1
 	for tile:Vector2i in contact.occupied_tiles():
-		if not summary.all_attacked_tiles.has(tile): continue
-		var distance:int = Tile.distance(knot.tile(), tile)
+		if not tiles.has(tile): continue
+		var distance:int = Tile.distance(origin.tile(), tile)
 		if best < 0 or distance < best: best = distance
-	return best if best >= 0 else UnitRelation.distance_between(knot, contact)
+	return best if best >= 0 else UnitRelation.distance_between(origin, contact)
+
+## A committed Line leg that another leg continues from: cut past the character it bends at (ruling 18).
+static func bend(leg:Dictionary) -> void:
+	leg.units = leg.bent_units
+	leg.tiles = leg.bent_tiles
+	leg.end = leg.bent_end
 
 static func line_tiles(knot:Unit, start:Unit, aim:Vector2i, reach:int) -> Array[Vector2i]:
 	return AoeCalculator.line(start.tile(), aim, reach, knot.map.shape)
@@ -152,11 +170,13 @@ static func allowed_aims(knot:Unit, gear:GearCore, leg:ActionAttackWeapon, start
 	for tile:Vector2i in UnitTargeting.get_tiles_targetable(specific):
 		if line:
 			var on_leg:Array = knot.map.get_all_units_at_tiles(line_tiles(knot, start, tile, reach), knot)
-			if on_leg.any(func(unit:Unit) -> bool: return Record.is_new_character(unit, knot, excluded)):
+			if on_leg.any(func(unit:Unit) -> bool:
+				return Record.is_new_character(unit, knot, excluded) and not Record.is_banned(knot, gear, leg, unit)):
 				allowed.append(tile)
 		else:
 			for unit:Unit in knot.map.get_all_units_at_tile(tile, proxy):
-				if Record.is_new_character(unit, knot, excluded) and leg.can_target_unit(unit, specific):
+				if (Record.is_new_character(unit, knot, excluded) and leg.can_target_unit(unit, specific)
+						and not Record.is_banned(knot, gear, leg, unit)):
 					allowed.append(tile)
 					break
 	if Unit.is_valid(proxy): proxy.remove_from_game()
@@ -180,9 +200,11 @@ func ask_yes_no(core:BuffCore, knot:Unit, contact:Unit) -> bool:
 ## What a committed leg reaches. The plan is re-checked against the set the picker was narrowed to, so
 ## a pick of the contact or the Knot - which the harness, unlike the real picker, would pass - adds
 ## nothing. For a single-target weapon, the picked character; for a Line, every unit on the leg not yet
-## attacked (every character on it is hit, ruling 13), and the leg continues from the first character.
-static func resolve_leg(knot:Unit, plan:CompconPlan, start:Unit, reach:int, line:bool,
-		allowed:Array[Vector2i], excluded:Array[Unit]) -> Dictionary:
+## attacked (every character on it is hit, ruling 13), and the leg continues from the first character -
+## with, for a Line, the part up to that character kept aside as bent_* in case another leg follows. A
+## unit the Knot may not target is skipped, as the engine drops it from an AoE (action_attack.gd:172).
+static func resolve_leg(knot:Unit, gear:GearCore, leg:ActionAttackWeapon, plan:CompconPlan, start:Unit,
+		reach:int, line:bool, allowed:Array[Vector2i], excluded:Array[Unit]) -> Dictionary:
 	var reached := {units = [] as Array[Unit], tiles = [] as Array[Vector2i], next_start = null, end = start.tile()}
 	if line:
 		if plan.target_tiles.is_empty() or not allowed.has(plan.target_tiles[0]): return reached
@@ -192,13 +214,25 @@ static func resolve_leg(knot:Unit, plan:CompconPlan, start:Unit, reach:int, line
 		var nearest := -1
 		for unit:Unit in knot.map.get_all_units_at_tiles(tiles, knot):
 			if not Unit.is_valid(unit) or unit == knot or excluded.has(unit) or reached.units.has(unit): continue
+			if Record.is_banned(knot, gear, leg, unit): continue
 			reached.units.append(unit)
 			if not Record.is_new_character(unit, knot, excluded): continue
 			var distance:int = UnitRelation.distance_between(start, unit)
 			if nearest < 0 or distance < nearest:
 				nearest = distance
 				reached.next_start = unit
-		if reached.next_start == null: reached.units.clear() # no character on it: not a leg (ruling 13)
+		if reached.next_start == null:
+			reached.units.clear() # no character on it: not a leg (ruling 13)
+			return reached
+		var bend_at := contact_distance_along_line(start, reached.next_start, tiles)
+		var bent_tiles:Array[Vector2i] = []
+		bent_tiles.assign(tiles.filter(func(tile:Vector2i) -> bool: return Tile.distance(start.tile(), tile) <= bend_at))
+		var bent_units:Array[Unit] = []
+		bent_units.assign(reached.units.filter(func(unit:Unit) -> bool:
+			return unit.occupied_tiles().any(func(tile:Vector2i) -> bool: return bent_tiles.has(tile))))
+		reached.bent_tiles = bent_tiles
+		reached.bent_units = bent_units
+		reached.bent_end = reached.next_start.tile()
 	else:
 		var picked:Array[Unit] = []
 		picked.assign(plan.target_units)
@@ -206,6 +240,7 @@ static func resolve_leg(knot:Unit, plan:CompconPlan, start:Unit, reach:int, line
 			for tile:Vector2i in plan.target_tiles: picked.append_array(knot.map.get_all_units_at_tile(tile, knot))
 		for unit:Unit in picked:
 			if not Record.is_new_character(unit, knot, excluded): continue
+			if Record.is_banned(knot, gear, leg, unit): continue
 			if not unit.occupied_tiles().any(func(tile:Vector2i) -> bool: return allowed.has(tile)): continue
 			reached.units.append(unit)
 			reached.tiles.append_array(unit.occupied_tiles())

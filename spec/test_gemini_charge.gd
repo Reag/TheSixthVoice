@@ -83,6 +83,29 @@ class AutoHitMe extends BuffModifyAttackRoll:
 		is_onetime = false
 		hide_from_player = true
 
+## The holder's own attacks ignore cover, from the ATTACKER's side: Gunslinger III's shape
+## (buff_i_kill_with_my_heart_cover.gd). Answers only as the attacker, never as a target.
+class KnotIgnoresCover extends Buff:
+	func _init() -> void:
+		compcon_id = &'buff_spec_gemini_knot_ignores_cover'
+		to = Buff.TO.IGNORE_COVER
+		hide_from_player = true
+	func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
+		var holder:Unit = core.get_holder_unit(context.map)
+		if not Unit.is_valid(holder) or not Unit.is_valid(context.unit): return false
+		return context.unit.get_attacker(context) == holder and context.target_unit != holder
+
+## The holder may not target one named unit: Sanctuary's shape (ACTION_BANNED_UNITS, read against
+## specific.unit in action_attack_weapon.gd can_target_unit).
+class BanOneUnit extends Buff:
+	var banned:Unit
+	func _init() -> void:
+		compcon_id = &'buff_spec_gemini_ban_one_unit'
+		to = Buff.TO.ACTION_BANNED_UNITS
+		hide_from_player = true
+	func check_if_passive_applies(_core:BuffCore, context:Context) -> bool:
+		return Unit.is_valid(banned) and context.target_unit == banned
+
 
 # ============ FIXTURE ============
 
@@ -458,6 +481,51 @@ func test_cover_measured_from_the_knot_is_not_applied_to_the_redirected_target()
 	assert_eq(roll.pre.cover, Lancer.COVER.NONE, 'The Knot\'s cover is suppressed for the redirected target.')
 	assert_eq(roll.pre.accuracy_mods_total(), 0, 'No difficulty from it.')
 	assert_true(roll.hit, '14 hits.')
+
+# The Knot's OWN attacker-side IGNORE_COVER reaches the leg's cover too, as it reaches the engine's
+# (attack_roll.gd:131, :156). CONTROL: test_the_redirected_targets_own_cover_from_the_contact_changes_only_its_total
+# is the same geometry without it, and the leg gives HARD. Close review 2026-09-26.
+func test_the_knots_own_ignore_cover_reaches_the_redirected_target() -> void:
+	SpecFactory.set_blocks_to_height(game.get_landscape_node(), 1, [LOW_BLOCK])
+	var second := second_at()
+	UnitTile.update_tracking_and_statuses(game.map)
+	assert_eq(CoverCalculator.determine_cover(second, knot, UnitTile.get_occupied_voxels(contact)).total, Lancer.COVER.HARD,
+		'Fixture: from the contact\'s space, HARD cover.')
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), knot, KnotIgnoresCover.new())
+	await fire(Fixture.RANGED, contact, [14], [plan_unit(second)])
+	var roll := roll_against(second)
+	if roll == null:
+		fail_test('the redirected roll must exist')
+		return
+	assert_eq(roll.pre.cover, Lancer.COVER.NONE, 'The Knot ignores cover: no leg cover either.')
+	assert_eq(roll.pre.accuracy_mods_total(), 0, 'No difficulty.')
+	assert_true(roll.hit, '14 hits.')
+
+
+# ============ BANNED TARGETS (close review 2026-09-26) ============
+# ACTION_BANNED_UNITS is read against specific.unit, and a leg's specific is a buffless proxy - so the
+# redirect has to ask the KNOT. Sanctuary, False Idol, Cast Doubt and our own Grey Birds are this shape.
+
+func test_a_character_the_knot_may_not_target_is_not_offered() -> void:
+	var second := second_at()
+	var ban := BanOneUnit.new()
+	ban.banned = second
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), knot, ban)
+	await fire(Fixture.RANGED, contact, [14], [plan_unit(second)])
+	assert_gt(contact.current_damage(), 0, 'Guard: the shot itself went off.')
+	assert_eq(yesnos(), 0, 'The only other character is banned: nothing to offer.')
+	assert_eq(second.current_damage(), 0, 'And it is not hit.')
+
+func test_a_banned_character_on_a_line_leg_is_not_hit() -> void:
+	var second := second_at()
+	var ban := BanOneUnit.new()
+	ban.banned = second
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), knot, ban)
+	Fixture.equip(knot, Fixture.LINE)
+	await fire(Fixture.LINE, LINE_AIM, [14], [plan_tile(LINE_SECOND_AIM)])
+	assert_gt(contact.current_damage(), 0, 'Guard: the rail went off.')
+	assert_eq(yesnos(), 0, 'The only character on any leg is banned: nothing to offer.')
+	assert_eq(second.current_damage(), 0, 'And it is not hit.')
 
 func test_a_total_of_20_crits_the_redirected_target_only() -> void:
 	var second := second_at()

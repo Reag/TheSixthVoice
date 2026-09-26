@@ -45,9 +45,10 @@ const LINE_AIM := Vector2i(11, 4)
 const PAST_TILE := Vector2i(6, 4) # on the first line, past the contact: cut when it bends
 const LINE_LEG_1_AIM := Vector2i(4, 14) # due south from the contact, the full 10
 const LINE_B := Vector2i(4, 8) # the nearest character on the first leg: the next leg starts here
-const LINE_X := Vector2i(4, 11) # also on the first leg: hit, but not where the chain continues
+const LINE_X := Vector2i(4, 11) # also on the first leg, past B: CUT once leg 2 bends at B (ruling 18)
 const LINE_LEG_2_AIM := Vector2i(14, 8) # due east from B, the full 10
 const LINE_C := Vector2i(9, 8)
+const LINE_Y := Vector2i(12, 8) # on leg 2, past C: HIT, because no leg bends at C (the third picker is cancelled)
 const RESPAWN_TILE := Vector2i(10, 2)
 
 const SIXES:Array[int] = [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6]
@@ -231,6 +232,31 @@ func test_cancelling_the_chooser_spends_the_power_and_keeps_the_chip_for_this_tu
 	assert_eq(b.current_damage(), 3, 'A later rifle shot this turn chains: the first leg.')
 	assert_eq(c.current_damage(), 3, 'And the second.')
 
+# "Choose a weapon you have mounted, you may attack with it" - ONE weapon. The Knot's own Main and Heavy
+# mounts have no secondary slot, but Improved Armament's flex mount holds two Aux, and CAN_FOLLOWUP (a
+# Skirmish's permission, copied from Rend) fired the second one free (close review 2026-09-26).
+func test_the_myriad_fires_one_weapon_even_from_a_two_aux_mount() -> void:
+	var armament:Kit = ContentLibrary.get_kit(&'cb_improved_armament')
+	assert_true(Kit.is_valid(armament), 'Fixture: Improved Armament is in the kits index.')
+	if not Kit.is_valid(armament): return
+	knot.core.pilot.core_bonuses.append(armament)
+	knot.core.full_repair_and_regenerate_loadout()
+	var flex:MountCore = knot.core.loadout.mounts.back()
+	flex.equip_primary(&'mw_pistol')
+	flex.equip_secondary(&'mw_nexus_light')
+	SpecFactory.apply_passive_buffs(knot)
+	var pistol := knot.get_gear(&'mw_pistol')
+	var nexus := knot.get_gear(&'mw_nexus_light')
+	assert_true(GearCore.is_valid(pistol) and GearCore.is_valid(nexus), 'Fixture: two Aux weapons are mounted.')
+	if not (GearCore.is_valid(pistol) and GearCore.is_valid(nexus)): return
+	assert_eq(knot.core.loadout.get_mount_for_gear(nexus), knot.core.loadout.get_mount_for_gear(pistol), 'Fixture: on ONE mount.')
+	var pistol_index := gear_ids(MyriadAction.myriad_weapons(knot)).find('mw_pistol')
+	assert_gt(pistol_index, -1, 'Fixture: the pistol is offered.')
+	await press([14, 14], [plan_unit(contact), plan_unit(contact)], [pistol_index])
+	assert_gt(contact.current_damage(), 0, 'Guard: the pistol shot landed.')
+	assert_eq(nexus.get_uses_this_turn(), 0, 'No free follow-up from the other Aux.')
+	assert_eq(responder.plan_prompts.size(), 1, 'One targeting prompt: the pistol\'s.')
+
 
 # ============ THE CHAIN (ruling 18) ============
 
@@ -295,6 +321,7 @@ func test_a_line_chain_bends_at_each_leg() -> void:
 	var b := dummy(LINE_B)
 	var x := dummy(LINE_X)
 	var c := dummy(LINE_C)
+	var y := dummy(LINE_Y)
 	await press([14], [plan_tile(LINE_AIM), plan_tile(LINE_LEG_1_AIM), plan_tile(LINE_LEG_2_AIM), CompconPlan.create_aborted()], [rail_index])
 	var found := legs()
 	assert_eq(found.size(), 3, 'Two committed legs, and the third picker cancelled.')
@@ -304,8 +331,9 @@ func test_a_line_chain_bends_at_each_leg() -> void:
 		assert_eq(found[1].origin, LINE_B, 'Leg 2 bends at the NEAREST character on leg 1.')
 		assert_eq(found[1].reach, 10, 'Also the full Line 10.')
 	assert_eq(past.current_damage(), 0, 'Past the contact on the first line: cut.')
-	for unit:Unit in [contact, b, x, c]:
-		assert_eq(unit.current_damage(), 4, '%s: 1d6+1 = 7, halved up to 4 (every character on a leg is hit).' % unit.tile())
+	assert_eq(x.current_damage(), 0, 'Past B on leg 1: cut, because the shot bends again at B (ruling 18, author 2026-09-26).')
+	for unit:Unit in [contact, b, c, y]:
+		assert_eq(unit.current_damage(), 4, '%s: 1d6+1 = 7, halved up to 4 (every character up to a bend is hit).' % unit.tile())
 
 
 # ============ PRECISION VENTING (ruling 20) ============
