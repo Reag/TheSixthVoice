@@ -49,6 +49,10 @@ func before_each() -> void:
 	rakshasa = Fixture.create_rakshasa(game, RAKSHASA_TILE)
 	first = Fixture.create_hostile(game, FIRST_TILE)
 	second = Fixture.create_hostile(game, SECOND_TILE)
+	# SP2: every Rakshasa turn start now raises the Mask menu, and the responder's default answer (0)
+	# is Drain, which adds Impaired and 1 heat to an invade hit - a second effect on the very numbers
+	# these tests read. Ensorcel changes nothing an attack does (it is a Scan variant, SP3).
+	responder.chosen_multiple_choice_index = Fixture.MODE.ENSORCEL
 
 func after_each() -> void:
 	Dice.CHEAT_ROLL_QUEUE.clear()

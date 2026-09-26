@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+; A MASK OF MANY FACES mode chip (design 2.1, ruling 15). NO `to`, NO statuses: nothing in the engine
+; reads this resource. It says which mode is held, and the mode's own reaction on the core Kit gates on
+; it (short_wave_disruptors.holds). Lancer.UNTIL.START_OF_TURN is index 3 (lancer.gd:46-48): the card's
+; "until the start of your next turn". VISIBLE; SP5: icon.
+until = 3

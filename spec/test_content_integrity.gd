@@ -1094,8 +1094,12 @@ const ICON_TARGETS := {
 	# PRE pay reaction (localization_key_override, show_in_tooltip false). The Kit is its only surface;
 	# the reroll prompt names the trait through the pay reaction. SP5: icon.
 	&'mt_silver_tongue': {},
-	# SP1 (Rakshasa). SHORT WAVE DISRUPTORS ships empty; SP2-SP4 add its rows here. SP5: icons.
-	&'cp_short_wave_disruptors': {},
+	# SP1-SP2 (Rakshasa). SHORT WAVE DISRUPTORS. The Mask of Many Faces menu is the one action the card
+	# draws (its own effect row, the passive's LCP text), and it wears the KIT's glyph: design section 5
+	# gives the Kit, the menu and every mode one family. Drain, Stabilizer Override and Soulbind are hidden
+	# reactions (localization_key_override), so the guard asserts they are NOT listed. SP3-SP4 add rows
+	# here. SP5: icons.
+	&'cp_short_wave_disruptors': {&'action_mask_of_many_faces': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1387,6 +1391,15 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# attack this turn is still to come (ruling 30): the player's reminder that the chance is live.
 	# Its own rows, titled for the mod.
 	&'buff_juxtaposition_augments',
+	# SP2 (Rakshasa). The Mask of Many Faces' five mode chips (design 2.1, ruling 15), card order: the
+	# only on-token sign of which mode is held this turn. They do nothing themselves - each mode's hidden
+	# reaction on the core Kit gates on its chip - and carry their option's LCP text as their own rows.
+	# Entrap's and Ensorcel's effects are SP3's. Icons are SP5's, one family with the core Kit.
+	&'buff_mask_drain',
+	&'buff_mask_entrap',
+	&'buff_mask_stabilizer_override',
+	&'buff_mask_soulbind',
+	&'buff_mask_ensorcel',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

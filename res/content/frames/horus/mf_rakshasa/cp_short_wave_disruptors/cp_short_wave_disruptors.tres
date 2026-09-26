@@ -1,13 +1,22 @@
 [gd_resource type="Resource" script_class="Kit" format=3]
 
-[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_mask_of_many_faces.tres" id="3_mask"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_drain.tres" id="4_drain"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_stabilizer_override.tres" id="5_stab"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_soulbind.tres" id="6_soul"]
 
-; SHORT WAVE DISRUPTORS, the core system (design 1.1). Shipped EMPTY at SP1 with its name and flavour
-; rows so the frame's trait order is final from the start; SP2 adds the Mask of Many Faces menu,
-; Drain, Stabilizer Override and Soulbind, SP3 Entrap and Ensorcel, SP4 Neuro-Hijack.
+; SHORT WAVE DISRUPTORS, the core system (design 1.1, 2). SP1 shipped it empty with its name and
+; flavour rows; SP2 adds the Mask of Many Faces menu and three of its modes' reactions - Drain,
+; Stabilizer Override and Soulbind (each hidden, each on its own usage_group so no two share a round
+; or a turn, memory lancer-tactics-reactions-and-usage). SP3 adds Entrap and Ensorcel, SP4 Neuro-Hijack.
+;
+; ORDER: the passive's menu first - it is the one action the card draws - then the modes in card order.
 ;
 ; KEEP THIS KIT NON-TECH (design 2.1's trap): if it ever carries a tech action, every reaction on it is
 ; refused against tech-immune units (unit_action.gd:567-571, action_reaction.gd:107-110). SP5: icon.
 [resource]
-script = ExtResource("1_kit")
+script = ExtResource("2_kit")
+actions = Array[ExtResource("1_action")]([ExtResource("3_mask"), ExtResource("4_drain"), ExtResource("5_stab"), ExtResource("6_soul")])
 is_trait = true

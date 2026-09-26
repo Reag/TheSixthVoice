@@ -895,3 +895,22 @@ gear.mt_silver_tongue.name,Silver Tongue
 gear.mt_silver_tongue.effect,"1/round, when the Rakshasa misses with a |tech attack|, it may take 2 |heat| to reroll the attack against a different target within |Sensors| and |line of sight|."
 gear.cp_short_wave_disruptors.name,Short Wave Disruptors
 gear.cp_short_wave_disruptors.flavor,//MOLD ME// BREAK THY WILL UPON THE ROCKS// WEAR MY FACE AND BRING DOOM TO THE DOUBTERS OF THE WORLD//CAST DOWN THY EGO AND UNHOLY FORM// BE MINE//BE MINE//BE MINE//BE MINE//BE MINE//BE MINE//BE MI
+gear.cp_short_wave_disruptors.action_mask_of_many_faces.name,Mask of Many Faces
+gear.cp_short_wave_disruptors.action_mask_of_many_faces.effect,"At the start of each of your turns choose one of the following effects. These effects last until the start of your next turn and you cannot choose the same option two turns in a row:
+Drain: Your successful invades always apply |Impaired| and +1 |heat|.
+Entrap: As a |free action|, choose a |character| within |Sensors| and |line of sight|. They must make a |Systems save| or only be able to draw |line of sight| to adjacent spaces. Targets affected this way always consider you within range, |threat|, and |line of sight|.
+Stabilizer Override: 1/round, when you hit a |character| with a |tech attack|, they must make a |Systems save| or be knocked |Prone|.
+Soulbind: Choose a |character| within |Sensors|. Whenever you gain |heat| from any other source, they immediately gain the same amount of |heat|. Whenever they gain |heat| from any other source, you immediately gain the same amount of |heat|.
+Ensorcel: When you scan, you may take 2 |heat| to choose one of your Invade options and apply the effects instead of learning any information. This does not count as an attack and cannot apply any |heat|."
+gear.cp_short_wave_disruptors.mask.chosen_last_turn,Chosen last turn
+gear.cp_short_wave_disruptors.mask.nobody_in_sensors,No character within Sensors
+gear.buff_mask_drain.name,Drain
+gear.buff_mask_drain.effect,Your successful invades always apply |Impaired| and +1 |heat|.
+gear.buff_mask_entrap.name,Entrap
+gear.buff_mask_entrap.effect,"As a |free action|, choose a |character| within |Sensors| and |line of sight|. They must make a |Systems save| or only be able to draw |line of sight| to adjacent spaces. Targets affected this way always consider you within range, |threat|, and |line of sight|."
+gear.buff_mask_stabilizer_override.name,Stabilizer Override
+gear.buff_mask_stabilizer_override.effect,"1/round, when you hit a |character| with a |tech attack|, they must make a |Systems save| or be knocked |Prone|."
+gear.buff_mask_soulbind.name,Soulbind
+gear.buff_mask_soulbind.effect,"Choose a |character| within |Sensors|. Whenever you gain |heat| from any other source, they immediately gain the same amount of |heat|. Whenever they gain |heat| from any other source, you immediately gain the same amount of |heat|."
+gear.buff_mask_ensorcel.name,Ensorcel
+gear.buff_mask_ensorcel.effect,"When you scan, you may take 2 |heat| to choose one of your Invade options and apply the effects instead of learning any information. This does not count as an attack and cannot apply any |heat|."

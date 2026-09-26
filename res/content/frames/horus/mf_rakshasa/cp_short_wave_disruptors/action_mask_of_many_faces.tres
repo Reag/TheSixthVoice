@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ActionReactionSelf" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_mask_of_many_faces.gd" id="1_mask"]
+
+[resource]
+script = ExtResource("1_mask")
+; new_turn at POST (TIMING.POST = 1): last turn's START_OF_TURN chip is cleared at event_turn_start.gd:76,
+; before the POST queue is built (:56), so the chip applied here survives the turn.
+triggers_on = Array[StringName]([&"new_turn"])
+trigger_timing = 1
+; Not a reaction point: a Stunned or Shut Down Rakshasa still chooses (ruling 14).
+consumes_rxn = false
+usage_group = &"mask_of_many_faces"

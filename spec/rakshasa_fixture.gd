@@ -174,3 +174,71 @@ static func force_systems_save(test:GutTest, saver:Unit, forcing:SpecificAction)
 static func queue_a_failure() -> void: VaubanFixture.queue_save_dice(1)
 ## A d20 that makes every save in this file, then a tail.
 static func queue_a_pass() -> void: VaubanFixture.queue_save_dice(20)
+
+# ---------------------------------------------------------------- SP2: the Mask of Many Faces
+
+## The turn-start menu (design 2.1, rulings 12-15) on the core Kit.
+const MASK_ACTION := &'action_mask_of_many_faces'
+const MASK_USAGE := &'mask_of_many_faces'
+
+## The five modes IN CARD ORDER. The menu's button index IS the mode, so a spec answers the menu with
+## Fixture.MODE.<X> through the responder's multiple_choice_queue.
+enum MODE { DRAIN, ENTRAP, STABILIZER_OVERRIDE, SOULBIND, ENSORCEL }
+## Each mode's visible chip, indexed by MODE.
+const MODE_CHIPS:Array[StringName] = [
+	&'buff_mask_drain',
+	&'buff_mask_entrap',
+	&'buff_mask_stabilizer_override',
+	&'buff_mask_soulbind',
+	&'buff_mask_ensorcel',
+]
+## The chips' names as the menu labels them (their own `.name` rows, card order).
+const MODE_NAMES:Array[String] = ['Drain', 'Entrap', 'Stabilizer Override', 'Soulbind', 'Ensorcel']
+
+## The hidden mode reactions on the core Kit.
+const DRAIN_ACTION := &'action_drain'
+const STABILIZER_ACTION := &'action_stabilizer_override'
+const STABILIZER_USAGE := &'stabilizer_override'
+const SOULBIND_ACTION := &'action_soulbind'
+
+## A vanilla INVADE that applies no condition of its own (Fragment Signal already Impairs, so it
+## cannot tell Drain's Impaired from its own). Neurospike carries two invades; name the action.
+const SHRIKE := &'ms_neurospike'
+const SHRIKE_ACTION := &'action_shrike_code'
+## A vanilla tech attack that is NOT an invade (is_invade = false): Drain's negative control and a
+## second vehicle for Stabilizer Override's "a tech attack".
+const MARKERLIGHT := &'ms_markerlight'
+const MARKERLIGHT_ACTION := &'action_markerlight'
+
+## Sensors 20 on the sheet: a map wide enough to stand somebody OUTSIDE it (DEFAULT_MAP_SIZE is 16
+## wide, so every unit on it is within Sensors).
+const WIDE_MAP_SIZE := Vector2i(30, 6)
+
+static func holds_mode(unit:Unit, mode:int) -> bool:
+	return UnitCondition.has_buff(unit, MODE_CHIPS[mode])
+
+## Every mode chip the unit holds, as MODE values in card order.
+static func held_modes(unit:Unit) -> Array[int]:
+	var held:Array[int] = []
+	for mode:int in MODE_CHIPS.size():
+		if holds_mode(unit, mode): held.append(mode)
+	return held
+
+## Start a fresh Rakshasa turn with the Mask menu answered `mode` (queued, so a later prompt in the
+## same turn is answered by whatever the test queues next).
+static func choose_mode(game:Gamemaster, rakshasa:Unit, responder, mode:int) -> void:
+	responder.multiple_choice_queue.append(mode)
+	await cycle_turn(game, rakshasa)
+
+## Heat dealt straight to a unit from no source at all: "heat from any other source".
+static func deal_heat(game:Gamemaster, unit:Unit, amount:int, flags:Array = []) -> void:
+	await game.execute_event(&'event_unit_damage', {
+		unit = unit, number = amount, category = Lancer.DAMAGE_TYPE.HEAT, flags = flags,
+	})
+
+## Attack `target` with `kit_id`/`action_id` from the Rakshasa's (opened if need be) turn, d20s queued.
+static func attack_with(game:Gamemaster, rakshasa:Unit, kit_id:StringName, action_id:StringName,
+		target:Unit, d20s:Array[int], flags:Array = []) -> void:
+	await open_turn(game, rakshasa)
+	queue(d20s)
+	await SpecFactory.use(game, rakshasa, kit_id, action_id, target, flags)
