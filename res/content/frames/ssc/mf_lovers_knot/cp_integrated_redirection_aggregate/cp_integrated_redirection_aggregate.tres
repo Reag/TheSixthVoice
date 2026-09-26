@@ -8,14 +8,18 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/buff_gemini_shared_roll.tres" id="6_shared_roll"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/buff_gemini_ignore_cover.tres" id="7_ignore_cover"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/buff_gemini_leg_tiles.tres" id="8_leg_tiles"]
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="9_action"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/action_efficient_refund.tres" id="10_efficient"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/action_form_of_the_myriad.tres" id="11_myriad"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/efficient/passive_efficient_used.tres" id="12_stamp"]
 
 ; INTEGRATED REDIRECTION AGGREGATE, the core system (design 1.1). SP2 adds Gemini Charge, the passive
 ; half: one applicator hanging four permanent hidden buffs on the Knot, reapplied each turn - the
 ; ATTACK_DECLARED PRE trigger, and the three it relies on (the shared d20 face, the scoped cover
 ; suppression, the scoped picker). The three stand down for any attack the trigger did not record. SP3
-; adds Form of the Myriad (the active, with its Efficient refund reaction and the shared
-; passive_efficient_used.tres). The LCP's core_system has no description, so there is no flavour row.
-; SP4: icon.
+; adds Form of the Myriad, the active, with its Efficient pair: the Knot's own action_efficient_refund
+; (the shared reaction script) and the shared passive_efficient_used.tres. The LCP's core_system has no
+; description, so there is no flavour row. SP4: icon.
 [sub_resource type="Resource" id="Resource_gemini"]
 script = ExtResource("3_applicator")
 applied_buffs = Array[ExtResource("2_buff")]([ExtResource("5_gemini"), ExtResource("6_shared_roll"), ExtResource("7_ignore_cover"), ExtResource("8_leg_tiles")])
@@ -23,5 +27,11 @@ reapply_at_the_start_of_each_turn = true
 
 [resource]
 script = ExtResource("4_kit")
-passives = Array[ExtResource("1_passive")]([SubResource("Resource_gemini")])
+; EACH ACTION CARRIES ITS OWN usage_group: a pressable and a reaction sharing one lock each other out
+; (the Subutai SP2 lesson). The refund hides itself from the card (show_in_tooltip false).
+actions = Array[ExtResource("9_action")]([ExtResource("10_efficient"), ExtResource("11_myriad")])
+; THE EFFICIENT STAMP IS LOAD-BEARING, not decoration: GearCore.short_repair throws away every gear-state
+; key except those of PassiveDieCounter passives with resets_on_spawn = false (gear_core.gd:144-150), and
+; every spawn runs short_repair - without it the refund's unit_spawn half reads an empty state.
+passives = Array[ExtResource("1_passive")]([SubResource("Resource_gemini"), ExtResource("12_stamp")])
 is_trait = true

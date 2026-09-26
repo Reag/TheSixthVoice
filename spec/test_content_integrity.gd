@@ -1109,8 +1109,12 @@ const ICON_TARGETS := {
 	# SP1 (Lovers Knot). Fractured Silhouette grants the Reposition REACTION, which is on the gear bar and
 	# wears the Kit's glyph (a trait and the action it creates share one glyph). SP4: icon.
 	&'mt_fractured_silhouette': {&'action_reposition': KIT},
-	# SP1 (Lovers Knot). INTEGRATED REDIRECTION AGGREGATE ships empty; SP2-SP3 add its rows here. SP4: icons.
-	&'cp_integrated_redirection_aggregate': {},
+	# SP1-SP3 (Lovers Knot). INTEGRATED REDIRECTION AGGREGATE. Gemini Charge (SP2) is four hidden buffs and
+	# no action, so the Kit's glyph is Gemini's family. FORM OF THE MYRIAD (SP3), the Full core active on the
+	# gear bar, is its OWN family (design section 4: a two-part core power is exactly two families) - the
+	# action, its chip and the refund. action_efficient_refund hides itself (show_in_tooltip false) and is
+	# correctly absent. SP4: icons.
+	&'cp_integrated_redirection_aggregate': {&'action_form_of_the_myriad': &'action_form_of_the_myriad'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1418,6 +1422,9 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# SP4 (Rakshasa). NEURO-HIJACK's scene-long chip on the Rakshasa (ruling 26), the Gather Round shape; it
 	# is also the listener that moves the roll. Its exemption and difficulty siblings are hidden. SP5: icon.
 	&'buff_neuro_hijack',
+	# SP3 (Lovers Knot). FORM OF THE MYRIAD's chip - the only on-token sign that the chain (and Precision
+	# Venting's lifted gate) is live until the end of the Knot's turn. Its own rows. SP4: icon.
+	&'buff_form_of_the_myriad',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

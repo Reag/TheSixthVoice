@@ -169,10 +169,11 @@ func test_the_core_system_carries_gemini_charge() -> void:
 	var kit:Kit = ContentLibrary.get_kit(Fixture.CORE_ID)
 	assert_true(Kit.is_valid(kit), 'The core system is in the kits index.')
 	if not Kit.is_valid(kit): return
-	assert_eq(kit.passives.size(), 1, 'One passive: the buff applicator.')
-	if kit.passives.is_empty(): return
-	var applicator = kit.passives[0]
-	assert_true(applicator is PassiveBuffApplicator, 'It applies buffs.')
+	# SP3 added the Efficient stamp beside it (test_form_of_the_myriad pins that); Gemini is the one applicator.
+	var applicators:Array = kit.get_passives(PassiveBuffApplicator)
+	assert_eq(applicators.size(), 1, 'One buff applicator: Gemini Charge.')
+	if applicators.is_empty(): return
+	var applicator = applicators[0]
 	var ids:Array[String] = []
 	for buff:Buff in applicator.applied_buffs: ids.append(String(buff.compcon_id))
 	ids.sort()

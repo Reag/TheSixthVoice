@@ -52,6 +52,11 @@ const LINE := &'mw_rail_rifle'
 ## GMS launcher, Blast 1, aim 10: the "no single contact" negative control.
 const BLAST := &'mw_rocket_propelled_grenade'
 
+## SP3: Form of the Myriad, the core system's active half (design 3, rulings 17-21).
+const MYRIAD_ACTION := &'action_form_of_the_myriad'
+const MYRIAD_CHIP := &'buff_form_of_the_myriad'
+const EFFICIENT_REFUND := &'action_efficient_refund'
+
 const DEFAULT_MAP_SIZE := Vector2i(16, 10)
 
 static func create_game(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> Gamemaster:
@@ -131,6 +136,9 @@ static func precision_venting_uses(unit:Unit) -> int:
 ## Gemini Charge's hand-rolled 1/round, on the core system's gear (ruling 7).
 static func gemini_uses(unit:Unit) -> int:
 	return uses(unit, CORE_ID, GEMINI_USAGE)
+
+## The core system's GearCore: Gemini's round stamp and the Efficient stamp both live on it.
+static func core_gear(unit:Unit) -> GearCore: return unit.get_gear(CORE_ID)
 
 ## Fire `kit_id`'s solo action from `attacker` at `target` with the d20s queued first and a tail of
 ## sixes behind them for every damage die (a crit doubles them). CLEARS THE QUEUE FIRST.
