@@ -1,0 +1,9 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/mt_starsickness/action_starsickness.gd" id="1_action"]
+
+; STARSICKNESS's name for the save and the yes/no, never a button (the script's header). hide_if_disabled
+; plus the script's is_available_to_activate keep it off the hotbar; it takes both (gear_bar.gd:146-147).
+[resource]
+script = ExtResource("1_action")
+hide_if_disabled = true

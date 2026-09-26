@@ -18,6 +18,9 @@ const EXTENDED_RESOURCES:Array[String] = [
 	'res://content/licenses/ipsn/li_drake.tres', # Grutte Pier, the Drake alt, appended to rank 2
 	'res://content/licenses/horus/li_goblin.tres', # Rakshasa, the Goblin alt, appended to rank 2
 	'res://content/licenses/ssc/li_deaths_head.tres', # Lovers Knot, the Death's Head alt, appended to rank 2
+	# Six Sky, the Sunzi alt, appended to rank 2. ANOTHER MOD'S licence (gavstarb-ha_sunzi), so it lives
+	# at that mod's unpacked path and is OPTIONAL: extendable() drops it for a player without the mod.
+	'res://unpacked/gavstarb-ha_sunzi/res/content/licenses/ha/li_sunzi.tres',
 ]
 
 ## Stamped on each resource INSTANCE we have edited, so a re-activation never edits it twice. On the
@@ -113,7 +116,7 @@ func apply_resource_extensions_directly() -> void:
 		ModLoaderLog.error('Not installing; resource extensions were not applied.', MOD_ID)
 		return
 	var mod = library.get_mod_being_installed()
-	for vanilla_path:String in EXTENDED_RESOURCES:
+	for vanilla_path:String in extendable(EXTENDED_RESOURCES):
 		var resource:Resource = load(vanilla_path)
 		if resource == null:
 			ModLoaderLog.error('Cannot extend %s: it did not load.' % vanilla_path, MOD_ID)
@@ -148,7 +151,22 @@ func apply_resource_extensions_directly() -> void:
 		extended.set_meta(APPLIED_META, true)
 		ModLoaderLog.info('Applied %s directly, outside the shared extension queue.' % extension_path.get_file(), MOD_ID)
 
+## The entries of `paths` this install can actually extend. A path under res://unpacked/ belongs to
+## ANOTHER MOD (the Six Sky's li_sunzi, spike 9), which a player may not have: dropped here when it does
+## not exist, so the load() below never misses and never writes a ModLoaderLog.error into the log of
+## every player without that mod. A vanilla path is always kept - a missing one IS an error.
+##
+## Read at install time, which is also when it is true: optional_dependencies installs the other mod
+## first when it is enabled (modset.gd:247), and its pack is mounted from then on.
+static func extendable(paths:Array[String]) -> Array[String]:
+	var kept:Array[String] = []
+	for path:String in paths:
+		if path.begins_with('res://unpacked/') and not ResourceLoader.exists(path): continue
+		kept.append(path)
+	return kept
+
 ## res://content/licenses/gms/li_gms.tres => res://unpacked/<this mod>/res/content/licenses/gms/li_gms.tres_ext.gd
+## res://unpacked/gavstarb-ha_sunzi/res/content/licenses/ha/li_sunzi.tres => res://unpacked/<this mod>/res/unpacked/gavstarb-ha_sunzi/res/content/licenses/ha/li_sunzi.tres_ext.gd
 ## The unpacked path is where a zip install lands too (ProjectSettings.load_resource_pack keeps it).
 static func extension_script_path_for(vanilla_path:String) -> String:
 	return 'res://unpacked/%s/res/%s_ext.gd' % [MOD_ID, vanilla_path.trim_prefix('res://')]

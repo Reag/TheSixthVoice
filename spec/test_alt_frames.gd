@@ -41,11 +41,13 @@ const ALT_FRAMES := {
 	&'li_drake': {frame = &'mf_grutte_pier', rank = 2}, # Grutte Pier, the Drake alt (SP1, 2026-09-25)
 	&'li_goblin': {frame = &'mf_rakshasa', rank = 2}, # Rakshasa, the Goblin alt (SP1, 2026-09-26)
 	&'li_deaths_head': {frame = &'mf_lovers_knot', rank = 2}, # Lovers Knot, the Death's Head alt (SP1, 2026-09-26)
+	&'li_sunzi': {frame = &'mf_six_sky', rank = 2}, # Six Sky, the Sunzi alt - the base is ANOTHER MOD's (SP1, 2026-09-26)
 }
 
 ## The vanilla licences the alts extend, with the rank each alt attaches to, and the frame that
-## licence grants there today. Ten of the thirteen alts; the other three have no base in this
-## modkit (see test_the_three_alts_without_a_base_are_known_absent).
+## licence grants there today. Eleven of the thirteen alts - li_sunzi from the resident
+## gavstarb-ha_sunzi, the rest from the modkit; the other two have no base here (see
+## test_the_alts_without_a_base_are_known_absent).
 ##
 ## Read as: "before we touch it, li_barbarossa grants exactly mf_barbarossa at rank 2". An alt adds
 ## its frame to that array; it must never replace or reorder what is already there, because
@@ -61,13 +63,15 @@ const BASE_LICENSES := {
 	&'li_drake':          {rank = 2, frame = &'mf_drake',         alt = 'Grutte Pier'},
 	&'li_goblin':         {rank = 2, frame = &'mf_goblin',        alt = 'Rakshasa'},
 	&'li_deaths_head':    {rank = 2, frame = &'mf_deaths_head',   alt = 'Lovers Knot'},
+	&'li_sunzi':          {rank = 2, frame = &'mf_sunzi',         alt = 'Six Sky'},
 }
 
 ## Alts whose base frame this modkit does not ship. Lancer Tactics has the core book complete and
-## nothing from the KTB or the Long Rim, so these three have nowhere to attach. Named rather than
+## nothing from the KTB or the Long Rim, so these have nowhere to attach. The Six Sky left this table
+## on 2026-09-26 (its SP1): its base, the Sunzi, comes from the resident gavstarb-ha_sunzi, and it is
+## now built and pinned in ALT_FRAMES / BASE_LICENSES like the rest. Named rather than
 ## quietly missing, so "why is Seraphim not built" has an answer in the suite and not just in a doc.
 const ALTS_WITHOUT_A_BASE := {
-	'Six Sky': {license = &'li_sunzi', why = 'Sunzi (HA, Long Rim) - the ha-sunzi mod, optional dependency, phase 6'},
 	'Black Mountain': {license = &'li_emperor', why = 'Emperor (SSC, KTB) - the ssc-emperor mod, optional dependency, phase 6'},
 	'Seraphim': {license = &'li_lich', why = 'Lich (HORUS, Long Rim) - no mod adds the Lich; BLOCKED'},
 }
@@ -104,7 +108,7 @@ func _license_paths_by_id() -> Dictionary:
 ## ALT_FRAMES row. It is the tripwire for an alt silently dropping out of the table - a frame that
 ## stops being granted would otherwise just make the loop below shorter, and a shorter loop reads
 ## exactly like a pass.
-const ALTS_BUILT := 10
+const ALTS_BUILT := 11
 
 ## The same tripwire for BASE_LICENSES, which ALTS_BUILT does not cover. Three tests below loop over
 ## it, and emptying it ENTIRELY is caught indirectly (test_every_alt_frame_reaches_its_licence
@@ -112,7 +116,7 @@ const ALTS_BUILT := 10
 ## all three loops simply get quieter, and GUT marks a zero-assert test RISKY rather than FAILED
 ## (gut.gd:581, :821), so the suite still reads green while the baseline it pins has evaporated.
 ## Bump this only when a row is added or removed deliberately.
-const BASE_LICENSES_PINNED := 10
+const BASE_LICENSES_PINNED := 11
 
 func test_the_baseline_table_is_intact():
 	assert_eq(BASE_LICENSES.size(), BASE_LICENSES_PINNED,
@@ -199,7 +203,7 @@ func test_the_everest_is_reachable_at_any_licence_level():
 	if tree.rank_1 == null: return
 	assert_false(tree.rank_1.granted_frames.is_empty(), 'li_gms rank 1 grants at least one frame.')
 
-func test_the_three_alts_without_a_base_are_known_absent():
+func test_the_alts_without_a_base_are_known_absent():
 	# Not a to-do: a guard. If one of these licences APPEARS, this test says WHERE IT CAME FROM,
 	# because the two routes mean opposite things:
 	#
@@ -215,12 +219,12 @@ func test_the_three_alts_without_a_base_are_known_absent():
 	# See lancer-tactics-claude/specs/2026-09-16-mod-compatibility-design.md §1.7.
 	#
 	# Asked of the licence paths rather than through _license(), which would route each miss through
-	# ContentLibrary.load_compcon_id_resource and printerr three "Could not find compcon ID" lines
+	# ContentLibrary.load_compcon_id_resource and printerr a "Could not find compcon ID" line per miss
 	# into every run forever. Those do not fail the suite, but noise in a green run is how a real
 	# error stops being noticed.
 	var license_paths := _license_paths_by_id()
 	assert_gt(license_paths.size(), 0, 'The licences index loaded, so absence means something.')
-	for license_id:StringName in [&'li_sunzi', &'li_emperor', &'li_lich']:
+	for license_id:StringName in [&'li_emperor', &'li_lich']:
 		if not license_paths.has(license_id): continue
 		assert_true(String(license_paths[license_id]).begins_with('res://unpacked/'),
 			'%s exists only because a MOD adds it (%s); the modkit still does not ship it.'
