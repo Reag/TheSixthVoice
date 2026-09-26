@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.18.0'
+const EXPECTED_VERSION := '1.0.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
