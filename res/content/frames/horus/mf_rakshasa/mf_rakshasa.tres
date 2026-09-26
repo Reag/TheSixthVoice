@@ -1,0 +1,62 @@
+[gd_resource type="Resource" script_class="Frame" format=3]
+
+[ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="1_frame"]
+[ext_resource type="Script" uid="uid://bxpc46igtsmvw" path="res://engine/character/unit/statblock.gd" id="2_statblock"]
+[ext_resource type="Script" uid="uid://dch85ypcupfgo" path="res://engine/character/unit_core/color_scheme.gd" id="3_colorscheme"]
+[ext_resource type="Texture2D" uid="uid://6tm738lnctjy" path="res://assets/palettes/toneramps/tone_highhue.png" id="4_toneramp"]
+[ext_resource type="Script" uid="uid://djuk56crywqss" path="res://engine/character/unit_core/mount_type.gd" id="5_mounttype"]
+[ext_resource type="Resource" uid="uid://bsktp4ushq6g1" path="res://content/mounts/mount_flex.tres" id="6_mountflex"]
+[ext_resource type="Resource" uid="uid://dvhgasnfwqbym" path="res://content/mounts/mount_main.tres" id="7_mountmain"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/horus/mf_rakshasa/mf_rakshasa.png" id="9_sprite"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/mt_worm_code/mt_worm_code.tres" id="10_worm"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/mt_silver_tongue/mt_silver_tongue.tres" id="11_silver"]
+[ext_resource type="Resource" uid="uid://dmgrmsd135cq0" path="res://content/frames/shared/mt_fragile.tres" id="12_fragile"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/cp_short_wave_disruptors.tres" id="13_core"]
+
+; THE COLOUR SCHEME IS A 3-MEANS OVER THE AUTHOR'S ART (the Koremasa's method, 2026-09-26). The 80x80
+; sprite has 1,503 opaque pixels and NONE is channel-encoded, so the player's colour picker cannot
+; repaint this token and these three are inert until encoded art lands (memory
+; frame-sprites-not-channel-encoded). Clusters, luminance-tertile seeded: dark oxblood plate
+; (94,53,51) x887, gunmetal grey (100,100,104) x502, lavender glow (173,150,207) x114. The plate is
+; base_0, the glow the accent in base_1, the grey base_2.
+[sub_resource type="Resource" id="Resource_colorscheme"]
+script = ExtResource("3_colorscheme")
+palette_2 = ExtResource("4_toneramp")
+base_0 = Color(0.36862746, 0.20784314, 0.2, 1)
+base_1 = Color(0.6784314, 0.5882353, 0.8117647, 1)
+base_2 = Color(0.39215687, 0.39215687, 0.40784314, 1)
+
+; The sheet's table (specs/sixth-voice/17-rakshasa.md). SIZE 1, NOT the Goblin's half size (design 1.1).
+; tech_attack = 0 is the export's default and is written out anyway, so the sheet reads off the file.
+[sub_resource type="Resource" id="Resource_statblock"]
+script = ExtResource("2_statblock")
+size = 1
+structure = 4
+stress = 4
+health = 8
+armor = 0
+evasion = 8
+edef = 11
+speed = 4
+heat = 5
+save_target = 12
+sensor_range = 20
+tech_attack = 0
+repairs = 3
+systems_points = 7
+reactions = 1
+activations = 1
+
+[resource]
+script = ExtResource("1_frame")
+default_color_scheme = SubResource("Resource_colorscheme")
+sprites = Array[Texture2D]([ExtResource("9_sprite")])
+; SHEET ORDER: Worm Code, Silver Tongue, Fragile (vanilla's, by path - design ruling 32, the way
+; mf_goblin.tres carries it), then the core system.
+traits = Array[ExtResource("8_kit")]([ExtResource("10_worm"), ExtResource("11_silver"), ExtResource("12_fragile"), ExtResource("13_core")])
+; Flex, Main - the sheet's order.
+mount_types = Array[ExtResource("5_mounttype")]([ExtResource("6_mountflex"), ExtResource("7_mountmain")])
+stat = SubResource("Resource_statblock")
+; CONTROLLER (3) alone - Lancer.SQUAD_ROLE, lancer.gd:181.
+role_primary = 3

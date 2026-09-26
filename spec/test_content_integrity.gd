@@ -1087,6 +1087,15 @@ const ICON_TARGETS := {
 	# SP5 (Koremasa). JUXTAPOSITION AUGMENTS: a weapon mod with no actions (the wm_ddmr shape) - only
 	# the Kit's own icon is ever shown, and its chip wears the same glyph at SP6.
 	&'wm_juxtaposition_augments': {},
+	# SP1 (Rakshasa). Worm Code: one hidden forced_save POST reaction (localization_key_override,
+	# action.gd:348); the Kit is its only surface. SP5: icon.
+	&'mt_worm_code': {},
+	# SP1 (Rakshasa). Silver Tongue: one applicator hanging a HIDDEN reroll buff, and a hidden ATTACK
+	# PRE pay reaction (localization_key_override, show_in_tooltip false). The Kit is its only surface;
+	# the reroll prompt names the trait through the pay reaction. SP5: icon.
+	&'mt_silver_tongue': {},
+	# SP1 (Rakshasa). SHORT WAVE DISRUPTORS ships empty; SP2-SP4 add its rows here. SP5: icons.
+	&'cp_short_wave_disruptors': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

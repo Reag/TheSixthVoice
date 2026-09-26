@@ -886,3 +886,12 @@ gear.wm_juxtaposition_augments.flavor,"Harrison Armories paracausal modification
 gear.wm_juxtaposition_augments.effect,"While you are in the |Danger Zone|, you may reroll the first attack made with this weapon each round, but must keep the second result."
 gear.buff_juxtaposition_augments.name,Juxtaposition Augments
 gear.buff_juxtaposition_augments.effect,"While you are in the |Danger Zone|, you may reroll the first attack made with this weapon each round, but must keep the second result."
+frame.mf_rakshasa.name,Rakshasa
+frame.mf_rakshasa.flavor.short,Mask Code
+frame.mf_rakshasa.flavor,"The Rakshasa was the first identifiable Horus pattern embedded within the 6th voice broadcasts. While still available under the Goblin pattern group it offers a more defensive version of its predecessor. The frame comes with integrated neuro-link systems allowing for the redirection of control in the case of insurmountable countermeasures. More interestingly included is the Rakshasa's unique ""Mask"" functions which serve to augment, rather than replace, the offensive capabilities of the base License. The Mask Code itself is a potent disrupter that is constantly changing in a way that has been described as ""pretty freaky"". Even stranger still are the short-wave disrupter fields that allow for direct interference with not just scanners and sensors, but the very brainwaves of enemy pilots. Surely nothing bad could come of this."
+gear.mt_worm_code.name,Worm Code
+gear.mt_worm_code.effect,"1/round, when a hostile character fails a save the Rakshasa forced, it may have them take 2 |heat|."
+gear.mt_silver_tongue.name,Silver Tongue
+gear.mt_silver_tongue.effect,"1/round, when the Rakshasa misses with a |tech attack|, it may take 2 |heat| to reroll the attack against a different target within |Sensors| and |line of sight|."
+gear.cp_short_wave_disruptors.name,Short Wave Disruptors
+gear.cp_short_wave_disruptors.flavor,//MOLD ME// BREAK THY WILL UPON THE ROCKS// WEAR MY FACE AND BRING DOOM TO THE DOUBTERS OF THE WORLD//CAST DOWN THY EGO AND UNHOLY FORM// BE MINE//BE MINE//BE MINE//BE MINE//BE MINE//BE MINE//BE MI

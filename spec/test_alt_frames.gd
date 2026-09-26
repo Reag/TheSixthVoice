@@ -39,6 +39,7 @@ const ALT_FRAMES := {
 	&'li_nelson': {frame = &'mf_shackleton', rank = 2}, # Shackleton, the Nelson alt (SP1, 2026-09-24)
 	&'li_tortuga': {frame = &'mf_gloire', rank = 2}, # Gloire, the Tortuga alt (SP1, 2026-09-24)
 	&'li_drake': {frame = &'mf_grutte_pier', rank = 2}, # Grutte Pier, the Drake alt (SP1, 2026-09-25)
+	&'li_goblin': {frame = &'mf_rakshasa', rank = 2}, # Rakshasa, the Goblin alt (SP1, 2026-09-26)
 }
 
 ## The vanilla licences the alts extend, with the rank each alt attaches to, and the frame that
@@ -102,7 +103,7 @@ func _license_paths_by_id() -> Dictionary:
 ## ALT_FRAMES row. It is the tripwire for an alt silently dropping out of the table - a frame that
 ## stops being granted would otherwise just make the loop below shorter, and a shorter loop reads
 ## exactly like a pass.
-const ALTS_BUILT := 8
+const ALTS_BUILT := 9
 
 ## The same tripwire for BASE_LICENSES, which ALTS_BUILT does not cover. Three tests below loop over
 ## it, and emptying it ENTIRELY is caught indirectly (test_every_alt_frame_reaches_its_licence

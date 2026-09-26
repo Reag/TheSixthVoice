@@ -1,0 +1,13 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/mt_silver_tongue/buff_silver_tongue.gd" id="1_buff"]
+
+[resource]
+script = ExtResource("1_buff")
+to = &"reroll_miss_against_new_target"
+; NOT onetime (ruling 9): the engine never consumes it, so a cancelled pick costs nothing.
+is_onetime = false
+; MANUAL. The trait's applicator owns it for the scene and re-applies it at each turn start.
+until = 0
+; Plumbing: never a chip. The prompt names the trait through the pay reaction (get_values).
+hide_from_player = true
