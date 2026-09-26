@@ -1,0 +1,75 @@
+## GEMINI CHARGE's shared bookkeeping (design 2, rulings 7-16): what the four Gemini buffs agree on.
+##
+## THE RECORD LIVES ON THE DECLARED ATTACK. buff_gemini_charge writes it onto the DeclaredAttackSummary
+## at ATTACK_DECLARED PRE, the moment a redirect is committed, and the three permanent hidden buffs read
+## it from there - so none of them needs a runtime lifetime of its own, and none can outlive the attack
+## that made the record (the summary is dropped with it):
+##   RECORD  {contact = Unit, legs = {persistent_id: Array[Vector3i]}} - who the shot reached first, and
+##           for every redirected target the voxels its leg was drawn FROM (cover, ruling 10). The
+##           voxels are frozen at the pick, so a start that moves or dies before its target is rolled
+##           cannot move the cover.
+##   ASKED   set on the first look, whether or not anything was appended, so nothing re-asks the same
+##           declared attack.
+## LEG_TILES sits on a throwaway duplicate of the weapon action instead - the leg the picker is asked
+## about - so buff_gemini_leg_tiles narrows that picker and nothing else.
+##
+## RefCounted, no class_name (the mod's shared-helper rule): preload it.
+extends RefCounted
+
+const USAGE_KEY:StringName = &'gemini_charge'
+const RECORD:StringName = &'reag_gemini_charge'
+const ASKED:StringName = &'reag_gemini_asked'
+const LEG_TILES:StringName = &'reag_gemini_leg_tiles'
+## Form of the Myriad's chip (SP3). While it is held, one Gemini use chains up to 4 legs, each at the
+## weapon's full reach (rulings 18-19). Until SP3 applies it, has_buff on an id nobody applies is false.
+const MYRIAD_CHIP:StringName = &'buff_form_of_the_myriad'
+const MYRIAD_LEGS := 4
+
+static func record_of(summary) -> Dictionary:
+	if not DeclaredAttackSummary.is_valid(summary) or not summary.has_meta(RECORD): return {}
+	return summary.get_meta(RECORD)
+
+static func is_redirected(summary, unit) -> bool:
+	if not Unit.is_valid(unit): return false
+	var legs:Dictionary = record_of(summary).get('legs', {})
+	return legs.has(unit.core.persistent_id)
+
+static func leg_start_voxels(summary, unit:Unit) -> Array[Vector3i]:
+	var voxels:Array[Vector3i] = []
+	var legs:Dictionary = record_of(summary).get('legs', {})
+	voxels.assign(legs.get(unit.core.persistent_id, []))
+	return voxels
+
+## The contact's final d20 face, rerolls included - or 0 when it rolled none (an auto-hit, an
+## invisibility miss), in which case every redirected target rolls its own (ruling 9).
+static func face_of(summary) -> int:
+	var contact = record_of(summary).get('contact')
+	if not Unit.is_valid(contact): return 0
+	for roll in summary.attack_rolls:
+		if AttackRoll.is_valid(roll) and roll.target_unit == contact: return maxi(0, roll.base_roll)
+	return 0
+
+## "When attacking with a Ranged or Line weapon" (ruling 8): the Knot's own non-melee weapon attack
+## whose pattern is single-target or a Line. Blast, Burst and Cone have no single contact; thrown
+## weapons are melee-typed.
+static func is_eligible_weapon(unit:Unit, gear:GearCore, action:Action) -> bool:
+	if not (action is ActionAttackWeapon): return false
+	if not UnitAction.is_ranged_weapon(action, gear): return false
+	var pattern := action.get_range_pattern_for_targets(SpecificAction.create(unit, gear, action))
+	return pattern == null or pattern.pattern == Lancer.AOE_TYPE.LINE
+
+static func is_line(specific:SpecificAction) -> bool:
+	var pattern := specific.action.get_range_pattern_for_targets(specific)
+	return pattern != null and pattern.pattern == Lancer.AOE_TYPE.LINE
+
+## A "character" is Unit.is_actor() (ruling 3): a drone is not one.
+static func is_new_character(unit:Unit, knot:Unit, excluded:Array[Unit]) -> bool:
+	return Unit.is_valid(unit) and unit.is_actor() and unit != knot and not excluded.has(unit)
+
+## The contact: the first character the shot reaches. A single-target weapon's target, or the first
+## character along a Line, which the engine lists closest-first (aoe_calculator.gd:143-154). Objects,
+## deployables and terrain before it are passed through (ruling 12).
+static func find_contact(knot:Unit, summary:DeclaredAttackSummary) -> Unit:
+	for unit:Unit in summary.all_attacked_units:
+		if is_new_character(unit, knot, []): return unit
+	return null

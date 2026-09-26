@@ -931,3 +931,6 @@ gear.mt_fractured_silhouette.action_reposition.name,Reposition
 gear.mt_fractured_silhouette.action_reposition.trigger,A hostile |character| at a lower elevation misses you with a |ranged attack|.
 gear.mt_fractured_silhouette.action_reposition.effect,You may immediately move up to half your |speed|.
 gear.cp_integrated_redirection_aggregate.name,Integrated Redirection Aggregate
+gear.cp_integrated_redirection_aggregate.effect,"1/round, when attacking with a Ranged or |Line| weapon, the Lovers Knot may redirect its shot upon contact with a |character|. Originating from that characters space, the remaining |Line|, |Range|, and |Line of Sight| is drawn to another |character|. Attacks made this way are made against all |characters| simultaneously with one attack roll. This counts as one attack and all damage it deals is halved."
+gear.buff_gemini_charge.name,Gemini Charge
+gear.buff_gemini_charge.effect,"1/round, when attacking with a Ranged or |Line| weapon, the Lovers Knot may redirect its shot upon contact with a |character|. Originating from that characters space, the remaining |Line|, |Range|, and |Line of Sight| is drawn to another |character|. Attacks made this way are made against all |characters| simultaneously with one attack roll. This counts as one attack and all damage it deals is halved."

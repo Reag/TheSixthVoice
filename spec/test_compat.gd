@@ -29,6 +29,7 @@ const GloireFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/gloire_fi
 const GruttePierFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/grutte_pier_fixture.gd')
 const KoremasaFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/koremasa_fixture.gd')
 const RakshasaFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/rakshasa_fixture.gd')
+const LoversKnotFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/lovers_knot_fixture.gd')
 const PatienceReduce := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/buff_patience_reduce.gd')
 ## Read-only here: the Mark's retort case asserts the dome is untouched between its two halves.
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
@@ -1414,3 +1415,71 @@ func test_ensorcel_is_still_offered_and_plain_scan_still_scans_with_the_talents_
 	assert_true(Scanpedia.is_anything_unscanned(hostile), 'fixture: something to learn.')
 	await SpecFactory.use_solo(game, rakshasa, RakshasaFixture.SCAN, hostile)
 	assert_false(Scanpedia.is_anything_unscanned(hostile), 'RULED: the blank variant still scans under the resident.')
+
+# ---------------------------------------------------------------- the declared attack's targets (Lovers Knot, Gemini Charge)
+
+## Registry row "The declared attack's targets": Gemini Charge WRITES DeclaredAttackSummary.all_attacked_units
+## at ATTACK_DECLARED PRE; the talents mod's NOAH ward (resident, action_diluvian_ark_ward.gd_ext.gd)
+## READS it at the same timing. THE RULING (design, Contested seams): Gemini runs at an EARLY priority,
+## so a PRE reader later in the block sees the appended target. The ward's TRIGGER gate is evaluated
+## before any block runs, so it fires for the contact; its ACTIVATE then protects every adjacent ally
+## in the list - the redirected one included.
+##
+## NOT PINNED HERE, AND WHY: the Emperor's Sovereign Presence and Field Analyst's Information Handling
+## both read only their HOLDER's own attack (context.unit == unit), so neither ever reads a Lovers
+## Knot's summary unless the Knot's own pilot is the reader - and Field Analyst reads at POST, after
+## every PRE, which test_gemini_charge.gd's POST recorder already pins.
+const KNOT_TILE := Vector2i(8, 2)
+const KNOT_CONTACT := Vector2i(11, 2)
+const KNOT_WARD := Vector2i(12, 1) # adjacent to both the contact and the redirected target
+const KNOT_SECOND := Vector2i(13, 2)
+const NOAH := &'ms_noah_class_nhp'
+
+func test_the_noah_ward_protects_the_redirected_target_because_gemini_appends_first() -> void:
+	var knot := LoversKnotFixture.create_knot(game, KNOT_TILE)
+	LoversKnotFixture.equip(knot, LoversKnotFixture.RANGED)
+	var contact := LoversKnotFixture.create_dummy(game, KNOT_CONTACT)
+	var second := LoversKnotFixture.create_dummy(game, KNOT_SECOND)
+	var ward := LoversKnotFixture.create_dummy(game, KNOT_WARD)
+	var noah := LoversKnotFixture.equip(ward, NOAH)
+	SpecFactory.apply_buff(ward, &'buff_diluvian_ark', noah)
+	var recorder := KnotDeclaredRecorder.new()
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), knot, recorder)
+	await LoversKnotFixture.open_turn(game, knot)
+
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	# the ward's d6 (4+ protects), then a d20 that would hit anyone who is not protected
+	Dice.cheat_attack([6, 14], [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6])
+	SpecFactory.current_responder.chosen_plan_queue.assign([CompconPlan.create([second.tile()], [], [second])])
+	await SpecFactory.use_solo(game, knot, LoversKnotFixture.RANGED, [contact])
+
+	assert_eq(LoversKnotFixture.gemini_uses(knot), 1, 'VACUITY: the shot was redirected.')
+	var contact_roll := knot_roll_against(recorder, contact)
+	var second_roll := knot_roll_against(recorder, second)
+	assert_not_null(contact_roll, 'The contact was rolled against.')
+	assert_not_null(second_roll, 'The redirected target was rolled against.')
+	if contact_roll == null or second_roll == null: return
+	assert_false(contact_roll.hit, 'VACUITY: the ward triggered - the contact was auto-missed.')
+	assert_false(second_roll.hit, 'RULED: the ward protected the APPENDED ally too - it ran after Gemini.')
+	assert_eq(second_roll.base_roll, 0, 'An auto-miss, not a rolled miss.')
+
+## Keeps every ATTACK_DECLARED POST summary its holder makes: the rolls outlive the attack only here.
+class KnotDeclaredRecorder extends Buff:
+	var summaries:Array[DeclaredAttackSummary] = []
+	func _init() -> void:
+		compcon_id = &'buff_spec_compat_knot_recorder'
+		triggers_on = [ReactionBus.TRIGGER.ATTACK_DECLARED]
+		trigger_timing = ReactionBus.TIMING.POST
+		hide_from_player = true
+	func get_required_triggering_context() -> Array[Context.PROP]:
+		return [Context.PROP.unit, Context.PROP.resource]
+	func triggers_on_event(_core:BuffCore, unit:Unit, triggering:EventCore) -> bool:
+		return triggering.context.unit.get_attacker(triggering.context) == unit
+	func activate(_core:BuffCore, activation:EventCore) -> void:
+		summaries.append(activation.context.event.context.resource)
+
+func knot_roll_against(recorder:KnotDeclaredRecorder, target:Unit) -> AttackRoll:
+	if recorder.summaries.is_empty(): return null
+	for roll:AttackRoll in recorder.summaries.back().attack_rolls:
+		if roll.target_unit == target: return roll
+	return null

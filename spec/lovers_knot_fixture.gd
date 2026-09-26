@@ -41,6 +41,17 @@ const MELEE := &'mw_tactical_melee_weapon'
 ## A d20 every attack in these files misses with (the dummies have evasion 10 unless told otherwise).
 const MISS_ROLL := 1
 
+## SP2: Gemini Charge, the core system's passive half (design 2, rulings 7-16).
+const GEMINI_BUFF := &'buff_gemini_charge'
+const GEMINI_SHARED_ROLL := &'buff_gemini_shared_roll'
+const GEMINI_IGNORE_COVER := &'buff_gemini_ignore_cover'
+const GEMINI_LEG_TILES := &'buff_gemini_leg_tiles'
+const GEMINI_USAGE := &'gemini_charge'
+## SSC main Line 10, 1d6+1, no Reliable: the Line vehicle.
+const LINE := &'mw_rail_rifle'
+## GMS launcher, Blast 1, aim 10: the "no single contact" negative control.
+const BLAST := &'mw_rocket_propelled_grenade'
+
 const DEFAULT_MAP_SIZE := Vector2i(16, 10)
 
 static func create_game(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> Gamemaster:
@@ -116,6 +127,10 @@ static func uses(unit:Unit, kit_id:StringName, usage:StringName) -> int:
 
 static func precision_venting_uses(unit:Unit) -> int:
 	return uses(unit, PRECISION_VENTING_ID, PRECISION_VENTING_USAGE)
+
+## Gemini Charge's hand-rolled 1/round, on the core system's gear (ruling 7).
+static func gemini_uses(unit:Unit) -> int:
+	return uses(unit, CORE_ID, GEMINI_USAGE)
 
 ## Fire `kit_id`'s solo action from `attacker` at `target` with the d20s queued first and a tail of
 ## sixes behind them for every damage die (a crit doubles them). CLEARS THE QUEUE FIRST.
