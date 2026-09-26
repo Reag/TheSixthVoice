@@ -93,8 +93,21 @@ static func get_weapons_that_can_react_against(
 ) -> Array[SpecificAction]:
 	var reaction_weapons:Array[SpecificAction] = super.get_weapons_that_can_react_against(
 		from_unit, target_unit, use_normal_range_instead_of_threat, required_compcon_id)
-	if not UnitCondition.has_buff(from_unit, WORMHOLE_GRASP): return reaction_weapons
+	if UnitCondition.has_buff(from_unit, WORMHOLE_GRASP):
+		_append_superheavy_reactions(reaction_weapons, from_unit, target_unit, use_normal_range_instead_of_threat, required_compcon_id)
+	# ENTRAP's banner, below. Last, so it sees - and skips - whatever the Wormhole Grasp added.
+	if is_entrapped_by(from_unit, target_unit):
+		_append_entrapped_weapon_reactions(reaction_weapons, from_unit, target_unit, required_compcon_id)
+	return reaction_weapons
 
+## The Wormhole Grasp half of the override above: vanilla's loop, gate for gate, for SUPERHEAVY only.
+static func _append_superheavy_reactions(
+	reaction_weapons:Array[SpecificAction],
+	from_unit:Unit,
+	target_unit:Unit,
+	use_normal_range_instead_of_threat:bool,
+	required_compcon_id:StringName,
+) -> void:
 	var closest_pair_base:Dictionary = closest_tiles_between(from_unit, target_unit)
 	for gear:GearCore in from_unit.core.loadout.get_all_weapons():
 		if required_compcon_id != &'' and gear.kit.compcon_id != required_compcon_id: continue
@@ -114,7 +127,6 @@ static func get_weapons_that_can_react_against(
 			if not can_weapon_hit_target_as_rxn(specific, target_unit, attack_range, closest_pair): continue
 			if specific.action.requires_line_of_sight(specific) and not UnitRelation.can_see(from_unit, target_unit): continue
 			reaction_weapons.append(specific)
-	return reaction_weapons
 
 
 # ============================================================================================
@@ -220,3 +232,83 @@ static func adjacent_characters(unit:Unit) -> Array[Unit]:
 		if UnitRelation.distance_between(owner, far_end) > owner.get_sensor_range(): continue
 		if not adjacent_units.has(partner): adjacent_units.append(partner)
 	return adjacent_units
+
+
+# ============================================================================================
+# ENTRAP (Rakshasa, cp_short_wave_disruptors). An entrapped unit's REACTIONS always consider the
+# Rakshasa within range, threat and line of sight.
+#
+#   "Targets affected this way always consider you within range, threat, and line of sight."
+#
+# Design specs/2026-09-26-rakshasa-design.md section 3.1, ruling 25 (the author took "attacks and
+# reactions"). The target's own ATTACKS get the waiver from buff_entrap_rakshasa_reach, an ACTION_TILES
+# buff; reactions never read that set (unit_relation.gd:227-267), so their half lives here, in two
+# places: the weapon list (inside get_weapons_that_can_react_against, above - the Wormhole Grasp's
+# override, which now calls both banners' helpers) and a NEW override of
+# get_tech_attacks_that_can_react_against, below.
+#
+# WAIVED: the threat or Sensors distance, the elevation reach, and can_see. KEPT: can_target_unit (so
+# HIDDEN still protects the Rakshasa, action.gd:219), the weapon or tech attack being available as a
+# reaction (is_weapon_available_as_a_rxn / is_gear_available, the action type), and every filter a
+# caller applies on top (Overwatch's Ordnance filter). can_see itself is NOT overridden - about 30
+# readers, and the author declined that reading. A melee weapon therefore reaches the Rakshasa from
+# anywhere: the literal "within threat", recorded.
+#
+# REACHED FROM: every caller of both functions is a node call (UnitRelation.foo), depth 0 - Reactive
+# Code, Monitor Module, Scylla, the NPC reactions - and Overwatch reaches the weapon list one level
+# down, from get_weapons_that_can_overwatch (Thy Hubris' override of it calls super, which keeps the
+# instance - this file's header). spec/test_entrap_rakshasa.gd drives a real Overwatch through it.
+#
+# THE KEY is the visible buff_entrap_rakshasa on the reacting unit, OWNED by the target: its owner is
+# the Rakshasa whose core gear applied it (buff_core.gd:102), so two Rakshasas stay independent, and
+# a Blinded-immune target, which keeps the buff without the status, keeps the waiver (recorded - it
+# only ever hurts the Rakshasa).
+# ============================================================================================
+
+const ENTRAPPED := &'buff_entrap_rakshasa'
+
+## Whether `holder` carries an Entrap buff that `rakshasa` owns.
+static func is_entrapped_by(holder:Unit, rakshasa:Unit) -> bool:
+	if not Unit.is_valid(holder) or not Unit.is_valid(rakshasa) or holder.map == null: return false
+	for buff:BuffCore in holder.state.buffs:
+		if buff.base == null or buff.base.compcon_id != ENTRAPPED: continue
+		if buff.get_owner_unit(holder.map) == rakshasa: return true
+	return false
+
+static func _lists(specifics:Array[SpecificAction], specific:SpecificAction) -> bool:
+	return specifics.any(func(listed:SpecificAction) -> bool:
+		return listed.gear == specific.gear and listed.action == specific.action)
+
+## Vanilla's weapon loop (unit_relation.gd:233-251) with the threat, elevation and can_see gates
+## removed, appending whatever vanilla (or the Wormhole Grasp) did not already list.
+static func _append_entrapped_weapon_reactions(
+	reaction_weapons:Array[SpecificAction],
+	from_unit:Unit,
+	target_unit:Unit,
+	required_compcon_id:StringName,
+) -> void:
+	for gear:GearCore in from_unit.core.loadout.get_all_weapons():
+		if required_compcon_id != &'' and gear.kit.compcon_id != required_compcon_id: continue
+		for action:ActionAttackWeapon in gear.kit.get_weapon_actions():
+			var specific := SpecificAction.create(from_unit, gear, action)
+			if not action.can_target_unit(target_unit, specific): continue
+			var attack_source:Unit = action.get_attacker_relay(from_unit.get_owner_unit_or_self(), gear)
+			if attack_source != from_unit: specific = SpecificAction.create(attack_source, gear, action)
+			if not is_weapon_available_as_a_rxn(specific): continue
+			if _lists(reaction_weapons, specific): continue
+			reaction_weapons.append(specific)
+
+## super builds the vanilla list; for an entrapped unit reacting against its Rakshasa, vanilla's loop
+## (unit_relation.gd:258-268) runs again without the Sensors, elevation, range and can_see gates.
+static func get_tech_attacks_that_can_react_against(from_unit:Unit, target_unit:Unit, include_lock_on := false) -> Array[SpecificAction]:
+	var reaction_tech:Array[SpecificAction] = super.get_tech_attacks_that_can_react_against(from_unit, target_unit, include_lock_on)
+	if not is_entrapped_by(from_unit, target_unit): return reaction_tech
+	for gear:GearCore in from_unit.core.loadout.get_all_tech_attacks(include_lock_on):
+		for action:ActionAttackTech in gear.kit.get_tech_attack_actions():
+			var specific := SpecificAction.create(from_unit, gear, action)
+			if not action.can_target_unit(target_unit, specific): continue
+			if not UnitAction.is_gear_available(specific, true): continue
+			if specific.action.get_action_type(specific) == Lancer.ACTION.NONE: continue
+			if _lists(reaction_tech, specific): continue
+			reaction_tech.append(specific)
+	return reaction_tech

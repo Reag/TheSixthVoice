@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ActionSystemApplyBuff" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_entrap_rakshasa.gd" id="1_entrap"]
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="2_buff"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/buff_entrap_rakshasa.tres" id="3_blind"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/buff_entrap_rakshasa_reach.tres" id="4_reach"]
+
+; ENTRAP (design 3.1, rulings 23-25). The script adds only the chip gate.
+[resource]
+script = ExtResource("1_entrap")
+; The visible Blinded carrier first, then the hidden reach waiver. Both until START_OF_OWNERS_TURN.
+buffs = Array[ExtResource("2_buff")]([ExtResource("3_blind"), ExtResource("4_reach")])
+; "a character within sensors and line of sight" (requires_line_of_sight_baseline defaults true).
+apply_to_sensors = true
+save_to_avoid = true
+; Lancer.HASE is { HULL, AGI, SYS, ENG } (lancer.gd:142): SYS is 2.
+save_type = 2
+; Lancer.ACTION.FREE is 3 (lancer.gd:27). The engine makes a free action 1/round (action.gd:156-157).
+action_type = 3
+; With the script's is_available_to_activate, this removes the button outside Entrap mode (gear_bar.gd:146).
+hide_if_disabled = true
+; Frame-scoped: the Koremasa owns the usage groups entrap and entrap_mark.
+usage_group = &"entrap_rakshasa"
+; The button, the save prompt and the log read "Entrap" and the card's text off the chip's rows.
+localization_key_override = "buff_mask_entrap"

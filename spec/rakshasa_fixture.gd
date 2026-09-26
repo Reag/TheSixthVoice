@@ -236,6 +236,67 @@ static func deal_heat(game:Gamemaster, unit:Unit, amount:int, flags:Array = []) 
 		unit = unit, number = amount, category = Lancer.DAMAGE_TYPE.HEAT, flags = flags,
 	})
 
+# ---------------------------------------------------------------- SP3: Entrap and Ensorcel
+
+## ENTRAP (design 3.1, rulings 23-25): a FREE action on the core Kit that exists only while the Entrap
+## chip is held, and the two buffs it leaves on a target that fails the Systems save. Frame-scoped ids:
+## the Koremasa owns mt_entrap, buff_entrap_mark and the usage groups entrap / entrap_mark.
+const ENTRAP_ACTION := &'action_entrap_rakshasa'
+const ENTRAP_USAGE := &'entrap_rakshasa'
+const ENTRAP_BUFF := &'buff_entrap_rakshasa'
+const ENTRAP_REACH_BUFF := &'buff_entrap_rakshasa_reach'
+
+## Press Entrap on `target` from the Rakshasa's (opened if need be) turn, the save d20 queued first.
+static func entrap(game:Gamemaster, rakshasa:Unit, target:Unit, save_d20:int, flags:Array = []) -> void:
+	await open_turn(game, rakshasa)
+	queue([save_d20])
+	await SpecFactory.use(game, rakshasa, CORE_ID, ENTRAP_ACTION, target, flags)
+
+static func entrap_specific(rakshasa:Unit) -> SpecificAction:
+	var gear:GearCore = rakshasa.get_gear(CORE_ID)
+	if not GearCore.is_valid(gear): return null
+	var action:Action = gear.get_action(ENTRAP_ACTION)
+	return SpecificAction.create(rakshasa, gear, action) if action != null else null
+
+## The tiles `unit` could actually pick with `kit_id`'s solo action (or `action_id`): the reticle's own
+## set, the computation the player's picker and the AI both use (memory lancer-tactics-spec-harness-traps:
+## use_solo never re-validates range, so a landed shot proves nothing about reach).
+static func targetable(unit:Unit, kit_id:StringName, action_id:StringName = &'') -> Array[Vector2i]:
+	var gear:GearCore = unit.get_gear(kit_id)
+	if not GearCore.is_valid(gear): return []
+	var action:Action = gear.get_action(action_id) if action_id != &'' else gear.get_solo_action()
+	return UnitTargeting.get_tiles_targetable(SpecificAction.create(unit, gear, action))
+
+## ENSORCEL (design 3.2, rulings 20-22): a VARIANT of vanilla Scan, offered by the Ensorcel chip; the
+## replacement action; the hidden heat suppressor it holds on the target while the invade resolves.
+const SCAN := &'ms_scan'
+const ENSORCEL_VARIANT := &'ensorcel'
+const ENSORCEL_ACTION := &'action_ensorcel'
+const ENSORCEL_SUPPRESSOR := &'buff_ensorcel_suppressor'
+## Vanilla HORUS Smite: its Sear invade deals heat INSIDE its own effect (action_sear.gd:12-17).
+const SMITE := &'ms_smite'
+const SEAR_ACTION := &'action_sear'
+
+## Press Scan on `target` with the Ensorcel variant from the Rakshasa's (opened if need be) turn,
+## choosing the invade on `invade_kit` (its `invade_action`, or its first invade) when the menu asks.
+## The menu's order is the production helper's own (action_ensorcel.gd invade_options), so this reads
+## the index from it rather than assuming one.
+static func ensorcel(game:Gamemaster, rakshasa:Unit, target:Unit, responder, invade_kit:StringName = TECH,
+		invade_action:StringName = &'', flags:Array = []) -> void:
+	await open_turn(game, rakshasa)
+	var options:Array = load(ENSORCEL_SCRIPT).invade_options(rakshasa)
+	if options.size() > 1:
+		responder.multiple_choice_queue.append(invade_index(options, invade_kit, invade_action))
+	await SpecFactory.use_solo(game, rakshasa, SCAN, target, flags, ENSORCEL_VARIANT)
+
+const ENSORCEL_SCRIPT := 'res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_ensorcel.gd'
+
+static func invade_index(options:Array, kit_id:StringName, action_id:StringName = &'') -> int:
+	for i:int in options.size():
+		if options[i].gear.kit.compcon_id != kit_id: continue
+		if action_id == &'' or options[i].action.get_id() == action_id: return i
+	return -1
+
 ## Attack `target` with `kit_id`/`action_id` from the Rakshasa's (opened if need be) turn, d20s queued.
 static func attack_with(game:Gamemaster, rakshasa:Unit, kit_id:StringName, action_id:StringName,
 		target:Unit, d20s:Array[int], flags:Array = []) -> void:

@@ -28,6 +28,7 @@ const ShackletonFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/shack
 const GloireFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/gloire_fixture.gd')
 const GruttePierFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/grutte_pier_fixture.gd')
 const KoremasaFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/koremasa_fixture.gd')
+const RakshasaFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/rakshasa_fixture.gd')
 const PatienceReduce := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/buff_patience_reduce.gd')
 ## Read-only here: the Mark's retort case asserts the dome is untouched between its two halves.
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
@@ -1373,3 +1374,43 @@ func test_house_guard_does_not_widen_the_koremasas_reach_to_a_mount() -> void:
 	assert_eq(UnitRelation.distance_between(koremasa, far_mount), 1, 'fixture: the mount stepped in.')
 	assert_true(UnitAction.can_activate_gear(begin), 'A mount genuinely one tile out is still offered with the widening on.')
 
+# ---------------------------------------------------------------- the Scan action (Rakshasa, Ensorcel)
+
+## The talents mod's Scan extension (resident): after vanilla's activate it rewrites context.target_unit
+## to whatever run_system_fxgs was handed. Registry row: "The Scan action".
+
+## The member only the resident's extension declares.
+const TALENTS_SCAN_MEMBER := 'target_unit_orator'
+
+## True when the live Scan action is running under talents' extension: some script in its chain
+## declares the resident's member. ModLoader's extension takes over the vanilla path, so the path
+## cannot tell. Announced, never silent.
+func skipped_without_talents_scan() -> bool:
+	var scan_kit:Kit = ContentLibrary.get_kit(RakshasaFixture.SCAN)
+	var script:Script = scan_kit.actions.front().get_script() if scan_kit != null and not scan_kit.actions.is_empty() else null
+	while script != null:
+		if script.source_code.contains(TALENTS_SCAN_MEMBER): return false
+		script = script.get_base_script()
+	var message := 'SKIPPED: %s is not resident, so its Scan extension is unmeasured here. Restore the residency set with restore-links.ps1.' % TALENTS_MOD
+	gut.p(message)
+	pass_test(message)
+	return true
+
+## THE RULING (design 3.2, ruling 20): Ensorcel is a VARIANT of Scan that swaps in our own action, so
+## talents' extension keeps running on the plain Scan and never sees the replacement. With the resident
+## live: the variant is still offered, and the blank variant still scans.
+func test_ensorcel_is_still_offered_and_plain_scan_still_scans_with_the_talents_mod_resident() -> void:
+	if skipped_without_talents_scan(): return
+	var rakshasa := RakshasaFixture.create_rakshasa(game, Vector2i(1, 1))
+	var hostile := RakshasaFixture.create_hostile(game, Vector2i(1, 3))
+	# Turn first: the chip is START_OF_TURN, so a turn start would strip one applied before it.
+	await RakshasaFixture.open_turn(game, rakshasa)
+	SpecFactory.apply_buff(rakshasa, RakshasaFixture.MODE_CHIPS[RakshasaFixture.MODE.ENSORCEL],
+		rakshasa.get_gear(RakshasaFixture.CORE_ID))
+	var scan_gear:GearCore = rakshasa.get_gear(RakshasaFixture.SCAN)
+	var scan:Action = scan_gear.get_solo_action()
+	assert_eq(scan.get_alternate_actions(SpecificAction.create(rakshasa, scan_gear, scan)).size(), 1,
+		'RULED: the Ensorcel variant is offered on the resident-extended Scan.')
+	assert_true(Scanpedia.is_anything_unscanned(hostile), 'fixture: something to learn.')
+	await SpecFactory.use_solo(game, rakshasa, RakshasaFixture.SCAN, hostile)
+	assert_false(Scanpedia.is_anything_unscanned(hostile), 'RULED: the blank variant still scans under the resident.')

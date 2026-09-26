@@ -1097,9 +1097,10 @@ const ICON_TARGETS := {
 	# SP1-SP2 (Rakshasa). SHORT WAVE DISRUPTORS. The Mask of Many Faces menu is the one action the card
 	# draws (its own effect row, the passive's LCP text), and it wears the KIT's glyph: design section 5
 	# gives the Kit, the menu and every mode one family. Drain, Stabilizer Override and Soulbind are hidden
-	# reactions (localization_key_override), so the guard asserts they are NOT listed. SP3-SP4 add rows
-	# here. SP5: icons.
-	&'cp_short_wave_disruptors': {&'action_mask_of_many_faces': KIT},
+	# reactions (localization_key_override), so the guard asserts they are NOT listed. SP3: Entrap is a
+	# FREE action on the gear bar while its mode is held, so it needs its own row; it wears the Kit's
+	# glyph with the rest of the family. SP4 adds a row here. SP5: icons.
+	&'cp_short_wave_disruptors': {&'action_mask_of_many_faces': KIT, &'action_entrap_rakshasa': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1400,6 +1401,10 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	&'buff_mask_stabilizer_override',
 	&'buff_mask_soulbind',
 	&'buff_mask_ensorcel',
+	# SP3 (Rakshasa). ENTRAPPED, on the target of a failed Entrap save (ruling 24): carries BLINDED and is
+	# the key unit_relation.gd_ext.gd reads for the reaction waiver. Its hidden sibling
+	# buff_entrap_rakshasa_reach (ACTION_TILES) sets hide_from_player and is not listed. SP5: icon.
+	&'buff_entrap_rakshasa',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

@@ -914,3 +914,5 @@ gear.buff_mask_soulbind.name,Soulbind
 gear.buff_mask_soulbind.effect,"Choose a |character| within |Sensors|. Whenever you gain |heat| from any other source, they immediately gain the same amount of |heat|. Whenever they gain |heat| from any other source, you immediately gain the same amount of |heat|."
 gear.buff_mask_ensorcel.name,Ensorcel
 gear.buff_mask_ensorcel.effect,"When you scan, you may take 2 |heat| to choose one of your Invade options and apply the effects instead of learning any information. This does not count as an attack and cannot apply any |heat|."
+gear.buff_entrap_rakshasa.name,Entrapped
+gear.buff_entrap_rakshasa.effect,"Only able to draw |line of sight| to adjacent spaces. Always considers the Rakshasa within range, |threat|, and |line of sight|."
