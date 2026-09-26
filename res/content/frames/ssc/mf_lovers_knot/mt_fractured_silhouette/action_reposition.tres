@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ActionReactionMovement" format=3]
+
+[ext_resource type="Script" uid="uid://udxarj3kb6nm" path="res://engine/character/unit/movement_type.gd" id="1_movetype"]
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/mt_fractured_silhouette/action_reposition.gd" id="2_reposition"]
+
+; An ORDINARY VOLUNTARY move (Reactive Weave's shape): it provokes engagement and Overwatch, and
+; Slowed or Immobilized block it (action_reaction_movement.gd:44-49). The pathfinder merges this over
+; the unit's standard movement type (merge_with_standard_move_type, the default).
+[sub_resource type="Resource" id="Resource_voluntary"]
+script = ExtResource("1_movetype")
+voluntary = true
+
+; ATTACK at POST (trigger_timing's default), the Knot the TARGET (triggering_unit_is = 1) and the mover
+; (moving_unit_is's default, HOLDER). A REAL reaction: consumes_rxn stays at its default (true), so the
+; 1/round is ActionReaction's own (action_reaction.gd:69). movement_range_fixed is unused -
+; get_target_range is overridden to half speed. Its own usage group.
+[resource]
+script = ExtResource("2_reposition")
+movement_type = SubResource("Resource_voluntary")
+triggering_unit_is = 1
+triggers_on = Array[StringName]([&"attack"])
+usage_group = &"reposition"

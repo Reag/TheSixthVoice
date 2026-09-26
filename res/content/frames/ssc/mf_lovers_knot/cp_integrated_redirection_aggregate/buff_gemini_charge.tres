@@ -1,0 +1,11 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/buff_gemini_charge.gd" id="1_buff"]
+
+; GEMINI CHARGE's trigger (design 2.1): ATTACK_DECLARED PRE, at the early priority its script declares.
+; Hidden plumbing; the card is the core system's effect row.
+[resource]
+script = ExtResource("1_buff")
+triggers_on = Array[StringName]([&"attack_declared"])
+trigger_timing = 0
+hide_from_player = true

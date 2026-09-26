@@ -1,0 +1,9 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/buff_gemini_shared_roll.gd" id="1_buff"]
+
+; One d20 face, each target's own dice (ruling 9). Not one-time, so check_buffs_for_step keeps it.
+[resource]
+script = ExtResource("1_buff")
+to = &"modify_attack_roll"
+hide_from_player = true

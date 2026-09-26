@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/buff_form_of_the_myriad.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_buff")
+; FORM OF THE MYRIAD's chip (design 3, rulings 18 and 20). A plain Buff with no hook of its own: the
+; ability is two readers of its id - buff_gemini_charge.gd chains up to 4 legs at the weapon's full reach
+; while it is held, and buff_precision_venting.gd stands its round gate down. Both read the id through
+; UnitCondition.has_buff, which keys on this file's basename, so renaming it silently kills both.
+;
+; VISIBLE, and its own rows: the only on-token sign that the chain is live and when it ends.
+; until 2 is Lancer.UNTIL.END_OF_THIS_TURN - "until the end of your turn". SP4: wears its own texture,
+; the Myriad family's bolder chip variant.
+until = 2
+icon = ExtResource("2_icon")

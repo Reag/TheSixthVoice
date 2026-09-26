@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ActionReaction" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/efficient/action_efficient_refund.gd" id="1_refund"]
+
+[resource]
+script = ExtResource("1_refund")
+; THE LOVERS KNOT'S COPY of the Efficient refund (design 3, ruling 17): this .tres is the Knot's own, the
+; script is the shared one in res/content/gear/shared/efficient/ - one script, one .tres per consumer
+; (shared/README.md). The Maiden's Blush's copy carries the full reasoning for each line below.
+;
+; BOTH TRIGGERS ARE LOAD-BEARING: combat_end is the card, unit_spawn the safety net for a mech destroyed
+; earlier in the scene or unable to react. Efficient.refund clears the stamp before it returns, so the
+; pair cannot double-refund. The spawn half only works because the core Kit ALSO carries
+; passive_efficient_used.tres.
+triggers_on = Array[StringName]([&"combat_end", &"unit_spawn"])
+; POST: inside the window that ends before event_combat_end collects the surviving cores.
+trigger_timing = 1
+; Bookkeeping, not an action: no reaction point.
+consumes_rxn = false
+; ITS OWN GROUP: the Kit also holds Form of the Myriad, and a pressable and a reaction sharing one
+; usage_group lock each other out (the Subutai SP2 lesson).
+usage_group = &"efficient_refund"
