@@ -46,6 +46,7 @@ extends GutTest
 const SubutaiFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/subutai_fixture.gd')
 const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 const MyconidFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/myconid_fixture.gd')
+const SixSkyFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/six_sky_fixture.gd')
 
 ## ONE create_game CALL PER TEST, FIRST LINE, and no before_each - the same rule as
 ## test_integrated_weapon_names.gd, and for the same reason: the fixtures share ONE Gamemaster at
@@ -123,3 +124,11 @@ func test_the_fitzgeralds_cannon_is_shaped_like_the_other_frames() -> void:
 	var unit:Unit = FitzgeraldFixture.create_fitzgerald(game, Vector2i(7, 4))
 
 	assert_integrated_weapon_shape(unit, &'cp_broadside', &'mw_bizarre_cannon')
+
+# ---------------------------------------------------------------- Six Sky
+
+func test_the_six_skys_bow_is_shaped_like_the_other_frames() -> void:
+	var game:Gamemaster = SixSkyFixture.create_game(self)
+	var unit:Unit = SixSkyFixture.create_six_sky(game, Vector2i(8, 4))
+
+	assert_integrated_weapon_shape(unit, &'cp_ors_daykeeper_cycler_bow', &'mw_daykeeper_cycler_bow')

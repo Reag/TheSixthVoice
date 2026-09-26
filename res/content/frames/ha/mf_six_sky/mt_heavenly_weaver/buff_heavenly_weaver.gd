@@ -20,9 +20,20 @@
 ## GONE AT SCENE END WITH NO CLEAR OF OURS (measured 2026-09-26): buffs live on UnitBattleState
 ## (unit_battle_state.gd:21), and the next level builds every unit with a fresh one from its core
 ## (Unit.create, unit.gd:76). spec/test_heavenly_weaver.gd pins it.
+##
+## NEVER THE ATTACK THAT ARMED IT (the author's ruling, SP2 build, 2026-09-26). A Daykeeper crit
+## teleports someone from INSIDE its attack (on_crit runs in the per-target attack event, before the
+## declared attack rolls damage), so the chip lands in time for that same attack's damage roll.
+## "The next successful attack" is a LATER one: the watch marks the attack it armed inside
+## (ARMED_DURING_META, on that attack's DeclaredAttackSummary), and this refuses a marked attack. The
+## mark lives and dies with the attack, so nothing here needs clearing.
 extends BuffDamage
+
+## Set on a DeclaredAttackSummary by buff_heavenly_weaver_watch when the chip was armed inside it.
+const ARMED_DURING_META := &'reag_heavenly_weaver_armed_during'
 
 func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 	if not super.check_if_passive_applies(core, context): return false
 	var holder:Unit = core.get_holder_unit(context.map)
-	return Unit.is_valid(holder) and context.unit == holder
+	if not Unit.is_valid(holder) or context.unit != holder: return false
+	return not (DeclaredAttackSummary.is_valid(context.resource) and context.resource.has_meta(ARMED_DURING_META))

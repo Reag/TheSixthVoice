@@ -1,11 +1,13 @@
 [gd_resource type="Resource" script_class="Kit" format=3]
 
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="2_action"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/cp_ors_daykeeper_cycler_bow/action_daykeeper_cycler_bow.tres" id="3_bow"]
 
 ; DAYKEEPER CYCLER BOW, the integrated weapon (design ruling 12): its OWN mw_ Kit, is_trait, filed
-; beside the core Kit (memory integrated-weapon-two-kit-rule). SP1 ships it EMPTY with its name,
-; effect and on-crit rows, so the frame loads; SP2 adds action_daykeeper_cycler_bow (Main Launcher,
-; 1d6+3 Energy, Range 10, Heat Self 1, Overkill). SP3: icon.
+; beside the core Kit (memory integrated-weapon-two-kit-rule). The attack, its accuracy, its Ritual
+; no-heat reading and its crit are action_daykeeper_cycler_bow. SP3: icon.
 [resource]
 script = ExtResource("1_kit")
+actions = Array[ExtResource("2_action")]([ExtResource("3_bow")])
 is_trait = true

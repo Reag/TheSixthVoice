@@ -35,6 +35,7 @@ const FrameIsolation := preload('res://testkit/frame_isolation.gd')
 const SubutaiFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/subutai_fixture.gd')
 const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 const MyconidFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/myconid_fixture.gd')
+const SixSkyFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/six_sky_fixture.gd')
 
 ## EACH TEST BUILDS ITS OWN GAME, deliberately, and there is no before_each.
 ##
@@ -148,3 +149,33 @@ func test_the_myconid_still_has_quietus_machines_as_its_core_system() -> void:
 		'and still carries its own name.')
 	assert_false(core.kit.has_weapon(),
 		'It no longer carries a weapon: FUNGAL NETWORK is a protocol, not a gun.')
+
+# ---------------------------------------------------------------- Six Sky
+
+func test_the_six_skys_integrated_weapon_is_called_the_daykeeper_cycler_bow() -> void:
+	var game:Gamemaster = SixSkyFixture.create_game(self)
+	var unit:Unit = SixSkyFixture.create_six_sky(game, Vector2i(8, 4))
+	var shown := shown_integrated_weapons(unit)
+
+	assert_eq(shown.size(), 1, 'The Six Sky draws exactly one integrated weapon box.')
+	if shown.is_empty(): return
+
+	assert_eq(names_of(shown)[0], 'DAYKEEPER CYCLER BOW',
+		'The integrated weapon box is titled with the WEAPON, as Bel names it on the card.')
+	assert_does_not_have(names_of(shown), 'ORS "DAYKEEPER" CYCLER BOW',
+		'and never with the core SYSTEM, which is a different thing with its own name.')
+
+func test_the_six_sky_still_has_the_ors_daykeeper_cycler_bow_as_its_core_system() -> void:
+	var game:Gamemaster = SixSkyFixture.create_game(self)
+	var unit:Unit = SixSkyFixture.create_six_sky(game, Vector2i(8, 4))
+
+	# The other half of the split: the core system keeps its own card, carrying RITUAL OF THE FIRST
+	# GOD, and carries no weapon of its own.
+	var core:GearCore = unit.get_gear(&'cp_ors_daykeeper_cycler_bow')
+	assert_true(GearCore.is_valid(core), 'cp_ors_daykeeper_cycler_bow is equipped.')
+	if not GearCore.is_valid(core): return
+
+	assert_eq(Translate.gear(&'cp_ors_daykeeper_cycler_bow', 'name'), 'ORS "DAYKEEPER" CYCLER BOW',
+		'and carries its own name.')
+	assert_false(core.kit.has_weapon(),
+		'It carries no weapon: the Ritual is a core power, not a gun.')

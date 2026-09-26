@@ -28,6 +28,7 @@ const Agent := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/
 
 const USAGE_KEY:StringName = &'heavenly_weaver'
 const CHIP:StringName = &'buff_heavenly_weaver'
+const Chip := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/mt_heavenly_weaver/buff_heavenly_weaver.gd')
 
 ## The mover and the MovementType that says whether it teleported.
 func get_required_triggering_context() -> Array[Context.PROP]:
@@ -55,3 +56,19 @@ func activate(core:BuffCore, activation:EventCore) -> void:
 	var trait_gear:GearCore = core.get_owner_gear(six_sky.map)
 	trait_gear.increment_action_usage(USAGE_KEY, false)
 	UnitCondition.apply_buff_id(activation, six_sky, CHIP, trait_gear)
+	# ARMED INSIDE AN ATTACK (a Daykeeper crit): that attack may not spend it - the chip's header.
+	var enclosing := enclosing_declared_attack(activation)
+	if enclosing != null: enclosing.set_meta(Chip.ARMED_DURING_META, true)
+
+## The DeclaredAttackSummary of the attack this activation runs inside, or null. The block-tree walk
+## the Purple Thorn's attack_trace.gd uses: the move a crit makes is executed on the attack's own core,
+## so its POST reactions run in blocks nested under the declared attack's.
+static func enclosing_declared_attack(activation:EventCore) -> DeclaredAttackSummary:
+	if activation == null: return null
+	var node = activation.block
+	while node is EventBlock:
+		for core:EventCore in node.event_cores:
+			if core.base.event_type == &'event_unit_attack_declared' and DeclaredAttackSummary.is_valid(core.context.resource):
+				return core.context.resource
+		node = node.get_parent()
+	return null

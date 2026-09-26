@@ -1,0 +1,16 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/cp_ors_daykeeper_cycler_bow/action_daykeeper_cycler_bow.gd" id="1_bow"]
+
+; DAYKEEPER CYCLER BOW (design 2.1, ruling 12): Main (weapon_size 1) Launcher (weapon_type 4), 1d6+3
+; Energy (damage_type 1), Range 10, HEAT SELF 1 (self_heat_dice, paid at spend unless NO_SELF_HEAT),
+; OVERKILL. The accuracy, the Ritual's no-heat reading and the crit are the script's. SP3: icon.
+[resource]
+script = ExtResource("1_bow")
+damage_type = 1
+damage_dice = "1d6+3"
+weapon_size = 1
+weapon_type = 4
+aim_range = 10
+tags = Array[StringName]([&"overkill"])
+self_heat_dice = "1"

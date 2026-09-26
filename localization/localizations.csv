@@ -954,3 +954,5 @@ gear.cp_ors_daykeeper_cycler_bow.action_ritual_of_the_first_god.effect,You may i
 gear.mw_daykeeper_cycler_bow.name,DAYKEEPER CYCLER BOW
 gear.mw_daykeeper_cycler_bow.effect,This weapon gains +1 |Accuracy| against targets within |Range| 5.
 gear.mw_daykeeper_cycler_bow.on_crit,Choose yourself or the target to be immediately |teleported=lancer.term.teleport| to a free space within |Range| 2 of their space.
+gear.mw_daykeeper_cycler_bow.crit_self,Yourself
+gear.mw_daykeeper_cycler_bow.crit_target,The target

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/cp_ors_daykeeper_cycler_bow/buff_ritual_of_the_first_god.gd" id="1_scope"]
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="2_onhit_script"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/cp_ors_daykeeper_cycler_bow/onhit_ritual_slowed.tres" id="3_slowed"]
+
+; THE RITUAL'S SCOPE (rulings 17, 19; the script's header). HIDDEN - it lives only while the Ritual
+; runs and is never drawn, so it needs no icon. until 0 is MANUAL: the Ritual clears it on every exit.
+; from_compcon_id pins the bow; the script adds the NO_SELF_HEAT gate.
+[resource]
+script = ExtResource("1_scope")
+effects = Array[ExtResource("2_onhit_script")]([ExtResource("3_slowed")])
+from_compcon_id = &"mw_daykeeper_cycler_bow"
+to = &"onhit_effect"
+until = 0
+hide_from_player = true

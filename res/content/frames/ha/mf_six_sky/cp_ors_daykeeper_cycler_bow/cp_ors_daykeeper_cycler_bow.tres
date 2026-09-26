@@ -1,11 +1,14 @@
 [gd_resource type="Resource" script_class="Kit" format=3]
 
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="2_action"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/cp_ors_daykeeper_cycler_bow/action_ritual_of_the_first_god.tres" id="3_ritual"]
 
-; ORS "DAYKEEPER" CYCLER BOW, the core system (design 1.1). SP1 ships it EMPTY with its name row, so
-; the frame loads; SP2 adds Ritual of the First God (Full, consumes_cp) and its Ritual-scoped buff. The
-; cp_ prefix is load-bearing (kit.gd:66). The LCP's core_system has no description, so there is no
-; flavour row. SP3: icon.
+; ORS "DAYKEEPER" CYCLER BOW, the core system (design 2.2): Ritual of the First God, whose hidden
+; scope buff carries the Slowed on-hit and the crit record. It carries NO weapon - the bow is its own
+; mw_ Kit beside it (test_integrated_weapon_shape.gd). The cp_ prefix is load-bearing (kit.gd:66).
+; The LCP's core_system has no description, so there is no flavour row. SP3: icon.
 [resource]
 script = ExtResource("1_kit")
+actions = Array[ExtResource("2_action")]([ExtResource("3_ritual")])
 is_trait = true

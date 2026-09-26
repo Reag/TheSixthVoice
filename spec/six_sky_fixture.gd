@@ -167,3 +167,43 @@ static func attack(game:Gamemaster, attacker:Unit, kit_id:StringName, target:Uni
 	Dice.CHEAT_ROLL_QUEUE.clear()
 	Dice.cheat_attack(d20s, [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6])
 	await SpecFactory.use_solo(game, attacker, kit_id, [target])
+
+# ---------------------------------------------------------------- SP2: the bow and the Ritual
+
+const BOW_ACTION := &'action_daykeeper_cycler_bow'
+const RITUAL_ACTION := &'action_ritual_of_the_first_god'
+const RITUAL_BUFF := &'buff_ritual_of_the_first_god'
+const BOW_SCRIPT := 'res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/cp_ors_daykeeper_cycler_bow/action_daykeeper_cycler_bow.gd'
+
+## The d20 that crits (20 + anything is >= 20, and hits evasion 10).
+const CRIT_ROLL := 20
+
+## Fire the bow at `target` with EXACTLY `dice` queued, in the order the engine pops them: the d20,
+## then the accuracy d6 when the target is within 5 (attack_roll.gd:70), then any on-hit save and
+## anything an on-crit pops, then the damage dice - a HIT column and a CRIT column
+## (AttackUtil rolls the weapon's dice once per column), then any Overkill rerolls. A tail of 6s
+## follows, so a die the test did not plan for reads as a 6 rather than as random. CLEARS THE QUEUE.
+static func fire_bow(game:Gamemaster, six_sky:Unit, target:Unit, dice:Array[int]) -> void:
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	Dice.CHEAT_ROLL_QUEUE.append_array(dice)
+	Dice.CHEAT_ROLL_QUEUE.append_array([6, 6, 6, 6, 6, 6, 6, 6])
+	await SpecFactory.use_solo(game, six_sky, BOW_ID, [target])
+
+## Press Ritual of the First God (opening the Six Sky's turn first), with `dice` queued. CLEARS THE
+## QUEUE; no tail - a Ritual's dice are the test's to plan, target by target.
+static func press_ritual(game:Gamemaster, six_sky:Unit, dice:Array[int] = []) -> void:
+	if not six_sky.state.is_taking_turn: await open_turn(game, six_sky)
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	Dice.CHEAT_ROLL_QUEUE.append_array(dice)
+	await SpecFactory.use(game, six_sky, CORE_ID, RITUAL_ACTION)
+
+static func bow_specific(six_sky:Unit) -> SpecificAction:
+	var gear:GearCore = six_sky.get_gear(BOW_ID)
+	if not GearCore.is_valid(gear): return null
+	return SpecificAction.create(six_sky, gear, gear.kit.actions.front())
+
+static func is_slowed(unit:Unit) -> bool:
+	return UnitCondition.has_status(unit, Lancer.STATUS.SLOWED)
+
+static func ritual_buffs(unit:Unit) -> int:
+	return UnitCondition.get_buffs(unit, RITUAL_BUFF).size()

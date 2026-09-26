@@ -33,8 +33,8 @@ const SHEET_STATS := {
 	systems_points = 7, reactions = 1, activations = 1, limited_bonus = 0,
 }
 
-## The sheet's trait order, then the core system and its integrated weapon (design 1.1). Both are
-## shells at SP1; SP2 fills them without moving this pin.
+## The sheet's trait order, then the core system and its integrated weapon (design 1.1). Both were
+## shells at SP1; SP2 filled them without moving this pin.
 const SHEET_TRAITS:Array[StringName] = [
 	&'mt_heavenly_weaver', &'mt_starsickness', &'cp_ors_daykeeper_cycler_bow', &'mw_daykeeper_cycler_bow',
 ]
@@ -120,8 +120,8 @@ func test_every_trait_kit_is_in_the_content_library():
 		assert_ne(X.tr('gear.%s.name' % trait_id), 'gear.%s.name' % trait_id, '%s has a name row.' % trait_id)
 
 func test_the_core_is_a_core_power_and_the_bow_is_filed_beside_it():
-	# The two-Kit rule (memory integrated-weapon-two-kit-rule). test_integrated_weapon_shape.gd takes the
-	# Six Sky over at SP2, once the bow carries its attack; until then this pins what SP1 can.
+	# The two-Kit rule (memory integrated-weapon-two-kit-rule). test_integrated_weapon_shape.gd took the
+	# Six Sky over at SP2, once the bow carried its attack; this stays as the ContentLibrary-side pin.
 	var core:Kit = ContentLibrary.get_kit(Fixture.CORE_ID)
 	var bow:Kit = ContentLibrary.get_kit(Fixture.BOW_ID)
 	if not Kit.is_valid(core) or not Kit.is_valid(bow):
