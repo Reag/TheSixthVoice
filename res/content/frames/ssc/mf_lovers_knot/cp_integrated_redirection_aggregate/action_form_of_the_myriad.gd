@@ -25,8 +25,10 @@
 ## 4. THE ATTACK. CommonActionUtil.choose_and_use over every attack of every mounted weapon (ruling 21):
 ##    the Purple Thorn's Rend without its QUICK-only filter, so a Superheavy's Full attack is offered too.
 ##    choose_and_use_no_spend (the shot costs the action economy nothing - choose_and_use adds AS_FREEBIE,
-##    which still spends loading and charges, unit_action.gd:236-279), no mandatory target, CAN_FOLLOWUP,
-##    and NOT counts_as_overwatch (the seventh argument, action_rend.gd's correction). Cancelling the
+##    which still spends loading and charges, unit_action.gd:236-279), no mandatory target, NO flags,
+##    and NOT counts_as_overwatch (the seventh argument, action_rend.gd's correction). NOT CAN_FOLLOWUP:
+##    that is Rend's, because Rend is a Skirmish; this card chooses ONE weapon, and the flag fired the
+##    other Aux of an Improved Armament flex mount free (close review 2026-09-26). Cancelling the
 ##    chooser or its targeting is the card's "may": the power stays spent and the chip stays up for any
 ##    other attack this turn. A melee or Blast weapon may be chosen; Gemini simply does not offer on it.
 extends ActionSystem
@@ -64,7 +66,7 @@ func activate(context:Context, activation:EventCore) -> void:
 		weapons,
 		CommonActionUtil.choose_and_use_no_spend,
 		[], # no mandatory target: the player aims the shot
-		[Action.FLAG.CAN_FOLLOWUP],
+		[], # ONE weapon: no follow-up from the opposite mount slot
 		false # NOT overwatch
 	)
 

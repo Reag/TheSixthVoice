@@ -20,6 +20,8 @@ const USAGE_KEY:StringName = &'gemini_charge'
 const RECORD:StringName = &'reag_gemini_charge'
 const ASKED:StringName = &'reag_gemini_asked'
 const LEG_TILES:StringName = &'reag_gemini_leg_tiles'
+## buff_gemini_ignore_cover.tres: the leg's cover skips it when asking whether the Knot ignores cover.
+const GEMINI_IGNORE_COVER:StringName = &'buff_gemini_ignore_cover'
 ## Form of the Myriad's chip (SP3). While it is held, one Gemini use chains up to 4 legs, each at the
 ## weapon's full reach (rulings 18-19). Until SP3 applies it, has_buff on an id nobody applies is false.
 const MYRIAD_CHIP:StringName = &'buff_form_of_the_myriad'
@@ -65,6 +67,14 @@ static func is_line(specific:SpecificAction) -> bool:
 ## A "character" is Unit.is_actor() (ruling 3): a drone is not one.
 static func is_new_character(unit:Unit, knot:Unit, excluded:Array[Unit]) -> bool:
 	return Unit.is_valid(unit) and unit.is_actor() and unit != knot and not excluded.has(unit)
+
+## Whether the KNOT may not aim `action` at `unit`: Sanctuary, False Idol, Cast Doubt, Grey Birds. A
+## leg's own SpecificAction belongs to a buffless proxy, and ActionAttackWeapon.can_target_unit reads
+## ACTION_BANNED_UNITS off specific.unit (action_attack_weapon.gd:237), so the redirect must ask the
+## Knot itself - the same test the engine applies to AoE units too (action_attack.gd:172).
+static func is_banned(knot:Unit, gear:GearCore, action:Action, unit:Unit) -> bool:
+	return UnitCondition.has_buff_to(knot, Buff.TO.ACTION_BANNED_UNITS,
+		SpecificAction.create(knot, gear, action).to_context({target_unit = unit}))
 
 ## The contact: the first character the shot reaches. A single-target weapon's target, or the first
 ## character along a Line, which the engine lists closest-first (aoe_calculator.gd:143-154). Objects,
