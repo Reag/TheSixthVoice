@@ -7,17 +7,19 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_stabilizer_override.tres" id="5_stab"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_soulbind.tres" id="6_soul"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_entrap_rakshasa.tres" id="7_entrap"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_neuro_hijack.tres" id="8_hijack"]
 
 ; SHORT WAVE DISRUPTORS, the core system (design 1.1, 2). SP1 shipped it empty with its name and
 ; flavour rows; SP2 adds the Mask of Many Faces menu and three of its modes' reactions - Drain,
 ; Stabilizer Override and Soulbind (each hidden, each on its own usage_group so no two share a round
 ; or a turn, memory lancer-tactics-reactions-and-usage). SP3 adds Entrap and Ensorcel, SP4 Neuro-Hijack.
 ;
-; ORDER: the passive's menu first - it is the one action the card draws - then the modes in card order.
+; ORDER: the passive's menu first - it is the one action the card draws - then the modes in card order,
+; then SP4's Neuro-Hijack, the core active (a PROTOCOL; its listener buff does the work).
 ;
 ; KEEP THIS KIT NON-TECH (design 2.1's trap): if it ever carries a tech action, every reaction on it is
 ; refused against tech-immune units (unit_action.gd:567-571, action_reaction.gd:107-110). SP5: icon.
 [resource]
 script = ExtResource("2_kit")
-actions = Array[ExtResource("1_action")]([ExtResource("3_mask"), ExtResource("4_drain"), ExtResource("5_stab"), ExtResource("6_soul"), ExtResource("7_entrap")])
+actions = Array[ExtResource("1_action")]([ExtResource("3_mask"), ExtResource("4_drain"), ExtResource("5_stab"), ExtResource("6_soul"), ExtResource("7_entrap"), ExtResource("8_hijack")])
 is_trait = true

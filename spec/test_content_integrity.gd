@@ -1099,8 +1099,10 @@ const ICON_TARGETS := {
 	# gives the Kit, the menu and every mode one family. Drain, Stabilizer Override and Soulbind are hidden
 	# reactions (localization_key_override), so the guard asserts they are NOT listed. SP3: Entrap is a
 	# FREE action on the gear bar while its mode is held, so it needs its own row; it wears the Kit's
-	# glyph with the rest of the family. SP4 adds a row here. SP5: icons.
-	&'cp_short_wave_disruptors': {&'action_mask_of_many_faces': KIT, &'action_entrap_rakshasa': KIT},
+	# glyph with the rest of the family. SP4: NEURO-HIJACK, the core active, is a PROTOCOL on the gear bar
+	# and is its OWN family (design section 5: a two-part core power is exactly two families). SP5: icons.
+	&'cp_short_wave_disruptors': {&'action_mask_of_many_faces': KIT, &'action_entrap_rakshasa': KIT,
+		&'action_neuro_hijack': &'action_neuro_hijack'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1405,6 +1407,9 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# the key unit_relation.gd_ext.gd reads for the reaction waiver. Its hidden sibling
 	# buff_entrap_rakshasa_reach (ACTION_TILES) sets hide_from_player and is not listed. SP5: icon.
 	&'buff_entrap_rakshasa',
+	# SP4 (Rakshasa). NEURO-HIJACK's scene-long chip on the Rakshasa (ruling 26), the Gather Round shape; it
+	# is also the listener that moves the roll. Its exemption and difficulty siblings are hidden. SP5: icon.
+	&'buff_neuro_hijack',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -1806,6 +1811,11 @@ const HIDDEN_BUFFS_NEEDING_ICONS:Array[StringName] = [
 	# for one roll - but attack_roll.gd:189 draws it in the roll breakdown from buff_core.base.icon
 	# RAW regardless. Its icon is SP5's.
 	&'buff_shimmer_difficulty',
+	# SP4 (Rakshasa). NEURO-HIJACK's +1 Difficulty on the attacker (ruling 29) is hidden - it lives for one
+	# declared attack - but attack_roll.gd:189 draws it in the roll breakdown from buff_core.base.icon RAW,
+	# so a null leaves a blank beside the -1. Its name is the protocol's (localization_key_override).
+	# Its icon is SP5's, one family with the protocol.
+	&'buff_neuro_hijack_difficulty',
 ]
 
 func test_every_hidden_buff_that_is_still_drawn_has_a_real_icon():

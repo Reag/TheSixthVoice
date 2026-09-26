@@ -1,0 +1,13 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/buff_neuro_hijack_difficulty.gd" id="1_difficulty"]
+
+; NEURO-HIJACK's +1 Difficulty (ruling 29). See the script. Lancer.UNTIL.END_OF_THIS_TURN is 2, the backstop.
+[resource]
+script = ExtResource("1_difficulty")
+to = &"attack_roll"
+bonus_subtype = &"accuracy"
+bonus_value = -1
+hide_from_player = true
+until = 2
+localization_key_override = "buff_neuro_hijack"

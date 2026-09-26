@@ -303,3 +303,29 @@ static func attack_with(game:Gamemaster, rakshasa:Unit, kit_id:StringName, actio
 	await open_turn(game, rakshasa)
 	queue(d20s)
 	await SpecFactory.use(game, rakshasa, kit_id, action_id, target, flags)
+
+# ---------------------------------------------------------------- SP4: Neuro-Hijack
+
+## NEURO-HIJACK (design 4, rulings 26-31): a core-power PROTOCOL on the core Kit that hangs a scene-long
+## listener buff on the Rakshasa; the hidden exemption a passed save leaves on the attacker; the hidden,
+## summary-scoped +1 Difficulty a failed one leaves.
+const HIJACK_ACTION := &'action_neuro_hijack'
+const HIJACK_USAGE := &'neuro_hijack'
+const HIJACK_BUFF := &'buff_neuro_hijack'
+const HIJACK_EXEMPT := &'buff_neuro_hijack_exempt'
+const HIJACK_DIFFICULTY := &'buff_neuro_hijack_difficulty'
+const HIJACK_SCRIPT := 'res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/buff_neuro_hijack.gd'
+
+## Vanilla GMS Blast 1 cannon, Range 15, Arcing, Inaccurate: the area vehicle.
+const MORTAR := &'mw_mortar'
+
+## Open the Rakshasa's turn (the Mask menu answers whatever the responder is set to) and press Neuro-Hijack.
+static func hijack(game:Gamemaster, rakshasa:Unit) -> void:
+	await open_turn(game, rakshasa)
+	await SpecFactory.use(game, rakshasa, CORE_ID, HIJACK_ACTION)
+
+## Whether `attacker` carries THIS Rakshasa's exemption: keyed by its core gear, so two Rakshasas stay
+## independent (ruling 30).
+static func is_exempt(attacker:Unit, rakshasa:Unit) -> bool:
+	var gear:GearCore = rakshasa.get_gear(CORE_ID)
+	return GearCore.is_valid(gear) and UnitCondition.has_buff(attacker, HIJACK_EXEMPT, gear.persistent_id)
