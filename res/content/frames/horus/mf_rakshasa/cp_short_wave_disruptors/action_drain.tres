@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ActionReactionAttacked" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_drain.gd" id="1_drain"]
+
+[resource]
+script = ExtResource("1_drain")
+; ATTACKER (1), ENEMIES (2), a HIT.
+require_unit_to_be = 1
+require_defender_relation = 2
+require_hit = true
+; TECH ONLY, basic included: the Invade (ms_fragment_signal) is basic gear. The script demands is_invade.
+allow_weapon = false
+allow_tech = true
+allow_basic = true
+; ATTACK at POST (TIMING.POST = 1): roll.hit exists only there.
+triggers_on = Array[StringName]([&"attack"])
+trigger_timing = 1
+consumes_rxn = false
+usage_group = &"drain"
+; HIDDEN: the Mask's row carries the card text; the log reads the chip's name (action.gd:348).
+localization_key_override = "buff_mask_drain"

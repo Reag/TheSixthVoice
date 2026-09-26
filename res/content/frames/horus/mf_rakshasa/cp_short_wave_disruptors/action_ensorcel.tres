@@ -1,0 +1,23 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_ensorcel.gd" id="1_ensorcel"]
+[ext_resource type="Script" uid="uid://df1yicp7kbf3x" path="res://engine/character/gear_action/resources/target_requirements.gd" id="2_reqs"]
+[ext_resource type="PackedScene" uid="uid://dsn57gjj5jede" path="res://content/fx_groups/tech/fxg_tech_activate.tscn" id="3_use"]
+
+; One target - Scan's own TargetRequirements, the defaults (count 1).
+[sub_resource type="Resource" id="Resource_reqs"]
+script = ExtResource("2_reqs")
+
+; ENSORCEL, the Scan replacement (design 3.2, rulings 20-22). NOT on the core Kit: the Ensorcel chip
+; (buff_mask_ensorcel.tres) carries it and swaps it in for Scan. Scan's shape: Quick (Lancer.ACTION.QUICK
+; is 1), tech, one target within Sensors and line of sight. "Take 2 heat" is self_heat_dice, which
+; UnitAction.spend deals (unit_action.gd:292-296).
+[resource]
+script = ExtResource("1_ensorcel")
+action_type = 1
+is_tech = true
+self_heat_dice = "2"
+fxg_use = ExtResource("3_use")
+target_requirements_override = SubResource("Resource_reqs")
+; The log and the tooltip read "Ensorcel" and the card's text off the chip's rows.
+localization_key_override = "buff_mask_ensorcel"

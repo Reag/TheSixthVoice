@@ -1,0 +1,14 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/buff_neuro_hijack.gd" id="1_hijack"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_neuro_hijack.svg" id="2_icon"]
+
+; NEURO-HIJACK's chip and listener (design 4.1, rulings 26-31), hung by the protocol on the Rakshasa.
+; VISIBLE, until MANUAL (Lancer.UNTIL index 0, the default): "for the rest of the scene" - Gather Round's
+; shape. Listens at the per-target ATTACK (&"attack") PRE: trigger_timing 0 is ReactionBus.TIMING.PRE.
+; NO `to`: a pure listener. Wears action_neuro_hijack's own family glyph, not the core Kit's.
+[resource]
+script = ExtResource("1_hijack")
+triggers_on = Array[StringName]([&"attack"])
+trigger_timing = 0
+icon = ExtResource("2_icon")

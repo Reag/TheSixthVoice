@@ -1,0 +1,11 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/buff_entrap_rakshasa_reach.gd" id="1_reach"]
+
+; Entrap's reach (ruling 25). HIDDEN. ACTION_TILES adding the Rakshasa's tiles to the holder's attacks.
+[resource]
+script = ExtResource("1_reach")
+to = &"action_tiles"
+hide_from_player = true
+; Lancer.UNTIL.START_OF_OWNERS_TURN is 6: gone with the visible buff at the Rakshasa's next turn start.
+until = 6

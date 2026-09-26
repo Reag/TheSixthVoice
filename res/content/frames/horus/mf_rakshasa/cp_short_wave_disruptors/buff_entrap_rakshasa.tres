@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_short_wave_disruptors.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_buff")
+; ENTRAPPED (design 3.1, ruling 24): "only be able to draw line of sight to adjacent spaces" is vanilla
+; BLINDED, carried here so status immunity is respected (unit_condition.gd:379-382). It is also the
+; marker unit_relation.gd_ext.gd reads for the reaction waiver: whoever OWNS this buff is the unit the
+; holder always considers within range, threat and line of sight.
+applies_statuses = Array[StringName]([&"blinded"])
+; Lancer.UNTIL.START_OF_OWNERS_TURN is 6 (lancer.gd:46-56): the Rakshasa's next turn start (ruling 15).
+until = 6
+; VISIBLE; wears the core Kit's glyph (design section 5, one family with cp_short_wave_disruptors).
+icon = ExtResource("2_icon")

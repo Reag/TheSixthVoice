@@ -1,0 +1,12 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/buff_ensorcel_suppressor.gd" id="1_suppress"]
+
+; Ensorcel's "cannot apply any heat" (ruling 22). HIDDEN, on the Ensorcel's target while the chosen
+; invade resolves inside this buff's own activation (see the script). DAMAGE_IMMUNITY, HEAT from the
+; Rakshasa only. Lancer.UNTIL.END_OF_THIS_TURN is 2: the backstop - action_ensorcel clears it at once.
+[resource]
+script = ExtResource("1_suppress")
+to = &"damage_immunity"
+hide_from_player = true
+until = 2

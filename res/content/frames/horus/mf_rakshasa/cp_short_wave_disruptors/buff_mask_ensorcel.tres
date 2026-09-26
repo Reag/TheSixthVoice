@@ -1,0 +1,18 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/buff_mask_ensorcel.gd" id="1_chip"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_ensorcel.tres" id="2_ensorcel"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_short_wave_disruptors.svg" id="3_icon"]
+
+[resource]
+script = ExtResource("1_chip")
+; A MASK OF MANY FACES mode chip (design 2.1, ruling 15), and since SP3 ALSO Ensorcel itself (design
+; 3.2, ruling 20): a VARIANT_ACTIONS buff offering action_ensorcel as a blankable variant of vanilla
+; Scan. The other four chips carry no `to`; each of their modes' reactions gates on the chip instead.
+to = &"variant_actions"
+ensorcel_action = ExtResource("2_ensorcel")
+; Lancer.UNTIL.START_OF_TURN is index 3 (lancer.gd:46-48): the card's "until the start of your next
+; turn". VISIBLE; wears the core Kit's glyph (design section 5, one family with
+; cp_short_wave_disruptors).
+until = 3
+icon = ExtResource("3_icon")

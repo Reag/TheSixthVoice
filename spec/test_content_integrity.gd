@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '0.16.0'
+const EXPECTED_VERSION := '0.17.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -1087,6 +1087,22 @@ const ICON_TARGETS := {
 	# SP5 (Koremasa). JUXTAPOSITION AUGMENTS: a weapon mod with no actions (the wm_ddmr shape) - only
 	# the Kit's own icon is ever shown, and its chip wears the same glyph at SP6.
 	&'wm_juxtaposition_augments': {},
+	# SP1 (Rakshasa). Worm Code: one hidden forced_save POST reaction (localization_key_override,
+	# action.gd:348); the Kit is its only surface. SP5: icon.
+	&'mt_worm_code': {},
+	# SP1 (Rakshasa). Silver Tongue: one applicator hanging a HIDDEN reroll buff, and a hidden ATTACK
+	# PRE pay reaction (localization_key_override, show_in_tooltip false). The Kit is its only surface;
+	# the reroll prompt names the trait through the pay reaction. SP5: icon.
+	&'mt_silver_tongue': {},
+	# SP1-SP2 (Rakshasa). SHORT WAVE DISRUPTORS. The Mask of Many Faces menu is the one action the card
+	# draws (its own effect row, the passive's LCP text), and it wears the KIT's glyph: design section 5
+	# gives the Kit, the menu and every mode one family. Drain, Stabilizer Override and Soulbind are hidden
+	# reactions (localization_key_override), so the guard asserts they are NOT listed. SP3: Entrap is a
+	# FREE action on the gear bar while its mode is held, so it needs its own row; it wears the Kit's
+	# glyph with the rest of the family. SP4: NEURO-HIJACK, the core active, is a PROTOCOL on the gear bar
+	# and is its OWN family (design section 5: a two-part core power is exactly two families). SP5: icons.
+	&'cp_short_wave_disruptors': {&'action_mask_of_many_faces': KIT, &'action_entrap_rakshasa': KIT,
+		&'action_neuro_hijack': &'action_neuro_hijack'},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1378,6 +1394,22 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# attack this turn is still to come (ruling 30): the player's reminder that the chance is live.
 	# Its own rows, titled for the mod.
 	&'buff_juxtaposition_augments',
+	# SP2 (Rakshasa). The Mask of Many Faces' five mode chips (design 2.1, ruling 15), card order: the
+	# only on-token sign of which mode is held this turn. They do nothing themselves - each mode's hidden
+	# reaction on the core Kit gates on its chip - and carry their option's LCP text as their own rows.
+	# Entrap's and Ensorcel's effects are SP3's. Icons are SP5's, one family with the core Kit.
+	&'buff_mask_drain',
+	&'buff_mask_entrap',
+	&'buff_mask_stabilizer_override',
+	&'buff_mask_soulbind',
+	&'buff_mask_ensorcel',
+	# SP3 (Rakshasa). ENTRAPPED, on the target of a failed Entrap save (ruling 24): carries BLINDED and is
+	# the key unit_relation.gd_ext.gd reads for the reaction waiver. Its hidden sibling
+	# buff_entrap_rakshasa_reach (ACTION_TILES) sets hide_from_player and is not listed. SP5: icon.
+	&'buff_entrap_rakshasa',
+	# SP4 (Rakshasa). NEURO-HIJACK's scene-long chip on the Rakshasa (ruling 26), the Gather Round shape; it
+	# is also the listener that moves the roll. Its exemption and difficulty siblings are hidden. SP5: icon.
+	&'buff_neuro_hijack',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -1779,6 +1811,11 @@ const HIDDEN_BUFFS_NEEDING_ICONS:Array[StringName] = [
 	# for one roll - but attack_roll.gd:189 draws it in the roll breakdown from buff_core.base.icon
 	# RAW regardless. Its icon is SP5's.
 	&'buff_shimmer_difficulty',
+	# SP4 (Rakshasa). NEURO-HIJACK's +1 Difficulty on the attacker (ruling 29) is hidden - it lives for one
+	# declared attack - but attack_roll.gd:189 draws it in the roll breakdown from buff_core.base.icon RAW,
+	# so a null leaves a blank beside the -1. Its name is the protocol's (localization_key_override).
+	# Its icon is SP5's, one family with the protocol.
+	&'buff_neuro_hijack_difficulty',
 ]
 
 func test_every_hidden_buff_that_is_still_drawn_has_a_real_icon():

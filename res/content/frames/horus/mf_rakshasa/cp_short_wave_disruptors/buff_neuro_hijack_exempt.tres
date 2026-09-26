@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+
+; NEURO-HIJACK's exemption (ruling 30): "If a character succeeds their save they are unaffected by this
+; ability for the rest of the turn." On the attacker, from the Rakshasa's core gear, so two Rakshasas stay
+; independent. Lancer.UNTIL.END_OF_THIS_TURN is 2: the end of the turn IN PROGRESS, whoever's it is -
+; end_turn_for_statuses runs on every unit at every turn end (event_turn_end.gd:40). NO `to`: nothing reads
+; it but buff_neuro_hijack.should_ask. HIDDEN, and nothing draws it.
+[resource]
+script = ExtResource("1_buff")
+hide_from_player = true
+until = 2
+localization_key_override = "buff_neuro_hijack"
