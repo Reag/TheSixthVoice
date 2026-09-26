@@ -1103,6 +1103,14 @@ const ICON_TARGETS := {
 	# and is its OWN family (design section 5: a two-part core power is exactly two families). SP5: icons.
 	&'cp_short_wave_disruptors': {&'action_mask_of_many_faces': KIT, &'action_entrap_rakshasa': KIT,
 		&'action_neuro_hijack': &'action_neuro_hijack'},
+	# SP1 (Lovers Knot). Precision Venting: one applicator hanging a HIDDEN on-hit buff; the Kit is its
+	# only surface. SP4: icon.
+	&'mt_precision_venting': {},
+	# SP1 (Lovers Knot). Fractured Silhouette grants the Reposition REACTION, which is on the gear bar and
+	# wears the Kit's glyph (a trait and the action it creates share one glyph). SP4: icon.
+	&'mt_fractured_silhouette': {&'action_reposition': KIT},
+	# SP1 (Lovers Knot). INTEGRATED REDIRECTION AGGREGATE ships empty; SP2-SP3 add its rows here. SP4: icons.
+	&'cp_integrated_redirection_aggregate': {},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##

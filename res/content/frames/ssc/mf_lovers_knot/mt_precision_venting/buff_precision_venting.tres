@@ -1,0 +1,15 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="1_onhiteffect"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/mt_precision_venting/onhit_precision_venting.tres" id="2_onhit"]
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/mt_precision_venting/buff_precision_venting.gd" id="3_buff"]
+
+; "A Ranged weapon" is every non-MELEE ActionAttackWeapon (UnitAction.is_ranged_weapon,
+; unit_action.gd:555-559), so MELEE (2) is FORBIDDEN rather than the rest listed: Blast, Burst, Cone
+; and Line are all ranged weapons (ruling 4). allow_basic stays false, BuffWeaponType's default.
+[resource]
+script = ExtResource("3_buff")
+effects = Array[ExtResource("1_onhiteffect")]([ExtResource("2_onhit")])
+weapon_types_forbidden = Array[int]([2])
+to = &"onhit_effect"
+hide_from_player = true

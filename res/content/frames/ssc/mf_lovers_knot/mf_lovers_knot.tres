@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="Frame" format=3]
+
+[ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="1_frame"]
+[ext_resource type="Script" uid="uid://bxpc46igtsmvw" path="res://engine/character/unit/statblock.gd" id="2_statblock"]
+[ext_resource type="Script" uid="uid://dch85ypcupfgo" path="res://engine/character/unit_core/color_scheme.gd" id="3_colorscheme"]
+[ext_resource type="Texture2D" uid="uid://6tm738lnctjy" path="res://assets/palettes/toneramps/tone_highhue.png" id="4_toneramp"]
+[ext_resource type="Script" uid="uid://djuk56crywqss" path="res://engine/character/unit_core/mount_type.gd" id="5_mounttype"]
+[ext_resource type="Resource" uid="uid://dvhgasnfwqbym" path="res://content/mounts/mount_main.tres" id="6_mountmain"]
+[ext_resource type="Resource" uid="uid://dj0bl2ve85q5o" path="res://content/mounts/mount_heavy.tres" id="7_mountheavy"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ssc/mf_lovers_knot/mf_lovers_knot.png" id="9_sprite"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/mt_precision_venting/mt_precision_venting.tres" id="10_venting"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/mt_fractured_silhouette/mt_fractured_silhouette.tres" id="11_silhouette"]
+[ext_resource type="Resource" uid="uid://dmgrmsd135cq0" path="res://content/frames/shared/mt_fragile.tres" id="12_fragile"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/cp_integrated_redirection_aggregate.tres" id="13_core"]
+
+; THE COLOUR SCHEME IS A 3-MEANS OVER THE AUTHOR'S ART (the Koremasa's method, 2026-09-26). The 80x80
+; sprite has 1,413 opaque pixels and NONE is channel-encoded, so the player's colour picker cannot
+; repaint this token and these three are inert until encoded art lands (memory
+; frame-sprites-not-channel-encoded). Clusters, luminance-tertile seeded: dusky plum plate
+; (97,73,107) x551, deep indigo shadow (40,34,60) x463, pale rose highlight (186,155,174) x399. The
+; plate is base_0, the highlight the accent in base_1, the shadow base_2.
+[sub_resource type="Resource" id="Resource_colorscheme"]
+script = ExtResource("3_colorscheme")
+palette_2 = ExtResource("4_toneramp")
+base_0 = Color(0.38039216, 0.28627452, 0.41960785, 1)
+base_1 = Color(0.7294118, 0.60784316, 0.68235296, 1)
+base_2 = Color(0.15686275, 0.13333334, 0.23529412, 1)
+
+; The sheet's table (specs/sixth-voice/18-lovers-knot.md). NOT the Death's Head's numbers (design
+; ruling 2): Sensors 15 (DH 20), Repair cap 4 (DH 2). armor and tech_attack are 0, the exports'
+; defaults, written out anyway so the sheet reads off the file.
+[sub_resource type="Resource" id="Resource_statblock"]
+script = ExtResource("2_statblock")
+size = 1
+structure = 4
+stress = 4
+health = 8
+armor = 0
+evasion = 10
+edef = 8
+speed = 5
+heat = 6
+save_target = 10
+sensor_range = 15
+tech_attack = 0
+repairs = 4
+systems_points = 6
+reactions = 1
+activations = 1
+
+[resource]
+script = ExtResource("1_frame")
+default_color_scheme = SubResource("Resource_colorscheme")
+sprites = Array[Texture2D]([ExtResource("9_sprite")])
+; SHEET ORDER: Precision Venting, Fractured Silhouette, Fragile (vanilla's, by path - design ruling
+; 22), then the core system (empty at SP1; SP2 and SP3 fill it).
+traits = Array[ExtResource("8_kit")]([ExtResource("10_venting"), ExtResource("11_silhouette"), ExtResource("12_fragile"), ExtResource("13_core")])
+; Main, Heavy - the sheet's order. The Death's Head has Heavy + Main/Aux (ruling 2).
+mount_types = Array[ExtResource("5_mounttype")]([ExtResource("6_mountmain"), ExtResource("7_mountheavy")])
+stat = SubResource("Resource_statblock")
+; ARTILLERY (4) alone - Lancer.SQUAD_ROLE, lancer.gd:181.
+role_primary = 4

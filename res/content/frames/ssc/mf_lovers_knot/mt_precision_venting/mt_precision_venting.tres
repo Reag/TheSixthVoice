@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="1_passive"]
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="2_buff"]
+[ext_resource type="Script" uid="uid://dy4kg537rc55e" path="res://engine/character/gear_passive/passive_buff_applicator.gd" id="3_applicator"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="4_kit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/mt_precision_venting/buff_precision_venting.tres" id="5_venting"]
+
+; PRECISION VENTING (design 1.2, rulings 4-5): the Maiden's Blush's Rend shape. One applicator hanging a
+; hidden BuffWeaponTypeOnHit on the Knot, reapplied each turn, which hands every non-melee attack an
+; ON_CRIT on-hit effect that clears 1 heat. No action. SP4: icon.
+[sub_resource type="Resource" id="Resource_applicator"]
+script = ExtResource("3_applicator")
+applied_buffs = Array[ExtResource("2_buff")]([ExtResource("5_venting")])
+reapply_at_the_start_of_each_turn = true
+
+[resource]
+script = ExtResource("4_kit")
+passives = Array[ExtResource("1_passive")]([SubResource("Resource_applicator")])
+is_trait = true

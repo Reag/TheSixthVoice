@@ -1,0 +1,8 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/mt_precision_venting/onhit_precision_venting.gd" id="1_onhit"]
+
+; ON_CRIT (2). No statuses, no buffs, no save: the script's on_crit does all of it.
+[resource]
+script = ExtResource("1_onhit")
+apply_on = 2
