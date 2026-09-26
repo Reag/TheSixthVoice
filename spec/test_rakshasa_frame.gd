@@ -31,9 +31,10 @@ const OUR_TRANSLATION := 'res://unpacked/Reag-TheSixthVoice/localization/localiz
 const GOBLIN_RANK_2_GEAR:Array[StringName] = [&'ms_metahook', &'ms_h0r_os_system_upgrade_ii']
 
 ## Other li_goblin extenders a testkit run can contain, and the frame each grants there (design
-## "Contested seams"). fateofman-imi_alt_frames appends its Cambion to this very rank through the
-## ENGINE'S QUEUE; it is parked in lancer-tactics-claude/.bk, so a 1.4.x testkit run does not load it
-## and the check below skips - but its zip is installed, so the real game does. Same shape and
+## "Contested seams"). fateofman-imi_alt_frames appends its Cambion to this very rank from its own
+## mod_main._init (the live zip; the .bk copy used a .tres_ext.gd). It is parked in
+## lancer-tactics-claude/.bk, so a 1.4.x testkit run does not load it and the check below skips - but
+## its zip is installed, so the real game does. Same shape and
 ## reasoning as test_subutai_frame.gd's OTHER_EXTENDERS.
 const OTHER_EXTENDERS := {
 	'fateofman-imi_alt_frames': &'mf_cambion',

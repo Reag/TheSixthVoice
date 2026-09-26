@@ -19,6 +19,8 @@ const Fixture := preload('res://unpacked/Reag-TheSixthVoice/spec/rakshasa_fixtur
 
 const RAKSHASA_TILE := Vector2i(3, 4)
 const HOSTILE_TILE := Vector2i(7, 4)
+## Vanilla Smite's own invade: it forces a Systems save on a hit (action_smite.gd:19).
+const SMITE_ACTION := &'action_smite'
 
 var game:Gamemaster
 var responder
@@ -74,8 +76,13 @@ func test_a_hostile_failing_a_save_the_rakshasa_forced_takes_two_heat():
 
 func test_the_heat_does_not_land_on_the_rakshasa():
 	var before := Fixture.heat(rakshasa)
-	await fail_hull(hostile, Fixture.forcer(rakshasa))
+	var hostile_before := Fixture.heat(hostile)
+	var passed := await fail_hull(hostile, Fixture.forcer(rakshasa))
+	assert_true(Fixture.d20_was_rolled(), 'fixture: the save really rolled.')
+	assert_false(passed, 'fixture: the save failed.')
 	assert_eq(Fixture.heat(rakshasa), before, 'The saver takes it, not the forcer.')
+	assert_eq(Fixture.heat(hostile) - hostile_before, 2, 'The hostile took the 2.')
+	assert_eq(responder.yesno_prompts.size(), 1, 'After exactly one "may" prompt.')
 
 func test_a_systems_save_counts_the_same_as_a_hull_save():
 	var before := Fixture.heat(hostile)
@@ -97,6 +104,7 @@ func test_a_save_somebody_else_forced_costs_nothing():
 	var stranger := Fixture.create_ally(game, Vector2i(3, 7))
 	var before := Fixture.heat(hostile)
 	var passed := await fail_hull(hostile, Fixture.forcer(stranger))
+	assert_true(Fixture.d20_was_rolled(), 'fixture: the save really rolled.')
 	assert_false(passed, 'fixture: the save failed.')
 	assert_eq(Fixture.heat(hostile), before, 'The card says a save THE RAKSHASA forced.')
 	assert_eq(responder.yesno_prompts.size(), 0, 'No prompt.')
@@ -120,6 +128,7 @@ func test_an_ally_failing_the_same_save_takes_nothing():
 	var ally := Fixture.create_ally(game, Vector2i(5, 7))
 	var before := Fixture.heat(ally)
 	var passed := await fail_hull(ally, Fixture.forcer(rakshasa))
+	assert_true(Fixture.d20_was_rolled(), 'fixture: the save really rolled.')
 	assert_false(passed, 'fixture: the save failed.')
 	assert_eq(Fixture.heat(ally), before, 'The card says a HOSTILE character.')
 	assert_eq(responder.yesno_prompts.size(), 0, 'No prompt.')
@@ -130,6 +139,7 @@ func test_a_hostile_drone_failing_the_same_save_takes_nothing():
 	var drone := Fixture.create_hostile_drone(game, Vector2i(9, 6))
 	var before := Fixture.heat(drone)
 	var passed := await fail_hull(drone, Fixture.forcer(rakshasa))
+	assert_true(Fixture.d20_was_rolled(), 'fixture: the save really rolled.')
 	assert_false(passed, 'fixture: the save failed.')
 	assert_eq(Fixture.heat(drone), before, 'A drone is not a character (rulings row 301).')
 	assert_eq(responder.yesno_prompts.size(), 0, 'No prompt.')
@@ -139,6 +149,7 @@ func test_a_save_forced_with_no_gear_or_action_costs_nothing():
 	# does this trait. No vanilla caller forces a save this way.
 	var before := Fixture.heat(hostile)
 	var passed := await fail_hull(hostile, SpecificAction.create(rakshasa, null, null))
+	assert_true(Fixture.d20_was_rolled(), 'fixture: the save really rolled.')
 	assert_false(passed, 'fixture: the save failed.')
 	assert_eq(Fixture.heat(hostile), before, 'An incomplete forcer does not reach Worm Code.')
 
@@ -185,3 +196,31 @@ func test_a_rakshasa_with_no_reaction_point_left_still_offers():
 	await fail_hull(hostile, Fixture.forcer(rakshasa))
 	assert_eq(Fixture.heat(hostile) - before, 2, 'No reaction point needed.')
 	assert_eq(rakshasa.core.current.reactions, 0, 'And none was spent.')
+
+# ---------------------------------------------------------------- inside the Ensorcel window
+
+func test_worm_code_is_not_offered_inside_the_ensorcel_window():
+	# AUTHOR'S RULING (rulings "Worm Code inside the Ensorcel window"): Ensorcel "cannot apply any heat",
+	# so while the saver holds the Ensorcel suppressor Worm Code is not offered and does not spend - its
+	# round is kept for a later save. Smite through Ensorcel forces a Systems save inside the window.
+	Fixture.equip(rakshasa, Fixture.SMITE)
+	responder.chosen_yesnos = true
+	await Fixture.choose_mode(game, rakshasa, responder, Fixture.MODE.ENSORCEL)
+	var before := Fixture.heat(hostile)
+	Fixture.queue_a_failure()
+	await Fixture.ensorcel(game, rakshasa, hostile, responder, Fixture.SMITE, SMITE_ACTION)
+	assert_true(Fixture.d20_was_rolled(), 'fixture: Smite\'s save really rolled.')
+	assert_true(hostile.has_status(Lancer.STATUS.STUNNED), 'fixture: and failed (Smite Stunned them).')
+	assert_false(UnitCondition.has_buff(hostile, Fixture.ENSORCEL_SUPPRESSOR), 'fixture: the window is closed.')
+	assert_eq(responder.yesno_prompts.size(), 0, 'Worm Code is not offered in the window.')
+	assert_eq(Fixture.worm_code_uses(rakshasa), 0, 'And its round is kept.')
+	assert_eq(Fixture.heat(hostile), before, 'No heat reached the hostile.')
+
+	# The same round, outside the window: an ordinary forced save IS offered, and takes the round.
+	Fixture.queue_a_failure()
+	var passed:bool = await Fixture.force_systems_save(self, hostile, Fixture.forcer(rakshasa))
+	assert_true(Fixture.d20_was_rolled(), 'fixture: the follow-up save really rolled.')
+	assert_false(passed, 'fixture: and failed.')
+	assert_eq(responder.yesno_prompts.size(), 1, 'Offered once, now.')
+	assert_eq(Fixture.heat(hostile) - before, 2, 'And the 2 heat lands.')
+	assert_eq(Fixture.worm_code_uses(rakshasa), 1, 'The kept round is spent here.')

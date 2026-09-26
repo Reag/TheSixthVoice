@@ -6,7 +6,11 @@
 ## hostile for Drain's reason (every tech hit on an ally is an auto-hit), and "character" is is_actor()
 ## (rulings row 301), tested here because the archetype's is_character() admits drones.
 ##
-## AN ALREADY-PRONE TARGET IS EXCLUDED, so the 1/round is kept for a target it can matter to.
+## A TARGET IT CANNOT KNOCK PRONE IS EXCLUDED - already Prone, or immune (close review): a STATUS_IMMUNITY
+## buff (Armor-Lock Plating, Flash Anchor, a Heavy Frame against a smaller knocker), Invulnerable, or
+## Flying. UnitCondition.is_immune_to_status is the predicate apply_status itself refuses on
+## (unit_condition.gd:93), asked with the same source - the core gear's id - so the answer is the one the
+## save's failure would get. The 1/round is kept for a target it can matter to.
 ##
 ## The round is spent on the HIT, before the save: a passed save has still used it. The save is a
 ## Systems save against [PRONE] forced with the full trifecta (this unit, the core gear, this action),
@@ -26,7 +30,8 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if not Core.holds(unit, Core.MODE.STABILIZER_OVERRIDE): return false
 	var defender:Unit = triggering_event.context.target_unit
 	if not Unit.is_valid(defender) or not defender.is_actor(): return false
-	return not defender.has_status(Lancer.STATUS.PRONE)
+	if defender.has_status(Lancer.STATUS.PRONE): return false
+	return not UnitCondition.is_immune_to_status(defender, Lancer.STATUS.PRONE, gear.persistent_id)
 
 func activate(context:Context, activation:EventCore) -> void:
 	var defender:Unit = context.event.context.target_unit

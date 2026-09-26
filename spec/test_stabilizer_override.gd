@@ -4,8 +4,9 @@
 #    Prone."
 #
 # Drain's watcher shape plus a 1/round hard limit on its own usage group. Any own ActionAttackTech hit
-# on a HOSTILE character (is_actor()) not already Prone; the round is spent before the save. A Systems
-# save against [PRONE] forced with the full trifecta, so Worm Code sees the failure; Prone MANUAL.
+# on a HOSTILE character (is_actor()) not already Prone and not immune to it; the round is spent before
+# the save. A Systems save against [PRONE] forced with the full trifecta, so Worm Code sees the failure;
+# Prone MANUAL.
 #
 # Dice: the attack d20, then the save d20. Fixture.queue's tail of 3s FAILS every save here, so a save
 # that should never have been forced shows up as a Prone target rather than passing quietly.
@@ -156,6 +157,30 @@ func test_an_already_prone_target_keeps_the_round():
 	await Fixture.invade(game, rakshasa, hostile, [HIT])
 	assert_true(Fixture.d20_was_rolled(), 'fixture: the invade rolled.')
 	assert_eq(uses(), 0, 'Nothing to knock down: the round is kept.')
+	await Fixture.invade(game, rakshasa, second, [HIT, SAVE_FAILS])
+	assert_true(prone(second), 'And spent on a target it matters to.')
+
+## Close review: a target that cannot be knocked Prone at all is excluded the way an already-Prone one
+## is - the round is not spent on a save that cannot matter. The vehicle is a plain STATUS_IMMUNITY to
+## Prone built in code: Flash Anchor's and the Fomorian Frame's shape. NOT the Heavy Frame's buff, which
+## applies only against a SMALLER knocker (buff_heavy_frame_immunity.gd:27), so a size-1 Rakshasa on a
+## size-1 dummy is not blocked by it - measured, the fixture guard below went red with it.
+func test_a_target_immune_to_prone_keeps_the_round():
+	var immunity := BuffStatusImmunity.new()
+	immunity.to = Buff.TO.STATUS_IMMUNITY
+	immunity.immune_to_statuses.assign([Lancer.STATUS.PRONE])
+	immunity.hide_from_player = true
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), hostile, immunity)
+	var second := Fixture.create_hostile(game, Vector2i(7, 7))
+	await Fixture.choose_mode(game, rakshasa, responder, MODE.STABILIZER_OVERRIDE)
+	var core:GearCore = rakshasa.get_gear(Fixture.CORE_ID)
+	assert_true(UnitCondition.is_immune_to_status(hostile, Lancer.STATUS.PRONE, core.persistent_id),
+		'fixture: immune to Prone from the Rakshasa\'s core system.')
+	assert_false(UnitCondition.is_immune_to_status(second, Lancer.STATUS.PRONE, core.persistent_id),
+		'fixture: the second target is not.')
+	await Fixture.invade(game, rakshasa, hostile, [HIT])
+	assert_true(Fixture.d20_was_rolled(), 'fixture: the invade rolled.')
+	assert_eq(uses(), 0, 'Nothing it can knock down: the round is kept.')
 	await Fixture.invade(game, rakshasa, second, [HIT, SAVE_FAILS])
 	assert_true(prone(second), 'And spent on a target it matters to.')
 

@@ -168,8 +168,11 @@ func test_a_forced_soulbind_pick_with_nobody_in_sensors_is_refused():
 	rakshasa = Fixture.create_rakshasa(game, RAKSHASA_TILE)
 	Fixture.create_hostile(game, FAR_TILE)
 	responder.multiple_choice_queue.append(MODE.SOULBIND)
-	await Fixture.choose_mode(game, rakshasa, responder, MODE.DRAIN)
-	assert_eq(Fixture.held_modes(rakshasa), [MODE.DRAIN] as Array[int], 'The Soulbind pick was refused.')
+	# The second answer is ENSORCEL, NOT Drain: the rotation's fallback on a scene's first turn is Drain,
+	# so a Drain answer could not tell "asked again" from "gave up and rotated" (close review).
+	await Fixture.choose_mode(game, rakshasa, responder, MODE.ENSORCEL)
+	assert_eq(responder.multiple_choice_prompts.size(), 2, 'The refused pick was asked again.')
+	assert_eq(Fixture.held_modes(rakshasa), [MODE.ENSORCEL] as Array[int], 'The Soulbind pick was refused; the second answer held.')
 
 # ---------------------------------------------------------------- nobody answers
 

@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ActionReactionMirror" format=3]
+[gd_resource type="Resource" script_class="ActionReaction" format=3]
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_rakshasa/cp_short_wave_disruptors/action_soulbind.gd" id="1_soul"]
 

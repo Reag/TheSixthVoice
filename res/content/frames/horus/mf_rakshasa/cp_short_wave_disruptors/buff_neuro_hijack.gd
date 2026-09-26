@@ -37,14 +37,27 @@ const DIFFICULTY_BUFF := &'buff_neuro_hijack_difficulty'
 ## The key buff_neuro_hijack_difficulty reads to scope itself to one declared attack.
 const SUMMARY_KEY := 'summary_id'
 ## "Asks once per Rakshasa per declared attack" (ruling 27): a Silver-Tongue-style reroll against a new
-## target builds a SECOND event_unit_attack on the same summary, and ATTACK PRE fires again for it.
+## target builds a SECOND event_unit_attack on the same summary (event_unit_attack.gd:327-336), and
+## ATTACK PRE fires again for it. The stamp records the save's OUTCOME, because the two outcomes want
+## opposite things of a roll that comes back onto the Rakshasa:
+##   PASSED - leave it alone. The exemption already stops a second ask; the stamp only agrees.
+##   FAILED - "they cannot attack you" still holds for the whole attack, so the roll is moved off again
+##     (must_move_again), WITHOUT a second save and without a second +1 Difficulty - the summary-scoped
+##     one already covers every roll of this attack. A reroll's candidates exclude only its current
+##     target and the attacker (buff_weapon_type_reroll_miss.gd:62-63; an area reroll reuses
+##     all_attacked_units, which still names the Rakshasa), so this case is reachable.
+##   ASKED - written before the save is rolled and left only if the save never resolved; treated like
+##     PASSED, the pre-outcome behaviour.
 const STAMP_PREFIX := 'reag_neuro_hijack_asked_'
+const ASKED := &'asked'
+const PASSED := &'passed'
+const FAILED := &'failed'
 
 func get_required_triggering_context() -> Array[Context.PROP]:
 	return [Context.PROP.unit, Context.PROP.target_units, Context.PROP.action, Context.PROP.resource]
 
 func triggers_on_event(_core:BuffCore, unit:Unit, triggering_event:EventCore) -> bool:
-	return should_ask(unit, triggering_event.context)
+	return should_ask(unit, triggering_event.context) or must_move_again(unit, triggering_event.context)
 
 func activate(core:BuffCore, activation:EventCore) -> void:
 	var triggering:EventCore = activation.context.event
@@ -54,7 +67,8 @@ func activate(core:BuffCore, activation:EventCore) -> void:
 	# RE-ASKED, not trusted from the poll: the bus collects every PRE reaction before running any
 	# (reaction_bus.gd:46-64), so another one - a Subutai's Draw Fire, a second Rakshasa - may already
 	# have moved this roll off us.
-	if not should_ask(rakshasa, context): return
+	var again := must_move_again(rakshasa, context)
+	if not again and not should_ask(rakshasa, context): return
 	var specific := SpecificAction.from_context(context)
 	var summary:DeclaredAttackSummary = context.resource
 	var area := is_area(specific, summary)
@@ -62,10 +76,16 @@ func activate(core:BuffCore, activation:EventCore) -> void:
 	var attacker:Unit = context.unit.get_attacker(context)
 	var forcing:SpecificAction = core.get_owner_specific(map, HIJACK_ACTION)
 	if not SpecificAction.is_valid(forcing): return
-	summary.set_meta(stamp_key(rakshasa), true)
+	if again:
+		# This attack already failed its save (ruling 27's stamp): moved off again, never re-asked.
+		effect_bus.play_text(core.name_text(), rakshasa.tile())
+		await move_off(triggering, rakshasa, specific, summary, attacker, candidates, forcing, area)
+		return
+	summary.set_meta(stamp_key(rakshasa), ASKED)
 
 	# The full trifecta (Rakshasa, core gear, protocol), so Worm Code sees a failure (ruling 29).
 	var saved:bool = await UnitHasecheck.make_systems_save(activation, attacker, forcing)
+	summary.set_meta(stamp_key(rakshasa), PASSED if saved else FAILED)
 	if not Unit.is_valid(attacker) or not Unit.is_valid(rakshasa): return
 	if saved:
 		# Keyed by from_gear, so two Rakshasas stay independent (ruling 30).
@@ -76,6 +96,13 @@ func activate(core:BuffCore, activation:EventCore) -> void:
 	# (action_attack.gd:265), so a pop names what happened.
 	effect_bus.play_text(core.name_text(), rakshasa.tile())
 	apply_difficulty(activation, attacker, forcing.gear, summary)
+	await move_off(triggering, rakshasa, specific, summary, attacker, candidates, forcing, area)
+
+## "They cannot attack you and must choose a different target for that attack." An area attack's
+## per-target event is aborted (ruling 29); a single-target roll moves to a pick from `candidates`, and
+## is aborted when nobody is left to attack instead.
+static func move_off(triggering:EventCore, rakshasa:Unit, specific:SpecificAction, summary:DeclaredAttackSummary,
+		attacker:Unit, candidates:Array[Unit], forcing:SpecificAction, area:bool) -> void:
 	if area:
 		triggering.set_aborted()
 		return
@@ -84,12 +111,27 @@ func activate(core:BuffCore, activation:EventCore) -> void:
 	if not Unit.is_valid(new_target):
 		triggering.set_aborted() # "they cannot attack you", and nobody is left to attack instead
 		return
-	context.target_unit = new_target
+	triggering.context.target_unit = new_target
 	var index := summary.all_attacked_units.find(rakshasa)
 	if index >= 0: summary.all_attacked_units[index] = new_target
 
 ## Every gate of rulings 27 and 28, asked of one per-target attack context.
 static func should_ask(rakshasa:Unit, context:Context) -> bool:
+	if not is_hijackable(rakshasa, context): return false
+	if context.resource.has_meta(stamp_key(rakshasa)): return false
+	if is_immune(context): return false
+	return not alternatives(rakshasa, context).is_empty()
+
+## A roll of an attack whose save against this Rakshasa already FAILED, back on the Rakshasa (ruling
+## 27's stamp): moved off without asking. No "another valid character" gate - with nobody left, the
+## roll is aborted instead of let through.
+static func must_move_again(rakshasa:Unit, context:Context) -> bool:
+	if not is_hijackable(rakshasa, context): return false
+	if context.resource.get_meta(stamp_key(rakshasa), &'') != FAILED: return false
+	return not is_immune(context)
+
+## The gates both questions share: a hostile character within Sensors, not exempt, attacking the Rakshasa.
+static func is_hijackable(rakshasa:Unit, context:Context) -> bool:
 	if not Unit.is_valid(rakshasa) or context == null: return false
 	if not DeclaredAttackSummary.is_valid(context.resource): return false
 	if context.target_unit != rakshasa: return false
@@ -102,10 +144,7 @@ static func should_ask(rakshasa:Unit, context:Context) -> bool:
 	if UnitRelation.distance_between(rakshasa, attacker) > rakshasa.get_sensor_range(): return false
 	var gear:GearCore = rakshasa.get_gear(Core.CORE_ID)
 	if not GearCore.is_valid(gear): return false
-	if UnitCondition.has_buff(attacker, EXEMPT_BUFF, gear.persistent_id): return false
-	if context.resource.has_meta(stamp_key(rakshasa)): return false
-	if is_immune(context): return false
-	return not alternatives(rakshasa, context).is_empty()
+	return not UnitCondition.has_buff(attacker, EXEMPT_BUFF, gear.persistent_id)
 
 ## "Has another valid character to target" (ruling 28).
 ##   SINGLE-TARGET: every character on the attacker's own targetable set that passes its

@@ -441,26 +441,68 @@ func test_two_rakshasas_stay_independent():
 	assert_false(rolled_against(at_second).has(second), 'The second Rakshasa still asks, and the roll moves off it.')
 	assert_eq(at_second.attack_rolls.size(), 1, 'fixture: the attack was rolled.')
 
-func test_it_asks_once_per_declared_attack_even_when_a_reroll_comes_back_to_it():
+func test_a_reroll_coming_back_after_a_failure_is_moved_again_without_a_second_save():
 	# Ruling 27's stamp. A reroll against a new target builds a SECOND event_unit_attack on the SAME
 	# summary (event_unit_attack.gd:327-336), so ATTACK PRE fires again. The vehicle is a second
 	# Rakshasa's own Silver Tongue: its invade is hijacked onto a hostile, misses, and the reroll comes
-	# back to the hijacking Rakshasa. Without the stamp the reroll would be asked again - and the HIT
-	# queued for it would be taken as a passed save instead.
+	# back to the hijacking Rakshasa. The save already FAILED for this attack, so "they cannot attack
+	# you": the reroll is moved off again - but not asked again. Were it asked, the HIT queued for it
+	# would be taken as a passed save (an exemption) and the reroll would land on the Rakshasa.
 	make_game()
 	rakshasa = Fixture.create_rakshasa(game, RAKSHASA_TILE, Faction.AI_ENEMY)
 	var caster := Fixture.create_rakshasa(game, ATTACKER_TILE)
 	var hostile := Fixture.create_hostile(game, RAKSHASA_ALLY_TILE)
 	# A THIRD character, so the reroll still has a candidate: without it the already-targeted exclusion
 	# empties the list on the reroll and holds this test green with the stamp deleted (mutation M14).
-	Fixture.create_hostile(game, ATTACKER_TILE + Vector2i(0, 1))
+	# It is also the only candidate left for the second move, so that move raises no prompt.
+	var third := Fixture.create_hostile(game, ATTACKER_TILE + Vector2i(0, 1))
 	await hijack(rakshasa)
 	responder.unit_queue = [hostile, rakshasa] # the hijack's pick, then Silver Tongue's new target
-	# Dice: the save, the first d20 and its +1 Difficulty d6 (both misses), then the reroll's d20.
+	# Dice: the save, the first d20 and its +1 Difficulty d6 (both misses), then the reroll's d20 -
+	# which a second save would pop instead.
 	var summary := await fire(caster, caster.get_gear(Fixture.TECH), rakshasa, [SAVE_FAILS, 3, 3, HIT])
-	assert_eq(rolled_against(summary), [hostile, rakshasa] as Array[Unit],
-		'Hijacked onto the hostile, missed, and rerolled back onto the Rakshasa.')
+	assert_eq(rolled_against(summary), [hostile, third] as Array[Unit],
+		'Hijacked onto the hostile, missed, and the reroll aimed back at the Rakshasa moved off it again.')
+	assert_false(rolled_against(summary).has(rakshasa), '"They cannot attack you" holds for the reroll.')
 	assert_eq(summary.attack_rolls.size(), 2, 'fixture: two rolls.')
 	if summary.attack_rolls.size() < 2: return
-	assert_true(summary.attack_rolls[1].hit, 'The reroll was not asked again: the HIT was the attack roll.')
+	assert_true(summary.attack_rolls[1].hit, 'Not asked again: the HIT was the attack roll, not a save.')
 	assert_false(Fixture.is_exempt(caster, rakshasa), 'No second save, so no exemption.')
+	assert_eq(hijack_difficulty(summary.attack_rolls[1]), -1, "The attack's one +1 Difficulty still applies.")
+
+func test_the_stamp_records_the_outcome_of_the_save():
+	build()
+	Fixture.create_ally(game, RAKSHASA_ALLY_TILE)
+	await hijack(rakshasa)
+	var hijack_script = load(Fixture.HIJACK_SCRIPT)
+	var key:StringName = hijack_script.stamp_key(rakshasa)
+	var failed := await fire(attacker, melee, rakshasa, [SAVE_FAILS, HIT])
+	assert_eq(failed.get_meta(key, &''), hijack_script.FAILED, 'A failed save stamps FAILED.')
+	var passed := await fire(attacker, melee, rakshasa, [SAVE_PASSES, HIT], [Action.FLAG.AS_FREEBIE])
+	assert_eq(rolled_against(passed), [rakshasa] as Array[Unit], 'fixture: the second attack was asked and passed.')
+	assert_eq(passed.get_meta(key, &''), hijack_script.PASSED, 'A passed save stamps PASSED.')
+
+func test_only_a_failed_stamp_moves_a_roll_without_asking():
+	# Polled, not fired: a PASSED stamp can only meet a roll on the Rakshasa again if the exemption
+	# were missing (the reroll excludes the current target, and a pass leaves the roll on the
+	# Rakshasa), so the stamp's own reading is pinned here, with no exemption and a live alternative -
+	# only the stamp can refuse.
+	build()
+	Fixture.create_ally(game, RAKSHASA_ALLY_TILE)
+	var hijack_script = load(Fixture.HIJACK_SCRIPT)
+	var summary := DeclaredAttackSummary.create([rakshasa] as Array[Unit], [rakshasa.tile()] as Array[Vector2i],
+		[rakshasa.tile()] as Array[Vector2i], [] as Array[Vector3i])
+	var context := Context.create({
+		unit = attacker, target_unit = rakshasa, gear = melee, action = melee.get_solo_action(), resource = summary,
+	})
+	var key:StringName = hijack_script.stamp_key(rakshasa)
+	assert_false(Fixture.is_exempt(attacker, rakshasa), 'fixture: not exempt.')
+	assert_true(hijack_script.should_ask(rakshasa, context), 'CONTROL: unstamped, it asks.')
+	assert_false(hijack_script.must_move_again(rakshasa, context), 'CONTROL: unstamped, nothing to move again.')
+	for stamp:StringName in [hijack_script.ASKED, hijack_script.PASSED]:
+		summary.set_meta(key, stamp)
+		assert_false(hijack_script.should_ask(rakshasa, context), 'Stamped %s: not asked again.' % stamp)
+		assert_false(hijack_script.must_move_again(rakshasa, context), 'Stamped %s: the roll is left alone.' % stamp)
+	summary.set_meta(key, hijack_script.FAILED)
+	assert_false(hijack_script.should_ask(rakshasa, context), 'Stamped failed: not asked again.')
+	assert_true(hijack_script.must_move_again(rakshasa, context), 'Stamped failed: the roll is moved off again.')

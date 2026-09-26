@@ -10,11 +10,14 @@ extends RefCounted
 # everywhere the UI shows it; and UnlockRank walks granted_frames in array order (unlock_rank.gd:12,
 # :19), so appending also keeps the Goblin first in the picker.
 #
-# A THIRD-PARTY MOD CONTENDS FOR THIS LICENCE: fateofman-imi_alt_frames ships its own
-# li_goblin.tres_ext.gd, appending the Cambion to this very rank through the ENGINE'S QUEUE. That is
-# exactly the collision the queue drops silently (memory mod-extension-queue-collision), and why this
-# script, like every licence extension here, is taken back out of the queue and applied directly by
-# mod_main.apply_resource_extensions_directly(): both frames survive whatever the install order.
+# A THIRD-PARTY MOD CONTENDS FOR THIS LICENCE: fateofman-imi_alt_frames appends the Cambion to this
+# very rank. Its live zip (2026-09-24) does it from its own mod_main._init (LICENSE_FRAME_GRANTS,
+# held in _applied_grants, erased in deactivate) - NOT through a .tres_ext.gd, which was the stale
+# .bk copy's mechanism. Either way the load() here and the load() there return the same cached
+# UnlockTree, and both append, so both frames survive whatever the install order. This script is
+# still taken out of the engine's queue and applied directly by
+# mod_main.apply_resource_extensions_directly(), like every licence extension here, because the
+# queue drops a second extender of the same resource silently (memory mod-extension-queue-collision).
 # test_rakshasa_frame.gd's OTHER_EXTENDERS row is the pin; it skips while that mod is parked.
 # The direct-apply route also carries the RETENTION half of the fix, which bug 7 makes load-bearing
 # for every extended resource regardless of contention.

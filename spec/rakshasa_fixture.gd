@@ -279,12 +279,13 @@ const SEAR_ACTION := &'action_sear'
 
 ## Press Scan on `target` with the Ensorcel variant from the Rakshasa's (opened if need be) turn,
 ## choosing the invade on `invade_kit` (its `invade_action`, or its first invade) when the menu asks.
-## The menu's order is the production helper's own (action_ensorcel.gd invade_options), so this reads
-## the index from it rather than assuming one.
+## The menu's order is the production helper's own (action_ensorcel.gd invade_options), built against
+## the same target as production builds it (an invade that refuses the target is not listed), so this
+## reads the index from it rather than assuming one.
 static func ensorcel(game:Gamemaster, rakshasa:Unit, target:Unit, responder, invade_kit:StringName = TECH,
 		invade_action:StringName = &'', flags:Array = []) -> void:
 	await open_turn(game, rakshasa)
-	var options:Array = load(ENSORCEL_SCRIPT).invade_options(rakshasa)
+	var options:Array = load(ENSORCEL_SCRIPT).invade_options(rakshasa, target)
 	if options.size() > 1:
 		responder.multiple_choice_queue.append(invade_index(options, invade_kit, invade_action))
 	await SpecFactory.use_solo(game, rakshasa, SCAN, target, flags, ENSORCEL_VARIANT)

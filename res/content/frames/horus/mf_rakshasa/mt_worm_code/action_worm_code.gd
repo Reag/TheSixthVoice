@@ -14,7 +14,14 @@
 ##     frame at SP1 over design ruling 3's is_character()). A drone is not a character. A
 ##     non-character never reaches here at all: make_*_save auto-fails it without raising the event
 ##     (unit_hasecheck.gd:43-58).
-## EVERY save the Rakshasa forces counts, its own frame's included (ruling 6).
+## EVERY save the Rakshasa forces counts, its own frame's included (ruling 6) - with ONE exception:
+##
+## NOT INSIDE THE ENSORCEL WINDOW (author's ruling, rulings "Worm Code inside the Ensorcel window"). An
+## invade run through Ensorcel that forces a save (Smite, Logic Bomb) resolves while the saver holds
+## this Rakshasa's buff_ensorcel_suppressor, which cancels the Rakshasa's heat - so Worm Code would ask,
+## spend its round and deal nothing. It is not offered there at all: the gate is in triggers_on_event,
+## so nothing is asked and nothing is spent, and the round is kept for a later save. Only THIS
+## Rakshasa's suppressor (owner-matched, as the suppressor itself matches its owner) closes it.
 ##
 ## THE "MAY" IS ASKED BEFORE THE ROUND IS SPENT, so declining keeps the 1/round (ruling 4). spend_actions
 ## is what moves uses_this_round on the usage group `worm_code` (reset at the Rakshasa's own turn
@@ -26,6 +33,8 @@
 extends ActionReaction
 
 const HEAT := 2
+## action_ensorcel.gd SUPPRESSOR: held by the Ensorcel's target only while the invade resolves.
+const ENSORCEL_SUPPRESSOR := &'buff_ensorcel_suppressor'
 
 func get_per_round_hard_limit(_specific:SpecificAction) -> int: return 1
 
@@ -48,7 +57,14 @@ func triggers_on_event(unit:Unit, _gear:GearCore, triggering_event:EventCore) ->
 	var saver:Unit = context.target_unit
 	if not Unit.is_valid(saver): return false
 	if not saver.is_actor(): return false
-	return UnitRelation.are_enemies(unit, saver)
+	if not UnitRelation.are_enemies(unit, saver): return false
+	return not is_inside_ensorcel(unit, saver)
+
+## Whether `saver` holds `unit`'s own Ensorcel suppressor, i.e. the save was forced inside the window.
+static func is_inside_ensorcel(unit:Unit, saver:Unit) -> bool:
+	for suppressor:BuffCore in UnitCondition.get_buffs(saver, ENSORCEL_SUPPRESSOR):
+		if suppressor.get_owner_unit(unit.map) == unit: return true
+	return false
 
 func activate(context:Context, activation:EventCore) -> void:
 	var saver:Unit = context.event.context.target_unit

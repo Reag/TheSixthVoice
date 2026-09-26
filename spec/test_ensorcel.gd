@@ -21,6 +21,14 @@ const RAKSHASA_TILE := Vector2i(3, 4)
 const HOSTILE_TILE := Vector2i(7, 4)
 const BESIDE_HOSTILE := Vector2i(8, 4)
 const HIT := 18
+const ELSEWHERE := Vector2i(9, 6)
+
+## Vanilla Smite's own invade (the Sear is its other): "each character can only be Stunned by this effect
+## once per scene", kept as the Smite GEAR's state list USED_ON_KEY (action_smite.gd:4-10).
+const SMITE_ACTION := &'action_smite'
+const SMITE_USED_ON := 'used_on'
+## Drain's usage group on the core Kit (action_drain.tres): spend_actions moves it each time Drain fires.
+const DRAIN_USAGE := &'drain'
 
 var game:Gamemaster
 var responder
@@ -46,6 +54,11 @@ func ensorcel_action() -> Action:
 func scan_gear() -> GearCore: return rakshasa.get_gear(Fixture.SCAN)
 func unscanned(unit:Unit) -> bool: return Scanpedia.is_anything_unscanned(unit)
 func options() -> Array: return load(Fixture.ENSORCEL_SCRIPT).invade_options(rakshasa)
+## The list as the production menu builds it once the target is known.
+func options_against(target:Unit) -> Array: return load(Fixture.ENSORCEL_SCRIPT).invade_options(rakshasa, target)
+func offers(list:Array, kit_id:StringName, action_id:StringName = &'') -> bool:
+	return Fixture.invade_index(list, kit_id, action_id) >= 0
+func drain_uses() -> int: return Fixture.uses(rakshasa, Fixture.CORE_ID, DRAIN_USAGE)
 
 # ---------------------------------------------------------------- shape
 
@@ -131,16 +144,22 @@ func test_no_attack_reaction_fires():
 	await Fixture.choose_mode(game, rakshasa, responder, MODE.ENSORCEL)
 	SpecFactory.apply_buff(rakshasa, Fixture.MODE_CHIPS[MODE.DRAIN], rakshasa.get_gear(Fixture.CORE_ID))
 	var before := Fixture.heat(hostile)
+	var drained := drain_uses()
 	await Fixture.ensorcel(game, rakshasa, hostile, responder)
 	assert_true(hostile.has_status(Lancer.STATUS.IMPAIRED), 'fixture: Ensorcel ran.')
 	assert_eq(Fixture.heat(hostile), before, 'Not an attack: Drain never hears it.')
+	# The heat alone cannot tell "never fired" from "fired inside the window", where the suppressor
+	# would cancel Drain's heat too. Drain spends its usage group every time it fires.
+	assert_eq(drain_uses(), drained, 'Drain never fired at all: its usage is untouched.')
 
 func test_a_real_invade_with_drain_held_does_trigger_it():
 	await Fixture.choose_mode(game, rakshasa, responder, MODE.ENSORCEL)
 	SpecFactory.apply_buff(rakshasa, Fixture.MODE_CHIPS[MODE.DRAIN], rakshasa.get_gear(Fixture.CORE_ID))
 	var before := Fixture.heat(hostile)
+	var drained := drain_uses()
 	await Fixture.invade(game, rakshasa, hostile, [HIT])
 	assert_eq(Fixture.heat(hostile) - before, 3, 'Control: the invade\'s 2 and Drain\'s 1.')
+	assert_eq(drain_uses() - drained, 1, 'Control: a Drain that fires moves its usage.')
 
 func test_sears_heat_is_suppressed():
 	Fixture.equip(rakshasa, Fixture.SMITE)
@@ -226,3 +245,49 @@ func test_a_non_invade_tech_attack_is_not_offered():
 	for option in options():
 		assert_ne(option.action.get_id(), Fixture.MARKERLIGHT_ACTION, 'Markerlight is not an invade.')
 	assert_gt(options().size(), 0, 'fixture: the list is not empty.')
+
+# ---------------------------------------------------------------- what may be chosen, per target
+
+func test_an_invade_that_refuses_this_target_is_not_offered():
+	# "Choose one of your Invade options": an invade whose own can_target_unit refuses the target is not
+	# an option against them. Smite keeps a once-per-scene list on its gear (action_smite.gd:4-10).
+	var smite := Fixture.equip(rakshasa, Fixture.SMITE)
+	var fresh := Fixture.create_hostile(game, ELSEWHERE)
+	smite.append_to_array_state(SMITE_USED_ON, hostile.core.persistent_id)
+	var action:Action = smite.get_action(SMITE_ACTION)
+	assert_false(action.can_target_unit(hostile, SpecificAction.create(rakshasa, smite, action)),
+		'fixture: Smite itself refuses the hostile it has already Stunned.')
+	assert_false(offers(options_against(hostile), Fixture.SMITE, SMITE_ACTION),
+		'Already smitten: Smite is not offered against them.')
+	assert_true(offers(options_against(hostile), Fixture.SMITE, Fixture.SEAR_ACTION),
+		'Sear, on the same gear, still is.')
+	assert_true(offers(options_against(fresh), Fixture.SMITE, SMITE_ACTION), 'Control: a fresh hostile is offered Smite.')
+
+func test_the_menu_is_built_against_the_chosen_target():
+	# The production menu, not just the helper. Smite's Kit lists Sear, then Smite, then the basic
+	# Fragment Signal follows; with the hostile already smitten the menu's second entry is Fragment
+	# Signal, not Smite. Answer index 1 and see which ran - Smite would force a save (a failing d20 is
+	# queued), Stun and hurt the Rakshasa; Fragment Signal Impairs and does neither.
+	var smite := Fixture.equip(rakshasa, Fixture.SMITE)
+	smite.append_to_array_state(SMITE_USED_ON, hostile.core.persistent_id)
+	assert_eq(options()[1].action.get_id(), SMITE_ACTION, 'fixture: unfiltered, Smite is the second entry.')
+	assert_eq(options_against(hostile)[1].gear.kit.compcon_id, Fixture.TECH,
+		'fixture: against this hostile, Fragment Signal is.')
+	await Fixture.choose_mode(game, rakshasa, responder, MODE.ENSORCEL)
+	await Fixture.open_turn(game, rakshasa)
+	responder.multiple_choice_queue.append(1)
+	Fixture.queue_a_failure()
+	await SpecFactory.use_solo(game, rakshasa, Fixture.SCAN, hostile, [], Fixture.ENSORCEL_VARIANT)
+	assert_true(hostile.has_status(Lancer.STATUS.IMPAIRED), 'Fragment Signal ran.')
+	assert_false(hostile.has_status(Lancer.STATUS.STUNNED), 'Smite did not: no second Stun this scene.')
+	assert_eq(rakshasa.current_damage(), 0, 'Nor its self-damage.')
+
+func test_a_destroyed_invade_is_not_offered():
+	# "Your equipped, undestroyed gear" (ruling 21): get_all_gear does no destroyed filtering of its own.
+	var smite := Fixture.equip(rakshasa, Fixture.SMITE)
+	assert_true(offers(options_against(hostile), Fixture.SMITE, SMITE_ACTION), 'fixture: intact, Smite is offered.')
+	UnitPrinter.destroy_gear(smite, rakshasa.core)
+	assert_false(smite.is_intact(), 'fixture: Smite is destroyed.')
+	assert_false(offers(options(), Fixture.SMITE), 'Destroyed: nothing on it is offered, whoever the target.')
+	assert_false(offers(options_against(hostile), Fixture.SMITE), 'Nor against this hostile.')
+	assert_true(offers(options_against(hostile), Fixture.TECH), 'Fragment Signal still is.')
