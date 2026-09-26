@@ -194,9 +194,11 @@ func test_the_name_and_flavour_and_tagline_resolve():
 	assert_eq(X.tr('frame.mf_lovers_knot.flavor.short'), 'Perfect Reflection', 'The tagline the author picked (ruling 1).')
 
 func test_the_flavour_is_the_lcp_paragraph_entire():
+	# Full-string equality, not begins_with/ends_with: a begins/ends pair missed the curly-quote
+	# typo in "SSC's" (frame close review, SP4) because both anchors sat outside the substitution.
 	var flavour:String = X.tr('frame.mf_lovers_knot.flavor')
-	assert_true(flavour.begins_with('One of the latest additions to SSC'), 'Opens on the LCP\'s first clause.')
-	assert_true(flavour.ends_with('defying the laws of physical reality and violence.'), 'And ends on its last.')
+	assert_eq(flavour, "One of the latest additions to SSC's LUX-Exotic line, the Lovers Knot represents Smith-Shimano's dedication to the relentless pursuit of perfection. The Deaths Head is an iconic piece of gear, a principled and sleek tool of conflict resolution that excels within its role. The Lovers Knot as its sister frame expands upon its capabilities with new discoveries tirelessly perfected by Exotic Materials. Within the Broadcasts, SSC found the fabrication files for a special type of glass, perfectly reflective and almost entirely indestructible. Originally meant for optical arrays, highlight points, and cockpit coating, it proved overly difficult to shape but displayed some rather interesting additional properties. All projectiles deflected off the surface seemed to have a mind of their own, seeking targets with statistically impossible accuracy and no significant loss in kinetic force. Leaping at this discovery, Exotic Materials was able to adjust this ricochet utilizing directed operator brainwaves and a small companion drone to create a mobile surface for reliable redirections. Thus was the Lovers Knot born, a reflection of the hard work and peerless ingenuity of its creators. A beautiful, terrible thing, unmatched in its twined pursuits of defying the laws of physical reality and violence.",
+		"Matches the LCP's flavour text verbatim (18-lovers-knot.md), not just at its first and last clause.")
 
 func test_the_trait_rows_resolve_verbatim():
 	assert_eq(X.tr('gear.mt_precision_venting.name'), 'Precision Venting', 'Precision Venting is named.')
