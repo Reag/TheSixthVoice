@@ -92,6 +92,24 @@ func accuracy_against(target:Unit) -> int:
 	}))
 	return pre.accuracy_mods_total()
 
+## The same pass as the HIT-CHANCE PREVIEW builds it with the Six Sky PLANNING to shoot from `planned`:
+## attack_preview.gd:40-46 verbatim - a virtual DeclaredAttackSummary whose origin voxels are
+## get_origin_voxels(specific, [target tile], from_tile).
+func accuracy_from_plan(target:Unit, planned:Vector2i) -> int:
+	var specific := bow()
+	var target_tiles:Array[Vector2i] = [target.tile()]
+	var virtual_declared := DeclaredAttackSummary.create(
+		[target],
+		target.occupied_tiles(),
+		target.occupied_tiles(),
+		specific.action.get_origin_voxels(specific, target_tiles, planned)
+	)
+	var pre := AttackRoll.PreAttack.create(Context.create({
+		unit = six_sky.get_attacker(specific), target_unit = target, gear = specific.gear,
+		action = specific.action, resource = virtual_declared, flags = [],
+	}))
+	return pre.accuracy_mods_total()
+
 ## The helper's reticle prompts, i.e. the target option's picks.
 func pick_prompts() -> Array:
 	return responder.plan_prompts.filter(func(info:Dictionary) -> bool:
@@ -151,6 +169,26 @@ func test_plus_one_accuracy_against_a_target_five_away():
 func test_no_accuracy_against_a_target_six_away():
 	UnitTile.move_to(hostile, AT_SIX)
 	assert_eq(accuracy_against(hostile), 0, 'Nothing at 6.')
+
+# Pass F section 6.1 #3: the hit-chance preview hands the roll the PLANNED tile's voxels
+# (attack_preview.gd:40-46), so the +1 is measured from there when the Six Sky has not moved yet.
+
+func test_the_preview_measures_from_the_planned_space_when_it_is_closer():
+	assert_eq(accuracy_against(hostile), 0, 'PRECONDITION: from where it stands the target is 7 away.')
+	assert_eq(accuracy_from_plan(hostile, Vector2i(6, 4)), 1,
+		'Planning to shoot from 5 away: the preview shows the +1.')
+
+func test_the_preview_measures_from_the_planned_space_when_it_is_farther():
+	UnitTile.move_to(hostile, AT_FIVE)
+	assert_eq(accuracy_against(hostile), 1, 'PRECONDITION: from where it stands the target is 5 away.')
+	assert_eq(accuracy_from_plan(hostile, Vector2i(3, 4)), 0,
+		'Planning to shoot from 6 away: the preview shows no +1.')
+
+func test_the_preview_from_the_current_space_matches_the_roll():
+	UnitTile.move_to(hostile, AT_FIVE)
+	assert_eq(accuracy_from_plan(hostile, SIX_SKY_TILE), 1, 'No move planned: 5 away, the +1.')
+	UnitTile.move_to(hostile, AT_SIX)
+	assert_eq(accuracy_from_plan(hostile, SIX_SKY_TILE), 0, 'No move planned: 6 away, nothing.')
 
 func test_the_accuracy_turns_a_bare_miss_into_a_hit_at_five():
 	UnitTile.move_to(hostile, AT_FIVE)
@@ -241,6 +279,21 @@ func test_immobilized_stops_the_self_teleport():
 		'Immobilized: "Yourself" is not offered, only the target.')
 	assert_eq(move_pathfinders().size(), 0, 'No move picker opens.')
 	assert_eq(six_sky.tile(), SIX_SKY_TILE, 'Immobilized: the preventable self teleport does not happen.')
+
+func test_picking_the_only_entry_of_a_target_only_menu_teleports_the_target():
+	# The menu's index is remapped through resolve_crit_teleport's `choices`: with "Yourself" dropped,
+	# entry 0 IS "The target", and must not be read as CHOICE_SELF (0).
+	UnitCondition.apply_status(SpecFactory.dummy_event(), six_sky, Lancer.STATUS.IMMOBILIZED, Lancer.UNTIL.MANUAL)
+	responder.multiple_choice_queue.assign([0])
+	responder.chosen_plan_queue.append(landing_plan(TARGET_LANDING))
+	responder.chosen_move_tile = SELF_LANDING
+	await crit()
+	assert_eq(menu_labels(), PackedStringArray([tr('gear.mw_daykeeper_cycler_bow.crit_target')]),
+		'fixture: the menu offers only the target.')
+	assert_eq(pick_prompts().size(), 1, 'Entry 0 opens the target reticle...')
+	assert_eq(move_pathfinders().size(), 0, '...and no move picker.')
+	assert_eq(hostile.tile(), TARGET_LANDING, 'The target is teleported.')
+	assert_eq(six_sky.tile(), SIX_SKY_TILE, 'The Six Sky is not.')
 
 func test_immobilized_does_not_stop_the_target_teleport():
 	UnitCondition.apply_status(SpecFactory.dummy_event(), hostile, Lancer.STATUS.IMMOBILIZED, Lancer.UNTIL.MANUAL)

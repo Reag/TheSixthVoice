@@ -27,7 +27,8 @@
 ## THE CRITS RESOLVE AFTER THE RITUAL (ruling 17, the author's): the bow records each on the scope, and
 ## the records are resolved here one by one, in attack order, after the scope is gone - so every Ritual
 ## attack is fired from the Ritual's space, and a self-teleport from one crit moves the origin of the
-## next. A recorded target that has since died is offered as "yourself" only.
+## next. A recorded target that has since died is offered as "yourself" only - and when yourself is
+## impossible too (Immobilized, banned, no free space), no menu is raised at all.
 ##
 ## THE SCOPE COMES OFF when the shots end. GDScript has no finally, so the shots run in their own
 ## function and the single clear follows it, whether that function finished the list or left early. If

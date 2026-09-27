@@ -9,7 +9,10 @@
 ## (attack_roll.gd:192), as a NAMED line in the breakdown - Shatterhead's shape. It has to live here and
 ## not in get_attack_accuracy, which is handed only the gear and cannot see the target
 ## (action_attack.gd:31). Measured from the ATTACKER's space at roll time, so a Ritual shot measures from
-## where the Ritual teleport put the Six Sky.
+## where the Ritual teleport put the Six Sky - EXCEPT in the hit-chance preview (Pass F section 6.1 #3),
+## which hands the roll the PLANNED space's origin voxels (attack_preview.gd:40-46): origin voxels that
+## are not the attacker's own are measured from instead (close_range_distance), so a move-then-shoot
+## preview shows the +1 the shot will actually get.
 ##
 ## NO HEAT IN A RITUAL (ruling 18). The Ritual fires this bow with Action.FLAG.NO_SELF_HEAT, which the
 ## engine honours for Heat Self at spend (unit_action.gd:226-227) and NOWHERE else - so this script reads
@@ -53,10 +56,32 @@ func modify_pre_attack_data(context:Context, pre_attack_data:AttackRoll.PreAttac
 	super.modify_pre_attack_data(context, pre_attack_data)
 	var attacker:Unit = context.unit.get_attacker(context)
 	if not Unit.all_valid([attacker, context.target_unit]): return
-	if UnitRelation.distance_between(attacker, context.target_unit) > CLOSE_RANGE: return
+	if close_range_distance(context, attacker) > CLOSE_RANGE: return
 	# The kit, so the line shows the bow's glyph even before any UI has cached icon_from_kit (action.gd:324).
 	var kit:Kit = context.gear.kit if GearCore.is_valid(context.gear) else null
 	pre_attack_data.add_mod(name(SpecificAction.create(attacker, context.gear, self)), 1, get_icon(kit))
+
+## The distance the +1 is measured over. The hit-chance preview hands the roll a VIRTUAL declared attack
+## whose origin voxels stand on the PLANNED tile (attack_preview.gd:40-46), while the real roll's are the
+## attacker's own at declaration (action_attack.gd:253-258). So: origin voxels that are not the
+## attacker's own occupied voxels are measured from, keeping distance_between's max(horizontal,
+## vertical) (unit_relation.gd:13-25); anything else is the attacker's space as it stands.
+static func close_range_distance(context:Context, attacker:Unit) -> int:
+	var target:Unit = context.target_unit
+	if not DeclaredAttackSummary.is_valid(context.resource): return UnitRelation.distance_between(attacker, target)
+	var voxels:Array[Vector3i] = []
+	voxels.assign(context.resource.source_voxels)
+	if voxels.is_empty() or voxels == UnitTile.get_occupied_voxels(attacker):
+		return UnitRelation.distance_between(attacker, target)
+	var horizontal:int = Tile.get_closest_pair_between(Tile.from_voxels(voxels), target.occupied_tiles()).distance
+	var bottom:int = voxels.front().y
+	var top:int = bottom
+	for voxel:Vector3i in voxels:
+		bottom = mini(bottom, voxel.y)
+		top = maxi(top, voxel.y)
+	var vertical:int = UnitTile.get_elevation_distance_between(
+		bottom, top - bottom + 1, UnitTile.effective_floor(target), target.get_height(false))
+	return maxi(horizontal, vertical)
 
 func is_overkill(context:Context) -> bool:
 	if context != null and context.flags.has(Action.FLAG.NO_SELF_HEAT): return false
