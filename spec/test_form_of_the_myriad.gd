@@ -357,6 +357,25 @@ func test_two_crits_in_one_myriad_attack_clear_two_heat_and_the_gate_returns_aft
 	assert_gt(contact.current_damage(), before, 'Guard: the second shot landed.')
 	assert_eq(Fixture.heat(knot), 2, 'Without the chip, the second crit this round clears nothing.')
 
+# Pass E (Lovers Knot item 1, AUTHOR: FIX): a vent under the chip does not count toward Precision
+# Venting's 1/round, so a crit later the SAME round - a reaction shot after the chip has gone - still
+# vents. The later shot is a freebie with no new turn: the Knot's round resets only at its own turn start.
+func test_a_vent_under_the_chip_leaves_the_round_for_a_later_crit_that_round() -> void:
+	Fixture.set_heat(knot, 3)
+	await press([20], [plan_unit(contact)])
+	assert_eq(Fixture.heat(knot), 2, 'Guard: the Myriad crit vented 1.')
+	assert_eq(Fixture.precision_venting_uses(knot), 0, 'A vent under the chip spends nothing of the round.')
+
+	await SpecFactory.end_turn(game, knot)
+	assert_false(chip_held(), 'Fixture: the chip ended with the Knot\'s turn.')
+	responder.chosen_yesnos = false # no redirect: one plain shot
+	var before := contact.current_damage()
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	Dice.cheat_attack([20], SIXES)
+	await SpecFactory.use_solo(game, knot, Fixture.RANGED, [contact], [Action.FLAG.AS_FREEBIE])
+	assert_gt(contact.current_damage(), before, 'Guard: the later shot landed.')
+	assert_eq(Fixture.heat(knot), 1, 'Its crit still vents: the round was never spent.')
+
 
 # ============ A SPENT GEMINI ROUND (ruling 19) ============
 
@@ -369,6 +388,34 @@ func test_a_spent_gemini_round_is_restored() -> void:
 	await press([14], [plan_unit(contact), plan_unit(c), CompconPlan.create_aborted()])
 	assert_eq(c.current_damage(), 3, 'The Myriad attack redirects all the same.')
 	assert_eq(Fixture.gemini_uses(knot), 1, 'And the round is spent again.')
+	await SpecFactory.end_turn(game, knot)
+	assert_false(chip_held(), 'Fixture: the chip is gone.')
+	assert_eq(Fixture.gemini_uses(knot), 1, 'Spent by the Myriad attack, so the chip\'s expiry does not stamp it twice.')
+
+# Ruling 19 as Pass E fixed it (Lovers Knot item 4, AUTHOR): the Myriad's turn keeps its two Geminis,
+# but a round the Myriad restored and then left unused is spent again when the chip expires - no extra
+# reaction Gemini later that round.
+func test_a_restored_gemini_round_is_spent_again_when_the_chip_expires() -> void:
+	Fixture.equip(knot, Fixture.RANGED_2) # two weapons, so the chooser is offered and can be cancelled
+	var b := dummy(NEAR_B)
+	await fire(contact, [14], [plan_unit(b)])
+	assert_eq(b.current_damage(), 3, 'Fixture: an earlier shot redirected.')
+	assert_eq(Fixture.gemini_uses(knot), 1, 'Fixture: Gemini\'s round is spent.')
+	await press([14], [], [null])
+	assert_true(chip_held(), 'Fixture: the chip is up, the Myriad attack cancelled.')
+	assert_eq(Fixture.gemini_uses(knot), 0, 'The Myriad restored the spent round for its turn.')
+	await SpecFactory.end_turn(game, knot)
+	assert_false(chip_held(), 'Fixture: the chip ended with the Knot\'s turn.')
+	assert_eq(Fixture.gemini_uses(knot), 1, 'The chip\'s expiry spends the restored round again.')
+
+func test_a_myriad_turn_with_no_earlier_gemini_leaves_the_round_open() -> void:
+	Fixture.equip(knot, Fixture.RANGED_2)
+	await press([14], [], [null])
+	assert_true(chip_held(), 'Fixture: the chip is up.')
+	assert_eq(Fixture.gemini_uses(knot), 0, 'Fixture: no Gemini this round.')
+	await SpecFactory.end_turn(game, knot)
+	assert_false(chip_held(), 'Fixture: the chip ended with the Knot\'s turn.')
+	assert_eq(Fixture.gemini_uses(knot), 0, 'CONTROL: nothing was restored, so nothing is spent at expiry.')
 
 
 # ============ EFFICIENT (ruling 17) ============
