@@ -18,6 +18,15 @@
 ## who already carries our buff does NOT fire, so it does not spend the round either: a target knocked
 ## down twice is Impaired once, and the second knockdown leaves the round for someone else.
 ##
+## AN ALREADY-PRONE HOSTILE IS NOT "KNOCKED PRONE" AGAIN (Pass F, reverses row 494, ruling
+## 2026-09-27). The STATUSES_CHANGED PRE gate fires from UnitCondition.apply_status AFTER the new
+## StatusCondition is appended (unit_condition.gd:103-108, no dedupe), so `has_status`/`get_status`
+## are already true for a first knock and a re-knock alike - the gate has to count copies instead.
+## prone_copies() below sums live PRONE StatusConditions plus any buff-carried Prone
+## (Buff.applies_statuses); more than one means this application changed nothing, so it does not
+## fire and does not spend the round. Consequence accepted: a hostile knocked Prone by someone else
+## cannot be Punished until it clears Prone.
+##
 ## NO PROMPT - the card has no "may" - so the AI needs nothing and a player is never asked.
 ##
 ## HIDDEN FROM THE CARD. localization_key_override (in the .tres) points this reaction's rows at the
@@ -38,6 +47,15 @@ func get_required_triggering_context() -> Array[Context.PROP]:
 ## "1/round" (action_reaction.gd:67 would answer 99 for a non-consuming reaction).
 func get_per_round_hard_limit(_specific:SpecificAction) -> int: return 1
 
+## How many PRONEs `unit` carries right now, counting a live StatusCondition and a buff carrying it
+## via applies_statuses alike. Called from the gate AFTER the new copy is appended - see the header -
+## so 1 means "this application is the only one" (a genuine knock) and >1 means it was already Prone.
+static func prone_copies(unit:Unit) -> int:
+	var count := UnitCondition.get_buffs_that_apply_status(unit, Lancer.STATUS.PRONE).size()
+	for status:StatusCondition in unit.state.statuses:
+		if status.type == Lancer.STATUS.PRONE: count += 1
+	return count
+
 func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> bool:
 	var triggering_context := triggering_event.context
 	var knocked:Unit = triggering_context.unit
@@ -52,6 +70,8 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if UnitRelation.get_origin_unit_for_source(source, triggering_context.map) != unit: return false
 	# are we already punishing them?
 	if UnitCondition.has_buff(knocked, BUFF_ID, gear.persistent_id): return false
+	# a genuine change of state - an already-Prone hostile is not "knocked Prone" again
+	if prone_copies(knocked) > 1: return false
 	return true
 
 func activate(context:Context, activation:EventCore) -> void:
