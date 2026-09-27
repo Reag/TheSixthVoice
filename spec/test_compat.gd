@@ -1195,8 +1195,8 @@ func test_house_guard_on_the_hazard_lets_supporting_fire_trigger_two_tiles_out()
 ## RULING, 2026-09-24, the Shackleton design's `Contested seams:` line (adjacency - IGNORED, by
 ## geometry). Deferred from SP1 to SP2 with the burst it pins.
 ##
-## Unfathomable Weight's "Burst 1 area around you" is UnitTile.get_aoe_tiles(unit, BURST, 1) -
-## AoeCalculator.burst over the footprint - and never UnitRelation.adjacent_characters, which is the
+## Unfathomable Weight's "Burst 1 area around you" is its own flat_burst(unit, 1) (flat since Pass E,
+## 2026-09-27) - RangePattern / AoeCalculator.burst over the footprint - and never UnitRelation.adjacent_characters, which is the
 ## only thing House Guard overrides. House Guard is also only_to_allies and the card pushes only
 ## hostiles, so today no unit can be widened INTO this card at all; what this pins is the geometry,
 ## so that re-implementing the burst through adjacency, or the talents mod widening hostiles, turns
@@ -1216,12 +1216,13 @@ func test_house_guard_does_not_widen_unfathomable_weights_burst() -> void:
 	var far_ally := ShackletonFixture.create_dummy(sgame, Vector2i(8, 5), -10, Faction.PLAYER)
 	var far_hostile := ShackletonFixture.create_dummy(sgame, Vector2i(3, 5))
 	var near_hostile := ShackletonFixture.create_dummy(sgame, Vector2i(7, 6))
-	var burst_before := UnitTile.get_aoe_tiles(shackleton, Lancer.AOE_TYPE.BURST, 1)
+	var weight = load('res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/cp_force_distribution_programs/action_unfathomable_weight.gd')
+	var burst_before:Array[Vector2i] = weight.flat_burst(shackleton, 1)
 	widen_adjacency_on(shackleton)
 	UnitTile.update_tracking_and_statuses(sgame.map)
 	assert_true(UnitRelation.adjacent_characters(shackleton).has(far_ally),
 		'LIVENESS: House Guard widens adjacency two tiles out.')
-	assert_eq(UnitTile.get_aoe_tiles(shackleton, Lancer.AOE_TYPE.BURST, 1), burst_before,
+	assert_eq(weight.flat_burst(shackleton, 1), burst_before,
 		'RULED: the burst is geometry, untouched by the widening.')
 
 	await ShackletonFixture.open_turn(sgame, shackleton)

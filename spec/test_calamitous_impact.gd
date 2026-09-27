@@ -131,6 +131,26 @@ func test_every_character_but_the_shackleton_is_pushed_three_then_saves() -> voi
 	assert_eq(near.tile(), NEAR_PUSHED)
 	assert_eq(shackleton.tile(), LANDING, 'the Shackleton itself does not move.')
 
+func test_a_flier_in_the_burst_is_pushed_and_saves() -> void:
+	# Pass E ruling, 2026-09-27: the Burst 2 is FLAT, height ignored. The engine's 3-D Burst 2
+	# (unit_tile.gd:367-372, are_ranges_touching at :316-317) still reaches a LEVEL flier from a size-2
+	# origin, and on a one-high shelf too (both measured green against the 3-D burst; the landed
+	# Shackleton's own effective floor reads 1). So the flier stands on a two-high shelf, the push lane
+	# raised with it so the push stays level: its floor 5 is out of that reach (measured red).
+	var shelf:Array[Vector2i] = []
+	for x in range(NEAR_TILE.x, NEAR_PUSHED.x + 1): shelf.append(Vector2i(x, NEAR_TILE.y))
+	SpecFactory.set_tiles_elevation(game.map, 2, shelf)
+	var flier := Fixture.create_dummy(game, NEAR_TILE)
+	await game.execute_event(&'event_unit_apply_status',
+		{unit = flier, category = Lancer.STATUS.FLYING, flags = [Lancer.UNTIL.MANUAL]})
+	assert_true(flier.has_status(Lancer.STATUS.FLYING), 'precondition: it flies.')
+	var from := await impact([LANDING, NEAR_PUSHED], [FAIL, D6_A, D6_B])
+	var pools := Fixture.offered_pools(watcher, from)
+	assert_eq(pools.size(), 2, 'the leap, then the flier\'s push.')
+	if pools.size() == 2: assert_eq(Fixture.reach_of(pools[1], NEAR_TILE), 3, 'Knockback 3.')
+	assert_eq(flier.tile(), NEAR_PUSHED, 'pushed.')
+	assert_eq(hp(flier), 200 - DAMAGE, 'and it saved, and failed.')
+
 func test_a_failed_save_takes_the_damage_and_is_prone_a_passed_one_neither() -> void:
 	var far := Fixture.create_dummy(game, FAR_TILE)
 	var near := Fixture.create_dummy(game, NEAR_TILE)
