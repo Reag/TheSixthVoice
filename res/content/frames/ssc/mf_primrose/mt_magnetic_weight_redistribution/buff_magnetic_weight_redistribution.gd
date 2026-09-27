@@ -9,9 +9,8 @@
 ## DECLARATIVE on the .tres (weapon_sizes = [2, 3], weapon_types = [2]) and are applied by
 ## BuffWeaponType.check_if_passive_applies through super() - there is nothing to do here for them.
 ##
-## THE ROUND LIMIT IS HAND-ROLLED because the engine never enforces one for a buff-triggered effect
-## (reaction_bus.gd:126-139) - only for ActionReactions. Crack Shot III's buff_watch_this.gd counts
-## the same way; so does Knock 'em down.
+## THE ROUND LIMIT is the shared once-per-round helper (gear/shared/once_per_round, close-out Pass D),
+## whose header says why it is hand-rolled; so is Knock 'em down's.
 ##
 ## THE THREAT GATE IS RULING 8, and it is the only clause the Fitzgerald's copy does not have. The
 ## Thrown tag makes get_alternate_actions build a variant of the SAME action with threat = 0
@@ -26,6 +25,8 @@
 ## nobody could delete without deleting the first.
 extends BuffWeaponTypeOnHit
 
+const OncePerRound := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/once_per_round/once_per_round.gd')
+
 const USAGE_KEY:StringName = &'magnetic_weight'
 
 func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
@@ -33,6 +34,4 @@ func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 	# A throw is threat 0 (ruling 8). super() has already established context.action is an
 	# ActionAttackWeapon, so `threat` is safe to read.
 	if context.action.threat <= 0: return false
-	var trait_gear:GearCore = core.get_owner_gear(context.map)
-	if not GearCore.is_valid(trait_gear): return false
-	return trait_gear.get_uses_this_round_alt(USAGE_KEY) == 0
+	return OncePerRound.is_unspent(core.get_owner_gear(context.map), USAGE_KEY)

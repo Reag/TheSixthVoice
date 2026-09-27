@@ -7,10 +7,9 @@
 ## OnHitEffect rather than here, because `should_abort` is where the activation's flags are in scope -
 ## the Tortuga's onhit_hyper_reflex_mode_immobilize.gd is the vanilla shape.
 ##
-## THE ROUND LIMIT IS HAND-ROLLED, for the same reason Magnetic Weight Redistribution's is: the engine
-## enforces a per-round limit only for ActionReactions (reaction_bus.gd:126-139), never for a
-## buff-triggered effect. This gates on the CORE Kit's usage, and onhit_wormhole_grasp_slow.gd
-## increments it - one key, two files, both naming &'wormhole_slow'.
+## THE ROUND LIMIT is the shared once-per-round helper (gear/shared/once_per_round, close-out Pass D).
+## This gates on the CORE Kit's usage, and onhit_wormhole_grasp_slow.gd spends it - one key, two
+## files, both naming &'wormhole_slow'.
 ##
 ## get_owner_gear IS THE CORE KIT, not the weapon: UnitCondition.apply_buffs stamps BuffCore.from_gear
 ## with the gear that applied the buff (unit_condition.gd:705-709), and the protocol passes
@@ -18,10 +17,10 @@
 ## right: the 1/round belongs to Wormhole Grasp and not to whichever weapon happened to fire.
 extends BuffWeaponTypeOnHit
 
+const OncePerRound := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/once_per_round/once_per_round.gd')
+
 const USAGE_KEY:StringName = &'wormhole_slow'
 
 func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 	if not super.check_if_passive_applies(core, context): return false
-	var core_gear:GearCore = core.get_owner_gear(context.map)
-	if not GearCore.is_valid(core_gear): return false
-	return core_gear.get_uses_this_round_alt(USAGE_KEY) == 0
+	return OncePerRound.is_unspent(core.get_owner_gear(context.map), USAGE_KEY)
