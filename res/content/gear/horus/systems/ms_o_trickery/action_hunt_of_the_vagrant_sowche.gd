@@ -22,21 +22,13 @@
 # copies unit/gear/action off it onto the save event (:78-88) so the battle log and the saver's
 # TO.SAVE buffs can read the forcer. A bare-unit call degrades both.
 #
-# "CHARACTER" MEANS is_actor(), not is_character(). Unit.is_character() is TRUE for a DRONE
-# (unit.gd:116) and is_actor() is the not-a-drone predicate (:117). This is the MOD'S settled reading
-# of the word, held across three rulings on three frames - 194 (the Vauban's Gravity Well shelters
-# allied MECHS), 64/70 (a drone's shot counts as its OWNER'S) and 269 (the Stealing) - and the
-# canonical paragraph is in
-# res/content/frames/horus/mf_sluagh/mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd.
+# "CHARACTER" IS Unit.is_character(), A DRONE INCLUDED (rulings.md, mod-wide row of 2026-09-27).
 #
-# THIS SEARCH IS WHY THE FRAME SETTLED THERE, and it was MEASURED at the close rather than argued.
-# Read as is_character(), an ENGAGING DRONE always wins: only a character can engage
-# (UnitRelation.can_be_engaged_by:154 demands is_character()) and an engager is adjacent by
-# definition, so it is always at distance 1, always ties or beats every other candidate, and every
-# tile in its ring is beside it. The Hunt could then never drag a target clear of the thing holding
-# it - the card's whole point, deleted by one predicate. With is_actor() the search walks past the
-# drone to the next real character, and the shove lands where the card says it should.
-# test_the_shove_drags_an_engaged_target_out_past_the_drone_that_engaged_it pins both halves.
+# THE SEARCH WALKS PAST WHATEVER HOLDS THE TARGET (holders_of, the Hunt-local half of that ruling).
+# An engager is adjacent by definition (UnitRelation.can_be_engaged_by:154), so it is always at
+# distance 1 and every tile in its ring is beside it: counted, it always wins, and the Hunt could
+# never drag a target clear of the thing holding it - the card's whole point. The same holds for a
+# grappler, engaging or not. test_hunt pins the drone, a mech engager and a same-side grappler.
 #
 # THE DESTINATION SET IS Teleport.candidate_tiles, NOT UnitTile.filter_to_free_tiles. The design
 # named the latter "for the target's size"; it takes no unit and no size, returns void and filters in
@@ -117,17 +109,15 @@ func on_hit(activation:EventCore, attacked_unit:Unit) -> void:
 ##
 ## ANY FACTION, THE SLUAGH INCLUDED, THE TARGET EXCLUDED (ruling 18). A single winner is auto-picked
 ## with no prompt at all - which is a behaviour the spec asserts on the ABSENCE of a recorded prompt,
-## so it has to be a real branch rather than a one-element prompt.
+## so it has to be a real branch rather than a one-element prompt. get_all_characters is the card's
+## word already (is_character(), map_state.gd:231-235), drones included.
 func pick_closest_character(context:Context, target:Unit) -> Unit:
 	var best:int = UNREACHABLE
 	var tied:Array[Unit] = []
+	var holders := holders_of(target)
 	for other:Unit in target.map.get_all_characters():
 		if other == target or not Unit.is_valid(other): continue
-		# LOAD-BEARING, and it is the ONE line that keeps this card working. map.get_all_characters
-		# filters on is_character() (map_state.gd:231-235 -> UnitRelation.filter_for_characters:71),
-		# which PASSES a drone - so without this narrowing an engaging drone is always the closest
-		# "character" and the Hunt can never drag anyone clear. See the header.
-		if not other.is_actor(): continue # "character" on this frame; a drone is not one
+		if holders.has(other): continue # see holders_of and the header
 		var distance:int = UnitRelation.distance_between(target, other)
 		if distance >= UNREACHABLE: continue # off the map; see the constant
 		if distance < best:
@@ -141,6 +131,16 @@ func pick_closest_character(context:Context, target:Unit) -> Unit:
 	# TRUE: declining leaves the target where it is, which is strictly better than forcing a choice
 	# the player does not want - and the save was forced either way.
 	return await choice_bus.choose_unit(tied, true, SpecificAction.from_context(context))
+
+## Every unit holding `target` where it stands: engaging it, or in a grapple with it either way round.
+## The Hunt-local half of the 2026-09-27 ruling - see the header.
+static func holders_of(target:Unit) -> Array[Unit]:
+	var holders:Array[Unit] = UnitRelation.get_engaging_units(target)
+	for grapple:SpecificAction in UnitCondition.get_incoming_grapples(target):
+		Util.append_nonduplicate(holders, grapple.unit)
+	for grapple:SpecificAction in UnitCondition.get_outgoing_grapples(target):
+		Util.append_nonduplicate(holders, grapple.unit)
+	return holders
 
 ## Free spaces adjacent to `beside` that `mover` could actually stand in.
 ##

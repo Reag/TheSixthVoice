@@ -73,11 +73,11 @@ const FOOTPRINT_BLOCKED := Vector2i(9, 5)
 const FOOTPRINT_FITS := Vector2i(11, 5)
 
 ## An ALLIED DRONE between the victim and the anchor. Two jobs in one case: it ENGAGES the victim (it
-## is adjacent and hostile to it), and it is a character that is NOT an actor - so the
-## closest-CHARACTER search must walk past it and take the anchor two tiles further out.
+## is adjacent and hostile to it), and it is a character (ruling 2026-09-27) holding the victim - so
+## the closest-character search must walk past it and take the anchor two tiles further out.
 const DRONE_TILE := Vector2i(9, 6)
 ## In the DRONE'S own ring and NOT in the anchor's: the tile that enters the offered set the moment
-## "character" stops meaning is_actor() and the drone becomes the anchor. Asserted ABSENT.
+## the holder exclusion fails and the drone becomes the anchor. Asserted ABSENT.
 ##
 ## THE EXCLUSIVITY IS THE WHOLE POINT AND IT IS NARROW - MEASURED 2026-09-21, the first draft of
 ## this constant was (9,7) and was in BOTH rings, so the assertion failed against a correct build.
@@ -86,8 +86,8 @@ const DRONE_TILE := Vector2i(9, 6)
 ## exactly (8,5), (8,7) and TARGET_TILE itself as drone-exclusive; (8,7) is the free one.
 const BESIDE_THE_DRONE := Vector2i(8, 7)
 ## Beside the ANCHOR and two tiles from the drone, so landing here really leaves the drone's
-## engagement zone - and so it is absent from the offered set the moment "character" stops meaning
-## is_actor() and the drone becomes the anchor.
+## engagement zone - and so it is absent from the offered set the moment the holder exclusion fails
+## and the drone becomes the anchor.
 const BEYOND_THE_DRONE := Vector2i(11, 6)
 
 ## A friendly victim, placed so the ANCHOR is its unique closest character (3) rather than tying with
@@ -306,20 +306,13 @@ func test_the_shove_drags_an_engaged_target_out_past_the_drone_that_engaged_it()
 	# target, and two units on the same side never engage each other, so it would have been a
 	# tautology. An allied DRONE is hostile to the target and does engage it.
 	#
-	# (2) "CHARACTER" MEANS is_actor(), the mod's settled reading (rulings 194, 64/70 and 269;
-	# canonical paragraph in action_stealing_of_the_souls.gd's header). Unit.is_character() is TRUE
-	# for a drone (unit.gd:116-117), so a drone at distance 1 beats the anchor at distance 2 the
-	# moment the search asks the wrong question - and BEYOND_THE_DRONE is beside the ANCHOR and two
-	# tiles from the drone, so it leaves the offered set entirely if that happens. Without this
-	# clause nothing in the suite places a drone at all and the mutation is invisible.
-	#
-	# THIS SEARCH IS WHY THE WHOLE FRAME SETTLED ON is_actor(), and the alternative was MEASURED on
-	# this very board (2026-09-21): under is_character() the drone became the anchor, the offered set
-	# became its own ring, and the Hunt could no longer drag a target clear of the thing holding it.
-	# Only a character can engage (UnitRelation.can_be_engaged_by:154) and an engager is adjacent by
-	# definition, so an engager is ALWAYS at distance 1 and every tile in its ring is beside it - the
-	# card's whole point, deleted by one predicate. BESIDE_THE_DRONE is asserted ABSENT below as the
-	# standing pin on that.
+	# (2) THE SEARCH WALKS PAST WHAT HOLDS THE TARGET. The drone IS a character (ruling 2026-09-27,
+	# mod-wide) and at distance 1 it beats the anchor at distance 2 - so without the Hunt's holder
+	# exclusion (holders_of) it becomes the anchor, the offered set becomes its own ring, and the Hunt
+	# can never drag a target clear of the thing engaging it. BEYOND_THE_DRONE is beside the ANCHOR and
+	# two tiles from the drone, so it leaves the offered set the moment that happens; BESIDE_THE_DRONE
+	# is asserted ABSENT as the standing pin. The next two tests pin the same exclusion for a mech
+	# engager and a grappler.
 	#
 	# THE DISCRIMINATION IS ON offered_tiles(), NOT ON THE LANDING. Nothing validates an answered
 	# plan against what was offered (this file's header, target_action_util.gd:227), so a tile the
@@ -331,7 +324,7 @@ func test_the_shove_drags_an_engaged_target_out_past_the_drone_that_engaged_it()
 
 	await run_hunt(BEYOND_THE_DRONE)
 	assert_true(offered_tiles().has(BEYOND_THE_DRONE),
-		'The ANCHOR is the closest character: a drone is not one, whatever is_character() says.')
+		'The ANCHOR is the closest character: the drone holds the target, so it is walked past.')
 	assert_false(offered_tiles().has(BESIDE_THE_DRONE),
 		'And the DRONE\'s own ring is never offered - it was walked past, not stopped at.')
 	assert_eq(target.tile(), BEYOND_THE_DRONE, 'And the shove lands regardless of engagement.')
@@ -345,6 +338,29 @@ func test_the_shove_drags_an_engaged_target_out_past_the_drone_that_engaged_it()
 	assert_false(UnitCondition.is_engaged(target),
 		'Two tiles out, the engagement is gone - re-measured after the tracking pass, not before.')
 	assert_true(Unit.is_valid(drone), 'fixture: the drone is still standing where it was.')
+
+func test_an_engaging_mech_is_passed_over_like_the_drone():
+	# THE EXCLUSION IS "ANY UNIT HOLDING THE TARGET", not "a drone" (ruling 2026-09-27, mod-wide):
+	# an engaging MECH at distance 1 would win the search exactly as the drone did.
+	var holder:Unit = SluaghFixture.create_ally(game, DRONE_TILE)
+	SluaghFixture.track(game)
+	assert_true(UnitCondition.is_engaged(target), 'fixture: the ally mech engages the target.')
+	await run_hunt(BEYOND_THE_DRONE)
+	assert_true(offered_tiles().has(BEYOND_THE_DRONE), 'The anchor, not the engager, is the closest.')
+	assert_false(offered_tiles().has(BESIDE_THE_DRONE), 'The engager\'s own ring is never offered.')
+	assert_true(Unit.is_valid(holder), 'fixture: the engager still stands.')
+
+func test_a_grappler_on_the_targets_own_side_is_passed_over():
+	# THE GRAPPLE HALF, isolated from engagement: a same-side unit never engages the target
+	# (UnitRelation.can_be_engaged_by), so only the grapple branch can exclude it.
+	var grappler:Unit = SluaghFixture.create_hostile(game, DRONE_TILE)
+	SluaghFixture.queue([D20_HITS])
+	await SpecFactory.use(game, grappler, &'mw_grapple', &'action_grapple', target)
+	assert_true(target.has_status(Lancer.STATUS.GRAPPLED), 'fixture: the target is grappled.')
+	assert_false(UnitRelation.get_engaging_units(target).has(grappler), 'fixture: and not engaged by it.')
+	await run_hunt(BEYOND_THE_DRONE)
+	assert_true(offered_tiles().has(BEYOND_THE_DRONE), 'The anchor, not the grappler, is the closest.')
+	assert_false(offered_tiles().has(BESIDE_THE_DRONE), 'The grappler\'s own ring is never offered.')
 
 func test_an_interdiction_field_stops_the_shove_and_the_stamp_still_stands():
 	# THE CONTROLLER'S ROUTE RULING (2026-09-20, reversing the plan's departure 7), asked of the CARD
