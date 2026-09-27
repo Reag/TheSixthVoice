@@ -227,31 +227,24 @@ func test_an_allied_attackers_hit_gets_nothing():
 	assert_eq(guardian_uses_this_round(), 0, 'An ALLY hitting the ally offers nothing.')
 	assert_eq(Overshield.current(ally), 0, 'And nothing was granted.')
 
-func test_a_hit_on_an_adjacent_allied_drone_gets_nothing():
-	# DESIGN 1.5.1's OWN SPEC LIST, and it is NOT what require_defender_to_be_character delivers.
-	# That flag is `defender.is_character()` (action_reaction_attacked.gd:95), and Unit.is_character()
-	# returns TRUE for a drone - its own comment says "active mech/pilot/drone" (unit.gd:116). The
-	# script therefore adds is_actor() (:117, is_character() and not is_drone).
+func test_a_hit_on_an_adjacent_allied_drone_grants_too():
+	# "A character": is_character(), a drone included (ruling 2026-09-27, mod-wide). The archetype's
+	# require_defender_to_be_character already asks exactly this (action_reaction_attacked.gd:95),
+	# and the script's own `defender.is_character()` clause now asks the same predicate - a redundant
+	# restatement, not a narrowing. The canonical paragraph is in action_stealing_of_the_souls.gd's
+	# header.
 	#
-	# IT IS THE MOD'S READING OF THE WORD, NOT THIS FRAME'S: ruling 194 (the Vauban's Gravity Well
-	# shelters allied MECHS - drones and deployables are not sheltered), rulings 64 and 70 (a
-	# drone's shot counts as its OWNER'S) and ruling 269 (the Stealing) are the three precedents,
-	# and the canonical paragraph is in action_stealing_of_the_souls.gd's header.
-	#
-	# THE TWO SETUP ASSERTIONS ARE THE POINT: they say out loud that the archetype's flag passes this
-	# unit, so the green below is about our clause and not about the .tres. Flip the script's clause
-	# to is_character() and this is the one test in the file that reddens.
+	# THE TWO SETUP ASSERTIONS ARE KEPT AS ENGINE FACTS: a drone really is a character and really is
+	# not an actor, though the second no longer decides anything here.
 	var drone:Unit = SluaghFixture.create_drone(game, ADJACENT_TILE + Vector2i(0, 1))
 	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
-	assert_false(drone.is_actor(), '...and is NOT an actor, which is the distinction the gate uses.')
+	assert_false(drone.is_actor(), '...and is NOT an actor - which no longer matters, since the gate asks is_character().')
 	assert_true(UnitRelation.is_adjacent(sluagh, drone), 'fixture: and it is adjacent.')
-	# Both slots the same, per the file header: the guardian must not fire, so the damage die is the
-	# second entry.
-	SluaghFixture.queue([D20_HITS, DAMAGE_DIE, DAMAGE_DIE])
+	SluaghFixture.queue([D20_HITS, GUARDIAN_D6, DAMAGE_DIE])
 	await SluaghFixture.shoot(game, shooter, drone)
-	assert_eq(guardian_uses_this_round(), 0, 'An adjacent allied DRONE is not guarded.')
-	assert_eq(Overshield.current(drone), 0, 'It got nothing...')
-	assert_eq(drone.current_damage(), DAMAGE_DIE, '...and took the whole 5 on HP.')
+	assert_eq(guardian_uses_this_round(), 1, 'An adjacent allied DRONE is guarded too.')
+	assert_eq(Overshield.current(drone), 0, 'The 4 Overshield absorbed 4 of the 5...')
+	assert_eq(drone.current_damage(), DAMAGE_DIE - GUARDIAN_D6, '...and only 1 reached HP.')
 
 func test_a_hostile_tech_hit_on_an_adjacent_ally_grants_too():
 	# DEPARTURE 1, both halves at once: ms_fragment_signal is an ActionAttackTech AND it is basic

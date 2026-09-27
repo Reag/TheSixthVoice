@@ -6,7 +6,8 @@
 ##
 ## ActionSystemTargetUnit (the .tres: QUICK, target_range_is_sensors, enemies only, LOS as the
 ## archetype's baseline - Mark for Death's "within Sensors, seen"). A charge is spent by the default
-## consumes_charges inside spend_actions. "A character" is is_actor() (ruling 16): a drone is refused.
+## consumes_charges inside spend_actions. "A character" is is_character() (a drone included, ruling
+## 2026-09-27).
 ##
 ## THE LOCK is is_available_to_activate: refused while the stored focus is alive and on the map
 ## (Mark for Death's own gate, action_mark_for_death.gd:6-7).

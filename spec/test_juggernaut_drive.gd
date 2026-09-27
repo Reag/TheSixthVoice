@@ -412,9 +412,10 @@ func test_an_ally_behind_a_wall_does_not_anchor_a_line():
 	assert_eq(subutai.tile(), START, 'It did not move.')
 
 func test_a_friendly_deployable_does_not_anchor_a_line():
-	# "towards an ALLIED CHARACTER". A drone, turret or cover the Subutai owns is allied and plainly
-	# visible, and is still not a character - which is why the trait reads map.get_all_characters()
-	# and not get_all_units().
+	# "towards an ALLIED CHARACTER". A turret or cover the Subutai owns is allied and plainly visible,
+	# and is still not a character - unaffected by the 2026-09-27 membership ruling, which is about
+	# drones specifically (objects, markers and deployables are still not characters) - which is why
+	# the trait reads map.get_all_characters() and not get_all_units().
 	var dep := SubutaiFixture.create_allied_deployable(game, START + Vector2i(6, 0))
 	await SubutaiFixture.open_turn(game, subutai)
 	immobilize(subutai)

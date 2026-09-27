@@ -10,10 +10,9 @@
 ##     so a save its mine or drone forces counts (ruling 4).
 ##   - A FULL TRIFECTA: the saver's own buffs never see a forcer that is not unit AND gear AND action
 ##     (unit_hasecheck.gd:180), so neither does this - the Vauban close's M-3 reasoning.
-##   - A HOSTILE CHARACTER: is_actor(), the mod-wide rule (rulings row 301, re-confirmed for this
-##     frame at SP1 over design ruling 3's is_character()). A drone is not a character. A
-##     non-character never reaches here at all: make_*_save auto-fails it without raising the event
-##     (unit_hasecheck.gd:43-58).
+##   - A HOSTILE CHARACTER: is_character(), a drone included (ruling 2026-09-27, reversing rulings row
+##     301's is_actor() reading). A non-character (an object, a marker) never reaches here at all:
+##     make_*_save auto-fails it without raising the event (unit_hasecheck.gd:43-58).
 ## EVERY save the Rakshasa forces counts, its own frame's included (ruling 6) - with ONE exception:
 ##
 ## NOT INSIDE THE ENSORCEL WINDOW (author's ruling, rulings "Worm Code inside the Ensorcel window"). An

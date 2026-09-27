@@ -14,7 +14,7 @@
 # get_target_range would hand back its threat - so an adjacent swing would otherwise always qualify.
 # A THROWN attack is a melee weapon too, and is excluded by the same filter.
 #
-# "A CHARACTER" is is_actor(): the mod-wide row, design ruling 16 - a drone or an object is not one.
+# "A CHARACTER" is is_character() (ruling 2026-09-27) - a drone is one; an object still is not.
 extends BuffWeaponTypeBonus
 
 func is_buff_context_valid_for_passive(core:BuffCore, context:Context) -> bool:

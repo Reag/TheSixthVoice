@@ -112,9 +112,10 @@ static func create_hostile(game:Gamemaster, tile:Vector2i, evasion:int = 10) -> 
 static func create_ally(game:Gamemaster, tile:Vector2i) -> Unit:
 	return FitzgeraldFixture.create_dummy(game, tile, 10, Faction.PLAYER)
 
-## A DRONE: a character that is NOT an actor. The NEGATIVE control for every "character" clause
-## (ruling 16 / the mod-wide row 301): Unit.is_character() IS true of a drone (unit.gd:116), which
-## is exactly why every clause says is_actor() (:117) for itself.
+## A DRONE: a character that is NOT an actor (unit.gd:116-117). Since the mod-wide ruling of
+## 2026-09-27 (reversing row 301) every membership clause reads "character" as is_character(), so a
+## drone now PASSES every "character" clause too - it is no longer a membership negative control, only
+## an is_actor()/is_mech() one, and the fixture for ATTRIBUTION (own_drone) cases.
 static func create_drone(game:Gamemaster, tile:Vector2i, faction:Faction.SIDE = Faction.AI_ENEMY) -> Unit:
 	var drone := FitzgeraldFixture.create_dummy(game, tile, 10, faction)
 	drone.core.frame.is_drone = true

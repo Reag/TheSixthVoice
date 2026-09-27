@@ -157,12 +157,12 @@ func test_soulbind_is_disabled_with_nobody_in_sensors():
 	assert_ne(prompt.disabled_reasons[MODE.SOULBIND], '', 'Nobody within Sensors: Soulbind is disabled.')
 	assert_eq(prompt.disabled_reasons[MODE.DRAIN], '', 'Control: the others are not.')
 
-func test_a_drone_alone_in_sensors_does_not_enable_soulbind():
-	# "Character" is is_actor() (rulings row 301): a drone is not one.
+func test_a_drone_alone_in_sensors_enables_soulbind():
+	# "Character" is is_character() (ruling 2026-09-27): a drone is one, so it counts as a candidate.
 	rakshasa = Fixture.create_rakshasa(game, RAKSHASA_TILE)
 	Fixture.create_hostile_drone(game, HOSTILE_TILE)
 	await Fixture.cycle_turn(game, rakshasa)
-	assert_ne(last_prompt().get('disabled_reasons', ['', '', '', ''])[MODE.SOULBIND], '', 'A drone is not a character.')
+	assert_eq(last_prompt().get('disabled_reasons', ['', '', '', ''])[MODE.SOULBIND], '', 'A drone is a character: Soulbind is enabled.')
 
 func test_a_forced_soulbind_pick_with_nobody_in_sensors_is_refused():
 	rakshasa = Fixture.create_rakshasa(game, RAKSHASA_TILE)

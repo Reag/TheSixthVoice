@@ -56,9 +56,9 @@ func test_the_picker_offers_exactly_the_adjacent_allied_characters():
 	assert_has(units, ally, 'An adjacent ally is offered.')
 	assert_has(units, diagonal, 'A diagonal ally is adjacent too.')
 	assert_does_not_have(units, far, 'Two tiles out is not adjacent.')
-	assert_does_not_have(units, drone, '"allied character": a drone is not offered.')
+	assert_has(units, drone, '"allied character": a drone is one (ruling 2026-09-27) and is offered.')
 	assert_does_not_have(units, hazard, 'Not the Hazard itself.')
-	assert_eq(units.size(), 2, 'Exactly the two adjacent allied characters (no hostile).')
+	assert_eq(units.size(), 3, 'Exactly the three adjacent allied characters (no hostile).')
 
 func test_the_pick_gains_one_plus_grit_overshield():
 	var ally := Fixture.create_ally(game, ADJACENT)

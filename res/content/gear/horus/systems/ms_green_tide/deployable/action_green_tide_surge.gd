@@ -13,7 +13,8 @@
 ## when_start_turn_within, allies only, characters only - all on the .tres.
 ##
 ## WHO IS OFFERED (triggers_on_event, below the archetype's own filter):
-##   - an ACTOR (is_actor): a drone is not a character - the mod-wide rule (rulings row 301).
+##   - a CHARACTER (is_character()): a drone included (ruling 2026-09-27, reversing the mod-wide
+##     is_actor() reading rulings row 301 recorded).
 ##   - NOT THE NAGA ITSELF (SP3 ruling 22): the archetype would count the marker's owner as an ally.
 ##     The card says "allied characters"; the frame's own core passive says "you or an allied
 ##     character" when it means both, so the owner is excluded.

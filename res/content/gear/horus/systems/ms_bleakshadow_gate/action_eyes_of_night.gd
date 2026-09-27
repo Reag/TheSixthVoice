@@ -7,17 +7,17 @@
 ## ATTACK / POST, require_hit. The archetype applies the hit, the defender relation (ENEMIES of the
 ## Sluagh), the character test and the weapon/tech branch (action_reaction_attacked.gd:64-128).
 ## THREE CLAUSES ARE THIS SCRIPT'S, because the archetype cannot express them:
-##  - the ATTACKER is the Sluagh itself, OR an allied CHARACTER (is_actor: a mech or a pilot, never
-##    a drone - unit.gd:117) within the Sluagh's LIVE Sensors (unit.get_sensor_range(): frame +
+##  - the ATTACKER is the Sluagh itself, OR an allied CHARACTER (is_character(): a mech, a pilot or a
+##    drone - unit.gd:116) within the Sluagh's LIVE Sensors (unit.get_sensor_range(): frame +
 ##    stat_bonus, so Inexorable Formation counts).
-##    "CHARACTER" IS is_actor() ACROSS THE WHOLE FRAME, which is THE MOD'S settled reading and not
-##    this frame's local taste: ruling 194 (the Vauban's Gravity Well), rulings 64 and 70 (a drone's
-##    shot counts as its OWNER'S) and ruling 269 (the Stealing) all spell it that way. The canonical
-##    paragraph is in
+##    "CHARACTER" IS is_character() ACROSS THE WHOLE FRAME, which is THE MOD'S settled reading
+##    (ruling 2026-09-27, mod-wide, reversing row 301): the LCP's own DRONE tag, "Drones are Size 1/2
+##    characters". The canonical paragraph is in
 ##    res/content/frames/horus/mf_sluagh/mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd.
-##    An allied DRONE's covered hit therefore does NOT open the Eyes; the archetype's
-##    require_defender_to_be_character could never have delivered that anyway, since it is about the
-##    DEFENDER (action_reaction_attacked.gd:95) and says nothing about who fired.
+##    An allied DRONE's covered hit therefore DOES open the Eyes too, exactly as any other allied
+##    character's would; the archetype's require_defender_to_be_character could never have delivered
+##    this clause anyway, since it is about the DEFENDER (action_reaction_attacked.gd:95) and says
+##    nothing about who fired.
 ##    require_attacker_within would measure from the holder too, but it cannot say "or me"
 ##    and it cannot read a live stat. require_attacker_relation is ANY on the .tres for the same
 ##    reason: are_allies is true of a unit and itself, but the Sensors clause must not apply to the

@@ -17,10 +17,11 @@
 #     compare is cheaper than the owner walk and the two relation reads below it.
 #   - not HEAT. The Berserker's Aggression excludes heat the same way
 #     (action_aggression_berserker.gd:20).
-#   - the damager is a hostile ACTOR, resolved through get_owner_unit_or_self (unit.gd:270-273) so a
-#     hostile drone's hit is answered by its owner - the mod-wide rule (ruling 22). The resolution is
-#     load-bearing on this path: an attack's damage event records the DRONE itself as target_unit
-#     (measured, SP1 Task 12), not the owner.
+#   - the damager is a hostile CHARACTER, resolved through get_owner_unit_or_self (unit.gd:270-273) so
+#     an OWNED drone's hit is answered by its owner (attribution, unaffected by the 2026-09-27
+#     membership ruling). The resolution is load-bearing on this path: an attack's damage event
+#     records the DRONE itself as target_unit (measured, SP1 Task 12), not the owner. An UNOWNED
+#     drone resolves to itself and now passes the character test too (a drone is a character).
 #   - SOMETHING HAS TO HAVE LANDED. THE PLAN EXPECTED THE ENGINE TO GIVE THIS ONE FREE AND IT DOES
 #     NOT (implementer correction, SP1 Task 12, measured): event_unit_damage.gd:93 aborts on
 #     `damage_modifications.capped_damage <= 0`, and capped_damage is NOT the reduced number - it
@@ -85,10 +86,10 @@ func activate(_core:BuffCore, activation:EventCore) -> void:
 ## The hostile CHARACTER responsible for a damage event, or null.
 ##
 ## context.target_unit is the engine's "who did this" on a damage event (event_unit_damage.gd:35's
-## own optional-context comment), and get_owner_unit_or_self walks a drone up to its owner
-## (unit.gd:270-273). is_actor() rather than is_character(), because a drone IS a character
-## (unit.gd:116) and this frame's "character" is always is_actor (ruling 22) - so an UNOWNED hostile
-## drone resolves to itself and answers nobody.
+## own optional-context comment), and get_owner_unit_or_self walks an OWNED drone up to its owner
+## (unit.gd:270-273, attribution - unaffected by the 2026-09-27 membership ruling). is_character(), a
+## drone included (rulings.md, mod-wide row of 2026-09-27, reversing row 301/ruling 22) - so an
+## UNOWNED drone, which resolves to itself, now passes this check and answers for its own hit.
 func damager(context:Context, holder:Unit) -> Unit:
 	if not Unit.is_valid(context.target_unit): return null
 	var them:Unit = context.target_unit.get_owner_unit_or_self()

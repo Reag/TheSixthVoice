@@ -12,8 +12,8 @@
 #
 # THE GATE is Vigil's reading of "deals damage" (action_vigil.is_damage_dealt_by: the dealer read off
 # target_unit.get_attacker, number > 0, not HEAT, not SELF_INFLICTED) plus the card's two extra
-# words: the victim is a HOSTILE (are_enemies) CHARACTER (is_actor - row 301: not a drone, not an
-# object). ONCE PER VICTIM PER ATTACK: a two-type hit, or Hyper Engineered Munitions' extra point
+# words: the victim is a HOSTILE (are_enemies) CHARACTER (is_character() - a drone included, ruling
+# 2026-09-27; still not an object). ONCE PER VICTIM PER ATTACK: a two-type hit, or Hyper Engineered Munitions' extra point
 # (SP4), is one attack and forces ONE save; the stamp is the enclosing declared attack's id
 # (attack_trace.gd) joined to the victim's persistent id, in this core's state, and the predicate
 # refuses a repeat. A Blast on two hostiles forces two saves, one each - that is two victims.

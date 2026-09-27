@@ -26,14 +26,10 @@
 # "CHARACTERS OTHER THAN YOU" IS TWO CLAUSES, NOT ONE (bug fix, Leoleth frame close). The card reads
 # "attacks against CHARACTERS other than you", and the bare `!= leoleth` below only ever implemented
 # the second half - it said nothing about what counts as a character, so a hostile shooting a wreck,
-# a piece of destructible cover, a deployable turret or a friendly drone was ALSO catching the -1.
-# RULING 22 (this frame): "character" means Unit.is_actor(), not Unit.is_character() -
-# Unit.is_character() is TRUE for a drone (unit.gd:116, "active mech/pilot/drone") and Unit.is_actor()
-# is what narrows to "active mech/pilot" (unit.gd:117: is_character() and not core.frame.is_drone).
-# passive_bulwark_aura.gd's OWN sibling override does exactly this narrowing for PLACEMENT - "THE ONE
-# OVERRIDE IS is_actor()", its header says - so this file now matches it for RESOLUTION, the other
-# half of the same card: the aura decides who carries the chip, this buff decides which of the
-# chip-holder's shots it taxes.
+# a piece of destructible cover or a deployable turret was ALSO catching the -1.
+# "CHARACTER" IS is_character() - a drone included (rulings.md, mod-wide row of 2026-09-27, reversing
+# row 301/ruling 22) - matching passive_bulwark_aura.gd's own sibling check for PLACEMENT: the aura
+# decides who carries the chip, this buff decides which of the chip-holder's shots it taxes.
 extends BuffBonus
 
 func check_if_passive_applies(core:BuffCore, context:Context) -> bool:

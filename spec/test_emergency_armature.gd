@@ -234,10 +234,12 @@ func test_a_hostile_drones_hit_offers_because_its_owner_is_the_attacker():
 	await hit(5, drone)
 	assert_eq(offers(), 1, 'An owned hostile drone\'s hit is its owner\'s.')
 
-func test_an_unowned_hostile_drones_hit_does_not_offer():
+func test_an_unowned_hostile_drones_hit_offers():
+	# A drone is a character (ruling 2026-09-27): an unowned drone resolves to itself through
+	# get_owner_unit_or_self, and it is a character, so its hit offers like any other hostile's.
 	var drone := Fixture.create_drone(game, Vector2i(10, 6), Faction.AI_ENEMY)
 	await hit(5, drone)
-	assert_eq(offers(), 0, 'A drone is not a character.')
+	assert_eq(offers(), 1, 'A drone is a character (ruling 2026-09-27): offered.')
 
 func test_an_allys_hit_does_not_offer():
 	var ally := Fixture.create_ally(game, Vector2i(10, 6))

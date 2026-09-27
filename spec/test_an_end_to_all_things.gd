@@ -13,8 +13,9 @@
 # WHAT THIS FILE PROVES: a marked ally's hit within Sensors and LOS raises the confirm and, on yes, costs
 # 1 heat and deals +3; declining costs nothing and spends no use; an ally shielded by anyone ELSE is not
 # offered; an ally whose mark was zeroed by damage is not; the Black Mountain's own hit is not (ruling
-# 3); a hostile outside Sensors is not; a hostile behind a wall is not; a hostile drone is not; an
-# unowned allied drone is not and an owned one is offered as its owner; a miss is not; 2/round, reset at
+# 3); a hostile outside Sensors is not; a hostile behind a wall is not; a hostile drone IS a character
+# and is offered (ruling 2026-09-27); an unowned marked drone counts as itself and an owned one is
+# offered as its owner; a miss is not; 2/round, reset at
 # the Black Mountain's turn; the +3 is consumed by the roll that read it; an invade counts.
 #
 # PROMPTS. The Black Mountain is PLAYER, so CommonActionUtil.confirm_use raises a yes/no titled with the
@@ -192,26 +193,30 @@ func test_a_hostile_the_black_mountain_cannot_see_is_not_offered() -> void:
 	assert_not_offered('No line of sight to the hostile.')
 	assert_eq(damage_taken(hostile), RIFLE_DIE, 'LIVENESS (M-6): the side ally\'s shot actually hit.')
 
-func test_a_hostile_drone_is_not_offered() -> void:
+func test_a_hostile_drone_is_offered() -> void:
+	# A drone is a character (ruling 2026-09-27): it qualifies as the hostile character on this card.
 	var drone := Fixture.create_drone(game, Vector2i(10, 2), Faction.AI_ENEMY)
 	drone.core.frame.stat.evasion = ALWAYS_HIT
 	drone.core.full_repair()
 	await Fixture.grant_overshield_by(black_mountain, ally, 3)
 	await shoot(ally, drone)
-	assert_not_offered('A drone is not a hostile CHARACTER (ruling 3).', drone)
-	assert_eq(damage_taken(drone), RIFLE_DIE, 'LIVENESS (M-6): the shot actually hit the drone.')
+	assert_eq(offers(), 1, 'A hostile drone is a hostile character (ruling 2026-09-27): offered.')
+	assert_eq(Fixture.heat(black_mountain), 1, 'Paid.')
+	assert_eq(damage_taken(drone), RIFLE_DIE + BONUS, 'The drone took the rifle plus 3.')
 
-func test_an_allied_drones_hit_is_not_offered_unless_it_is_owned_by_a_marked_ally() -> void:
+func test_an_unowned_drones_hit_is_offered_as_itself_and_an_owned_ones_as_its_owner() -> void:
 	var drone := Fixture.create_drone(game, Vector2i(6, 6))
 	Fixture.arm_rifle(drone)
-	await Fixture.grant_overshield_by(black_mountain, drone, 3) # even a marked drone
+	await Fixture.grant_overshield_by(black_mountain, drone, 3) # marked directly - a drone is a character
 	await shoot(drone)
-	assert_not_offered('An unowned drone is not a character.')
+	assert_eq(offers(), 1, 'An unowned drone is a character (ruling 2026-09-27) and counts as itself when marked.')
+	assert_eq(Fixture.heat(black_mountain), 1, 'Paid.')
 	await Fixture.grant_overshield_by(black_mountain, ally, 3)
 	Fixture.own_drone(drone, ally)
 	await shoot(drone)
-	assert_eq(offers(), 1, 'An owned drone\'s shot is its owner\'s, and the owner is a marked allied character.')
-	assert_eq(Fixture.heat(black_mountain), 1, 'Paid.')
+	assert_eq(offers(), 2, 'An owned drone\'s shot is its owner\'s, and the owner is a marked allied character.')
+	assert_eq(Fixture.heat(black_mountain), 2, 'Paid again.')
+	assert_eq(uses(), 2, 'Both uses of the 2/round limit spent.')
 
 func test_a_miss_is_not_offered() -> void:
 	var evasive := Fixture.create_hostile(game, Vector2i(10, 2), 10)

@@ -82,8 +82,9 @@ static func create_hostile(game:Gamemaster, tile:Vector2i, evasion:int = 10, ede
 static func create_ally(game:Gamemaster, tile:Vector2i) -> Unit:
 	return create_hostile(game, tile, 10, 8, Faction.PLAYER)
 
-## A hostile DRONE: a character that is not an ACTOR (rulings row 301, mod-wide). Flipped on an
-## already-isolated frame, the Leoleth fixture's reasoning, so only the one flag differs.
+## A hostile DRONE: is_character() true, is_actor() false (a drone is a character, mod-wide row of
+## 2026-09-27, reversing row 301 - is_actor() still answers attribution, not membership). Flipped on
+## an already-isolated frame, the Leoleth fixture's reasoning, so only the one flag differs.
 static func create_hostile_drone(game:Gamemaster, tile:Vector2i) -> Unit:
 	var drone := create_hostile(game, tile)
 	drone.core.frame.is_drone = true

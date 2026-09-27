@@ -11,9 +11,9 @@
 #
 # "ADJACENT" TAKES HOUSE GUARD'S WIDENING (author's ruling; Contested seams): the candidates come
 # from UnitRelation.adjacent_characters, the helper the talents mod overrides - so House Guard on the
-# HAZARD widens who it can shield. spec/test_compat.gd pins it. "Allied character" is is_actor() (the
-# mod-wide row): a drone or a deployable is not offered. can_affect as Halo's (EXILED, intangibility,
-# INVULNERABLE, shards).
+# HAZARD widens who it can shield. spec/test_compat.gd pins it. "Allied character" is is_character()
+# (a drone included, ruling 2026-09-27): a deployable is still not offered. can_affect as Halo's
+# (EXILED, intangibility, INVULNERABLE, shards).
 #
 # "MAY": the unit picker's cancel grants nothing. THE AI PICKS WITHOUT A PROMPT: the adjacent ally
 # with the least current Overshield, ties to the lowest HP.

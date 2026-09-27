@@ -9,7 +9,8 @@
 # answer accepts a MountCore; a cancel spends nothing; the AI picks the first without a prompt; no
 # eligible mount = unavailable); the chip (a charge, visible, gone at the Thorn's next turn start);
 # the hit (1 AP Kinetic through armor, a Hull save, Impaired on a fail and not on a pass, the point
-# dealt either way); what does nothing (the other mount, a miss, an object, a drone); and the extra
+# dealt either way); a drone hit counts too (a drone is a character, ruling 2026-09-27); what does
+# nothing (the other mount, a miss, an object); and the extra
 # point offering Vigil ONCE for the attack, not twice.
 #
 # THE MOUNTS: 0 = [Fold Knife, Pistol] (a melee Aux beside a ranged one - OUT), 1 = [Nexus] (IN),
@@ -220,14 +221,15 @@ func test_a_hit_on_an_object_does_nothing():
 	await Fixture.shoot_again(game, thorn, object, Fixture.MAIN_RIFLE)
 	assert_eq(before - hp(object), RIFLE_D6, 'An object takes only the rifle - no AP point, no save die spent.')
 
-func test_a_hit_on_a_drone_does_nothing():
+func test_a_hit_on_a_drone_deals_the_ap_point_and_forces_a_save():
+	# A drone is a character (ruling 2026-09-27): it now qualifies for "a hostile character".
 	var drone := Fixture.create_drone(game, Vector2i(8, 8))
 	await load_munitions(1)
 	var before := hp(drone)
-	Fixture.queue([D20_HITS, RIFLE_D6, SAVE_FAILS])
+	Fixture.queue([D20_HITS, SAVE_FAILS, RIFLE_D6])
 	await Fixture.shoot_again(game, thorn, drone, Fixture.MAIN_RIFLE)
-	assert_eq(before - hp(drone), RIFLE_D6, 'A drone is a character but not an actor: only the rifle.')
-	assert_false(UnitCondition.has_status(drone, &'impaired'), 'No save forced on a drone.')
+	assert_eq(before - hp(drone), RIFLE_D6 + 1, 'The rifle, then the munitions\' AP point.')
+	assert_true(UnitCondition.has_status(drone, &'impaired'), 'A failed Hull save: Impaired.')
 
 func test_the_extra_point_offers_vigil_once_for_the_attack():
 	await load_munitions(1)

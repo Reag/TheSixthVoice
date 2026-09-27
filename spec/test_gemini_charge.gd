@@ -31,7 +31,7 @@ const ADJACENT_TILE := Vector2i(2, 4) # the melee control's contact
 const NEAR_TILE := Vector2i(2, 6) # 2 from the adjacent contact: inside a threat-3 leg's 2
 ## IPS-N War Pike: MELEE, threat 3 - long enough that a leg from an adjacent contact would reach NEAR_TILE.
 const PIKE := &'mw_war_pike'
-const DRONE_TILE := Vector2i(4, 3) # a non-character contact, 3 from the Knot, 4 from the second
+const DRONE_TILE := Vector2i(4, 3) # a drone contact - a character (ruling 2026-09-27), 3 from the Knot, 4 from the second
 const PAST_TILE := Vector2i(6, 4) # on the rail's original line, past the contact
 const LINE_AIM := Vector2i(11, 4) # the rail's first leg, due east
 const LINE_SECOND_AIM := Vector2i(4, 11) # the bent leg, due south from the contact, 7 long
@@ -328,15 +328,19 @@ func test_a_drone_the_knot_owns_is_not_offered() -> void:
 	await fire(Fixture.RANGED, contact, [14], [plan_unit(second)])
 	assert_eq(yesnos(), 1, 'CONTROL: the Knot\'s own shot is.')
 
-func test_a_contact_that_is_not_a_character_is_not_offered() -> void:
+func test_a_hostile_drone_contact_is_offered() -> void:
+	# A drone is a character (ruling 2026-09-27): it now qualifies as Gemini Charge's contact. Decline
+	# the offer so nothing commits, proving the offer itself without entangling the leg picker.
 	var second := second_at()
 	var drone := Fixture.create_hostile_drone(game, DRONE_TILE)
-	assert_false(drone.is_actor(), 'Fixture: a drone is not a character (ruling 3).')
+	assert_true(drone.is_character(), 'Fixture: a drone is a character (ruling 2026-09-27).')
+	responder.yesno_queue.assign([false])
 	await fire(Fixture.RANGED, drone, [14])
 	assert_gt(drone.current_damage(), 0, 'Guard: the shot landed.')
-	assert_eq(yesnos(), 0, '"Upon contact with a character": a drone is not one.')
+	assert_eq(yesnos(), 1, '"Upon contact with a character": a drone is one, so it is offered.')
+	assert_eq(second.current_damage(), 0, 'Declined: nobody else touched.')
 	await fire_again(Fixture.RANGED, contact, [14], [plan_unit(second)])
-	assert_eq(yesnos(), 1, 'CONTROL: a character contact, the same round, is offered.')
+	assert_eq(yesnos(), 2, 'CONTROL: declining spent no round - a character contact is offered again the same round.')
 
 func test_an_ai_controlled_knot_never_redirects() -> void:
 	knot.remove_from_game()

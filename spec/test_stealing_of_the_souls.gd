@@ -128,29 +128,20 @@ func test_a_hostile_death_beyond_sensors_grants_nothing():
 	assert_false(Unit.is_valid(victim), 'fixture: it really died.')
 	assert_eq(overshield(), 0, 'One tile past Sensors grants nothing.')
 
-func test_a_hostile_drone_death_grants_nothing():
-	# RULING 269: "deployables, drones and wrecks excluded", and it is THE MOD'S settled reading of
-	# "character" rather than this trait's local taste - ruling 194 (the Vauban's Gravity Well
-	# shelters allied MECHS) and rulings 64/70 (a drone's shot counts as its OWNER'S) say the same
-	# word the same way on two other frames. The canonical paragraph is in
-	# action_stealing_of_the_souls.gd's header.
+func test_a_hostile_drone_death_grants_too():
+	# RULING 2026-09-27 (mod-wide): "character" is is_character(), a drone included - reversing row
+	# 301 (2026-09-21), which excluded one via is_actor(). The canonical paragraph is in this file's
+	# own header.
 	#
-	# THIS is the case the gate's predicate hangs on, and it is why the gate asks is_actor() rather
-	# than is_character(): Unit.is_character() returns TRUE for a drone - its own comment says
-	# "active mech/pilot/drone" (unit.gd:116) - while is_actor() is is_character() and not is_drone
-	# (:117). Written as is_character(), which is what the design doc's paraphrase says and what one
-	# pass of this session's fix wave briefly shipped, this test is the only one in the file that
-	# would fail.
-	#
-	# THE TWO SETUP ASSERTIONS ARE KEPT ON PURPOSE. They say out loud WHICH predicate the gate uses,
-	# so the green below is a statement about the rule rather than only about the outcome.
+	# THE TWO SETUP ASSERTIONS ARE KEPT AS ENGINE FACTS: a drone really is a character and really is
+	# not an actor, though the second no longer decides anything here.
 	SluaghFixture.set_grit(sluagh, GRIT)
 	var drone:Unit = SluaghFixture.create_drone(game, NEAR_TILE, Faction.AI_ENEMY)
 	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
-	assert_false(drone.is_actor(), '...and is NOT an actor, which is the distinction the gate uses.')
+	assert_false(drone.is_actor(), '...and is NOT an actor - which no longer matters here.')
 	await SluaghFixture.kill(game, drone)
 	assert_false(Unit.is_valid(drone), 'fixture: it really died.')
-	assert_eq(overshield(), 0, 'A hostile DRONE dying grants nothing.')
+	assert_eq(overshield(), GRIT, 'A hostile DRONE dying grants too.')
 
 func test_a_hostile_object_death_grants_nothing():
 	# The other half of the same ruling: a deployable is Frame.ENTITY.OBJECT, so is_character() is

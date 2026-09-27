@@ -10,8 +10,10 @@
 # point-free hard limit of 1 holds across two allies' turn starts, re-arming only at the HAZARD's own
 # turn start (new_turn_refresh resets the holder's per-round usage) - "1/round" per Hazard round.
 #
-# THE GATE: the starter is an allied CHARACTER (is_actor - a deployable's virtual turn start with its
-# owner, event_turn_start.gd:56-59, never offers), not the Hazard, and ADJACENT through
+# THE GATE: the starter is an allied is_actor(), NOT the card's word "character" (that ruling,
+# 2026-09-27, does not reach here) - a deployable's or a drone's virtual turn start with its owner,
+# event_turn_start.gd:56-59, never offers: a drone has no turn of its own, so its NEW_TURN is its
+# owner's mirrored one, not an activation of the drone itself. Not the Hazard, and ADJACENT through
 # UnitRelation.is_adjacent - which TAKES House Guard's widening on the HAZARD (author's ruling;
 # is_adjacent(a, b) reads a's buffs). spec/test_compat.gd pins it.
 #

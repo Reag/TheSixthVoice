@@ -289,13 +289,14 @@ func test_a_hit_on_an_object_forces_nothing():
 	assert_eq(pick_prompts().size(), 0, 'An object is not a "hostile character".')
 	assert_eq(crate.tile(), Vector2i(8, 8), 'It stays.')
 
-func test_a_hit_on_a_hostile_drone_forces_nothing():
+func test_a_hit_on_a_hostile_drone_forces_a_save():
+	# A drone is a character (ruling 2026-09-27): it now qualifies for "a hostile character".
 	Fixture.mount_pair(thorn, 0, Fixture.AUX_NEXUS)
 	var drone:Unit = Fixture.create_drone(game, Vector2i(8, 8))
 	await press(drone, SAVE_FAILS, Vector2i(10, 8))
 	assert_gt(drone.current_damage(), 0, 'fixture: the drone was hit.')
-	assert_eq(pick_prompts().size(), 0, 'A drone is a character but not an actor (row 301).')
-	assert_eq(drone.tile(), Vector2i(8, 8), 'It stays.')
+	assert_eq(pick_prompts().size(), 1, 'A drone is a hostile character: Rend\'s reticle opened.')
+	assert_eq(drone.tile(), Vector2i(10, 8), 'Failed the save: shoved where the Thorn chose.')
 
 func test_a_two_type_hit_forces_one_save():
 	Fixture.equip(thorn, TWO_TYPE_RIFLE)

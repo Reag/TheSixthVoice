@@ -110,8 +110,8 @@ func test_the_kit_and_action_match_the_card():
 	assert_true(tri.can_target_allies, '...')
 	assert_false(tri.can_target_self, '...and not the Sluagh itself.')
 	assert_true(tri.requires_target_character,
-		'A character - but this flag is is_character() and only the CHEAP FIRST GATE: the .gd\'s '
-		+ 'can_target_unit narrows it to is_actor(). See the drone case.')
+		'A character - is_character(), a drone included (ruling 2026-09-27, mod-wide). The .gd\'s '
+		+ 'own can_target_unit override asks the same predicate again; see the drone case.')
 
 func test_pressing_it_costs_two_heat_and_lands_three_chips():
 	# THE SELF-HEAT POPS NOTHING OFF THE DICE FIFO, and this assertion is what corrects
@@ -370,9 +370,9 @@ func test_a_partner_can_affect_refuses_is_not_adjacent_either_way():
 ## refuses and can_affect does not. Subtracting what the other two guards cover leaves SHUTDOWN,
 ## off-map, faction NONE and a non-CHARACTER entity type. SHUTDOWN is the cheapest: is_active()
 ## requires `not has_status(SHUTDOWN)` (unit.gd:112) and can_affect (:393-404) says nothing about
-## it at all. EXILED cannot serve - can_affect refuses it twice over (:395-396) - and a drone is a
-## character (unit.gd:116) and can no longer be a partner at all, so
-## test_an_allied_drone_is_not_a_legal_partner cannot serve either.
+## it at all. EXILED cannot serve - can_affect refuses it twice over (:395-396) - and a drone is
+## simply irrelevant here: it is a character too (ruling 2026-09-27, mod-wide) and a legal partner in
+## its own right, so test_an_allied_drone_is_a_legal_partner isolates nothing about this gate.
 ##
 ## IT CLOSES ONE DIRECTION, NOT TWO, AND THAT IS MEASURED RATHER THAN DESIGNED (2026-09-21, this
 ## case's first RED). The gate asks whether the PARTNER is a character, so it refuses the shut-down
@@ -404,29 +404,27 @@ func test_it_cannot_target_a_hostile_or_the_sluagh_itself():
 	assert_false(UnitTargeting.get_tiles_targetable(specific()).has(EDGE_ALLY_TILE + Vector2i(1, 0)),
 		'And nothing past Sensors is targetable (range lives on the picking path, SP3\'s finding).')
 
-func test_an_allied_drone_is_not_a_legal_partner():
-	# AUTHOR'S RULING, 2026-09-21 (the frame close), REVERSING THE SP4 RULING THAT ADMITTED A DRONE.
-	# "Character" on this frame, and across this mod, is is_actor() - ruling 194 (the Vauban's
-	# Gravity Well), rulings 64 and 70 (a drone's shot counts as its OWNER'S) and ruling 269 (the
-	# Stealing). The canonical paragraph is in action_stealing_of_the_souls.gd's header.
+func test_an_allied_drone_is_a_legal_partner():
+	# AUTHOR'S RULING, 2026-09-27 (mod-wide), REVERSING THE 2026-09-21 FRAME-CLOSE RULING THAT
+	# EXCLUDED A DRONE. "Character" on this frame, and across this mod, is is_character() again - the
+	# LCP's own DRONE tag: "Drones are Size 1/2 characters." The canonical paragraph is in
+	# action_stealing_of_the_souls.gd's header.
 	#
-	# THE ARCHETYPE'S FLAG DOES NOT DELIVER IT, which is the whole reason this case exists:
-	# requires_target_character is `potential_target.is_character()`
-	# (action_system_target_unit.gd:16) and a drone PASSES that (unit.gd:116). What refuses it is
-	# action_in_triumvirate.gd's own can_target_unit override; neutralise that override and this is
-	# the one test in the file that reddens.
+	# THE ARCHETYPE'S FLAG NOW DELIVERS IT DIRECTLY: requires_target_character is
+	# `potential_target.is_character()` (action_system_target_unit.gd:16), and
+	# action_in_triumvirate.gd's own can_target_unit override asks exactly the same predicate - a
+	# redundant restatement, not a narrowing.
 	#
 	# BOTH PATHS ARE ASSERTED, because they are different code. can_target_unit is the player's
 	# picking filter (action.gd:214) AND the filter on a target supplied straight to the plan
-	# (target_action_util.gd:172) - so the second half, handing the drone to the action by hand and
-	# finding no pair, is what says a spec or an AI cannot route round the first.
+	# (target_action_util.gd:172).
 	var drone := SluaghFixture.create_drone(game, OTHER_ALLY_TILE)
 	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
-	assert_false(drone.is_actor(), '...and is NOT an actor, which is the distinction the ruling made.')
-	assert_false(action().can_target_unit(drone, specific()), 'A drone does not pass the filter.')
+	assert_false(drone.is_actor(), '...and is NOT an actor - which no longer matters here.')
+	assert_true(action().can_target_unit(drone, specific()), 'A drone passes the filter.')
 	await SluaghFixture.triumvirate(game, sluagh, drone)
-	assert_false(paired(drone), 'And handing it to the action by hand pairs nothing either.')
-	assert_false(adjacent_both_ways(sluagh, drone), 'So no banner reaches it.')
+	assert_true(paired(drone), 'And the pair really lands.')
+	assert_true(adjacent_both_ways(sluagh, drone), 'So the banner reaches it.')
 
 # ---------------------------------------------------------------- Task 5: what the pair reaches
 #

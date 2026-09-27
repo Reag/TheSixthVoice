@@ -74,10 +74,11 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 
 ## Allied CHARACTERS the Subutai can see, excluding itself.
 ##
-## get_all_characters(), not get_all_units(): the card says "allied character", so a friendly drone,
-## turret or other deployable does not anchor a line. Excluding self matters because
-## UnitRelation.are_allies is true of a unit and itself, and a line towards our own tile is no line
-## at all.
+## get_all_characters(), not get_all_units(): the card says "allied character", so a friendly
+## turret or other deployable does not anchor a line (get_all_characters() filters on is_character(),
+## which is TRUE for a drone - unaffected by this predicate; a drone was never excluded here).
+## Excluding self matters because UnitRelation.are_allies is true of a unit and itself, and a line
+## towards our own tile is no line at all.
 func visible_allied_characters(unit:Unit) -> Array[Unit]:
 	var allies:Array[Unit] = []
 	for other:Unit in unit.map.get_all_characters():

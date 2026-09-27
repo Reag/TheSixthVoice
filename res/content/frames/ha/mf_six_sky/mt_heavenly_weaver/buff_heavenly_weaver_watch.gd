@@ -7,8 +7,9 @@
 ## arms the visible chip (buff_heavenly_weaver) when:
 ##   - the move is a completed teleport the Six Sky caused (six_sky_agent.gd, ruling 5) - a hostile
 ##     shoving the Six Sky is the HOSTILE's teleport, so it does not arm;
-##   - the mover is the Six Sky itself, or a CHARACTER (Unit.is_actor(), ruling 4 - a drone or a
-##     deployable is not one), ally or hostile alike;
+##   - the mover is the Six Sky itself, or a CHARACTER (Unit.is_character(), a drone included -
+##     rulings.md, mod-wide row of 2026-09-27, reversing row 301/ruling 4; a deployable still is not
+##     one), ally or hostile alike;
 ##   - the round is unspent;
 ##   - the chip is not already held.
 ##

@@ -399,34 +399,25 @@ func test_crown_cannot_target_a_hostile_or_the_sluagh_itself():
 	assert_eq(Overshield.current(hostile), 0, 'A hostile gains nothing.')
 	assert_eq(Overshield.current(sluagh), 4, 'And the Sluagh pays nothing.')
 
-func test_crown_cannot_crown_an_allied_drone():
-	# AUTHOR'S RULING, 2026-09-21 (the frame close), REVERSING THIS CARD'S OWN SP3 RULING. That one
-	# read the word the ENGINE's way and left the archetype to it; the author has since chosen the
-	# MOD'S consistency instead, frame-wide and knowingly.
+func test_crown_can_crown_an_allied_drone():
+	# AUTHOR'S RULING, 2026-09-27 (mod-wide), REVERSING THIS CARD'S OWN 2026-09-21 FRAME-CLOSE
+	# RULING. "Character" is is_character() again - the LCP's own DRONE tag: "Drones are Size 1/2
+	# characters." The canonical paragraph is in action_stealing_of_the_souls.gd's header.
 	#
-	# Unit.is_character() is `is_active() and core.frame.is_character()`, and its own comment says
-	# "active mech/pilot/drone" (unit.gd:116) - so requires_target_character
-	# (action_system_target_unit.gd:16) ADMITS a drone and cannot express this clause. is_actor()
-	# (:117) is the predicate that excludes one, and it is what ruling 194 (the Vauban's Gravity
-	# Well), rulings 64 and 70 (a drone's shot counts as its OWNER'S) and ruling 269 (the Stealing)
-	# all mean by "character". The canonical paragraph is in action_stealing_of_the_souls.gd's
-	# header. What refuses the drone here is action_crown_of_restless_dead.gd's own can_target_unit
-	# override; neutralise it and this is the one test in the file that reddens.
-	#
-	# ALL THREE PATHS ARE ASSERTED, because they are different code: the filter itself, the tile set
-	# the player is offered (UnitTargeting, action.gd:214), and a target handed straight to the plan
-	# (target_action_util.gd:172). The last is what says a spec or an AI cannot route round the
-	# first - and it is the only one that would show the Sluagh paying for a transfer that happened.
+	# requires_target_character is `potential_target.is_character()`
+	# (action_system_target_unit.gd:16), which a drone now passes in its own right, and
+	# action_crown_of_restless_dead.gd's own can_target_unit override asks exactly the same
+	# predicate - a redundant restatement, not a narrowing.
 	var drone := SluaghFixture.create_drone(game, ALLY_TILE)
 	await SluaghFixture.grant_overshield(sluagh, 4)
 	assert_true(drone.is_character(), 'fixture: the engine counts a drone as a character...')
-	assert_false(drone.is_actor(), '...though not as an ACTOR, which is the predicate that excludes it.')
-	assert_false(crown_can_target(drone), 'So the Crown may NOT target an allied drone...')
-	assert_false(crown_targetable().has(ALLY_TILE), '...and its tile is not offered.')
+	assert_false(drone.is_actor(), '...though not as an ACTOR, which no longer matters here.')
+	assert_true(crown_can_target(drone), 'So the Crown MAY target an allied drone...')
+	assert_true(crown_targetable().has(ALLY_TILE), '...and its tile is offered.')
 
 	await SluaghFixture.crown(game, sluagh, drone)
-	assert_eq(Overshield.current(drone), 0, 'It gains nothing...')
-	assert_eq(Overshield.current(sluagh), 4, '...and the Sluagh pays nothing for it.')
+	assert_eq(Overshield.current(drone), 4, 'It gains the Sluagh\'s Overshield...')
+	assert_eq(Overshield.current(sluagh), 0, '...and the Sluagh pays for it, exactly as with any character.')
 
 # ---------------------------------------------------------------- the card and the licence
 

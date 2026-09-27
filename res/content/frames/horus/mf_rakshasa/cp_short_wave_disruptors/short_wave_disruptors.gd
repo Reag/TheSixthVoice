@@ -33,8 +33,8 @@ static func holds(unit:Unit, mode:int) -> bool:
 static func last_mode(gear:GearCore) -> int:
 	return int(gear.get_state(LAST_MODE_KEY, NO_MODE))
 
-## "Choose a character within Sensors": every other ACTOR (a drone is not a character, rulings row
-## 301) whose distance is within the Rakshasa's live Sensors. No line of sight - the card asks none.
+## "Choose a character within Sensors": every other CHARACTER (a drone included, ruling 2026-09-27)
+## whose distance is within the Rakshasa's live Sensors. No line of sight - the card asks none.
 static func soulbind_candidates(unit:Unit) -> Array[Unit]:
 	var candidates:Array[Unit] = []
 	if not Unit.is_valid(unit): return candidates

@@ -117,10 +117,9 @@ static func create_hostile(game:Gamemaster, tile:Vector2i, evasion:int = 10) -> 
 static func create_ally(game:Gamemaster, tile:Vector2i) -> Unit:
 	return FitzgeraldFixture.create_dummy(game, tile, 10, Faction.PLAYER)
 
-## An allied DRONE: a character that is NOT an actor. The NEGATIVE control for ruling 21's
-## "character" clauses (the core passive's consumer, the core active's loser). Unit.is_character()
-## IS true of a drone (unit.gd:116), which is exactly why every clause says is_actor() (:117) for
-## itself - the Sluagh fixture's header carries the full argument and the mod-wide precedent.
+## An allied DRONE: a character that is NOT an actor. The POSITIVE control for every "character"
+## clause since the 2026-09-27 mod-wide ruling (a drone IS one, unit.gd:116) - and still the negative
+## control for anything that reads is_actor() instead (unit.gd:117), such as an ACTIVATION gate.
 static func create_drone(game:Gamemaster, tile:Vector2i, faction:Faction.SIDE = Faction.PLAYER) -> Unit:
 	var drone := FitzgeraldFixture.create_dummy(game, tile, 10, faction)
 	drone.core.frame.is_drone = true

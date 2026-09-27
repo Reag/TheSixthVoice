@@ -105,19 +105,20 @@ func test_a_miss_hangs_nothing():
 	assert_false(LeolethFixture.has(target, LeolethFixture.THUNDER_SWORD_CHIP),
 		'A miss applies nothing: ON_HIT runs only inside `if roll.hit` (event_unit_attack.gd:83).')
 
-func test_a_hit_drone_carries_no_chip():
-	# "the damaged CHARACTER": a drone is not one where it acts (ruling 22, LeolethFixture.create_drone's
-	# own header). Adjacent to the Leoleth (LEOLETH_TILE + (0,1)) so Threat 1 reaches it, and on the
-	# hostile faction so the swing is a legal attack in the first place - can_target_unit on the
-	# WEAPON's own attack action carries no actor filter, only the chip's application does.
+func test_a_hit_drone_carries_the_chip():
+	# "the damaged CHARACTER" is is_character() - a drone included (rulings.md, mod-wide row of
+	# 2026-09-27, reversing row 301/ruling 22). Adjacent to the Leoleth (LEOLETH_TILE + (0,1)) so
+	# Threat 1 reaches it, and on the hostile faction so the swing is a legal attack in the first
+	# place - can_target_unit on the WEAPON's own attack action carries no character filter, only the
+	# chip's application does.
 	var drone := LeolethFixture.create_drone(game, LEOLETH_TILE + Vector2i(0, 1), Faction.AI_ENEMY)
+	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
+	assert_false(drone.is_actor(), '...though still not an actor - onhit_thunder_sword.gd never tests that.')
 	LeolethFixture.cheat_a_hit()
 	await LeolethFixture.swing_sword(game, leoleth, drone)
-	assert_false(LeolethFixture.has(drone, LeolethFixture.THUNDER_SWORD_CHIP),
-		'A drone is not a character (ruling 22): onhit_thunder_sword.gd\'s should_abort refuses the '
-		+ 'ON_HIT stage before apply_statuses_and_buffs ever runs. FAILS against the unfixed, '
-		+ 'scriptless onhit_thunder_sword.tres, whose bare OnHitEffect.apply_statuses_and_buffs '
-		+ '(on_hit_effect.gd:83-88) hands the chip to attacked_unit with no actor check at all.')
+	assert_true(LeolethFixture.has(drone, LeolethFixture.THUNDER_SWORD_CHIP),
+		'A drone is a character (ruling 2026-09-27): onhit_thunder_sword.gd\'s should_abort lets the '
+		+ 'ON_HIT stage through to apply_statuses_and_buffs like any other character hit.')
 
 func test_the_leoleth_takes_one_heat_per_swing():
 	var before:int = leoleth.core.current.heat

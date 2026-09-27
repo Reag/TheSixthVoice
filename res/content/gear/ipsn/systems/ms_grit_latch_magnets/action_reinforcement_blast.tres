@@ -48,7 +48,8 @@ apply_to_sensors = true
 ; Ruling 23: "all characters" is hostiles, allies AND the Fitzgerald itself. So no
 ; apply_only_to_allies / _to_enemies filter, and can_apply_to_self is on - can_target_unit refuses
 ; self without it (action_system_apply_buff.gd:61). OBJECTS need no exclusion of ours: the same
-; function refuses anything that is not is_actor().
+; function refuses anything that is not is_actor() - which also refuses a DRONE, a character since
+; 2026-09-27: vanilla's own "cannot apply buffs to drones" (:64), a recorded limit.
 can_apply_to_self = true
 ; QUICK (Lancer.ACTION.QUICK == 1, lancer.gd:27).
 action_type = 1

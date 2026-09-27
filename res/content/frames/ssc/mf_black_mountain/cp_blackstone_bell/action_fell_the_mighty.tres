@@ -8,7 +8,7 @@
 ; FELL THE MIGHTY, the core active (ruling 12; the script's header has the reasoning). action_type 4 is
 ; Lancer.ACTION.PROTOCOL; consumes_cp spends the core power. apply_to_sensors: the target range is the
 ; Black Mountain's Sensors. apply_only_to_enemies: "a hostile character" (the archetype's can_target_unit
-; adds is_actor). can_reapply TRUE so two Black Mountains stack (ruling 13 - see the script). Its own
+; adds is_actor - vanilla refuses buffs on drones, action_system_apply_buff.gd:64, a recorded limit). can_reapply TRUE so two Black Mountains stack (ruling 13 - see the script). Its own
 ; usage_group: the Kit also carries Exalt and the Efficient refund. SP3: its OWN glyph family (Fell the
 ; Mighty / DOOMED), which buff_doomed wears too.
 [resource]

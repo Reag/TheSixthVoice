@@ -320,12 +320,19 @@ func test_a_hostile_starting_its_turn_inside_is_never_offered() -> void:
 	assert_eq(surge_prompts().size(), 0, '"allied characters" only.')
 	assert_eq(hostile.tile(), INSIDE, 'Nothing moved it.')
 
-func test_an_allied_drone_is_never_offered() -> void:
+func test_an_allied_drone_is_offered() -> void:
+	# A drone is a character (ruling 2026-09-27), so it is offered the surge like any other ally - and
+	# it is not the swarm's OWNER (the Naga), which is the only exclusion left (SP3 ruling 22).
 	var drone := NagaFixture.own_drone(NagaFixture.create_drone(game, INSIDE), naga)
 	await press()
 	await end_nagas_turn()
+	var target_tile := INSIDE + Vector2i(3, 0)
+	responder.chosen_move_tile = target_tile
 	await start_turn_of(drone, [true])
-	assert_eq(surge_prompts().size(), 0, 'A drone is not a character (the mod-wide rule, ruling 21).')
+	assert_eq(surge_prompts().size(), 1, 'Offered once, at the start of its turn.')
+	assert_eq(surge_moves().size(), 1, 'A yes opens a move picker.')
+	if surge_moves().size() != 1: return
+	assert_eq(drone.tile(), target_tile, 'And the drone moves.')
 
 ## Ruling 22 (SP3): "allied characters" does not include the Naga itself - the card's own core
 ## passive says "you or an allied character" when it means both.

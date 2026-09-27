@@ -8,8 +8,8 @@
 # the roll through the shared Lock-on hook. WHAT THIS FILE PROVES (design 1.4): the Naga consumes
 # Lock On and is offered (the 1 heat lands, Overshield 1, a 3-space picker for the Naga); an ally
 # within Sensors consuming is offered and the ALLY moves; an ally one tile outside Sensors is not;
-# a drone cannot consume at all (no basic gear - measured) and the gate reads is_actor through the
-# owner (ruling 21); an invade consuming
+# a drone cannot consume at all (no basic gear - measured), though the gate itself now reads
+# is_character through the owner (ruling 2026-09-27, a drone included); an invade consuming
 # Lock On offers; an attack that does not consume does not; a hostile consuming a lock on the Naga's
 # ally does not; declining costs nothing; a second consumption in the round is not offered; an ally
 # already holding 2 Overshield keeps 2. Added at the frame close (2026-09-23): the enemy-target gate
@@ -194,16 +194,17 @@ func test_an_ally_one_tile_outside_sensors_is_not_offered() -> void:
 	assert_eq(Overshield.current(ally), 0, 'No shield.')
 	assert_eq(uses_this_round(), 0, 'Nothing spent.')
 
-func test_a_drone_cannot_consume_at_all_and_the_gate_reads_is_actor_through_the_owner() -> void:
+func test_a_drone_cannot_consume_at_all_and_the_gate_now_reads_is_character_through_the_owner() -> void:
 	# MEASURED, AND NOT WHAT THE DESIGN EXPECTED: a drone CANNOT consume Lock On in this engine.
 	# loadout_core.gd:179 gives a drone frame NO basic gear at all, so it carries no ms_lock_on - and
 	# the consume reaction lives on that Kit. So "an allied drone consuming" is not a case the board
 	# can produce; the first version of this test locked with the drone's own gear, got false back,
-	# and was vacuous. What CAN be pinned is (1) that fact, (2) the gate on an unowned drone, and (3)
-	# ruling 21's owner resolution at the gate: an OWNED drone's consumer resolves to the Naga.
+	# and was vacuous. What CAN be pinned is (1) that fact, (2) the gate on an unowned drone (now
+	# admitted - ruling 2026-09-27), and (3) the owner resolution at the gate: an OWNED drone's
+	# consumer resolves to the Naga, unaffected by that reversal (attribution, not membership).
 	var drone := NagaFixture.create_drone(game, IN_SENSORS)
 	assert_true(drone.is_character(), 'RULE: a drone IS a character to the engine (unit.gd:116)...')
-	assert_false(drone.is_actor(), '...and is NOT an actor (:117), which is what "character" means on this frame.')
+	assert_false(drone.is_actor(), '...and is NOT an actor (:117) - which no longer matters here, the card ruling reads "character" only.')
 	assert_false(GearCore.is_valid(drone.get_gear(NagaFixture.LOCK_ON)),
 		'ENGINE: a drone has no basic gear (loadout_core.gd:179), so no ms_lock_on and no consume reaction.')
 	var heat_before:int = naga.core.current.heat
@@ -214,17 +215,18 @@ func test_a_drone_cannot_consume_at_all_and_the_gate_reads_is_actor_through_the_
 	assert_true(blood_prompts().is_empty(), 'So nothing was offered.')
 	assert_eq(naga.core.current.heat, heat_before, 'No heat.')
 
-	# The gate itself, read directly (ruling 21). Unowned: not an actor, refused. Owned by the Naga:
-	# the hook resolves the consumer to the OWNER (Unit.get_attacker -> get_owner_unit_or_self,
-	# unit.gd:270-282), and the owner is the Naga itself - "you".
+	# The gate itself, read directly. A drone is a character (ruling 2026-09-27), so an UNOWNED one now
+	# passes the gate on its own. Owned by the Naga: the hook resolves the consumer to the OWNER
+	# (Unit.get_attacker -> get_owner_unit_or_self, unit.gd:270-282), and the owner is the Naga itself -
+	# "you" - which the reversal never touched.
 	var blood:Script = load('res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_naga/cp_shimmering_veil/action_blood_of_the_creature.gd')
-	assert_false(blood.is_you_or_an_allied_character_within_sensors(naga, drone),
-		'An unowned drone is not "an allied character".')
+	assert_true(blood.is_you_or_an_allied_character_within_sensors(naga, drone),
+		'An unowned drone IS "an allied character" now: a drone is a character (ruling 2026-09-27).')
 	NagaFixture.own_drone(drone, naga)
 	var resolved:Unit = Lockon.consumer(Context.create({unit = drone}))
-	assert_eq(resolved, naga, 'The consumer of an OWNED drone resolves to its owner, the Naga.')
+	assert_eq(resolved, naga, 'The consumer of an OWNED drone still resolves to its owner, the Naga.')
 	assert_true(blood.is_you_or_an_allied_character_within_sensors(naga, resolved),
-		'And the Naga is "you": the gate would open for a consumption by an owned drone, if one could exist.')
+		'And the Naga is "you": the gate opens for a consumption by an owned drone too, if one could exist.')
 
 func test_an_invade_consuming_lock_on_offers_too() -> void:
 	responder.chosen_move_tile = THREE_EAST

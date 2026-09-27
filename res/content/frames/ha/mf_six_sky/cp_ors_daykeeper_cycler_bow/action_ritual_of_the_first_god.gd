@@ -14,9 +14,10 @@
 ## picker's cancel. Immobilized or a ban leaves no space, and the Six Sky attacks from where it stands.
 ##
 ## THE TARGETS (ruling 16, the author's) are ONE list, taken once after the teleport: every hostile
-## CHARACTER (Unit.is_actor - no drone, no deployable) within 5, closest first, ties by persistent id.
-## Before each shot a target is skipped if it is dead, or if the bow cannot attack it (the engine's own
-## targeting: range, line of sight). Nobody is added mid-sequence.
+## CHARACTER (Unit.is_character() - a drone included, no deployable; rulings.md, mod-wide row of
+## 2026-09-27, reversing row 301) within 5, closest first, ties by persistent id. Before each shot a
+## target is skipped if it is dead, or if the bow cannot attack it (the engine's own targeting: range,
+## line of sight). Nobody is added mid-sequence.
 ##
 ## EACH SHOT IS ITS OWN DECLARED ATTACK, fired as a freebie at a mandatory target with the player's
 ## decisions skipped - Rage Roll's awaited event_gear_activate - plus NO_SELF_HEAT, which is both "no

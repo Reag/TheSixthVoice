@@ -7,7 +7,7 @@ script = ExtResource("1_entrap")
 ; ATTACKER (1), ENEMIES (2), a HIT.
 require_unit_to_be = 1
 require_defender_relation = 2
-; is_character() admits drones; the script tests is_actor() (rulings row 301).
+; Off here; the script tests is_character() itself, a drone included (rulings.md, mod-wide row of 2026-09-27).
 require_defender_to_be_character = false
 require_hit = true
 ; MELEE (2, Lancer.WEAPON_TYPE); the script adds threat > 0 (no thrown attacks). No basic gear.

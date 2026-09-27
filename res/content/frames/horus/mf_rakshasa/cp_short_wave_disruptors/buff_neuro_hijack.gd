@@ -137,7 +137,7 @@ static func is_hijackable(rakshasa:Unit, context:Context) -> bool:
 	if context.target_unit != rakshasa: return false
 	if not Unit.is_valid(context.unit) or not Action.is_valid(context.action): return false
 	var attacker:Unit = context.unit.get_attacker(context)
-	# "A hostile character": is_actor(), the mod-wide rule (rulings row 301) - a drone is not one.
+	# "A hostile character": is_character(), a drone included (ruling 2026-09-27).
 	if not Unit.is_valid(attacker) or attacker == rakshasa or not attacker.is_character(): return false
 	if not UnitRelation.are_enemies(rakshasa, attacker): return false
 	# "Within Sensors": the Rakshasa's live Sensors, measured the way Draw Fire measures it.

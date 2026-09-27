@@ -3,13 +3,15 @@
 #   "Choose a blast 1 area within line of sight and SENSORS. All characters at least partially within
 #    the area must succeed a Hull save or take 2d6 Kinetic damage and be knocked Prone."
 #
-# An ActionSystemApplyStatus with TWO overrides: the target filter (every "character" on this frame
-# is is_actor(), ruling 22) and the damage (apply_additional_effect, the archetype's own hook).
+# An ActionSystemApplyStatus with TWO overrides: the target filter ("character" is is_character(), a
+# drone included - rulings.md, mod-wide row of 2026-09-27, reversing row 301/ruling 22) and the
+# damage (apply_additional_effect, the archetype's own hook).
 #
 # THE FILTER IS NOT COSMETIC. A non-character AUTO-FAILS every forced save without rolling
-# (unit_hasecheck.gd:52-53), so without it every deployable and every drone standing in the blast
-# would be Proned and take 2d6. can_target_unit is consulted by the AoE sweep at :65 as well as by
-# targeting, which is why narrowing it there is enough.
+# (unit_hasecheck.gd:52-53), so without it every deployable standing in the blast would be Proned and
+# take 2d6 with no roll at all. A drone is NOT excluded by this filter - a drone is a character
+# (2026-09-27) and rolls its save like any other target in the blast. can_target_unit is consulted by
+# the AoE sweep at :65 as well as by targeting, which is why narrowing it there is enough.
 #
 # THE DAMAGE GOES THROUGH apply_additional_effect, which the archetype calls ONLY for a failed save
 # and BEFORE the statuses land (:96-101, and its own comment says so). 2d6 is rolled fresh per
@@ -68,7 +70,8 @@ func is_available_to_activate(_unit:Unit, gear:GearCore) -> bool:
 	if not GearCore.is_valid(gear): return false
 	return bool(gear.get_state(OFFER_STATE_KEY, false))
 
-## "All CHARACTERS at least partially within the area" - is_actor(), the mod-wide rule (ruling 22).
+## "All CHARACTERS at least partially within the area" - is_character(), a drone included
+## (rulings.md, mod-wide row of 2026-09-27, reversing row 301/ruling 22).
 func can_target_unit(potential_target:Unit, specific:SpecificAction) -> bool:
 	if not super.can_target_unit(potential_target, specific): return false
 	return potential_target.is_character()

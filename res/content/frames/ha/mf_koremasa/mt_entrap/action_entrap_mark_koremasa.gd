@@ -6,8 +6,9 @@
 ## (ms_fragment_signal) is basic gear and is the tech attack every mech carries. An auto-hit counts
 ## (roll.hit). Lock On is not a tech attack (action_lock_on.gd:2), so it never gets here.
 ##
-## "HOSTILE CHARACTER" is is_actor() (rulings row 301): the archetype's is_character() check is off
-## in the .tres and this file tests is_actor().
+## "HOSTILE CHARACTER" is is_character() - a drone included (rulings.md, mod-wide row of 2026-09-27,
+## reversing row 301) - so this file tests it directly rather than relying on the archetype's own
+## require_defender_to_be_character.
 ##
 ## NOT A REACTION POINT and not limited: every tech hit re-marks, and a re-mark replaces the old one
 ## from the same gear (unit_condition.gd:741-747) with a fresh stamp. Spent anyway, so the tally is

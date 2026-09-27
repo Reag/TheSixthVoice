@@ -121,11 +121,16 @@ func test_an_ally_teleport_is_not_offered():
 	assert_eq(ally.tile(), VICTIM_DEST, 'CONTROL: the ally landed.')
 	assert_eq(offers(), 0, '"A HOSTILE character" - never an ally.')
 
-func test_a_hostile_drone_is_not_offered():
+func test_a_hostile_drone_is_offered():
+	# A drone is a character (rulings.md, mod-wide row of 2026-09-27, reversing row 301/ruling 4).
 	var drone:Unit = Fixture.create_drone(game, VICTIM_TILE)
+	responder.yesno_queue.assign([true])
+	VaubanFixture.queue_save_dice(FAIL_BY_ONE)
 	await Fixture.shove(six_sky, drone, VICTIM_DEST)
 	assert_eq(drone.tile(), VICTIM_DEST, 'CONTROL: the drone landed.')
-	assert_eq(offers(), 0, 'A drone is not a character (ruling 4).')
+	assert_eq(offers(), 1, 'A drone is a character (ruling 2026-09-27), so it is offered like any other.')
+	assert_eq(Fixture.heat(six_sky), 1, 'The Six Sky took 1 heat.')
+	assert_true(Fixture.is_impaired(drone), 'A 10 fails the Six Sky\'s Save 11: Impaired.')
 
 func test_teleporting_itself_is_not_offered():
 	await Fixture.teleport_self(six_sky, VICTIM_DEST)

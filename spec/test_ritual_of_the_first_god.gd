@@ -266,13 +266,22 @@ func test_every_hostile_within_five_is_attacked_once_closest_first():
 	assert_eq(200 - Fixture.health(edge), 9, '...and the last hit to the farthest.')
 	assert_true(Dice.CHEAT_ROLL_QUEUE.is_empty(), 'Every planned die was used, and no more were planned.')
 
-func test_no_ally_no_drone_and_nobody_six_away_is_attacked():
+func test_no_ally_and_nobody_six_away_is_attacked():
 	var near := Fixture.create_dummy(game, NEAR)
 	Fixture.create_ally(game, ALLY_TILE)
-	Fixture.create_drone(game, DRONE_TILE)
 	Fixture.create_dummy(game, OUTSIDE)
 	await Fixture.press_ritual(game, six_sky, dice([HIT_PASSING]))
-	assert_eq(attacks.targets, [near] as Array[Unit], 'Only the hostile CHARACTER within 5.')
+	assert_eq(attacks.targets, [near] as Array[Unit],
+		'Only the hostile CHARACTER within 5 - an ally and a unit six away are both skipped.')
+
+func test_a_hostile_drone_is_attacked():
+	# A drone is a character (rulings.md, mod-wide row of 2026-09-27, reversing row 301): the card says
+	# "all Hostile characters within Range 5", and a drone now qualifies like any other. Split out on
+	# its own tile so it is not tied for distance with another candidate.
+	var drone := Fixture.create_drone(game, DRONE_TILE)
+	await Fixture.press_ritual(game, six_sky, dice([HIT_PASSING]))
+	assert_eq(attacks.targets, [drone] as Array[Unit],
+		'A hostile drone is a character (ruling 2026-09-27), so it is attacked too.')
 
 func test_a_hostile_the_bow_cannot_see_is_skipped():
 	var near := Fixture.create_dummy(game, NEAR)

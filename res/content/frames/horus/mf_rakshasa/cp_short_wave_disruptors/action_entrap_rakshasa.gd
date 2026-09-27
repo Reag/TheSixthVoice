@@ -11,9 +11,13 @@
 ## override plus hide_if_disabled in the .tres, which together remove the hotbar button
 ## (gear_bar.gd:146); either alone leaves it drawn, greyed.
 ##
-## "ANY CHARACTER" is the archetype's own can_target_unit: the Rakshasa's allies too, never a drone
-## (is_actor(), rulings row 301), never a unit Hidden from it. A BLINDED Rakshasa reaches only an
-## adjacent one, through the Blinded range cap in UnitTile.get_tiles_within (unit_tile.gd:579).
+## "ANY CHARACTER" is the archetype's own can_target_unit: the Rakshasa's allies too, never a unit
+## Hidden from it. STILL never a drone, but not for the "character" word any more (a drone IS one,
+## ruling 2026-09-27): the vanilla archetype's own gate refuses any non-actor outright
+## (action_system_apply_buff.gd:64, "cannot apply buffs to drones / objects"), unconditionally, before
+## this file's own logic is ever reached - orthogonal to what "character" means on this card. A BLINDED
+## Rakshasa reaches only an adjacent one, through the Blinded range cap in UnitTile.get_tiles_within
+## (unit_tile.gd:579).
 ##
 ## The save is forced with the full trifecta (this unit, the core gear, this action), so Worm Code sees
 ## a failure (ruling 6). NOT TECH, so the core Kit stays non-tech (design 2.1).

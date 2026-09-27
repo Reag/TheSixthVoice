@@ -168,7 +168,7 @@ func test_only_a_hostile_character_can_be_chosen():
 	var drone := Fixture.create_drone(game, Vector2i(8, 4))
 	assert_true(action().can_target_unit(focus, specific), 'A hostile character: yes.')
 	assert_false(action().can_target_unit(ally, specific), 'An ally: no.')
-	assert_false(action().can_target_unit(drone, specific), 'A hostile drone is not a character (is_actor): no.')
+	assert_true(action().can_target_unit(drone, specific), 'A hostile drone is a character (ruling 2026-09-27): yes.')
 
 func test_a_second_hyperfocus_is_refused_while_the_focus_lives():
 	await hyperfocus(focus)

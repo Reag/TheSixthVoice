@@ -21,8 +21,9 @@
 #
 # THE GATE: Lockon.is_lost (a statuses_changed event for LOCKON - the same virtual event carries the
 # APPLY at PRE, which is why the .tres says POST); the loser is a live hostile CHARACTER of the Naga
-# (is_actor, ruling 21) within the Naga's Sensors (no line of sight), and who no longer holds ANY
-# Lock On - a stacked double lock cleared by Stabilize fires one POST per copy, and only the last is
+# (is_character(), a drone included - ruling 2026-09-27) within the Naga's Sensors (no line of sight),
+# and who no longer holds ANY Lock On - a stacked double lock cleared by Stabilize fires one POST per
+# copy, and only the last is
 # a loss (still_locked, below; frame close 2026-09-23). Unlimited per round: consumes_rxn false, no
 # hard limit, its own usage group.
 #

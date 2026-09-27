@@ -128,18 +128,20 @@ func test_a_melee_hit_without_a_tech_hit_asks_nothing():
 	await swing_delta(hostile)
 	assert_eq(watcher.kinds(PromptWatcher.KIND.yesno).size(), 0, 'No mark, no question.')
 
-## A drone is not a "hostile character" here (ruling 16's actor check), on either half.
-func test_a_tech_hit_on_a_drone_marks_nothing():
+## A drone IS a "hostile character" here (rulings.md, mod-wide row of 2026-09-27, reversing row
+## 301/ruling 16), on both halves.
+func test_a_tech_hit_on_a_drone_marks_it():
 	var drone := Fixture.create_hostile_drone(game, OTHER_ADJACENT)
 	await invade(drone, TECH_HIT)
-	assert_false(Fixture.is_marked(drone), 'The watcher skips a drone.')
+	assert_true(Fixture.is_marked(drone), 'A drone is a character (ruling 2026-09-27), so the watcher marks it too.')
 
-func test_a_live_mark_on_a_drone_arms_nothing():
+func test_a_live_mark_on_a_drone_arms_it():
 	var drone := Fixture.create_hostile_drone(game, OTHER_ADJACENT)
 	UnitCondition.apply_buff_id(SpecFactory.dummy_event(), drone, Fixture.ENTRAP_MARK, koremasa.get_gear(Fixture.ENTRAP_ID))
 	assert_true(Fixture.is_marked(drone), 'fixture: a live mark hung on the drone by hand.')
-	assert_eq(await swing_delta(drone), 0, 'The reaction skips a drone too.')
-	assert_eq(koremasa.core.current.reactions, koremasa.core.get_reactions_max(), 'The point is untouched.')
+	assert_eq(await swing_delta(drone), 1,
+		'A drone is a character (ruling 2026-09-27), so the reaction fires on it too.')
+	assert_eq(koremasa.core.current.reactions, 0, 'And the reaction point is spent.')
 
 func test_a_melee_hit_without_a_tech_hit_does_nothing():
 	assert_eq(await swing_delta(hostile), 0, 'No tech hit this round, no Entrap.')

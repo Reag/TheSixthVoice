@@ -7,7 +7,8 @@
 ##
 ## "THIS EFFECT ENDS IF YOU TAKE ANY ACTIONS THAT AFFECT A DIFFERENT HOSTILE CHARACTER" - ATTACKS
 ## ONLY. attack_declared POST where the Thorn is the attacker and the declared summary's
-## all_attacked_units (declared_attack_summary.gd:9) holds a hostile character (is_actor, ruling 16)
+## all_attacked_units (declared_attack_summary.gd:9) holds a hostile character (is_character() - a
+## drone included, ruling 2026-09-27)
 ## other than the focus: a miss, a Blast catch, a reaction shot (Stalk the Horizon) and an invade all
 ## count. An attack on an ally does not. The second half of ruling 13 - a tech SYSTEM aimed at another
 ## hostile (Lock On) - was DROPPED by the SP3 probe (test_spike_purple_thorn_sp3_seams.gd): a

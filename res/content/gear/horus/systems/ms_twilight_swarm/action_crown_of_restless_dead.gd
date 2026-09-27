@@ -25,21 +25,15 @@
 ## and can_target_unit_self returns can_target_self - all four of which this card sets in its .tres
 ## rather than in code.
 ##
-## AN ALLIED DRONE IS NOT A LEGAL TARGET, AND THAT TAKES ONE OVERRIDE - REVERSING THIS CARD'S OWN
-## SP3 RULING (author, 2026-09-21, at the frame close). requires_target_character is
-## `potential_target.is_character()` (action_system_target_unit.gd:16) and Unit.is_character() is
-## TRUE of a drone ("active mech/pilot/drone", unit.gd:116), so the flag admits one. "Character" on
-## this frame, and across this mod, is `is_actor()` (:117): ruling 194 (the Vauban's Gravity Well
-## shelters allied MECHS), rulings 64 and 70 (a drone's shot counts as its OWNER'S) and ruling 269
-## (the Stealing). The canonical paragraph is in
+## AN ALLIED DRONE IS A LEGAL TARGET (ruling 2026-09-27, mod-wide), REVERSING THIS CARD'S OWN
+## 2026-09-21 FRAME-CLOSE RULING. requires_target_character is `potential_target.is_character()`
+## (action_system_target_unit.gd:16), and a drone passes it - the LCP's own DRONE tag: "Drones are
+## Size 1/2 characters." The canonical paragraph is in
 ## res/content/frames/horus/mf_sluagh/mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd.
-## The SP3 ruling reasoned from the archetype's default and from vanilla's habit; the author has
-## chosen the mod's own consistency over both, knowing it reverses them.
 ##
-## can_target_unit IS THE RIGHT SEAM AND THE ONLY ONE. It is UnitTargeting's additional filter when
-## the player picks (action.gd:214), AND it is what filters a target supplied straight to the plan
-## (target_action_util.gd:172) - so a spec or an AI handing the action a drone by hand is refused
-## too. The .tres flag stays on as the cheap first gate: it refuses objects and markers for free.
+## can_target_unit's OWN CLAUSE BELOW IS NOW A REDUNDANT RESTATEMENT of the archetype's flag, not a
+## narrowing - kept because it costs nothing and is what filters a target supplied straight to the
+## plan too (target_action_util.gd:172).
 ##
 ## THE 1/ROUND IS THE ENGINE'S AND THE USAGE GROUP IS OURS. Action.get_per_round_hard_limit returns 1
 ## for any FREE action (action.gd:156-158), so the card's limit costs no code. But the tally is kept
@@ -62,8 +56,8 @@ const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/
 func consumes_charges(specific:SpecificAction) -> bool: return false
 
 
-## "an allied CHARACTER", narrowed from the archetype's is_character() to the mod's is_actor(). See
-## the header; test_crown_cannot_crown_an_allied_drone is the pin.
+## "an allied CHARACTER": is_character(), the same predicate the archetype's flag already asks (see
+## the header). test_crown_can_crown_an_allied_drone is the pin.
 func can_target_unit(potential_target:Unit, specific:SpecificAction) -> bool:
 	if not super(potential_target, specific): return false
 	return potential_target.is_character()

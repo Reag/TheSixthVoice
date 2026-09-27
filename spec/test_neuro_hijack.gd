@@ -342,16 +342,19 @@ func test_an_ally_attacking_the_rakshasa_is_not_asked():
 	assert_eq(rolled_against(summary), [rakshasa] as Array[Unit], 'An ally is not hijacked.')
 	assert_false(Fixture.is_exempt(attacker, rakshasa), 'No save at all.')
 
-func test_a_drone_is_not_a_character_and_is_not_asked():
+func test_a_drone_is_a_character_and_is_asked():
+	# A drone is a character too now (ruling 2026-09-27): a drone attacker is hijacked exactly like any
+	# other attacker, save and redirect included.
 	make_game()
 	rakshasa = Fixture.create_rakshasa(game, RAKSHASA_TILE)
 	attacker = Fixture.create_hostile_drone(game, ATTACKER_TILE)
 	melee = Fixture.equip(attacker, Fixture.MELEE)
-	Fixture.create_ally(game, RAKSHASA_ALLY_TILE)
+	var ally := Fixture.create_ally(game, RAKSHASA_ALLY_TILE)
 	await hijack(rakshasa)
-	var summary := await fire(attacker, melee, rakshasa, [HIT])
-	assert_eq(rolled_against(summary), [rakshasa] as Array[Unit], 'A drone attacker is not hijacked.')
-	assert_false(Fixture.is_exempt(attacker, rakshasa), 'No save at all.')
+	var summary := await fire(attacker, melee, rakshasa, [SAVE_FAILS, HIT])
+	assert_eq(rolled_against(summary), [ally] as Array[Unit], 'The roll was moved off the Rakshasa, same as any character.')
+	assert_gt(ally.current_damage(), 0, 'And landed on the new target.')
+	assert_eq(rakshasa.current_damage(), 0, 'The Rakshasa takes none.')
 
 func test_no_other_valid_character_means_no_save():
 	build()

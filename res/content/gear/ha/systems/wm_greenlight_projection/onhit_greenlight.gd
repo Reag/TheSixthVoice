@@ -17,18 +17,17 @@
 ## measurement that proves this rather than trusting it: a null read here would fail either
 ## permanently OPEN (every hit burns) or permanently CLOSED (no hit ever burns).
 ##
-## "A CHARACTER" IS is_actor(), NOT is_character() - the mod-wide rule (Sluagh close 2026-09-21,
-## ruling 22 on this frame). unit.gd:116-119: is_character() is TRUE for a drone, and only is_actor()
-## excludes it. Gated FIRST, before the round counter is even read, so hitting a non-actor (a hostile
-## turret drone, a wreck, a barrel) neither burns it nor spends the 1/round - the next hit this round
-## on a real mech still chips. Sibling gates doing the same thing on this frame:
-## action_combust.gd:40 (can_target_unit), buff_rage_hatred.gd:96 and
+## "A CHARACTER" IS is_character() - a drone included (rulings.md, mod-wide row of 2026-09-27,
+## reversing row 301/ruling 22 on this frame). Gated FIRST, before the round counter is even read, so
+## hitting a non-character (a wreck, a barrel, a marker) neither burns it nor spends the 1/round - a
+## drone now passes this gate like any other character. Sibling gates doing the same thing on this
+## frame: action_combust.gd:40 (can_target_unit), buff_rage_hatred.gd:96 and
 ## action_automatic_retaliation.gd:104 (both damager()).
 ##
-## FIX (2026-09-22): BEFORE THIS FIX neither should_abort nor on_hit checked attacked_unit.is_actor()
-## at all, so swinging a GreenLight-modded weapon at a drone, a wreck or a barrel both burned it (in
-## on_hit, no target filter existed there either) AND spent the round, silently disarming the card
-## against the next real hit.
+## FIX (2026-09-22): BEFORE THIS FIX neither should_abort nor on_hit checked attacked_unit.is_character()
+## at all, so swinging a GreenLight-modded weapon at a wreck or a barrel both burned it (in on_hit, no
+## target filter existed there either) AND spent the round, silently disarming the card against the
+## next real hit.
 ##
 ## WHY THE INCREMENT HAPPENS AFTER super(...), NOT BEFORE (changed 2026-09-22; it used to sit right
 ## after the round check's early return, matching onhit_ddmr.gd verbatim). This OnHitEffect carries

@@ -79,7 +79,8 @@ func activate(context:Context, activation:EventCore) -> void:
 	})
 
 ## The hostile CHARACTER responsible for a damage event, or null - buff_rage_hatred.gd's damager()
-## verbatim (the Jormungandr's copy says why a copy): target_unit walked to its owner, an actor, an
+## verbatim (the Jormungandr's copy says why a copy): target_unit walked to its owner (an unowned
+## drone resolves to itself), a character (is_character() - a drone included, ruling 2026-09-27), an
 ## enemy.
 func damager(context:Context, holder:Unit) -> Unit:
 	if not Unit.is_valid(context.target_unit): return null

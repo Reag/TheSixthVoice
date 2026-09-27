@@ -169,9 +169,9 @@ func test_an_ai_controlled_rakshasa_is_never_offered():
 
 # ---------------------------------------------------------------- the target set
 
-func test_the_target_set_is_every_character_in_sensors_and_sight_but_the_first_target():
-	# Ruling 8: the tech action's own targetable set (Sensors, line of sight) of is_actor() units,
-	# allies included, minus the original target and the Rakshasa.
+func test_the_target_set_is_every_character_in_sensors_and_sight_drone_included_but_not_the_first_target():
+	# Ruling 8: the tech action's own targetable set (Sensors, line of sight) of is_character() units
+	# (a drone included, ruling 2026-09-27), allies included, minus the original target and the Rakshasa.
 	var beyond_sensors := Fixture.create_hostile(game, Vector2i(24, 4)) # 22 away: Sensors is 20
 	var behind_wall := Fixture.create_hostile(game, Vector2i(2, 8))
 	Fixture.raise_wall(game, [Vector2i(1, 6), Vector2i(2, 6), Vector2i(3, 6)] as Array[Vector2i])
@@ -188,8 +188,8 @@ func test_the_target_set_is_every_character_in_sensors_and_sight_but_the_first_t
 	assert_does_not_have(offered, rakshasa, 'Not itself.')
 	assert_does_not_have(offered, beyond_sensors, 'Not a hostile beyond Sensors.')
 	assert_does_not_have(offered, behind_wall, 'Not a hostile out of sight.')
-	assert_does_not_have(offered, drone, 'Not a drone: it is not a character (rulings row 301).')
-	assert_eq(offered.size(), 2, 'Exactly the second hostile and the ally.')
+	assert_has(offered, drone, 'A drone is a character too (ruling 2026-09-27).')
+	assert_eq(offered.size(), 3, 'Exactly the second hostile, the ally, and the drone.')
 	# The two negative controls really are where the test thinks: in range but unseen, and seen but
 	# out of range.
 	assert_lt(UnitRelation.distance_between(rakshasa, behind_wall), rakshasa.get_sensor_range(),

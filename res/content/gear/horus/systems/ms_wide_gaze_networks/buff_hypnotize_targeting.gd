@@ -12,13 +12,15 @@
 ## lower number - only the E-Defense half of "either" is reachable. Hypnotize scans first, so the
 ## numbers are known and a prompt could never beat the lower one.
 ##
-## "ALLIED CHARACTERS" - A DRONE ATTACKS AS ITS OWNER (author decision 2 at the frame close,
-## 2026-09-23; mod-wide rulings row 301, Draw Fire's rule, over design section 2.2). The attacker is
-## resolved through Unit.get_attacker (unit.gd:276-282: the owner, unless the unit holds a
-## SET_ATTACK_ROOT buff), and it must then be a character by ruling 21 (is_actor(), unit.gd:117) and an
-## ally of the Naga who owns this buff. The aura reaches a drone itself (is_character is true of one,
-## unit.gd:116), which is how its weapon gets the tag at all; an UNOWNED drone resolves to itself and
-## is refused, and so is a drone on our side whose owner is not.
+## "ALLIED CHARACTERS" - ATTRIBUTION FIRST, THEN MEMBERSHIP. A drone still attacks as its OWNER where
+## one exists (author decision 2 at the frame close, 2026-09-23; mod-wide rulings row 301's attribution
+## half, Draw Fire's rule, over design section 2.2, unaffected by the 2026-09-27 reversal below). The
+## attacker is resolved through Unit.get_attacker (unit.gd:276-282: the owner, unless the unit holds a
+## SET_ATTACK_ROOT buff), and it must then be a character (is_character(), unit.gd:116 - a drone
+## included, ruling 2026-09-27) and an ally of the Naga who owns this buff. The aura reaches a drone
+## itself, which is how its weapon gets the tag at all; an UNOWNED drone resolves to itself and now
+## passes the character test too (it is one), and so does a drone on our side whose owner is hostile -
+## that one is still refused, but by the ALLY check, not the character one.
 ##
 ## NO LEAK ONTO THE SHEET: with no target_unit in the context the context is not valid for this buff
 ## at all, so a weapon card read without a target never shows Smart.

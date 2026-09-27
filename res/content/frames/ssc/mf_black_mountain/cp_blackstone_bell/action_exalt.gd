@@ -22,7 +22,8 @@
 ##
 ## THE REST OF THE GATE (rulings 3-4): not SELF_INFLICTED, the type not HEAT, number > 0; the victim a
 ## HOSTILE MECH of the Black Mountain (is_mech: a drone is not one), alive at the gate; the dealer an
-## allied CHARACTER (is_actor) that is NOT the Black Mountain (are_allies is true of a unit and itself,
+## allied CHARACTER (is_character() - a drone included, ruling 2026-09-27) that is NOT the Black Mountain
+## (are_allies is true of a unit and itself,
 ## unit_relation.gd:364-365), within the Black Mountain's Sensors and line of sight, measured from the Black
 ## Mountain to the ALLY (on this card the clause modifies "allied character"); and the dealer does not
 ## already hold buff_exalt_benefited.

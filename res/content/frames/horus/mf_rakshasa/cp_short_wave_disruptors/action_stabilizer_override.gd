@@ -3,8 +3,8 @@
 ##
 ## Drain's watcher shape (action_drain.gd) - ATTACKER, ENEMIES, require_hit, tech and basic only - with
 ## a 1/round hard limit on its own usage group. ANY tech attack, invade or not. A HOSTILE CHARACTER:
-## hostile for Drain's reason (every tech hit on an ally is an auto-hit), and "character" is is_actor()
-## (rulings row 301), tested here because the archetype's is_character() admits drones.
+## hostile for Drain's reason (every tech hit on an ally is an auto-hit), and "character" is
+## is_character(), a drone included (ruling 2026-09-27).
 ##
 ## A TARGET IT CANNOT KNOCK PRONE IS EXCLUDED - already Prone, or immune (close review): a STATUS_IMMUNITY
 ## buff (Armor-Lock Plating, Flash Anchor, a Heavy Frame against a smaller knocker), Invulnerable, or

@@ -246,13 +246,13 @@ func test_an_allied_move_is_not_shot():
 	await moves(ally, SECOND_STEP)
 	assert_eq(ally.current_damage(), 0, 'Not hostile: no shot.')
 
-func test_a_hostile_drone_is_not_shot():
-	# "character" is is_actor() (row 301): a drone is a character but not an actor.
+func test_a_hostile_drone_is_shot():
+	# "character" is is_character() (ruling 2026-09-27): a drone is one, even though it is not an actor.
 	arm_nexus()
 	var drone:Unit = Fixture.create_drone(game, SECOND_TILE)
 	assert_true(drone.is_character() and not drone.is_actor(), 'fixture: a drone.')
 	await moves(drone, SECOND_STEP)
-	assert_eq(drone.current_damage(), 0, 'A drone is not a "hostile character".')
+	assert_gt(drone.current_damage(), 0, 'A drone is a "hostile character": shot.')
 
 func test_with_only_main_weapons_nothing_fires():
 	Fixture.arm_rifle(thorn)

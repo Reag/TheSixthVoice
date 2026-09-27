@@ -128,9 +128,9 @@ func test_every_allied_character_within_sensors_with_a_reaction_is_offered_a_mov
 	assert_has(movers, mid, 'An ally 6 out, inside Sensors 10, is offered.')
 	assert_does_not_have(movers, far, 'One outside Sensors is not.')
 	assert_does_not_have(movers, spent, 'One with no reaction is not.')
-	assert_does_not_have(movers, drone, 'A drone is not a character.')
+	assert_has(movers, drone, 'A drone is a character (ruling 2026-09-27) and is offered too.')
 	assert_does_not_have(movers, hostile, 'Nor a hostile.')
-	assert_eq(movers.size(), 2, 'Exactly the two.')
+	assert_eq(movers.size(), 3, 'Exactly the three.')
 
 func test_a_taken_move_is_up_to_speed_and_spends_the_allys_reaction():
 	var ally := Fixture.create_ally(game, WITHIN_SENSORS)
@@ -161,7 +161,7 @@ func test_the_hazard_and_an_adjacent_ally_become_immune_and_others_do_not():
 	assert_true(immune(hazard), 'The Hazard is immune.')
 	assert_true(immune(near), 'An adjacent ally is immune.')
 	assert_false(immune(far), 'One further out is not.')
-	assert_false(immune(drone), '"allied characters": a drone is not.')
+	assert_true(immune(drone), '"allied characters": a drone is one (ruling 2026-09-27) and is adjacent.')
 	assert_false(immune(hostile), 'Nor a hostile.')
 
 func test_nothing_is_immune_before_the_press():

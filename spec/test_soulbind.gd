@@ -75,7 +75,7 @@ func test_one_character_in_sensors_is_bound_without_asking():
 	await Fixture.deal_heat(game, rakshasa, 2)
 	assert_eq(Fixture.heat(hostile) - before, 2, 'Bound to the only one.')
 
-func test_the_pick_offers_every_character_in_sensors_and_nobody_else():
+func test_the_pick_offers_every_character_in_sensors_drone_included_but_nobody_else():
 	rakshasa = Fixture.create_rakshasa(game, RAKSHASA_TILE)
 	hostile = Fixture.create_hostile(game, HOSTILE_TILE)
 	var ally := Fixture.create_ally(game, Vector2i(3, 4))
@@ -89,9 +89,9 @@ func test_the_pick_offers_every_character_in_sensors_and_nobody_else():
 	assert_true(offered.has(hostile), 'A hostile within Sensors.')
 	assert_true(offered.has(ally), 'An ally within Sensors: any character.')
 	assert_false(offered.has(far), 'Not beyond Sensors.')
-	assert_false(offered.has(drone), 'Not a drone.')
+	assert_true(offered.has(drone), 'A drone is a character too (ruling 2026-09-27).')
 	assert_false(offered.has(rakshasa), 'Not itself.')
-	assert_eq(offered.size(), 2, 'Those two only.')
+	assert_eq(offered.size(), 3, 'Those three only.')
 
 func test_an_allied_partner_is_mirrored_the_same_way():
 	rakshasa = Fixture.create_rakshasa(game, RAKSHASA_TILE)

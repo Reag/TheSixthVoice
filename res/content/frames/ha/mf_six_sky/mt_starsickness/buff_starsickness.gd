@@ -5,8 +5,9 @@
 ##
 ## A hidden triggered buff on the Six Sky at ENTIRE_MOVEMENT POST, Heavenly Weaver's watch with a
 ## different victim filter: a completed teleport the Six Sky caused (six_sky_agent.gd, ruling 5) of a
-## HOSTILE (are_enemies) CHARACTER (is_actor - ruling 4, so never a drone). The offer comes AFTER the
-## move, from where the victim landed.
+## HOSTILE (are_enemies) CHARACTER (is_character(), a drone included - rulings.md, mod-wide row of
+## 2026-09-27, reversing row 301/ruling 4). The offer comes AFTER the move, from where the victim
+## landed.
 ##
 ## NO PER-ROUND LIMIT. A hostile teleported by one area effect alongside others is its own move event
 ## and its own offer; the stamp below only stops the SAME move being offered twice.

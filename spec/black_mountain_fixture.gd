@@ -9,8 +9,10 @@
 # a deep duplicate of the frame hands the unit COPIES of its trait Kits, whose compcon_id is a lazily
 # derived bare var (kit.gd:11-16) that does not survive duplicate().
 #
-# "CHARACTER" IS Unit.is_actor() (design ruling 3): a drone is not one. create_drone / own_drone are the
-# negative controls for every "character" clause. "ALLIED CHARACTER" EXCLUDES THE BLACK MOUNTAIN ITSELF
+# "CHARACTER" IS Unit.is_character() (mod-wide ruling, 2026-09-27): a drone is one too. create_drone /
+# own_drone exist for ATTRIBUTION - whether a drone's action counts as its own or (owned) as its
+# owner's through get_attacker/get_owner_unit_or_self - not as a "not a character" negative control any
+# more. "ALLIED CHARACTER" EXCLUDES THE BLACK MOUNTAIN ITSELF
 # on every card here (ruling 3, the author's call), so the Black Mountain shooting is a negative control
 # for An End to All Things and a POSITIVE one only for Dread Harbinger.
 #

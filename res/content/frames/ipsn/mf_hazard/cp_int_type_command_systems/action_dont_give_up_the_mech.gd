@@ -6,7 +6,8 @@
 #
 # QUICK, consumes the core power (the .tres).
 #
-# STEP 1, THE MOVES. Every allied CHARACTER (is_actor; "you" is named separately in the second
+# STEP 1, THE MOVES. Every allied CHARACTER (is_character() - a drone included, ruling 2026-09-27;
+# "you" is named separately in the second
 # sentence, so not the Hazard) within the Hazard's live Sensors (distance_between, no LOS - the card
 # names Sensors only), in map order, that CAN TAKE A REACTION (UnitAction.can_take_reactions: the
 # point, not Jammed, not grappled - "as a reaction") is offered event_unit_pick_move with its own
