@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '1.0.0'
+const EXPECTED_VERSION := '1.1.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -1115,6 +1115,26 @@ const ICON_TARGETS := {
 	# action, its chip and the refund. action_efficient_refund hides itself (show_in_tooltip false) and is
 	# correctly absent. SP4: icons.
 	&'cp_integrated_redirection_aggregate': {&'action_form_of_the_myriad': &'action_form_of_the_myriad'},
+	# SP1 (Six Sky). Heavenly Weaver: one applicator hanging the hidden arming watch, reapplied each
+	# turn; the watch is never drawn. The Kit has no action of its own. Its visible chip,
+	# buff_heavenly_weaver, is in VISIBLE_BUFFS below and wears the trait's own glyph (design
+	# section 3).
+	&'mt_heavenly_weaver': {},
+	# SP1 (Six Sky). Starsickness: one applicator hanging the hidden trigger, reapplied each turn, and
+	# a hidden-from-the-hotbar action (action_starsickness, hide_if_disabled plus
+	# is_available_to_activate false) that exists only to name the save's forcer. It is a plain
+	# Action, not an ActionReaction, so _action_reaches_a_player_facing_surface's first clause claims
+	# it regardless of hide_if_disabled (that flag is not part of the helper's model) - the
+	# mt_solfataric_breach shape, a trait and the action it exists to create share one glyph. KIT.
+	&'mt_starsickness': {&'action_starsickness': KIT},
+	# SP2 (Six Sky). ORS "DAYKEEPER" CYCLER BOW, the core Kit: its only action is Ritual of the First
+	# God, its OWN family (design section 3, the two-part core power's second half), distinct from the
+	# Kit's own glyph, which it shares with mw_daykeeper_cycler_bow below - one weapon, one picture, on
+	# two Kits (the integrated-weapon convention).
+	&'cp_ors_daykeeper_cycler_bow': {&'action_ritual_of_the_first_god': &'action_ritual_of_the_first_god'},
+	# SP2 (Six Sky). DAYKEEPER CYCLER BOW, the integrated weapon: one Kit, one profile, so KIT (the
+	# Shimmering Blade's shape). Shares its glyph with the core Kit above.
+	&'mw_daykeeper_cycler_bow': {&'action_daykeeper_cycler_bow': KIT},
 }
 ## Player-facing buffs. A buff with hide_from_player needs no icon and does not belong here.
 ##
@@ -1425,6 +1445,12 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# SP3 (Lovers Knot). FORM OF THE MYRIAD's chip - the only on-token sign that the chain (and Precision
 	# Venting's lifted gate) is live until the end of the Knot's turn. Its own rows. SP4: icon.
 	&'buff_form_of_the_myriad',
+	# SP1 (Six Sky). Heavenly Weaver's chip, and visible per ruling 8: it is the only on-token sign
+	# that the charge is armed, and it lasts until used, sometimes rounds later. Wears the trait's own
+	# glyph (mt_heavenly_weaver.svg), the Shredded Mark shape. Its hidden sibling
+	# buff_heavenly_weaver_watch is NOT listed - the pair is one mechanic, and the watcher is never a
+	# chip on the unit.
+	&'buff_heavenly_weaver',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

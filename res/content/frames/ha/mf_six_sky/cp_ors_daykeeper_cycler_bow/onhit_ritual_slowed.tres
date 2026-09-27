@@ -1,0 +1,14 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="1_onhit"]
+
+; THE RITUAL'S SLOWED (ruling 19), Catalytic Hammer's shape (mw_catalytic_hammer.tres): ON_HIT
+; (apply_on 1), which a crit also reaches; a save to avoid, SYSTEMS (save_type 2, Lancer.HASE.SYS),
+; forced by the bow's SpecificAction; Slowed at its standard END_OF_NEXT_TURN (status_slowed.tres).
+; Carried only by buff_ritual_of_the_first_god, never by the bow itself.
+[resource]
+script = ExtResource("1_onhit")
+apply_on = 1
+statuses = Array[StringName]([&"slowed"])
+save_to_avoid = true
+save_type = 2

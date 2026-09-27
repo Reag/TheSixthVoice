@@ -30,6 +30,8 @@ const GruttePierFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/grutt
 const KoremasaFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/koremasa_fixture.gd')
 const RakshasaFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/rakshasa_fixture.gd')
 const LoversKnotFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/lovers_knot_fixture.gd')
+const SixSkyFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/six_sky_fixture.gd')
+const PromptWatcher := preload('res://testkit/prompt_watcher.gd')
 const PatienceReduce := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_grutte_pier/cp_inevitability_core/buff_patience_reduce.gd')
 ## Read-only here: the Mark's retort case asserts the dome is untouched between its two halves.
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
@@ -1483,3 +1485,71 @@ func knot_roll_against(recorder:KnotDeclaredRecorder, target:Unit) -> AttackRoll
 	for roll:AttackRoll in recorder.summaries.back().attack_rolls:
 		if roll.target_unit == target: return roll
 	return null
+
+
+# ===================== SIX SKY x THE SUNZI'S BLINK ANCHOR (design 2.3, the teleport seam) =====================
+
+const SUNZI_REDIRECT_KIT := &'cp_reality_carver_sunzi'
+const SIX_SKY_START := Vector2i(4, 5)
+## Where the Six Sky asks the Ritual to put it: 6 from the anchor spot's hostile, so a Ritual fired
+## from HERE would attack nobody.
+const RITUAL_ASKED := Vector2i(12, 5)
+const SUNZI_TILE := Vector2i(20, 5)
+## Adjacent to the allied Sunzi: where its Blink Anchor redirect puts the teleporting ally.
+const ANCHOR_SPOT := Vector2i(21, 5)
+## 2 from the anchor spot, 11 from where the Six Sky asked to land.
+const NEAR_ANCHOR := Vector2i(23, 5)
+
+func skipped_without_the_sunzi() -> bool:
+	if Kit.is_valid(ContentLibrary.get_kit(SUNZI_REDIRECT_KIT)): return false
+	var message := 'SKIPPED: %s is not resident, so there is no Blink Anchor to redirect the Ritual. Restore the residency set with restore-links.ps1.' % SixSkyFixture.SUNZI_MOD
+	gut.p(message)
+	pass_test(message)
+	return true
+
+## THE RULING (design Contested seams, "teleport"): our observers read at POST, from where the unit
+## ACTUALLY landed, and our performers use the helper's routes, which a Sunzi anchor may redirect like
+## any other teleport. So an allied Sunzi's Blink Anchor may pull the Ritual's teleport to its side:
+## Heavenly Weaver still arms (the teleport was the Six Sky's own), and the Ritual's target list is
+## taken from the space the Six Sky really occupies - the anchor's.
+##
+## Reddened by: the Sunzi's redirect moving off ENTIRE_MOVEMENT PRE or dropping the array rewrite, the
+## Ritual measuring its targets from the space it asked for rather than the one it reached, or the
+## Weaver's agent losing the forcer across the rewrite.
+func test_a_sunzi_blink_anchor_redirects_the_rituals_teleport_and_the_ritual_follows() -> void:
+	if skipped_without_the_sunzi(): return
+	if is_instance_valid(SpecFactory.current_responder):
+		SpecFactory.current_responder.choose_yesnos = false
+		SpecFactory.current_responder.choose_plans = false
+		SpecFactory.current_responder.choose_moves = false
+		SpecFactory.current_responder.choose_multiple_choices = false
+	var made:Array = SixSkyFixture.create_game_with_prompts(self, Vector2i(30, 10))
+	game = made[0]
+	var responder = made[1]
+	var watcher:PromptWatcher = add_child_autoqfree(PromptWatcher.new())
+
+	var six_sky := SixSkyFixture.create_six_sky(game, SIX_SKY_START)
+	var sunzi := SixSkyFixture.create_ally(game, SUNZI_TILE)
+	var kit:Kit = ContentLibrary.get_kit(SUNZI_REDIRECT_KIT)
+	sunzi.core.loadout.equipped_kits.append(kit)
+	sunzi.core.full_repair()
+	UnitTile.update_tracking_and_statuses(game.map)
+	var hostile := SixSkyFixture.create_dummy(game, NEAR_ANCHOR)
+
+	# The Ritual's picker asks first (RITUAL_ASKED); the anchor's own picker second (ANCHOR_SPOT).
+	responder.chosen_yesnos = false
+	responder.yesno_queue.assign([true]) # the anchor's "use it?"
+	responder.chosen_move_tile = RITUAL_ASKED
+	var move_prompts := [0]
+	watcher.prompt.connect(func(kind:StringName, _info:Dictionary) -> void:
+		if kind != PromptWatcher.KIND.move_tile: return
+		move_prompts[0] += 1
+		if move_prompts[0] == 2: responder.chosen_move_tile = ANCHOR_SPOT)
+
+	await SixSkyFixture.press_ritual(game, six_sky, [15, 1, 20, 6, 6, 6]) # d20, accuracy, save, hit, crit, Weaver
+	responder.chosen_move_tile = Tile.INVALID
+
+	assert_eq(move_prompts[0], 2, 'VACUITY: the anchor offered its own picker after the Ritual.')
+	assert_eq(six_sky.tile(), ANCHOR_SPOT, 'The anchor pulled the Six Sky to its side.')
+	assert_eq(SixSkyFixture.weaver_chips(six_sky), 0, 'RULED: the Weaver armed, and the first hit spent it...')
+	assert_eq(200 - SixSkyFixture.health(hostile), 15, '...on the hostile beside the ANCHOR: 9 + the Weaver 6.')

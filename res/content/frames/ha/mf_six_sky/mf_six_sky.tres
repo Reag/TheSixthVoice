@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="Frame" format=3]
+
+[ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="1_frame"]
+[ext_resource type="Script" uid="uid://bxpc46igtsmvw" path="res://engine/character/unit/statblock.gd" id="2_statblock"]
+[ext_resource type="Script" uid="uid://dch85ypcupfgo" path="res://engine/character/unit_core/color_scheme.gd" id="3_colorscheme"]
+[ext_resource type="Texture2D" uid="uid://6tm738lnctjy" path="res://assets/palettes/toneramps/tone_highhue.png" id="4_toneramp"]
+[ext_resource type="Script" uid="uid://djuk56crywqss" path="res://engine/character/unit_core/mount_type.gd" id="5_mounttype"]
+[ext_resource type="Resource" path="res://content/mounts/mount_flex.tres" id="6_mountflex"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="7_kit"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ha/mf_six_sky/mf_six_sky.png" id="8_sprite"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/mt_heavenly_weaver/mt_heavenly_weaver.tres" id="9_weaver"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/mt_starsickness/mt_starsickness.tres" id="10_starsickness"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/cp_ors_daykeeper_cycler_bow/cp_ors_daykeeper_cycler_bow.tres" id="11_core"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/cp_ors_daykeeper_cycler_bow/mw_daykeeper_cycler_bow.tres" id="12_bow"]
+
+; THE COLOUR SCHEME IS A 3-MEANS OVER THE AUTHOR'S ART (the Koremasa's and the Lovers Knot's method,
+; 2026-09-26). The 80x80 sprite has 2,068 opaque pixels and NONE is channel-encoded, so the player's
+; colour picker cannot repaint this token and these three are inert until encoded art lands (memory
+; frame-sprites-not-channel-encoded). Clusters, luminance-tertile seeded, over alpha >= 0.98: gunmetal
+; plate (94,91,91) x788, pale steel highlight (150,162,162) x724, near-black shadow (16,17,16) x556. The
+; plate is base_0, the highlight base_1, the shadow base_2. The art's orange plasma is mostly a
+; half-transparent glow (258 of its 386 pixels sit at alpha 181), so the census over opaque pixels does
+; not see it as a cluster; recorded, not forced.
+[sub_resource type="Resource" id="Resource_colorscheme"]
+script = ExtResource("3_colorscheme")
+palette_2 = ExtResource("4_toneramp")
+base_0 = Color(0.36862746, 0.35686275, 0.35686275, 1)
+base_1 = Color(0.5882353, 0.63529414, 0.63529414, 1)
+base_2 = Color(0.0627451, 0.06666667, 0.0627451, 1)
+
+; The sheet's table (specs/sixth-voice/19-six-sky.md), design ruling 2. armor is 1 and tech_attack 0,
+; written out so the sheet reads off the file.
+[sub_resource type="Resource" id="Resource_statblock"]
+script = ExtResource("2_statblock")
+size = 1
+structure = 4
+stress = 4
+health = 8
+armor = 1
+evasion = 8
+edef = 8
+speed = 4
+heat = 7
+save_target = 11
+sensor_range = 15
+tech_attack = 0
+repairs = 4
+systems_points = 7
+reactions = 1
+activations = 1
+
+[resource]
+script = ExtResource("1_frame")
+default_color_scheme = SubResource("Resource_colorscheme")
+sprites = Array[Texture2D]([ExtResource("8_sprite")])
+; SHEET ORDER: Heavenly Weaver, Starsickness, then the core system and its integrated weapon, the
+; Fitzgerald's order (core Kit, then its mw_ Kit - memory integrated-weapon-two-kit-rule). Both of the
+; last two are SHELLS at SP1 (design 1.1): name rows only, so the frame loads. SP2 fills them.
+traits = Array[ExtResource("7_kit")]([ExtResource("9_weaver"), ExtResource("10_starsickness"), ExtResource("11_core"), ExtResource("12_bow")])
+; Flex alone - the sheet.
+mount_types = Array[ExtResource("5_mounttype")]([ExtResource("6_mountflex")])
+stat = SubResource("Resource_statblock")
+; STRIKER (1), CONTROLLER (3) - Lancer.SQUAD_ROLE, lancer.gd:181, in the sheet's order.
+role_primary = 1
+role_secondary = 3

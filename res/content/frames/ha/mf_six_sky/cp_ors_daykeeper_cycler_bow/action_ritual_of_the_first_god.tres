@@ -1,0 +1,16 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/cp_ors_daykeeper_cycler_bow/action_ritual_of_the_first_god.gd" id="1_ritual"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/cp_ors_daykeeper_cycler_bow/buff_ritual_of_the_first_god.tres" id="2_scope"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_ritual_of_the_first_god.svg" id="3_icon"]
+
+; RITUAL OF THE FIRST GOD (design 2.2, rulings 15-20): FULL (action_type 2), the core power
+; (consumes_cp). No self heat of its own. Its own family (design section 3, the two-part core
+; power's second half), distinct from the core Kit's own Daykeeper Cycler Bow glyph.
+[resource]
+script = ExtResource("1_ritual")
+scope = ExtResource("2_scope")
+action_type = 2
+consumes_cp = true
+usage_group = &"ritual_of_the_first_god"
+icon_override = ExtResource("3_icon")

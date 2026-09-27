@@ -938,3 +938,21 @@ gear.cp_integrated_redirection_aggregate.action_form_of_the_myriad.name,Form of 
 gear.cp_integrated_redirection_aggregate.action_form_of_the_myriad.effect,"Until the end of your turn, Gemini charge may be redirected 3 additional times, |Line| or |Range| is not reduced upon redirection and each |character| can only be targeted once. Choose a weapon you have mounted, you may attack with it as part of this action. Precision Venting can trigger any number of times until the end of your turn. This action is |Efficient|, and refunds 1 Core Power at the end of any scene in which it's used."
 gear.buff_form_of_the_myriad.name,Form of the Myriad
 gear.buff_form_of_the_myriad.effect,"Until the end of your turn, Gemini charge may be redirected 3 additional times, |Line| or |Range| is not reduced upon redirection and each |character| can only be targeted once. Precision Venting can trigger any number of times until the end of your turn."
+frame.mf_six_sky.name,Six Sky
+frame.mf_six_sky.flavor.short,Apex of Form
+frame.mf_six_sky.flavor,"The Six Sky is a rare instance of corporate alliance, a combination of SSC's relentless perfection and Harrison's perpetual pursuit of progress. Utilizing the Armory's preexisting blinkspace technology and SSC's TIAX-UYL new slipstream innovations the Six Sky excels at rapid maneuverability in all theaters. Additionally, it boasts the ability to store excess potential energy formed from each blink, redirecting it towards hostile forces on demand. None of this however, is what the Six Sky is truly known for, that title goes to its signature weapon, the ""Daykeeper"" Cycler Bow. Built from SSC exotic materials frameworks and the Armory's O.R.S stabilization systems the Daykeeper serves as the best of both worlds, elegant, powerful, yet scalable enough to be used by Armory forces galaxy wide. Utilizing the unique blink-siphon technology and relying on the extreme built in mobility of the Six Sky to make full use of the unstable plasma, the Daykeeper is a formidable weapon. Unfortunately, the same collaboration that produced the Daykeeper is what keeps it solely as part of the Six Sky Licensing, with both companies needing to sign off on any would be pilots. SSC regards the bow as the apex of its form, unmistakable and iconic in its simple effectiveness, a timeless tool of conflict resolution. Harrison Agrees."
+gear.mt_heavenly_weaver.name,Heavenly Weaver
+gear.mt_heavenly_weaver.effect,"1/round, when the Six Sky |teleports| itself, or another |character|, the next successful attack it makes deals +1d6 |Bonus damage|."
+gear.buff_heavenly_weaver.name,Heavenly Weaver
+gear.buff_heavenly_weaver.effect,"1/round, when the Six Sky |teleports| itself, or another |character|, the next successful attack it makes deals +1d6 |Bonus damage|."
+gear.mt_starsickness.name,Starsickness
+gear.mt_starsickness.effect,"When the Six Sky |teleports| a hostile |character|, it may take |1 Heat|. If it does, that character must succeed on a |Systems save| or become |Impaired| until the end of their next turn."
+gear.mt_starsickness.action_starsickness.name,Starsickness
+gear.cp_ors_daykeeper_cycler_bow.name,"ORS ""DAYKEEPER"" CYCLER BOW"
+gear.cp_ors_daykeeper_cycler_bow.action_ritual_of_the_first_god.name,Ritual of the First God
+gear.cp_ors_daykeeper_cycler_bow.action_ritual_of_the_first_god.effect,You may immediately |teleport| to a free space within |Range| 50 and make attacks against all Hostile characters within |Range| 5 with your DAYKEEPER CYCLER BOW. All characters successfully hit this way must succeed on a |Systems save| or become |Slowed| until the end of their next turn. Attacks made this way do not generate |Heat|.
+gear.mw_daykeeper_cycler_bow.name,DAYKEEPER CYCLER BOW
+gear.mw_daykeeper_cycler_bow.effect,This weapon gains +1 |Accuracy| against targets within |Range| 5.
+gear.mw_daykeeper_cycler_bow.on_crit,Choose yourself or the target to be immediately |teleported=lancer.term.teleport| to a free space within |Range| 2 of their space.
+gear.mw_daykeeper_cycler_bow.crit_self,Yourself
+gear.mw_daykeeper_cycler_bow.crit_target,The target
