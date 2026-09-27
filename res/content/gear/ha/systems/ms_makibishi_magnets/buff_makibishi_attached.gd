@@ -1,7 +1,8 @@
 ## MAKIBISHI MAGNETS, ATTACHED (design 3.1, rulings 21-23, 25). One buff for both routes - Throw
 ## Magnets and the mine - applied from the MAKIBISHI KIT, so the victim's detach saves against the
-## Koremasa and a second magnet from the same Koremasa replaces the first (ruling 22, the engine's
-## own same-source replacement).
+## Koremasa whose magnet it is. A second magnet REPLACES the first, from any Koremasa (ruling 22; Pass E,
+## rulings.md 2026-09-27): from the same one through the engine's own same-source replacement, from
+## another one through on_application below.
 ##
 ##   "Characters to whom they are attached are impaired and take 1 AP Kinetic damage for each space
 ##    they voluntarily move up to a maximum of 5. Characters can detach makibishi magnets from
@@ -27,6 +28,15 @@
 ## key and count carry over, and so does the detach's GearCore with its usage (one quick action a
 ## turn). The meta only bridges that gap; the state itself stays in the serialized BuffCore.
 ##
+## ANOTHER KOREMASA'S MAGNET (Pass E, settling row 567): two Koremasas' Kits have different persistent
+## ids, so the engine's replacement - keyed on from_gear - never fires between them, and the victim
+## used to carry both (two detach buttons, 10 a turn). on_application therefore clears every OTHER
+## copy itself, through the same I-2 bridge: the new core is already in state.buffs (:757-758), so the
+## victim stays Impaired throughout, and each cleared core's on_clear sets the meta. The busiest one
+## (most steps this turn) is cleared LAST, so its count is the one carried over. A sourceless magnet -
+## a mine that outlived its Koremasa (row 568) - is replaced the same way. The detach then saves
+## against the NEWEST Koremasa, the owner of the core that stays.
+##
 ## THE DETACH is situational gear the buff carries (the Hornet's javelins,
 ## buff_lock_hold_javelins_hornet.gd): it reaches the victim whatever becomes of the Koremasa, since
 ## the magnets outlive it (ruling 25). The engine resets per-turn usage only on a unit's LOADOUT
@@ -45,6 +55,8 @@ const OUTGOING_META := &'reag_makibishi_outgoing'
 func is_cleared_on_owner_death() -> bool: return false
 
 func on_application(event:EventCore, core:BuffCore, unit:Unit) -> void:
+	if event != null and not is_same_source_replacement(event, unit):
+		clear_other_magnets(event, core, unit)
 	var outgoing:BuffCore = null
 	if event != null and event.has_meta(OUTGOING_META):
 		var left:Dictionary = event.get_meta(OUTGOING_META)
@@ -59,6 +71,22 @@ func on_application(event:EventCore, core:BuffCore, unit:Unit) -> void:
 
 func on_clear(event:EventCore, core:BuffCore, unit:Unit) -> void:
 	if event != null: event.set_meta(OUTGOING_META, {unit = unit, core = core})
+
+## The engine has just cleared a same-source magnet on THIS unit and left it as meta (I-2).
+func is_same_source_replacement(event:EventCore, unit:Unit) -> bool:
+	return event.has_meta(OUTGOING_META) and event.get_meta(OUTGOING_META).unit == unit
+
+## Clear every other magnet on the unit, whatever its source, the busiest LAST: its on_clear leaves the
+## meta on_application then reads, so that turn's count survives.
+func clear_other_magnets(event:EventCore, core:BuffCore, unit:Unit) -> void:
+	var others:Array[BuffCore] = []
+	for other:BuffCore in UnitCondition.get_buffs(unit, core.base.compcon_id):
+		if other != core: others.append(other)
+	if others.is_empty(): return
+	others.sort_custom(func(a:BuffCore, b:BuffCore) -> bool:
+		return steps_this_turn(a, unit) < steps_this_turn(b, unit)
+	)
+	UnitCondition.clear_buffs(event, unit, others)
 
 func get_required_triggering_context() -> Array[Context.PROP]:
 	return [Context.PROP.unit]

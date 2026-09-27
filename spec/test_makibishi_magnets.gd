@@ -33,6 +33,8 @@ const VICTIM_TILE := Vector2i(8, 5)   ## 4 away: inside Range 5
 const MINE_TILE := Vector2i(5, 5)     ## adjacent to the Koremasa (deploy range 1)
 const SECOND_MINE_TILE := Vector2i(3, 5) ## the other side: not adjacent to the first
 const WALKER_START := Vector2i(5, 9)
+const OTHER_TILE := Vector2i(12, 5)   ## a second Koremasa, 4 from the victim: inside Range 5
+const OTHER_MINE_LAYER := Vector2i(5, 4) ## a second Koremasa adjacent to MINE_TILE (deploy range 1)
 
 const FAIL := 5
 const PASS := 15
@@ -61,10 +63,26 @@ func after_each() -> void:
 
 # ---------------------------------------------------------------- helpers
 
-func throw_at(target:Unit, save_d20:int) -> void:
-	await Fixture.open_turn(game, koremasa)
+func throw_at(target:Unit, save_d20:int, by:Unit = null) -> void:
+	if by == null: by = koremasa
+	await Fixture.open_turn(game, by)
 	Fixture.queue([save_d20])
-	await SpecFactory.use(game, koremasa, Fixture.MAKIBISHI_ID, Fixture.THROW_MAGNETS_ACTION, target)
+	await SpecFactory.use(game, by, Fixture.MAKIBISHI_ID, Fixture.THROW_MAGNETS_ACTION, target)
+
+## A second Koremasa with its own Makibishi Kit - a different Kit persistent id, so a different source.
+##
+## ITS KIT IS LOOKED UP ONCE HERE, BEFORE ANY MAGNET EXISTS, and that is load-bearing. Vanilla's
+## MapState.get_unit_from_source_id caches the FIRST unit carrying a buff with ANY situational gear as
+## the owner of whatever id it was asked for (map_state.gd:290-293), and get_gear_by_id gives up with
+## null at the same point (:261-264). This Koremasa is created after the victim, so without the warm-up
+## the first lookup of its Kit - apply_buff_alt's owner read, while the victim already wears the first
+## magnet - resolves to the VICTIM and stays cached, and the detach falls back to the DC 10 check.
+## Measured 2026-09-27 (pf-task-7-report.md); a vanilla bug, reported, not worked around in content.
+func second_koremasa(tile:Vector2i) -> Unit:
+	var other := Fixture.create_koremasa(game, tile)
+	var gear := Fixture.equip(other, Fixture.MAKIBISHI_ID)
+	assert_eq(game.map.get_unit_from_source_id(gear.persistent_id), other, 'fixture: the source cache knows the second Koremasa.')
+	return other
 
 func attached(unit:Unit) -> Array[BuffCore]:
 	return UnitCondition.get_buffs(unit, Fixture.MAKIBISHI_BUFF)
@@ -88,15 +106,16 @@ func detaches_offered(unit:Unit) -> Array[SpecificAction]:
 		return specific.action.get_id() == Fixture.DETACH_ACTION
 	)
 
-func deploy_mine(tile:Vector2i, second_tile:Vector2i = Tile.INVALID) -> void:
-	await Fixture.open_turn(game, koremasa)
+func deploy_mine(tile:Vector2i, second_tile:Vector2i = Tile.INVALID, by:Unit = null) -> void:
+	if by == null: by = koremasa
+	await Fixture.open_turn(game, by)
 	# The second-mine offer is the Iskander's choose_and_use: with one candidate the menu is skipped
 	# (common_action_util.gd:660) and the deploy's own targeting is the offer - a compcon plan, whose
 	# ABORTED answer is the decline.
 	responder.chosen_plan_queue.clear()
 	if second_tile == Tile.INVALID: responder.chosen_plan_queue.append(CompconPlan.create_aborted())
 	else: responder.chosen_plan_queue.append(CompconPlan.create([second_tile]))
-	await SpecFactory.use(game, koremasa, Fixture.MAKIBISHI_ID, Fixture.MAKIBISHI_MINE_ACTION, [tile])
+	await SpecFactory.use(game, by, Fixture.MAKIBISHI_ID, Fixture.MAKIBISHI_MINE_ACTION, [tile])
 	responder.chosen_plan_queue.clear()
 
 func mines() -> Array[Unit]:
@@ -231,6 +250,54 @@ func test_the_cap_survives_a_same_source_magnet_replacing_the_first_mid_turn():
 	assert_eq(attached(victim).size(), 1, 'fixture: one magnet - the mine\'s replaced the thrown one (ruling 22).')
 	await walk(victim, MINE_TILE + Vector2i(1, 4)) # (6,9): three more voluntary spaces
 	assert_eq(damage_taken(victim) - before - 2, 5, 'Per-step damage this turn, less the mine\'s 1d3 (2): still capped at 5 (ruling 21).')
+
+## Pass E (author: FIX, rulings.md 2026-09-27, settling row 567 and restoring ruling 22): a magnet from
+## ANY Koremasa replaces the existing one. Two Koremasas' Kits have different persistent ids, so the
+## engine's same-source replacement (unit_condition.gd:741-747) never fires between them - the buff
+## clears the other copies itself.
+func test_a_second_koremasas_magnet_replaces_the_first():
+	var other := second_koremasa(OTHER_TILE)
+	await throw_at(victim, FAIL)
+	assert_eq(attached(victim).size(), 1, "fixture: the first Koremasa's magnet is on.")
+	await SpecFactory.end_turn(game, koremasa)
+	await throw_at(victim, FAIL, other)
+	var found := attached(victim)
+	assert_eq(found.size(), 1, 'One magnet, whichever Koremasa threw it.')
+	if found.size() != 1: return
+	assert_eq(found[0].from_gear, other.get_gear(Fixture.MAKIBISHI_ID).persistent_id,
+		"The newest magnet is the one that stays: from the second Koremasa's Kit.")
+	assert_true(victim.has_status(Lancer.STATUS.IMPAIRED), 'Still Impaired through the replacement.')
+	await SpecFactory.end_turn(game, other)
+	await Fixture.cycle_turn(game, victim)
+	var offered := detaches_offered(victim)
+	assert_eq(offered.size(), 1, "One detach offered on the victim's turn (ruling 22).")
+	if offered.is_empty(): return
+	var applier:SpecificAction = offered.front().action.get_applier_specific(found[0])
+	assert_true(SpecificAction.is_valid(applier) and applier.unit == other,
+		'The detach saves against the newest Koremasa - the one whose magnet it is.')
+
+## The I-2 bridge across sources: another Koremasa's mine landing mid-turn keeps the cap's count.
+## Mirrors test_the_cap_survives_a_same_source_magnet_replacing_the_first_mid_turn.
+func test_the_cap_survives_another_koremasas_magnet_mid_turn():
+	var other := second_koremasa(OTHER_MINE_LAYER)
+	await throw_at(victim, FAIL)
+	await SpecFactory.end_turn(game, koremasa)
+	await deploy_mine(MINE_TILE, Tile.INVALID, other)
+	assert_eq(mines().size(), 1, 'fixture: the second Koremasa laid one mine.')
+	await SpecFactory.end_turn(game, other) # arms the mine
+	await Fixture.cycle_turn(game, victim)
+	var before := damage_taken(victim)
+	await walk(victim, VICTIM_TILE + Vector2i(0, 5)) # (8,10): five spaces, never within 1 of the mine
+	assert_eq(damage_taken(victim) - before, 5, 'fixture: five spaces, capped.')
+	Fixture.queue([FAIL, 2, 2])
+	await walk(victim, MINE_TILE + Vector2i(1, 1)) # (6,6): adjacent to the mine - it goes off
+	assert_true(mines().is_empty(), 'fixture: the mine went off.')
+	var found := attached(victim)
+	assert_eq(found.size(), 1, "One magnet - the second Koremasa's mine replaced the thrown one.")
+	if not found.is_empty():
+		assert_eq(found[0].from_gear, other.get_gear(Fixture.MAKIBISHI_ID).persistent_id, "fixture: the mine's magnet stayed.")
+	await walk(victim, MINE_TILE + Vector2i(1, 4)) # (6,9): three more voluntary spaces
+	assert_eq(damage_taken(victim) - before - 2, 5, "Per-step damage this turn, less the mine's 1d3 (2): still capped at 5.")
 
 func test_an_involuntary_move_costs_nothing():
 	await throw_at(victim, FAIL)
