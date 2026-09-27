@@ -257,6 +257,43 @@ func test_a_blast_catching_the_rakshasa_and_two_others_drops_only_its_roll():
 		assert_eq(hijack_difficulty(roll), -1, 'Each other roll is at +1 Difficulty.')
 	assert_true(summary.all_attacked_units.has(rakshasa), 'The declared list is left as declared (recorded).')
 
+## TEST DEBT (open item E, close review row 626's sibling question for area rerolls): copy of the test
+## above, the gunner also carrying vanilla's own reroll-against-a-new-target seam
+## (buff_tlaloc_protocol). A miss on one of the two other rolls offers a reroll whose candidates are
+## the WHOLE declared list (buff_weapon_type_reroll_miss.gd:56 reuses declared_attack.all_attacked_units
+## for an AoE) - the Rakshasa included, even though its own roll was already aborted in this same
+## attack. Picking it back must not ask a second save (must_move_again, not should_ask), must not stack
+## a second +1 Difficulty, and must be aborted again rather than moved onto whichever other character
+## the area-reroll branch would otherwise treat it as an alternative for.
+##
+## PIN, mutation-proved: deleting `if area: triggering.set_aborted(); return` from move_off
+## (buff_neuro_hijack.gd:106-108) reds this - the Rakshasa's re-returned roll falls into the
+## single-target branch instead and gets redirected onto whichever ally is still in candidates.
+func test_an_area_reroll_that_returns_to_the_rakshasa_is_aborted_again():
+	make_game()
+	rakshasa = Fixture.create_rakshasa(game, RAKSHASA_TILE)
+	var north := Fixture.create_ally(game, RAKSHASA_TILE + Vector2i(0, -1))
+	var south := Fixture.create_ally(game, RAKSHASA_TILE + Vector2i(0, 1))
+	var gunner := Fixture.create_hostile(game, Vector2i(12, 5))
+	var mortar := Fixture.equip(gunner, Fixture.MORTAR)
+	SpecFactory.apply_buff(gunner, &'buff_tlaloc_protocol', mortar)
+	await hijack(rakshasa)
+	# The vanilla reroll's own picker (choice_bus.choose_unit): send the roll straight back onto the
+	# Rakshasa, the case this pin is about. Only the save is queued explicitly - Fixture.queue's tail
+	# of 3s misses everyone's 10 Evasion regardless of how many dice a stacked-Difficulty roll needs
+	# (Mortar's own Inaccurate plus Neuro-Hijack's +1 Difficulty roll more than one d20 per attack), so
+	# north and south both miss without the test having to know that count.
+	responder.unit_queue.assign([rakshasa])
+	var summary := await fire_at_tile(gunner, mortar, RAKSHASA_TILE, [SAVE_FAILS])
+	var rolled := rolled_against(summary)
+	assert_false(rolled.has(rakshasa), 'The reroll back onto it is aborted again, not rolled.')
+	assert_eq(rakshasa.current_damage(), 0, 'It takes nothing.')
+	for roll:AttackRoll in summary.attack_rolls:
+		assert_eq(hijack_difficulty(roll), -1, "No second save: nobody's roll stacks a second +1 Difficulty.")
+	assert_false(Fixture.is_exempt(gunner, rakshasa), 'Not exempt: this attack never passed a save.')
+	assert_true(summary.all_attacked_units.has(rakshasa),
+		'Aborted, not redirected: the declared list still names it (recorded).')
+
 func test_a_blast_catching_only_the_rakshasa_asks_nothing():
 	make_game()
 	rakshasa = Fixture.create_rakshasa(game, RAKSHASA_TILE)
