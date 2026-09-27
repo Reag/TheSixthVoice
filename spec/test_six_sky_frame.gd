@@ -221,9 +221,10 @@ func test_the_manifest_declares_the_sunzi_and_names_the_six_sky():
 	assert_not_null(manifest, 'The manifest parses.')
 	if manifest == null: return
 	assert_has(manifest.get('optional_dependencies', []), Fixture.SUNZI_MOD,
-		'Declared - inert while vanilla modset.gd:253 aborts the ordering, so mod_main's late extension carries either order.')
+		'Declared - inert while vanilla modset.gd:253 aborts the ordering, so the late extension in mod_main carries either order.')
 	assert_does_not_have(manifest.get('dependencies', []), Fixture.SUNZI_MOD, 'Optional: never required.')
-	assert_string_contains(manifest.get('description', ''), 'the Six Sky (HA, a Sunzi alt frame, which needs the HA Sunzi mod)')
+	assert_string_contains(manifest.get('description', ''), 'the Six Sky (HA, a Sunzi alt frame, which needs the HA Sunzi mod')
+	assert_string_contains(manifest.get('description', ''), 'Load priority above HA Sunzi', 'The player-side workaround (close review).')
 
 # ---------------------------------------------------------------- the licence
 
