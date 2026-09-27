@@ -77,17 +77,23 @@ func is_round_spent(core:BuffCore, map:MapState) -> bool:
 ## original target and the Rakshasa itself. vanilla's weapon version,
 ## buff_weapon_type_reroll_miss.gd:45-65, less its AoE
 ## branch: a tech attack has no area to re-use.
+##
+## WHOS_ASKING (map_state.gd ~319-323): passing the Rakshasa applies UnitRelation.can_affect, so a
+## mount/rider stack sharing one tile does not hand back an Invulnerable member just because
+## get_all_units_at_tile returns everyone on it with no filter of its own. can_target_unit is the
+## action's own remaining say - the same gate a fresh reticle would apply.
 func get_valid_reroll_targets(_core:BuffCore, context:Context) -> Array[Unit]:
 	var specific:SpecificAction = SpecificAction.from_context(context)
 	if not SpecificAction.is_valid(specific) or specific.action is not ActionAttackTech: return []
 	var targets:Array[Unit] = []
-	targets.assign(context.map.get_all_units_at_tiles(UnitTargeting.get_tiles_targetable(specific)))
+	targets.assign(context.map.get_all_units_at_tiles(UnitTargeting.get_tiles_targetable(specific), context.unit))
 	Util.filter(targets, func(target:Unit) -> bool:
 		return (
 			Unit.is_valid(target) and
 			target != context.target_unit and
 			target != context.unit and
-			target.is_character()
+			target.is_character() and
+			specific.action.can_target_unit(target, specific)
 		)
 	)
 	return targets

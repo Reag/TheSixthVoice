@@ -24,6 +24,7 @@
 extends GutTest
 
 const Fixture := preload('res://unpacked/Reag-TheSixthVoice/spec/rakshasa_fixture.gd')
+const KoremasaFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/koremasa_fixture.gd')
 
 ## Wide enough to put a hostile past Sensors 20 on the Rakshasa's own row.
 const MAP_SIZE := Vector2i(26, 10)
@@ -197,6 +198,25 @@ func test_the_target_set_is_every_character_in_sensors_and_sight_drone_included_
 	assert_false(UnitRelation.can_see(rakshasa, behind_wall), 'fixture: and the wall does block it.')
 	assert_gt(UnitRelation.distance_between(rakshasa, beyond_sensors), rakshasa.get_sensor_range(),
 		'fixture: the far hostile is beyond Sensors.')
+
+func test_an_invulnerable_stack_member_is_not_offered():
+	# A mount/rider stack shares one tile (CommonActionUtil.start_riding, Katamari.attach_units), so
+	# get_all_units_at_tile hands back BOTH of them with no relation filter unless one is asked for
+	# (map_state.gd ~319-323). An Invulnerable member must not be offered: UnitRelation.can_affect
+	# refuses it (unit_relation.gd:398) - the same rule "an ally is offered too" (ruling 8, the test
+	# above) relies on for everyone else it lets through.
+	var koremasa := KoremasaFixture.create_koremasa(game, Vector2i(13, 4))
+	var mount := KoremasaFixture.create_mount(game, Vector2i(14, 4))
+	await KoremasaFixture.open_turn(game, koremasa)
+	await KoremasaFixture.use_core(game, koremasa, KoremasaFixture.FOLLY_ACTION)
+	assert_true(KoremasaFixture.is_riding(koremasa, mount), 'fixture: the stack formed.')
+	SpecFactory.apply(mount, Lancer.STATUS.INVULNERABLE)
+	responder.unit_queue.assign([null])
+	await Fixture.invade(game, rakshasa, first, [MISS])
+	assert_eq(responder.unit_prompts.size(), 1, 'fixture: the pick was offered.')
+	var offered := _offered()
+	assert_has(offered, koremasa, 'The rider, not Invulnerable, is offered.')
+	assert_does_not_have(offered, mount, 'The Invulnerable mount is not.')
 
 func test_no_other_character_means_no_offer():
 	# check_if_passive_applies's last clause: an empty set offers nothing (vanilla's own rule).
