@@ -242,10 +242,20 @@ func test_the_second_cannon_crit_in_a_round_does_nothing_and_the_next_round_work
 
 	# Second crit, same round. The save is now pinned to auto-FAIL: if the round limit were not
 	# actually gating the buff, this shot would force a save and the target would go prone.
+	#
+	# AS A FREEBIE (close-out Pass D). Fired the ordinary way a second time in one turn, the shot is
+	# refused by the per-turn soft limit before it rolls ([ ABORT event_gear_activate ]), so this test
+	# stayed green with the 1/round gate torn out (progress-primrose-sp1.md, measured again in Pass D
+	# by mutating OncePerRound.is_unspent). Action.FLAG.AS_FREEBIE short-circuits can_activate_gear
+	# (unit_action.gd:114) without touching the buff or the OnHitEffect, which read no flags - the
+	# Primrose's test_magnetic_weight_redistribution idiom. The damage assertion is the vacuity guard.
 	force_save_to_fail()
 	cheat_a_crit()
-	await fire_at(AIM_EAST)
+	await SpecFactory.use(game, unit, KIT_ID, ACTION_ID, AIM_EAST, [Action.FLAG.AS_FREEBIE])
 
+	assert_gt(target.current_damage(), RELIABLE_ON_MISS,
+		'THE VACUITY GUARD: the second shot really fired and crit. Without this the test reads green'
+		+ ' when the activation was refused and no second crit ever happened.')
 	assert_false(target.has_status(Lancer.STATUS.PRONE),
 		'The second crit in the same round does nothing: the 1/round usage was already spent.')
 

@@ -94,12 +94,8 @@ static func create_game(test:GutTest, map_size:Vector2i = FitzgeraldFixture.DEFA
 ##
 ## add_responder = false is what stops TWO responders answering the same request; the Thy Hubris
 ## DomainWatcher spec (test_my_domain_trigger.gd:96-100) is the precedent for the whole shape.
-static func create_game_with_sequenced_prompts(test:GutTest, map_size:Vector2i = FitzgeraldFixture.DEFAULT_MAP_SIZE) -> Array:
-	var game := SpecFactory.setup_gamemaster(test, false,
-		SpecFactory.create_combat(Landscape.create_default(map_size)), {}, false)
-	game.map.shape.forbidden_interiors_enabled = true
-	var responder = test.add_child_autoqfree(load('res://testkit/mod_choice_responder.gd').new())
-	return [game, responder]
+static func create_game_with_prompt_queues(test:GutTest, map_size:Vector2i = FitzgeraldFixture.DEFAULT_MAP_SIZE) -> Array:
+	return FitzgeraldFixture.create_game_with_prompt_queues(test, map_size)
 
 ## A Maiden's Blush with its traits' passive buffs applied. PLAYER faction, which SpecFactory's own
 ## default gives us and which is load-bearing: CommonActionUtil.confirm_use returns true without
@@ -196,7 +192,7 @@ static func equip_interdiction(hostile:Unit) -> void:
 ## leftover and pass for the wrong reason.
 ##
 ## Takes the responder rather than reading SpecFactory.current_responder: this needs the queued one
-## from create_game_with_sequenced_prompts, and silently doing nothing on the stock responder (which
+## from create_game_with_prompt_queues, and silently doing nothing on the stock responder (which
 ## has no yesno_queue) would be a whole spec file passing for the wrong reason.
 static func step(game:Gamemaster, blush:Unit, responder, rolls:Array[int],
 		tile:Vector2i = Tile.INVALID) -> void:

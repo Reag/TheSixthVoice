@@ -274,7 +274,7 @@ func test_house_guard_does_not_widen_step_of_mist_and_thunders_adjacent_saves() 
 	if is_instance_valid(SpecFactory.current_responder):
 		SpecFactory.current_responder.choose_yesnos = false
 		SpecFactory.current_responder.choose_plans = false
-	var pair := MaidensBlushFixture.create_game_with_sequenced_prompts(self)
+	var pair := MaidensBlushFixture.create_game_with_prompt_queues(self)
 	game = pair[0]
 	var responder = pair[1]
 

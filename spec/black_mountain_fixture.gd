@@ -80,11 +80,7 @@ static func create_game(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> G
 ## assert that a "may" prompt was or was NOT raised: the stock responder answers and records nothing.
 ## add_responder = false is what stops TWO responders answering the same request.
 static func create_game_with_prompt_queues(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> Array:
-	var game := SpecFactory.setup_gamemaster(test, false,
-		SpecFactory.create_combat(Landscape.create_default(map_size)), {}, false)
-	game.map.shape.forbidden_interiors_enabled = true
-	var responder = test.add_child_autoqfree(load('res://testkit/mod_choice_responder.gd').new())
-	return [game, responder]
+	return FitzgeraldFixture.create_game_with_prompt_queues(test, map_size)
 
 ## A Black Mountain with its traits' passive buffs applied. PLAYER faction by default (SpecFactory's),
 ## which every hostile relation here depends on and which makes CommonActionUtil.confirm_use actually
@@ -145,12 +141,7 @@ static func raise_wall(game:Gamemaster, tiles:Array[Vector2i]) -> void:
 ## load-bearing: equip_system full_repairs, which CLEARS every gear's state and usage and the unit's
 ## heat, so equip everything BEFORE a test spends anything.
 static func equip(unit:Unit, kit_id:StringName) -> GearCore:
-	var existing := unit.get_gear(kit_id)
-	if GearCore.is_valid(existing): return existing
-	unit.core.equip_system(kit_id)
-	SpecFactory.apply_passive_buffs(unit)
-	UnitTile.update_tracking_and_statuses(unit.map)
-	return unit.get_gear(kit_id)
+	return FitzgeraldFixture.equip(unit, kit_id)
 
 static func arm_rifle(unit:Unit) -> GearCore: return equip(unit, MAIN_RIFLE)
 
@@ -252,8 +243,7 @@ const EFFICIENT_REFUND := &'action_efficient_refund'
 ## GRIT IS THE PILOT'S: PilotCore.get_grit() is half the licence level, rounded up, and a fixture unit
 ## starts at level 0 = Grit 0 (hazard_fixture.set_grit, verbatim).
 static func set_grit(unit:Unit, grit:int) -> void:
-	if not Unit.is_valid(unit) or not PilotCore.is_valid(unit.core.pilot): return
-	unit.core.pilot.license_level = grit * 2
+	FitzgeraldFixture.set_grit(unit, grit)
 
 ## Put a unit at `health` HP without an event, so the next hit that exceeds it crosses zero - the
 ## "deals structure damage" Exalt reads. Structure is left alone unless given (1 = the next structure

@@ -58,11 +58,7 @@ static func create_game(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> G
 ## sluagh_fixture.create_game_with_prompt_queues verbatim. add_responder = false is what stops TWO
 ## responders answering the same request.
 static func create_game_with_prompt_queues(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> Array:
-	var game := SpecFactory.setup_gamemaster(test, false,
-		SpecFactory.create_combat(Landscape.create_default(map_size)), {}, false)
-	game.map.shape.forbidden_interiors_enabled = true
-	var responder = test.add_child_autoqfree(load('res://testkit/mod_choice_responder.gd').new())
-	return [game, responder]
+	return FitzgeraldFixture.create_game_with_prompt_queues(test, map_size)
 
 ## A Hazard with its traits' passive buffs applied. PLAYER faction (SpecFactory's default), which
 ## every ally/hostile relation below depends on, and which makes confirm_use actually ask.
@@ -95,8 +91,7 @@ static func create_drone(game:Gamemaster, tile:Vector2i, faction:Faction.SIDE = 
 	return drone
 
 static func set_grit(unit:Unit, grit:int) -> void:
-	if not Unit.is_valid(unit) or not PilotCore.is_valid(unit.core.pilot): return
-	unit.core.pilot.license_level = grit * 2
+	FitzgeraldFixture.set_grit(unit, grit)
 
 static func open_turn(game:Gamemaster, unit:Unit) -> void:
 	await FitzgeraldFixture.open_turn(game, unit)
@@ -110,12 +105,7 @@ static func cycle_turn(game:Gamemaster, unit:Unit) -> void:
 ## equip_system full_repairs and apply_passive_buffs re-applies every passive buff - so equip first,
 ## press actions last.
 static func equip(unit:Unit, kit_id:StringName) -> GearCore:
-	var existing := unit.get_gear(kit_id)
-	if GearCore.is_valid(existing): return existing
-	unit.core.equip_system(kit_id)
-	SpecFactory.apply_passive_buffs(unit)
-	UnitTile.update_tracking_and_statuses(unit.map)
-	return unit.get_gear(kit_id)
+	return FitzgeraldFixture.equip(unit, kit_id)
 
 ## Load the dice FIFO with EXACTLY these numbers, then a long tail of 1s. CLEARS FIRST.
 static func queue(rolls:Array[int]) -> void:

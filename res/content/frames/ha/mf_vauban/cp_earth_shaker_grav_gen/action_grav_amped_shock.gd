@@ -46,8 +46,9 @@
 ## The .tres keeps all three at the values they would need if either override were removed, and says
 ## at each line which is which. once_per_round_is_specific_to_gear stays FALSE: the card says "each
 ## character can be affected by this ability only once per round", and with two Vaubans on the board
-## that is still one 3 AP per character per round rather than one per Vauban. (Author note for the
-## close - the card is genuinely ambiguous, and false is the stricter reading.)
+## that is still one 3 AP per character per round rather than one per Vauban. (The card is genuinely
+## ambiguous and false is the stricter reading; the frame close accepted it as shipped - rulings.md,
+## 2026-09-18, "Two Vaubans SHARE one of everything".)
 ##
 ## "A SAVE YOU FORCED" MEANS THE FULL FORCING TRIFECTA, AND THAT IS A CLOSE RULING (M-3, 2026-09-18)
 ## rather than a free choice. UnitHasecheck.run_save_event copies unit, gear and action off the

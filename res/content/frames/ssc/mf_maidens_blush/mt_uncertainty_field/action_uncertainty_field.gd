@@ -247,14 +247,14 @@ func ask_to_fade(specific:SpecificAction, gear:GearCore, consolation:StringName,
 ## SpecificAction.is_valid here, NOT has_valid_unit as Teleport.forcer uses - this needs the ACTION,
 ## and a mover specific built with null gear and null action has none.
 ##
-## THE FALL-BACK IS THE COMMON CASE IN SP1. Blinkspace Jump passes no SpecificAction to
+## THE FALL-BACK COVERS A TELEPORT THAT HANGS NO OBJECT. Blinkspace Jump passes no SpecificAction to
 ## Pathfinder.generate_events (action_blinkspace_jump.gd:64) and event_unit_teleport sets no `object`
-## at all, so the mech's own teleports name nothing today. SP2's Step of Mist and Thunder passes its
-## own specific through Teleport.move too, but that no longer reaches THIS function (reach design
-## ruling C, 2026-09-17): replaced_name is only ever called from the interception branch of fade(),
-## and a Step can no longer enter it - triggers_on_event falls through to the forcer check and
-## declines before offering. What the object still buys for a Step is forcer() safety, not naming
-## (see forcer()'s own docstring in teleport.gd).
+## at all, so the mech's own teleports name nothing. Every route through the shared helper DOES hang
+## one - Teleport.move, move_along and shove all pass the caller's SpecificAction as `object`
+## (Teleport._source) - so a Sluagh's Hunt shove or a Six Sky's teleport is named by its action.
+## Step of Mist and Thunder never reaches THIS function (reach design ruling C, 2026-09-17):
+## replaced_name is only ever called from the interception branch of fade(), and a Step can no longer
+## enter it - triggers_on_event falls through to the forcer check and declines before offering.
 func replaced_name(triggering:EventCore) -> String:
 	var source = triggering.context.object
 	if SpecificAction.is_valid(source): return source.action.name(source)

@@ -112,5 +112,4 @@ static func create_deployable(game:Gamemaster, tile:Vector2i) -> Unit:
 ## Takes the GRIT the caller wants and derives the level, so a spec never has to do the rounding in
 ## its head; asserted against get_grit() by the helper's own caller where it matters.
 static func set_grit(unit:Unit, grit:int) -> void:
-	if not Unit.is_valid(unit) or not PilotCore.is_valid(unit.core.pilot): return
-	unit.core.pilot.license_level = grit * 2
+	FitzgeraldFixture.set_grit(unit, grit)

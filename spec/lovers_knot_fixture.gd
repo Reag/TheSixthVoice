@@ -107,12 +107,7 @@ static func create_hostile_drone(game:Gamemaster, tile:Vector2i) -> Unit:
 ## basic gear) and hand back its GearCore. equip_system full_repairs, which CLEARS every gear's state
 ## and usage AND the unit's heat, so equip everything BEFORE a test spends or sets anything.
 static func equip(unit:Unit, kit_id:StringName) -> GearCore:
-	var existing := unit.get_gear(kit_id)
-	if GearCore.is_valid(existing): return existing
-	unit.core.equip_system(kit_id)
-	SpecFactory.apply_passive_buffs(unit)
-	UnitTile.update_tracking_and_statuses(unit.map)
-	return unit.get_gear(kit_id)
+	return FitzgeraldFixture.equip(unit, kit_id)
 
 static func open_turn(game:Gamemaster, unit:Unit) -> void:
 	await FitzgeraldFixture.open_turn(game, unit)

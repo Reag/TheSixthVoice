@@ -94,7 +94,7 @@ func activate(context:Context, activation:EventCore) -> void:
 		# the only difference is which characters are adjacent to the destination.
 		#
 		# RE-ADDED HERE RATHER THAN LOOSENED IN THE HELPER. Teleport.candidate_tiles drops the caller's
-		# occupied tiles at teleport.gd:249 and is FROZEN with five consumer frames behind it; "a
+		# occupied tiles at teleport.gd:257-260 and is FROZEN with five consumer frames behind it; "a
 		# teleport to where you already are is not a move" is the right default for all of them and
 		# this card is the exception. Abjuration of Metal is unaffected either way - its own filter
 		# requires moved > 0 and rejects the origin independently.

@@ -74,12 +74,7 @@ static func create_dummy(game:Gamemaster, tile:Vector2i, evasion:int = -10, fact
 ## Put a Kit on a unit as an INTEGRATED system/weapon and hand back its GearCore. IDEMPOTENT.
 ## equip_system full_repairs and apply_passive_buffs re-applies every passive buff, so equip first.
 static func equip(unit:Unit, kit_id:StringName) -> GearCore:
-	var existing := unit.get_gear(kit_id)
-	if GearCore.is_valid(existing): return existing
-	unit.core.equip_system(kit_id)
-	SpecFactory.apply_passive_buffs(unit)
-	UnitTile.update_tracking_and_statuses(unit.map)
-	return unit.get_gear(kit_id)
+	return FitzgeraldFixture.equip(unit, kit_id)
 
 ## End the unit's turn if open, then start it - a new round's worth of per-round tallies.
 static func cycle_turn(game:Gamemaster, unit:Unit) -> void:

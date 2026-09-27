@@ -184,10 +184,7 @@ static func create_ally(game:Gamemaster, tile:Vector2i) -> Unit:
 ## ContentLibrary copy. It also keeps the unit's stats identical to every other dummy, so the only
 ## thing that differs between the drone case and the ally case is the one flag under test.
 static func create_drone(game:Gamemaster, tile:Vector2i, faction:Faction.SIDE = Faction.PLAYER) -> Unit:
-	var drone := FitzgeraldFixture.create_dummy(game, tile, 10, faction)
-	drone.core.frame.is_drone = true
-	drone.core.full_repair()
-	return drone
+	return FitzgeraldFixture.create_drone(game, tile, faction)
 
 ## Give a drone an OWNER, so Unit.get_attacker() resolves its shots to that owner.
 ##
@@ -243,11 +240,7 @@ static func open_turn(game:Gamemaster, unit:Unit) -> void:
 ## THE RULE EVERY SLUAGH SPEC FOLLOWS: equip everything first, press the Mark LAST, and never equip
 ## again inside a test that has already pressed.
 static func equip(unit:Unit, kit_id:StringName) -> GearCore:
-	var existing := unit.get_gear(kit_id)
-	if GearCore.is_valid(existing): return existing
-	unit.core.equip_system(kit_id)
-	SpecFactory.apply_passive_buffs(unit)
-	return unit.get_gear(kit_id)
+	return FitzgeraldFixture.equip(unit, kit_id)
 
 static func arm_rifle(unit:Unit) -> GearCore: return equip(unit, MAIN_RIFLE)
 
@@ -347,12 +340,10 @@ static func cheat_a_miss() -> void: queue([1])
 ## "Grit 0 grants nothing" the default rather than something a test has to arrange.
 ##
 ## Takes the GRIT the caller wants and derives the level, so no spec does the rounding in its head.
-## MyconidFixture.set_grit is the same helper and test_overshield.gd asserts the two derivations
-## agree; this is a second copy on purpose, because a Sluagh spec must not preload the Myconid's
-## fixture to get one function.
+## Delegates to FitzgeraldFixture.set_grit (close-out Pass D), which every fixture already preloads -
+## so a Sluagh spec still never preloads the Myconid's fixture to get one function.
 static func set_grit(unit:Unit, grit:int) -> void:
-	if not Unit.is_valid(unit) or not PilotCore.is_valid(unit.core.pilot): return
-	unit.core.pilot.license_level = grit * 2
+	FitzgeraldFixture.set_grit(unit, grit)
 
 ## Put Overshield on a unit through the shared helper, the way production does.
 ##
@@ -446,7 +437,7 @@ static func grey_birds(game:Gamemaster, sluagh:Unit, target:Unit) -> void:
 	await SpecFactory.use(game, sluagh, TRICKERY, GREY_BIRDS_ID, target)
 
 ## SP2 Task 8. A game whose responder can answer a SEQUENCE of prompts and hand back the one it
-## installed - maidens_blush_fixture.create_game_with_sequenced_prompts (:97-102), verbatim except
+## installed - maidens_blush_fixture.create_game_with_prompt_queues (:97-102), verbatim except
 ## for the map size default.
 ##
 ## WHY THE STOCK RESPONDER IS NOT ENOUGH FOR HUNT. SpecFactory.ChoiceBusResponder answers a unit
@@ -458,11 +449,7 @@ static func grey_birds(game:Gamemaster, sluagh:Unit, target:Unit) -> void:
 ##
 ## add_responder = false is what stops TWO responders answering the same request.
 static func create_game_with_prompt_queues(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> Array:
-	var game := SpecFactory.setup_gamemaster(test, false,
-		SpecFactory.create_combat(Landscape.create_default(map_size)), {}, false)
-	game.map.shape.forbidden_interiors_enabled = true
-	var responder = test.add_child_autoqfree(load('res://testkit/mod_choice_responder.gd').new())
-	return [game, responder]
+	return FitzgeraldFixture.create_game_with_prompt_queues(test, map_size)
 
 ## Invade with HUNT OF THE VAGRANT SOWCHE.
 ##

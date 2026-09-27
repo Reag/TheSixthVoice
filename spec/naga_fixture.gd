@@ -85,11 +85,7 @@ static func create_game(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> G
 ## assert that a "may" prompt was or was NOT raised: the stock responder answers and records nothing.
 ## add_responder = false is what stops TWO responders answering the same request.
 static func create_game_with_prompt_queues(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> Array:
-	var game := SpecFactory.setup_gamemaster(test, false,
-		SpecFactory.create_combat(Landscape.create_default(map_size)), {}, false)
-	game.map.shape.forbidden_interiors_enabled = true
-	var responder = test.add_child_autoqfree(load('res://testkit/mod_choice_responder.gd').new())
-	return [game, responder]
+	return FitzgeraldFixture.create_game_with_prompt_queues(test, map_size)
 
 ## A Naga with its traits' passive buffs applied, and the map's tile index told it is size 2.
 ## PLAYER faction, which SpecFactory's own default gives us and which is load-bearing twice over:
@@ -121,10 +117,7 @@ static func create_ally(game:Gamemaster, tile:Vector2i) -> Unit:
 ## clause since the 2026-09-27 mod-wide ruling (a drone IS one, unit.gd:116) - and still the negative
 ## control for anything that reads is_actor() instead (unit.gd:117), such as an ACTIVATION gate.
 static func create_drone(game:Gamemaster, tile:Vector2i, faction:Faction.SIDE = Faction.PLAYER) -> Unit:
-	var drone := FitzgeraldFixture.create_dummy(game, tile, 10, faction)
-	drone.core.frame.is_drone = true
-	drone.core.full_repair()
-	return drone
+	return FitzgeraldFixture.create_drone(game, tile, faction)
 
 ## Give a drone an OWNER, so Unit.get_attacker() resolves its shots to that owner (the engine's own
 ## UnitBattleState.set_owner, unit_battle_state.gd:255-261). An unowned drone is the control.
@@ -157,11 +150,7 @@ static func cycle_turn(game:Gamemaster, unit:Unit) -> void:
 ## and rebuilds the loadout, and SpecFactory.apply_passive_buffs re-applies every passive buff from
 ## scratch. So: equip everything first, press the protocol LAST, never equip again after pressing.
 static func equip(unit:Unit, kit_id:StringName) -> GearCore:
-	var existing := unit.get_gear(kit_id)
-	if GearCore.is_valid(existing): return existing
-	unit.core.equip_system(kit_id)
-	SpecFactory.apply_passive_buffs(unit)
-	return unit.get_gear(kit_id)
+	return FitzgeraldFixture.equip(unit, kit_id)
 
 static func arm_rifle(unit:Unit) -> GearCore: return equip(unit, MAIN_RIFLE)
 static func arm_nexus(unit:Unit) -> GearCore: return equip(unit, SMART_WEAPON)

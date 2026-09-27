@@ -103,10 +103,7 @@ static func create_hostile_object(game:Gamemaster, tile:Vector2i) -> Unit:
 ## (loadout_core.gd:177-186) still hands it the PLAYER loadout - which is what full_repair() below
 ## rebuilds.
 static func create_drone(game:Gamemaster, tile:Vector2i, faction:Faction.SIDE = Faction.PLAYER) -> Unit:
-	var drone := FitzgeraldFixture.create_dummy(game, tile, 10, faction)
-	drone.core.frame.is_drone = true
-	drone.core.full_repair()
-	return drone
+	return FitzgeraldFixture.create_drone(game, tile, faction)
 
 static func open_turn(game:Gamemaster, unit:Unit) -> void:
 	await FitzgeraldFixture.open_turn(game, unit)

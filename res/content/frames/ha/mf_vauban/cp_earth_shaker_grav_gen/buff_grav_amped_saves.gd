@@ -27,7 +27,8 @@
 ## (Their chips share a compcon_id, so PassiveAura.apply_aura_buffs_to_unit's "they already have it,
 ## from any source" check at passive_aura.gd:80 means the SECOND Vauban's chip is never applied while
 ## the first one's is held. That is the same one-chip-for-two-Vaubans behaviour SP1 recorded for
-## Gravity Well and Sap's reprieve, and it is an author note for the close, not a defect to fix here.)
+## Gravity Well and Sap's reprieve, and the frame close accepted all four cases as shipped - rulings.md,
+## 2026-09-18, "Two Vaubans SHARE one of everything".)
 ##
 ## THE CONTEXT VALIDITY GATE IS BELT-AND-BRACES, NOT LOAD-BEARING - corrected at the close,
 ## 2026-09-18, because the header used to claim the opposite and two other documents copied it.

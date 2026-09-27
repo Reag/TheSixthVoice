@@ -175,10 +175,7 @@ static func create_ally(game:Gamemaster, tile:Vector2i) -> Unit:
 ## other dummy, so the only thing that differs between the drone case and the character case is the
 ## one flag under test.
 static func create_drone(game:Gamemaster, tile:Vector2i, faction:Faction.SIDE = Faction.PLAYER) -> Unit:
-	var drone := FitzgeraldFixture.create_dummy(game, tile, 10, faction)
-	drone.core.frame.is_drone = true
-	drone.core.full_repair()
-	return drone
+	return FitzgeraldFixture.create_drone(game, tile, faction)
 
 ## Give a drone an OWNER, so Unit.get_owner_unit_or_self() resolves it to that owner.
 ##
@@ -213,11 +210,7 @@ static func open_turn(game:Gamemaster, unit:Unit) -> void:
 ## THE RULE EVERY LEOLETH SPEC FOLLOWS: equip everything first, press RAGE LAST, and never equip
 ## again inside a test that has already pressed.
 static func equip(unit:Unit, kit_id:StringName) -> GearCore:
-	var existing := unit.get_gear(kit_id)
-	if GearCore.is_valid(existing): return existing
-	unit.core.equip_system(kit_id)
-	SpecFactory.apply_passive_buffs(unit)
-	return unit.get_gear(kit_id)
+	return FitzgeraldFixture.equip(unit, kit_id)
 
 static func arm_rifle(unit:Unit) -> GearCore: return equip(unit, MAIN_RIFLE)
 static func arm_melee(unit:Unit) -> GearCore: return equip(unit, MELEE_KIT)

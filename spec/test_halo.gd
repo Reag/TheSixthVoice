@@ -185,6 +185,16 @@ func test_kinetic_damage_offers_halo_and_the_chosen_ally_gains_overshield_equal_
 	assert_eq(Overshield.current(ally), TEST_GRIT, 'And gained Overshield equal to Grit.')
 	assert_eq(uses_this_round(), 1, 'The 1/round is spent.')
 
+## Close-out Pass D: Halo grants through Overshield.grant_by, the Black Mountain's "granted by" family,
+## so the shield answers whose it is. No card reads it for the Myconid today; this is uniformity.
+func test_a_halo_shield_is_marked_as_granted_by_the_myconid():
+	responder.chosen_unit = ally
+	var prompts := await take_damage(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC)
+	assert_eq(prompts.size(), 1, 'Fixture: Halo was offered.')
+	assert_eq(Overshield.current(ally), TEST_GRIT, 'Fixture: the ally took the shield.')
+	assert_true(Overshield.is_granted_by(ally, myconid), "The shield is marked as the Myconid's.")
+	assert_false(Overshield.is_granted_by(myconid, myconid), 'And the Myconid itself holds no mark.')
+
 func test_heat_does_not_offer_halo():
 	# CONTROL (frame close, finding 3, 2026-09-16): without this, the negative below is also green with
 	# mt_halo deleted from the frame outright - it cannot tell "the HEAT clause refused it" from "the

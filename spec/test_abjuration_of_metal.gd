@@ -45,7 +45,7 @@ var responder
 func before_each() -> void:
 	# The sequenced responder, as Step's spec uses: an Abjuration activation opens its own confirm and
 	# can then open Uncertainty Field's offer on the very teleport it just rolled for.
-	var pair := MaidensBlushFixture.create_game_with_sequenced_prompts(self, MAP_SIZE)
+	var pair := MaidensBlushFixture.create_game_with_prompt_queues(self, MAP_SIZE)
 	game = pair[0]
 	responder = pair[1]
 	blush = MaidensBlushFixture.create_maidens_blush(game, BLUSH_TILE)

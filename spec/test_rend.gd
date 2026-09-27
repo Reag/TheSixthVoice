@@ -184,9 +184,17 @@ func test_the_second_melee_crit_in_a_round_forces_no_save():
 	await strike(MaidensBlushFixture.MELEE_ID)
 	assert_eq(uses_this_round(), 1, 'Fixture: the first crit spent the round despite the passed save.')
 
+	# AS A FREEBIE (close-out Pass D): a second ordinary strike in one turn is refused by the per-turn
+	# soft limit before it rolls, so this test stayed green with the 1/round gate torn out (measured
+	# by mutating OncePerRound.is_unspent). AS_FREEBIE short-circuits can_activate_gear
+	# (unit_action.gd:114) and touches neither the buff nor the OnHitEffect. force_save_to_fail's
+	# full_repair zeroed the damage, so any damage now is the second strike's.
 	force_save_to_fail()
 	cheat_a_melee_crit()
-	await strike(MaidensBlushFixture.MELEE_ID)
+	await SpecFactory.use_solo(game, blush, MaidensBlushFixture.MELEE_ID, [target],
+		[Action.FLAG.AS_FREEBIE])
+	assert_gt(target.current_damage(), 0,
+		'THE VACUITY GUARD: the second strike really landed.')
 	assert_false(target.has_status(Lancer.STATUS.IMPAIRED),
 		'The second crit in the same round forces nothing: the 1/round was already spent.')
 	assert_eq(uses_this_round(), 1, 'And the counter did not move again.')

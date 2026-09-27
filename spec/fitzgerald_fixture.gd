@@ -189,3 +189,52 @@ static func create_deployable(
 	# new frame's traits there.
 	UnitCondition.apply_lock_to_ground_height(dep)
 	return dep
+
+
+# ---------------------------------------------------------------- shared by every later fixture
+#
+# CLOSE-OUT PASS D (2026-09-27): four helpers every later frame's fixture had re-typed, hosted here
+# because every fixture already preloads this file. Each frame's fixture keeps its own function name
+# and its own default arguments (a different default faction, its own DEFAULT_MAP_SIZE) as a one-line
+# delegation, so no spec call site moved. Bodies are the copies' own, verbatim; the variants that
+# differed in ORDER (Black Mountain, Six Sky and Hazard build a drone around their tracking
+# create_dummy) were left where they are.
+
+## A gamemaster plus a ModChoiceResponder the caller queues answers on. setup_gamemaster's trailing
+## `{}, false` and the forbidden-interiors flag are create_game's reasons (above), unchanged. Was
+## create_game_with_prompt_queues in five fixtures and create_game_with_sequenced_prompts in the
+## Maiden's Blush's, one body under two names.
+static func create_game_with_prompt_queues(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> Array:
+	var game := SpecFactory.setup_gamemaster(test, false,
+		SpecFactory.create_combat(Landscape.create_default(map_size)), {}, false)
+	game.map.shape.forbidden_interiors_enabled = true
+	var responder = test.add_child_autoqfree(load('res://testkit/mod_choice_responder.gd').new())
+	return [game, responder]
+
+## A drone: a dummy (evasion 10) with the frame's is_drone flag set. The flag is on the isolated
+## frame copy create_dummy made, so no other unit is touched; full_repair rebuilds from it.
+static func create_drone(game:Gamemaster, tile:Vector2i, faction:Faction.SIDE = Faction.PLAYER) -> Unit:
+	var drone := create_dummy(game, tile, 10, faction)
+	drone.core.frame.is_drone = true
+	drone.core.full_repair()
+	return drone
+
+## Put a Kit on a unit and hand back its GearCore. IDEMPOTENT, and that is load-bearing:
+## UnitPrinter.equip_system calls full_repair (unit_printer.gd:180) and apply_passive_buffs re-applies
+## every passive from scratch, so a second equip would refund a spent core power and re-arm the frame.
+## Equip everything BEFORE a test sets any state. The tracking pass is the one the later fixtures
+## added: a passive that reads positions (an aura) sees the new gear at once.
+static func equip(unit:Unit, kit_id:StringName) -> GearCore:
+	var existing := unit.get_gear(kit_id)
+	if GearCore.is_valid(existing): return existing
+	unit.core.equip_system(kit_id)
+	SpecFactory.apply_passive_buffs(unit)
+	UnitTile.update_tracking_and_statuses(unit.map)
+	return unit.get_gear(kit_id)
+
+## GRIT IS THE PILOT'S: PilotCore.get_grit() is half the licence level, rounded up, and a fixture unit
+## starts at level 0 = Grit 0 (pilot_core.gd:26), which makes "Grit 0 grants nothing" the default.
+## Takes the GRIT and derives the level, so no spec does the rounding in its head.
+static func set_grit(unit:Unit, grit:int) -> void:
+	if not Unit.is_valid(unit) or not PilotCore.is_valid(unit.core.pilot): return
+	unit.core.pilot.license_level = grit * 2
