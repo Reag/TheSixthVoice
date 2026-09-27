@@ -214,6 +214,41 @@ func test_an_ally_two_tiles_out_never_gets_the_buff():
 	assert_false(has_chip(far_ally), 'Two tiles out is not, and aura_range is 1.')
 	assert_eq(rifle_lines_against(far_ally), 0, 'So attacks on it are unmodified.')
 
+# ---------------------------------------------------------------- through a real attack
+#
+# Close-out Pass D (open item from the Vauban close, slice 3 M-11): every test above reads the
+# PREVIEW. These drive a real event_unit_attack, the one choke point every frame's accuracy mods
+# pass through (event_unit_attack.gd:53), so a break there shows up here and not only in a preview.
+#
+# CALIBRATION: the Vauban's evasion is 6 (mf_vauban.tres) and nothing else on this board moves the
+# roll - the clean-ground pair pins that a bare 6 hits and a bare 5 misses. On difficult ground the
+# chip adds one difficulty die, the NEXT die in the queue: [11, 6] is 11 - 6 = 5, a miss. With the
+# gate broken the same queue reads d20 11, a hit, and the 6 lands as damage - which is what makes the
+# miss attributable to Gravity Well alone. (A difficulty die of 1 does NOT work: with the gate broken
+# that 1 becomes the damage die and the Vauban's armour eats it, so a hit reads as a miss - measured,
+# by killing buff_gravity_well's gate.)
+
+const VAUBAN_EVASION := 6
+
+func shoot_the_vauban(attack_dice:Array) -> void:
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	Dice.cheat_attack(attack_dice, [3, 3, 3, 3])
+	await SpecFactory.use_solo(game, shooter, VaubanFixture.RANGED_ID, [vauban])
+
+func test_a_real_attack_on_clean_ground_hits_at_exactly_its_evasion():
+	await shoot_the_vauban([VAUBAN_EVASION])
+	assert_gt(vauban.current_damage(), 0, 'A bare 6 hits the Vauban on clean ground.')
+
+func test_a_real_attack_on_clean_ground_misses_one_below_its_evasion():
+	await shoot_the_vauban([VAUBAN_EVASION - 1])
+	assert_eq(vauban.current_damage(), 0, 'A bare 5 misses - so the threshold really is 6.')
+
+func test_a_real_attack_on_difficult_ground_takes_the_difficulty_die():
+	flood_the_vaubans_tile()
+	await shoot_the_vauban([VAUBAN_EVASION + 5, 6])
+	assert_eq(vauban.current_damage(), 0,
+		"An 11 misses here: Gravity Well's difficulty die reached the real roll.")
+
 # ---------------------------------------------------------------- what it does not touch
 
 func test_a_tech_attack_is_untouched():
