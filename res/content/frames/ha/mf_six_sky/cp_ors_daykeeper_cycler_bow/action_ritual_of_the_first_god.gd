@@ -5,7 +5,7 @@
 ##    must succeed on a Systems save or become Slowed until the end of their next turn. Attacks made this
 ##    way do not generate Heat."
 ##
-## THE ORDER: spend (the Full action and the core power, whatever follows - with no hostile in range it
+## THE ORDER: confirm (close review; declining costs nothing); spend (the Full action and the core power, whatever follows - with no hostile in range it
 ## is still a legal use, ruling 20); the optional teleport; the scope buff; the target list; one bow
 ## attack per target; the scope off; then the recorded crits.
 ##
@@ -28,9 +28,11 @@
 ## attack is fired from the Ritual's space, and a self-teleport from one crit moves the origin of the
 ## next. A recorded target that has since died is offered as "yourself" only.
 ##
-## THE SCOPE COMES OFF ON EVERY EXIT. GDScript has no finally, so the shots run in their own function
-## and the single clear follows it whether that function finished the list or left early because the
-## Six Sky died.
+## THE SCOPE COMES OFF when the shots end. GDScript has no finally, so the shots run in their own
+## function and the single clear follows it, whether that function finished the list or left early. If
+## the Six Sky died mid-sequence the engine has already cleared every buff it held
+## (event_service.gd:77), so that path never reaches the clear; test_the_scope_buff_is_gone_after_the_ritual
+## is what guards it.
 extends ActionSystem
 
 const Teleport := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/teleport/teleport.gd')
@@ -45,6 +47,12 @@ const ATTACK_RANGE := 5
 
 func activate(context:Context, activation:EventCore) -> void:
 	var unit:Unit = context.unit
+	if activation.abort_without_unit(unit): return
+
+	# 0. "USE IT?" (close review, the author's call): the Vanish's and vanilla Divine Punishment's
+	# confirm, so a misclick costs nothing. An AI answers ai_confirms_use (true).
+	var confirmed := await CommonActionUtil.confirm_use(context)
+	if activation.abort_when(not confirmed): return
 	if activation.abort_without_unit(unit): return
 
 	# 1. THE PRICE.
@@ -123,6 +131,8 @@ func fire_at_every_target(activation:EventCore, unit:Unit, bow:SpecificAction, t
 				Action.FLAG.TARGETS_ARE_MANDATORY,
 				Action.FLAG.SKIP_PLAYER_DECISIONS,
 				Action.FLAG.NO_SELF_HEAT,
+				# No announce card per shot (target_action_util.gd:241): the Ritual is announced once.
+				Action.FLAG.SKIP_TELEGRAPHING,
 			],
 			event = activation,
 		})

@@ -20,8 +20,9 @@
 ## counter resets at the Six Sky's own turn start (unit_action.gd:86-87, ruling 4).
 ##
 ## BOTH GATES ARE RE-READ IN activate, because event_buff_activate has no
-## recheck_trigger_before_execution (the Rend chip's reason): one move of a katamari fires POST for
-## every passenger, and all of them pass the predicate at queue time, before the first has armed.
+## recheck_trigger_before_execution (the Rend chip's reason): two POSTs queued before the first
+## activation runs would otherwise both pass. (Not a katamari's passengers, as this said until the
+## close: they move with create_for_involuntary, which carries no teleport flag, so they never pass.)
 extends Buff
 
 const Agent := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/six_sky_agent.gd')
@@ -36,7 +37,7 @@ func get_required_triggering_context() -> Array[Context.PROP]:
 
 func triggers_on_event(core:BuffCore, unit:Unit, triggering_event:EventCore) -> bool:
 	var context:Context = triggering_event.context
-	if not Agent.is_teleport_by(unit, context): return false
+	if not Agent.is_teleport_by(unit, triggering_event): return false
 	var mover:Unit = context.unit
 	if not Unit.is_valid(mover): return false
 	if mover != unit and not mover.is_actor(): return false # "itself, or another CHARACTER"

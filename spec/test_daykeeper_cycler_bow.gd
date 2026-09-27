@@ -280,8 +280,10 @@ func test_a_cancelled_self_pick_teleports_nobody():
 	assert_eq(six_sky.tile(), SIX_SKY_TILE, 'Cancelled: the Six Sky stays.')
 
 func test_a_space_the_picker_did_not_offer_is_never_taken():
-	# An OCCUPIED space 2 away: in reach, so the harness's straight-path fallback would walk it
-	# (harness traps, 2026-09-23), but never offered. Only teleport_self's is_movable guard refuses it.
+	# An OCCUPIED space 2 away, never offered. What refuses it is the pathfinder, not a guard of ours:
+	# Teleport.candidate_tiles drops the occupied space, Pathfinder.path_to returns [] for a tile outside
+	# its set (pathfinder.gd:698-700) and the straight-path fallback is off for a teleport (:713), so the
+	# plan's path is empty and teleport_self treats it as a cancel.
 	var blocker := Fixture.create_ally(game, SELF_LANDING)
 	responder.multiple_choice_queue.assign([0])
 	responder.chosen_move_tile = SELF_LANDING
@@ -302,8 +304,10 @@ func test_a_cancelled_menu_teleports_nobody():
 func test_an_ai_six_sky_skips_the_menu():
 	var ai_sky := Fixture.create_six_sky(game, Vector2i(4, 8), Faction.AI_ENEMY)
 	var player_target := Fixture.create_dummy(game, Vector2i(11, 8), 10, Faction.PLAYER)
-	await Fixture.fire_bow(game, ai_sky, player_target, [Fixture.CRIT_ROLL])
-	assert_lt(Fixture.health(player_target), 200, 'fixture: the AI Six Sky critted.')
+	# The first damage set rolls a 2 and the second a 6: a crit keeps the higher, 6+3 = 9; a plain hit
+	# would deal 2+3 = 5. So the damage itself proves the crit (no 1s: Overkill would reroll them).
+	await Fixture.fire_bow(game, ai_sky, player_target, [Fixture.CRIT_ROLL, 2])
+	assert_eq(Fixture.health(player_target), 200 - 9, 'fixture: the AI Six Sky CRITTED (a hit would be 5).')
 	assert_eq(responder.multiple_choice_prompts.size(), 0, 'An AI Six Sky is never asked.')
 	assert_eq(ai_sky.tile(), Vector2i(4, 8))
 	assert_eq(player_target.tile(), Vector2i(11, 8))
@@ -349,3 +353,14 @@ func test_the_next_attack_after_the_crit_takes_the_weaver():
 	await Fixture.fire_bow(game, six_sky, hostile, [Fixture.HIT_ROLL, 6, 6])
 	assert_eq(before - Fixture.health(hostile), 15, 'The NEXT hit deals 1d6+3 plus the Weaver 1d6.')
 	assert_eq(Fixture.weaver_chips(six_sky), 0, 'and spends it.')
+
+func test_a_crit_on_a_ground_proxy_offers_only_yourself():
+	# Close review: a shot at terrain rolls against a real dep_attack_ground_proxy unit
+	# (action_attack_weapon.gd:273-286), whose damage reaction lands wherever it stands. "The target"
+	# would carry the terrain damage somewhere the bow never aimed.
+	var proxy := TargetActionUtil.create_targeting_proxy(Vector2i(4, 1), null, 1, &'dep_attack_ground_proxy')
+	assert_true(Unit.is_valid(proxy), 'PRECONDITION: the proxy is a valid unit, as the engine makes it.')
+	responder.multiple_choice_queue.assign([-1])
+	await load(Fixture.BOW_SCRIPT).resolve_crit_teleport(SpecFactory.dummy_event(), six_sky, proxy)
+	assert_eq(responder.multiple_choice_prompts.size(), 1, 'fixture: the menu was raised.')
+	assert_eq(menu_labels().size(), 1, 'Only "Yourself": a targeting proxy is not a target to teleport.')

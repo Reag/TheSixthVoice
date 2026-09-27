@@ -149,6 +149,41 @@ func test_a_sunzi_blink_mine_credits_the_six_sky():
 	assert_eq(ally.tile(), OTHER_DEST, 'CONTROL: the ally landed.')
 	assert_true(armed(), 'The Six Sky\'s mine teleported a character: the Six Sky teleported it.')
 
+func test_a_character_walking_into_its_realspace_breach_credits_the_six_sky():
+	# Close review (author): the breach's move names the WALKER as its unit but carries the BREACH's
+	# gear, so the device's holder - owner-or-self - is the agent. Reverses ruling 6 for the tunnel too.
+	var breach:Unit = await Fixture.deploy_realspace_breach(game, six_sky, Vector2i(5, 5))
+	assert_not_null(breach, 'PRECONDITION: the Sunzi\'s action laid a breach.')
+	if breach == null: return
+	assert_eq(breach.get_owner_unit(), six_sky, 'PRECONDITION: the Six Sky owns it.')
+	var ally:Unit = Fixture.create_ally(game, OTHER_TILE)
+	await Fixture.breach_teleport(game, breach, ally, OTHER_DEST)
+	assert_eq(ally.tile(), OTHER_DEST, 'CONTROL: the ally landed.')
+	assert_true(armed(), 'The Six Sky\'s breach teleported a character: the Six Sky teleported it.')
+
+func test_a_beckoner_swap_arms_it():
+	# Close review: vanilla Beckoner's swap carries no forcer; the enclosing activation is the Six Sky's.
+	var hostile:Unit = Fixture.create_dummy(game, TARGET_TILE)
+	await Fixture.open_turn(game, six_sky)
+	await Fixture.beckon(game, six_sky, hostile)
+	assert_eq(six_sky.tile(), TARGET_TILE, 'CONTROL: the Beckoner swapped the two.')
+	assert_true(armed(), 'The Six Sky teleported itself and a hostile.')
+
+func test_a_hostiles_beckoner_swap_does_not_arm_it():
+	var hostile:Unit = Fixture.create_dummy(game, TARGET_TILE)
+	await Fixture.beckon(game, hostile, six_sky)
+	assert_eq(six_sky.tile(), TARGET_TILE, 'CONTROL: the hostile swapped the two.')
+	assert_false(armed(), 'The hostile\'s Beckoner is the hostile\'s teleport.')
+
+func test_a_sourceless_involuntary_teleport_does_not_arm_it():
+	# Ruling 5's third clause, and the guard on the second clause's VOLUNTARY test: no forcer, not
+	# voluntary, no enclosing activation - nobody teleported it.
+	var move:EventCore = await Teleport.move(SpecFactory.dummy_event(), six_sky, AWAY, true)
+	assert_eq(six_sky.tile(), AWAY, 'CONTROL: the Six Sky landed.')
+	assert_null(Teleport.forcer(move.context), 'PRECONDITION: no readable forcer.')
+	assert_false(move.context.resource.voluntary, 'PRECONDITION: involuntary.')
+	assert_false(armed(), 'Nobody teleported it, so it is not the Six Sky\'s teleport.')
+
 # ---------------------------------------------------------------- the damage
 
 func test_without_the_chip_the_rifle_does_its_own_damage():

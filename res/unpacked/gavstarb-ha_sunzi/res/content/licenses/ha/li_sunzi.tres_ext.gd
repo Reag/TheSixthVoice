@@ -13,10 +13,12 @@ extends RefCounted
 # APPENDED, never inserted. UnlockTree.license_name reads rank_2.granted_frames.FRONT()
 # (unlock_tree.gd:28-32), so inserting our frame first would rename the Sunzi licence "Six Sky".
 #
-# OPTIONAL. A player without the Sunzi mod has no li_sunzi at all. mod_main.extendable() drops this
-# entry from EXTENDED_RESOURCES for them, so apply_resource_extensions_directly() never tries to load a
-# missing file and logs no error; and the engine's own queue skips it with a plain print
-# (LancerTacticsMod.extend_resource, lancer_tactics_mod.gd:179-181).
+# OPTIONAL, AND ORDER-DEPENDENT. li_sunzi does not exist while the Sunzi's zip is not mounted: for a
+# player without the mod, and ALSO for one whose list installs us before it (vanilla modset.gd:253 keeps
+# optional_dependencies from ordering anything). Either way mod_main.extendable() drops the entry and
+# the engine's own queue skips this script with a plain print (lancer_tactics_mod.gd:180-183);
+# mod_main.queue_late_extensions() then applies it after every mod is installed, if the file exists by
+# then. Frame close, 2026-09-27.
 #
 # NO OTHER MOD EXTENDS THIS LICENCE (swept 2026-09-26: nothing in unpacked/, none of the 26 installed
 # zips). Applied directly anyway, like every licence extension here: the queue drops a second extender

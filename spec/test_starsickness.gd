@@ -170,3 +170,25 @@ func test_an_ai_six_sky_declines():
 	assert_eq(offers(), 0, 'Nothing is asked of the player.')
 	assert_eq(Fixture.heat(ai_six_sky), 0, 'The AI declines: no heat.')
 	assert_false(Fixture.is_impaired(player_mech), 'And no save.')
+
+# ---------------------------------------------------------------- close review: who teleported it
+
+func test_a_hostile_walking_into_the_six_skys_realspace_breach_is_offered():
+	var breach:Unit = await Fixture.deploy_realspace_breach(game, six_sky, Vector2i(5, 5))
+	assert_not_null(breach, 'PRECONDITION: the Sunzi action laid a breach.')
+	if breach == null: return
+	var victim:Unit = Fixture.create_dummy(game, VICTIM_TILE)
+	responder.yesno_queue.assign([true])
+	VaubanFixture.queue_save_dice(FAIL_BY_ONE)
+	await Fixture.breach_teleport(game, breach, victim, VICTIM_DEST)
+	assert_eq(victim.tile(), VICTIM_DEST, 'CONTROL: the hostile landed.')
+	assert_eq(offers(), 1, 'The Six Sky breach teleported a hostile: offered.')
+	assert_true(Fixture.is_impaired(victim), 'And the save was forced.')
+
+func test_a_hostile_swapped_by_the_six_skys_beckoner_is_offered():
+	var victim:Unit = Fixture.create_dummy(game, VICTIM_TILE)
+	await Fixture.open_turn(game, six_sky)
+	responder.yesno_queue.assign([true])
+	await Fixture.beckon(game, six_sky, victim)
+	assert_eq(victim.tile(), SIX_SKY_TILE, 'CONTROL: the Beckoner swapped the two.')
+	assert_eq(offers(), 1, 'The Six Sky teleported a hostile: offered.')

@@ -46,6 +46,13 @@ const BLINK_CHARGES_ID := &'ms_blink_charges'
 const BLINK_MINE_ACTION := &'action_blink_mine'
 const BLINK_MINE_FRAME := &'dep_blink_mine'
 const BLINK_MINE_DETONATION := &'mt_blink_mine_detonation'
+const REALSPACE_BREACH_ID := &'ms_realspace_breach'
+const REALSPACE_BREACH_ACTION := &'action_realspace_breach'
+const REALSPACE_BREACH_FRAME := &'dep_realspace_breach'
+const REALSPACE_BREACH_DEP_KIT := &'mt_realspace_breach_dep'
+# Vanilla HORUS Beckoner: a swap with no forcer on either move.
+const BECKONER_ID := &'ms_beckoner'
+const BECKON_ACTION := &'action_beckon'
 
 ## A d20 every attack in these files misses with, and one that hits (dummies have evasion 10).
 const MISS_ROLL := 1
@@ -63,7 +70,12 @@ static func create_game_with_prompts(test:GutTest, map_size:Vector2i = DEFAULT_M
 		SpecFactory.create_combat(Landscape.create_default(map_size)), {}, false)
 	game.map.shape.forbidden_interiors_enabled = true
 	var responder = test.add_child_autoqfree(load('res://testkit/mod_choice_responder.gd').new())
+	prompts_responder = responder
 	return [game, responder]
+
+## The last create_game_with_prompts responder, so press_ritual can answer the Ritual's confirm. Reset
+## by every create_game_with_prompts; a stale one is caught by is_instance_valid.
+static var prompts_responder
 
 ## A Six Sky with its traits' passive buffs applied. PLAYER faction by default (SpecFactory's), which
 ## every hostile relation here depends on and which makes CommonActionUtil.confirm_use actually ask.
@@ -146,6 +158,42 @@ static func teleport_self_without_a_source(six_sky:Unit, tile:Vector2i) -> Event
 static func shove(actor:Unit, who:Unit, tile:Vector2i) -> EventCore:
 	return await Teleport.shove(activation_of(actor), who, tile)
 
+## The Six Sky lays a Sunzi Realspace Breach with the Sunzi's own action, and the breach is handed back
+## (null if it was not laid).
+static func deploy_realspace_breach(game:Gamemaster, six_sky:Unit, tile:Vector2i) -> Unit:
+	equip(six_sky, REALSPACE_BREACH_ID)
+	await SpecFactory.use(game, six_sky, REALSPACE_BREACH_ID, REALSPACE_BREACH_ACTION, [tile])
+	for unit:Unit in game.map.get_all_units():
+		if unit.core.frame != null and unit.core.frame.resource_path.get_file().get_basename() == REALSPACE_BREACH_FRAME:
+			return unit
+	return null
+
+## `who` walks into `breach` and is teleported to `tile`, with the EXACT object the Sunzi's breach
+## builds (ms_realspace_breach/deployable/action_teleport.gd:33-36): SpecificAction.from_context on the
+## breach's reaction - the BREACH's gear and action - and then `unit` overwritten with the WALKER, since
+## a plain walk carries no SpecificAction of its own.
+static func breach_teleport(game:Gamemaster, breach:Unit, who:Unit, tile:Vector2i) -> void:
+	var gear:GearCore = breach.get_gear(REALSPACE_BREACH_DEP_KIT)
+	var action:Action = null
+	for candidate:Action in gear.kit.actions:
+		if candidate.resource_path.get_file() == 'action_teleport.tres': action = candidate
+	var movement_type := MovementType.create_for_involuntary(who)
+	movement_type.teleport = true
+	await game.execute_event(&'event_unit_move', {
+		unit = who,
+		target_tiles = [tile],
+		resource = movement_type,
+		object = SpecificAction.create(who, gear, action),
+	})
+
+## The Six Sky hits `target` with vanilla BECKONER, a tech attack whose on_hit swaps the two with two
+## involuntary teleports carrying NO object at all (action_beckon.gd:18-35).
+static func beckon(game:Gamemaster, six_sky:Unit, target:Unit) -> void:
+	equip(six_sky, BECKONER_ID)
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	Dice.cheat_attack([HIT_ROLL], [6, 6, 6, 6])
+	await SpecFactory.use(game, six_sky, BECKONER_ID, BECKON_ACTION, [target])
+
 # ---------------------------------------------------------------- reads
 
 static func heat(unit:Unit) -> int: return unit.core.current.heat
@@ -191,8 +239,13 @@ static func fire_bow(game:Gamemaster, six_sky:Unit, target:Unit, dice:Array[int]
 
 ## Press Ritual of the First God (opening the Six Sky's turn first), with `dice` queued. CLEARS THE
 ## QUEUE; no tail - a Ritual's dice are the test's to plan, target by target.
-static func press_ritual(game:Gamemaster, six_sky:Unit, dice:Array[int] = []) -> void:
+##
+## `confirm` answers the Ritual's own "use it?" (close review) YES by pushing it to the FRONT of the
+## queued responder's yes/no queue, ahead of anything the test queued for later prompts. A game with the
+## stock responder confirms on its own (choose_yesnos defaults true).
+static func press_ritual(game:Gamemaster, six_sky:Unit, dice:Array[int] = [], confirm:bool = true) -> void:
 	if not six_sky.state.is_taking_turn: await open_turn(game, six_sky)
+	if confirm and is_instance_valid(prompts_responder): prompts_responder.yesno_queue.push_front(true)
 	Dice.CHEAT_ROLL_QUEUE.clear()
 	Dice.CHEAT_ROLL_QUEUE.append_array(dice)
 	await SpecFactory.use(game, six_sky, CORE_ID, RITUAL_ACTION)

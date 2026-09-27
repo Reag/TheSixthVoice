@@ -49,7 +49,9 @@ func modify_pre_attack_data(context:Context, pre_attack_data:AttackRoll.PreAttac
 	var attacker:Unit = context.unit.get_attacker(context)
 	if not Unit.all_valid([attacker, context.target_unit]): return
 	if UnitRelation.distance_between(attacker, context.target_unit) > CLOSE_RANGE: return
-	pre_attack_data.add_mod(name(SpecificAction.create(attacker, context.gear, self)), 1, get_icon())
+	# The kit, so the line shows the bow's glyph even before any UI has cached icon_from_kit (action.gd:324).
+	var kit:Kit = context.gear.kit if GearCore.is_valid(context.gear) else null
+	pre_attack_data.add_mod(name(SpecificAction.create(attacker, context.gear, self)), 1, get_icon(kit))
 
 func is_overkill(context:Context) -> bool:
 	if context != null and context.flags.has(Action.FLAG.NO_SELF_HEAT): return false
@@ -91,12 +93,12 @@ static func resolve_crit_teleport(activation:EventCore, six_sky:Unit, target:Uni
 	if not SpecificAction.is_valid(bow): return
 
 	var options:Array = [Translate.gear(BOW_ID, 'crit_self')]
-	if Unit.is_valid(target): options.append(Translate.gear(BOW_ID, 'crit_target'))
+	if is_teleportable_target(target): options.append(Translate.gear(BOW_ID, 'crit_target'))
 	var chosen:int = await choice_bus.choose_from_multiple_choice(bow, options, true)
 	if chosen < 0 or not Unit.is_valid(six_sky): return
 
 	if chosen == CHOICE_SELF: await teleport_self(activation, bow, six_sky)
-	elif chosen == CHOICE_TARGET and Unit.is_valid(target): await teleport_target(activation, bow, target)
+	elif chosen == CHOICE_TARGET and is_teleportable_target(target): await teleport_target(activation, bow, target)
 
 ## Yourself: the preventable route, over every free space within 2.
 static func teleport_self(activation:EventCore, bow:SpecificAction, six_sky:Unit) -> void:
@@ -109,6 +111,15 @@ static func teleport_self(activation:EventCore, bow:SpecificAction, six_sky:Unit
 	if plan == null or plan.aborted or plan.move_path.is_empty(): return # cancelled
 	if not Unit.is_valid(six_sky): return
 	await Teleport.move_along(activation, six_sky, pathfinder, plan)
+
+## "The target" is offered for a valid, living unit (ruling 14) that is not one of the engine's
+## TARGETING PROXIES. A shot at terrain rolls against a real dep_attack_ground_proxy
+## (action_attack_weapon.gd:273-286) whose damage reaction lands wherever it stands, so teleporting it
+## would carry the terrain damage somewhere the bow never aimed (close review).
+const PROXY_FRAMES:Array[StringName] = [&'dep_attack_ground_proxy', &'dep_targeting_proxy']
+static func is_teleportable_target(target:Unit) -> bool:
+	if not Unit.is_valid(target): return false
+	return not (target.core.frame != null and target.core.frame.compcon_id in PROXY_FRAMES)
 
 ## The target: the helper's reticle over every free space within 2 of ITS space, then the shove.
 static func teleport_target(activation:EventCore, bow:SpecificAction, target:Unit) -> void:

@@ -70,6 +70,7 @@ var watcher:PromptWatcher
 class AttackRecorder extends ActionReaction:
 	var targets:Array[Unit] = []
 	var menus_seen:Array[int] = []
+	var telegraph_skipped:Array[bool] = []
 	var seen_ids:Array[StringName] = []
 	var responder
 
@@ -87,6 +88,7 @@ class AttackRecorder extends ActionReaction:
 		if seen_ids.has(triggering_event.id): return false
 		seen_ids.append(triggering_event.id)
 		targets.append(triggering_event.context.target_unit)
+		telegraph_skipped.append(triggering_event.context.flags.has(Action.FLAG.SKIP_TELEGRAPHING))
 		menus_seen.append(responder.multiple_choice_prompts.size() if responder else -1)
 		return false
 
@@ -180,6 +182,30 @@ func test_with_no_hostile_it_is_still_a_legal_use_and_spends_the_core_power():
 	await Fixture.press_ritual(game, six_sky)
 	assert_false(six_sky.core.has_core_power, 'The core power is spent though nobody was in range.')
 	assert_eq(attacks.targets.size(), 0, 'and nobody was attacked.')
+
+func test_it_asks_before_it_spends():
+	# Close review (author): the Vanish and vanilla Divine Punishment confirm first.
+	await Fixture.press_ritual(game, six_sky)
+	assert_eq(responder.yesno_prompts.size(), 1, 'One "use it?".')
+	assert_false(six_sky.core.has_core_power, 'CONTROL: confirmed, so spent.')
+
+func test_declining_the_confirm_spends_nothing():
+	Fixture.create_dummy(game, NEAR)
+	await Fixture.press_ritual(game, six_sky, dice([HIT_PASSING]), false)
+	assert_eq(responder.yesno_prompts.size(), 1, 'fixture: it asked.')
+	assert_true(six_sky.core.has_core_power, 'Declined: the core power is kept.')
+	assert_true(UnitAction.can_activate_gear(ritual_specific()), 'and it can still be pressed.')
+	assert_eq(teleport_pickers().size(), 0, 'No teleport is offered.')
+	assert_eq(attacks.targets.size(), 0, 'Nobody is attacked.')
+
+func test_the_shots_skip_the_announce_card():
+	# Close review (author): in the real game a supplied-target shot raises an announce card per shot
+	# (target_action_util.gd:241) unless SKIP_TELEGRAPHING; TEST_MODE hides the card, so read the flag.
+	Fixture.create_dummy(game, NEAR)
+	Fixture.create_dummy(game, MIDDLE)
+	await Fixture.press_ritual(game, six_sky, dice([HIT_PASSING, HIT_PASSING]))
+	assert_eq(attacks.telegraph_skipped.size(), 2, 'fixture: two shots.')
+	assert_eq(attacks.telegraph_skipped, [true, true] as Array[bool], 'Neither shot is announced.')
 
 # ---------------------------------------------------------------- the teleport (ruling 15)
 

@@ -39,7 +39,7 @@ func get_required_triggering_context() -> Array[Context.PROP]:
 
 func triggers_on_event(core:BuffCore, unit:Unit, triggering_event:EventCore) -> bool:
 	var context:Context = triggering_event.context
-	if not Agent.is_teleport_by(unit, context): return false
+	if not Agent.is_teleport_by(unit, triggering_event): return false
 	var victim:Unit = context.unit
 	if not Unit.is_valid(victim) or not victim.is_actor(): return false # "a hostile CHARACTER"
 	if not UnitRelation.are_enemies(unit, victim): return false # "a HOSTILE character"
