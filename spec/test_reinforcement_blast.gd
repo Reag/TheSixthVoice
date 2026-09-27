@@ -213,9 +213,11 @@ func test_the_blast_may_centre_on_empty_ground() -> void:
 	assert_eq(neighbour.get_armor(), before + 1, 'Aimed at nobody, it still armoured the neighbour.')
 
 func test_an_object_in_the_blast_gains_nothing() -> void:
-	# can_target_unit refuses anything that is not is_actor() (action_system_apply_buff.gd:64), so the
-	# card's "all characters" excludes cover, drones and other objects with no work on our side. This
-	# pins that the exclusion is real rather than an accident of where things were standing.
+	# Vanilla's can_target_unit refuses anything that is not is_actor() (action_system_apply_buff.gd:64).
+	# This action's own override sends only a DRONE past that line (the shared CharacterTarget helper,
+	# Pass F T14 - a drone IS a character), so cover and every other object are still excluded with no
+	# work on our side. This pins that the exclusion is real rather than an accident of where things
+	# were standing; test_a_drone_in_the_blast_gains_one_armor is the other half.
 	var cover := FitzgeraldFixture.create_deployable(game, IN_BLAST_ALLY, 40, 0, 5) # 5: the frame's own unmodified evasion
 	assert_false(cover.is_actor(), 'fixture: the Jericho cover really is a non-actor object.')
 	var witness := FitzgeraldFixture.create_dummy(game, IN_BLAST_HOSTILE, 10)
@@ -226,6 +228,19 @@ func test_an_object_in_the_blast_gains_nothing() -> void:
 
 	assert_eq(witness.get_armor(), witness_before + 1, 'fixture: the blast did go off.')
 	assert_eq(cover.get_armor(), cover_before, 'A piece of cover is not a character.')
+
+func test_a_drone_in_the_blast_gains_one_armor() -> void:
+	# "All characters within the area", and a drone IS a character (Pass A; author T14). activate
+	# re-filters the blast through specific.action.can_target_unit (action_system_apply_buff.gd:117),
+	# so the override is what lets the drone in. BOTH halves, read through their own getters (banner).
+	var drone := FitzgeraldFixture.create_drone(game, IN_BLAST_ALLY, Faction.AI_ENEMY)
+	assert_true(drone.is_drone(), 'fixture: a drone.')
+	var before:int = drone.get_armor()
+
+	await blast_at(CENTRE)
+
+	assert_eq(drone.get_armor(), before + 1, 'The drone gains 1 armor (display half).')
+	assert_eq(count_buff(drone, REDUCTION_BUFF_ID), 1, 'And the reduction half.')
 
 func test_it_reaches_the_fitzgeralds_sensor_range_and_no_further() -> void:
 	# apply_to_sensors = true makes get_target_range return the unit's sensor range
@@ -564,6 +579,52 @@ func test_both_halves_expire_together_with_the_fitzgeralds_next_turn() -> void:
 	assert_eq(count_buff(ally, REDUCTION_BUFF_ID), 0, '...and the reduction half is off the unit too.')
 	var after := await take(ally, FIXED_HIT, Lancer.DAMAGE_TYPE.KINETIC)
 	assert_eq(after, FIXED_HIT, 'Full damage again: both halves went at the same moment.')
+
+func test_an_owned_drones_pair_expires_with_the_fitzgeralds_next_turn() -> void:
+	# PROBE, Pass F T11, pinned. until = 7 (END_OF_OWNERS_NEXT_TURN) is skipped while the BUFF's
+	# turn_count <= 0 (unit_condition.gd:62), and turn_count rises only in new_turn_for_statuses, called
+	# from event_turn_start.handle_starting_unit for the unit whose turn starts and its OWNED
+	# deployables. A drone the Fitzgerald owns starts its turn with the Fitzgerald, so its copies age
+	# on the same clock as test_both_halves_expire_together_with_the_fitzgeralds_next_turn's ally.
+	var drone := FitzgeraldFixture.create_drone(game, IN_BLAST_ALLY, Faction.PLAYER)
+	drone.state.set_owner(fitz)
+	var armor_before:int = drone.get_armor()
+
+	await blast_at(CENTRE)
+	assert_eq(count_buff(drone, REDUCTION_BUFF_ID), 1, 'fixture: the pair landed on the owned drone.')
+
+	await SpecFactory.end_turn(game, fitz)
+	await SpecFactory.start_turn(game, fitz)
+	assert_eq(drone.get_armor(), armor_before + 1, "Still armoured through the Fitzgerald's next turn.")
+	await SpecFactory.end_turn(game, fitz)
+	assert_eq(drone.get_armor(), armor_before, 'The display half expired at the end of it...')
+	assert_eq(count_buff(drone, REDUCTION_BUFF_ID), 0, '...and the reduction half with it.')
+
+func test_an_unowned_drones_pair_never_expires_a_recorded_engine_limit() -> void:
+	# PROBE, Pass F T11, pinned as a RECORDED ENGINE LIMIT (the author's T14 ruling stands). The buff's
+	# turn_count rises only when its HOLDER starts a turn (new_turn_for_statuses, from
+	# event_turn_start.handle_starting_unit), and a drone starts its turn only as its OWNER's deployable.
+	# An unowned drone never starts one, so turn_count stays 0 and END_OF_OWNERS_NEXT_TURN is skipped at
+	# every Fitzgerald turn end (unit_condition.gd:62): the pair stays for the scene. Measured: the full
+	# cycle Fitzgerald -> hostile -> Fitzgerald -> end, and two more Fitzgerald turns, leave both halves.
+	# If this goes red the engine started ageing unowned drones' buffs - re-measure, do not just flip it.
+	var drone := FitzgeraldFixture.create_drone(game, IN_BLAST_HOSTILE, Faction.AI_ENEMY)
+	var hostile := FitzgeraldFixture.create_dummy(game, ONE_TILE_OUT + Vector2i(3, 0), 10)
+	var armor_before:int = drone.get_armor()
+	await blast_at(CENTRE)
+	assert_eq(drone.get_armor(), armor_before + 1, 'fixture: the pair landed on the unowned drone.')
+
+	await SpecFactory.end_turn(game, fitz)
+	await SpecFactory.pass_turn(game, hostile)
+	await SpecFactory.start_turn(game, fitz)
+	await SpecFactory.end_turn(game, fitz)
+	assert_eq(drone.get_armor(), armor_before + 1, "Still armoured after the Fitzgerald's next turn ends...")
+	assert_eq(count_buff(drone, REDUCTION_BUFF_ID), 1, '...both halves (the limit, recorded).')
+
+	await SpecFactory.pass_turn(game, hostile)
+	await SpecFactory.pass_turn(game, fitz)
+	await SpecFactory.pass_turn(game, fitz)
+	assert_eq(count_buff(drone, REDUCTION_BUFF_ID), 1, 'And two turns after that: it never ages.')
 
 # ---------------------------------------------------------------- the hidden half's own wiring
 

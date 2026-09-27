@@ -1,7 +1,7 @@
 [gd_resource type="Resource" format=3]
 
 [ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
-[ext_resource type="Script" uid="uid://cm50wdj5g8syg" path="res://engine/character/gear_action/archtypes/action_system_apply_buff.gd" id="2_applybuff"]
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_grit_latch_magnets/action_reinforcement_blast.gd" id="2_applybuff"]
 [ext_resource type="Script" uid="uid://c0yv6pnw2be6l" path="res://engine/character/gear_action/resources/range_pattern.gd" id="3_rangepattern"]
 [ext_resource type="Script" uid="uid://df1yicp7kbf3x" path="res://engine/character/gear_action/resources/target_requirements.gd" id="4_targetreqs"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_grit_latch_magnets/buff_reinforcement_blast.tres" id="5_armor"]
@@ -48,8 +48,9 @@ apply_to_sensors = true
 ; Ruling 23: "all characters" is hostiles, allies AND the Fitzgerald itself. So no
 ; apply_only_to_allies / _to_enemies filter, and can_apply_to_self is on - can_target_unit refuses
 ; self without it (action_system_apply_buff.gd:61). OBJECTS need no exclusion of ours: the same
-; function refuses anything that is not is_actor() - which also refuses a DRONE, a character since
-; 2026-09-27: vanilla's own "cannot apply buffs to drones" (:64), a recorded limit.
+; function refuses anything that is not is_actor(). DRONES are characters (Pass A) and take the blast
+; (Pass F T14): the script (action_reinforcement_blast.gd) lifts that is_actor() line (:64) for a drone
+; only, through the shared CharacterTarget helper, and activate re-filters the blast through it (:117).
 can_apply_to_self = true
 ; QUICK (Lancer.ACTION.QUICK == 1, lancer.gd:27).
 action_type = 1
