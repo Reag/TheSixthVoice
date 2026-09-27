@@ -1665,3 +1665,38 @@ func test_a_harbinger_lock_consumed_by_a_freebie_attack_still_pays() -> void:
 	assert_eq(BlackMountainFixture.heat(hostile), 2, 'LIVENESS: and hit (Fragment Signal\'s 2 heat).')
 	assert_eq(Overshield.current(black_mountain), 6, 'THE RULING: the Black Mountain was paid its d6 (the queued 6).')
 	assert_eq(BlackMountainFixture.marks(hostile), 0, 'And the mark cleared.')
+
+# ---- Black Mountain SP2 (Blackstone Bell): Exalt against talents' structure replacement, DOOMED on an
+# Emperor ally. Exalt reads "deals structure damage" at DAMAGE POST, queued one line before the structure
+# event, so the resident talents' wholesale replacement of that event's execute is never in its path -
+# pinned here WITH that replacement live, and with the structure actually taken (liveness). DOOMED's +1
+# goes through Overshield.increase_by, whose `boolean = true` is what keeps the Emperor's Vestment from
+# double-counting it (ruling 6) - pinned on a real Emperor ally.
+
+func test_exalt_shields_an_ally_structuring_a_hostile_under_the_talents_structure_replacement() -> void:
+	if skipped_without_talents_structure(): return
+	var bm_game:Gamemaster = BlackMountainFixture.create_game(self)
+	var black_mountain:Unit = BlackMountainFixture.create_black_mountain(bm_game, Vector2i(4, 4))
+	BlackMountainFixture.set_grit(black_mountain, 2)
+	var ally:Unit = BlackMountainFixture.create_ally(bm_game, Vector2i(6, 4))
+	var hostile:Unit = BlackMountainFixture.create_hostile(bm_game, Vector2i(10, 4))
+	BlackMountainFixture.weaken(hostile, 3)
+	var structure_before:int = hostile.core.current.structure
+	BlackMountainFixture.queue([6, 6, 6, 6])
+	await BlackMountainFixture.damage(bm_game, hostile, 5, ally)
+	assert_eq(hostile.core.current.structure, structure_before - 1, 'LIVENESS: the replaced structure event ran.')
+	assert_eq(Overshield.current(ally), 3, 'THE RULING: Exalt shielded the ally 1 + Grit 2.')
+	assert_true(Overshield.is_granted_by(ally, black_mountain), 'Marked as the Black Mountain\'s grant.')
+
+func test_a_doomed_hit_by_an_emperor_ally_lands_exactly_plus_one() -> void:
+	if skipped_without_the_emperor_frame(): return
+	var bm_game:Gamemaster = BlackMountainFixture.create_game(self)
+	var black_mountain:Unit = BlackMountainFixture.create_black_mountain(bm_game, Vector2i(4, 4))
+	var emperor:Unit = BlackMountainFixture.create_emperor(bm_game, Vector2i(6, 4))
+	var hostile:Unit = BlackMountainFixture.create_hostile(bm_game, Vector2i(10, 4))
+	await BlackMountainFixture.fell(bm_game, black_mountain, hostile)
+	assert_true(BlackMountainFixture.is_doomed(hostile), 'fixture: DOOMED.')
+	await BlackMountainFixture.grant_overshield(emperor, 2)
+	assert_eq(Overshield.current(emperor), 2, 'fixture: the Emperor holds 2.')
+	await BlackMountainFixture.damage(bm_game, hostile, 3, emperor)
+	assert_eq(Overshield.current(emperor), 3, 'THE RULING: +1 on an Emperor too, not the Vestment\'s double count.')

@@ -150,15 +150,17 @@ func test_every_trait_kit_is_in_the_content_library():
 		assert_true(kit.is_trait, '%s is a trait.' % trait_id)
 		assert_ne(X.tr('gear.%s.name' % trait_id), 'gear.%s.name' % trait_id, '%s has a name row.' % trait_id)
 
-func test_the_core_is_a_core_power_and_still_a_shell():
-	# SP1 ships the core Kit empty (design 1.1); SP2 fills it and moves this pin.
+func test_the_core_is_a_core_power_carrying_exalt_fell_the_mighty_and_the_efficient_pair():
+	# SP1 shipped the core Kit empty (design 1.1); SP2 filled it (design section 2).
 	var core:Kit = ContentLibrary.get_kit(Fixture.CORE_ID)
 	if not Kit.is_valid(core):
 		fail_test('The core Kit loads.')
 		return
 	assert_true(core.is_core_power(), 'cp_ keeps it a core power (kit.gd:66).')
-	assert_true(core.actions.is_empty(), 'A shell: no actions until SP2.')
-	assert_true(core.passives.is_empty(), 'A shell: no passives until SP2.')
+	var ids:Array = core.actions.map(func(a:Action) -> StringName: return a.get_id())
+	assert_eq(ids, [Fixture.EXALT_ACTION, Fixture.FELL_ACTION, Fixture.EFFICIENT_REFUND],
+		'Exalt, Fell the Mighty, the Efficient refund.')
+	assert_eq(core.passives.size(), 1, 'One passive: the shared Efficient stamp.')
 
 func test_the_frame_wears_the_placeholder_until_the_author_supplies_art():
 	# ASSERTED THE OPPOSITE WAY ROUND FROM EVERY SHIPPED FRAME, on purpose (the Leoleth's pre-close

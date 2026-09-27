@@ -239,6 +239,44 @@ static func damage(game:Gamemaster, unit:Unit, amount:int, dealer:Unit = null,
 	if Unit.is_valid(dealer): data.target_unit = dealer
 	await game.execute_event(&'event_unit_damage', data)
 
+# ---------------------------------------------------------------- SP2 additions (Blackstone Bell)
+
+const EXALT_ACTION := &'action_exalt'
+const EXALT_BENEFITED := &'buff_exalt_benefited'
+const FELL_ACTION := &'action_fell_the_mighty'
+const DOOMED := &'buff_doomed'
+const EFFICIENT_REFUND := &'action_efficient_refund'
+
+## GRIT IS THE PILOT'S: PilotCore.get_grit() is half the licence level, rounded up, and a fixture unit
+## starts at level 0 = Grit 0 (hazard_fixture.set_grit, verbatim).
+static func set_grit(unit:Unit, grit:int) -> void:
+	if not Unit.is_valid(unit) or not PilotCore.is_valid(unit.core.pilot): return
+	unit.core.pilot.license_level = grit * 2
+
+## Put a unit at `health` HP without an event, so the next hit that exceeds it crosses zero - the
+## "deals structure damage" Exalt reads. Structure is left alone unless given (1 = the next structure
+## destroys it).
+static func weaken(unit:Unit, health:int, structure:int = -1) -> void:
+	unit.core.current.health = health
+	if structure > 0: unit.core.current.structure = structure
+
+## Give EVERY unit its reaction point back WITHOUT resetting anyone's per-round tallies: start the turn of
+## a bystander (event_turn_start.gd:43-44 runs every_new_turn_refresh on all units, :79 new_turn_refresh
+## only on the starter). How a spec gets a second Exalt out of one Black Mountain inside one round.
+static func refresh_reactions(game:Gamemaster, bystander:Unit) -> void:
+	if bystander.state.is_taking_turn: await SpecFactory.end_turn(game, bystander)
+	await SpecFactory.start_turn(game, bystander)
+
+## Fell the Mighty on `target`: the Protocol, so the Black Mountain's turn is opened first
+## (unit_action.gd:144). A PLAYER Black Mountain aims through the responder's targeting answer.
+static func fell(game:Gamemaster, black_mountain:Unit, target:Unit) -> void:
+	if not black_mountain.state.is_taking_turn: await open_turn(game, black_mountain)
+	await SpecFactory.use(game, black_mountain, CORE_ID, FELL_ACTION, target)
+
+static func is_doomed(unit:Unit) -> bool: return not UnitCondition.get_buffs(unit, DOOMED).is_empty()
+static func overshield(unit:Unit) -> int: return Overshield.current(unit)
+static func has_core_power(unit:Unit) -> bool: return unit.core.has_core_power
+
 # ---------------------------------------------------------------- reads
 
 static func heat(unit:Unit) -> int: return unit.core.current.heat

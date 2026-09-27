@@ -1135,9 +1135,12 @@ const ICON_TARGETS := {
 	# SP1 (Black Mountain). Dread Harbinger: the same shape - one hidden crit reaction. Its VISIBLE mark
 	# buff_dread_harbinger_mark is in VISIBLE_BUFFS below and will wear the trait's glyph (one family).
 	&'mt_dread_harbinger': {},
-	# SP1 (Black Mountain). Blackstone Bell, the core Kit: an EMPTY shell until SP2 (design 1.1), so
-	# only the Kit's own icon is ever shown. SP2 adds its rows here as it adds the actions.
-	&'cp_blackstone_bell': {},
+	# SP1-SP2 (Black Mountain). BLACKSTONE BELL, the core Kit. Bringer of Glory has no action of its own:
+	# the Kit's effect row is its sentence, and EXALT, the real reaction it grants, wears the Kit's glyph
+	# (a trait and the action it creates share one glyph). FELL THE MIGHTY, the Protocol on the gear bar,
+	# is its OWN family with buff_doomed (design section 3: a two-part core power is exactly two
+	# families). action_efficient_refund hides itself and is correctly absent. SP3: icons.
+	&'cp_blackstone_bell': {&'action_exalt': KIT, &'action_fell_the_mighty': &'action_fell_the_mighty'},
 	# SP2 (Six Sky). ORS "DAYKEEPER" CYCLER BOW, the core Kit: its only action is Ritual of the First
 	# God, its OWN family (design section 3, the two-part core power's second half), distinct from the
 	# Kit's own glyph, which it shares with mw_daykeeper_cycler_bow below - one weapon, one picture, on
@@ -1466,6 +1469,7 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# author's call): the on-token sign that THIS Lock On pays the Black Mountain when consumed. Its own
 	# rows. The helper's buff_overshield_granted_by and the +3 bonus buff are hidden and correctly absent.
 	&'buff_dread_harbinger_mark',
+	&'buff_doomed', # SP2 (Black Mountain): Fell the Mighty's mark, the Fell the Mighty family.
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

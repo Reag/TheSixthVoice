@@ -975,3 +975,5 @@ gear.cp_blackstone_bell.action_exalt.trigger,An allied |character| within |Senso
 gear.cp_blackstone_bell.action_exalt.effect,The triggering allied |character| gains |Overshield| equal to 1 + |GRIT|. If they already have |Overshield| it increases by that much instead. A |character| can only benefit from this effect 1/round.
 gear.cp_blackstone_bell.action_fell_the_mighty.name,Fell the mighty
 gear.cp_blackstone_bell.action_fell_the_mighty.effect,"Choose a hostile |character| within |sensors| and |line of sight|, they are DOOMED for the rest of the scene. Allies attacks against a DOOMED |character| have +1 |Accuracy| and whenever an allied |character| deals damage to them, they increase their |Overshield| by 1. This ability is |Efficient| and will refund 1 Core Point at the end of any scene in which this ability was used."
+gear.buff_doomed.name,DOOMED
+gear.buff_doomed.effect,Allies attacks against a DOOMED |character| have +1 |Accuracy| and whenever an allied |character| deals damage to them, they increase their |Overshield| by 1.

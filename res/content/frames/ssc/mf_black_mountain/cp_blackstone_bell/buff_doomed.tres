@@ -1,0 +1,18 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/cp_blackstone_bell/buff_doomed.gd" id="1_buff"]
+
+; DOOMED, Fell the Mighty's mark on the target (ruling 13; the script's header has both gates). to
+; attack_roll_incoming with bonus_subtype accuracy +1: the defender-side accuracy Marker Shells uses,
+; gated in the script to the Black Mountain's allies. triggers_on damage at POST (trigger_timing 1): the
+; +1 Overshield. until 0 is MANUAL - the rest of the scene - and the script keeps it past the Black
+; Mountain's death. VISIBLE, with its own name and effect rows. SP3: wears the Fell the Mighty family's
+; texture (until then BuffBonus.get_icon draws the stock accuracy glyph).
+[resource]
+script = ExtResource("1_buff")
+bonus_subtype = &"accuracy"
+bonus_value = 1
+to = &"attack_roll_incoming"
+triggers_on = Array[StringName]([&"damage"])
+trigger_timing = 1
+log_on_application = true
