@@ -27,5 +27,5 @@
 extends OnHitEffect
 
 func should_abort(stage:STAGE, activation:EventCore, attacked_unit:Unit) -> bool:
-	if stage == apply_on and Unit.is_valid(attacked_unit) and not attacked_unit.is_actor(): return true
+	if stage == apply_on and Unit.is_valid(attacked_unit) and not attacked_unit.is_character(): return true
 	return await super(stage, activation, attacked_unit)

@@ -62,4 +62,4 @@ func is_within_range(moving_unit:Unit, aura_unit:Unit) -> bool:
 ## mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd's header.
 func can_apply_buff_to_unit(moving_unit:Unit, aura_unit:Unit, aura_gear:GearCore) -> bool:
 	if not super(moving_unit, aura_unit, aura_gear): return false
-	return moving_unit.is_actor()
+	return moving_unit.is_character()

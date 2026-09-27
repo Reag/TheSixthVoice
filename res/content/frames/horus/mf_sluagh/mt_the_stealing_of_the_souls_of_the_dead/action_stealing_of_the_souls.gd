@@ -104,7 +104,7 @@ func triggers_on_event(unit:Unit, _gear:GearCore, triggering_event:EventCore) ->
 	if dead == unit: return false
 	# A CHARACTER: a mech or a pilot - never a DRONE, an object, a marker or a wreck. See the header's
 	# canonical paragraph; this is the one site on the frame with no archetype gate above it.
-	if not dead.is_actor(): return false
+	if not dead.is_character(): return false
 	if not UnitRelation.are_enemies(unit, dead): return false
 	# LIVE Sensors, on both sides of the comparison being a live read: distance_between measures
 	# closest tiles, and the dead unit still occupies its own.

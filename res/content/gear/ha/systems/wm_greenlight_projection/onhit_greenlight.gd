@@ -72,7 +72,7 @@ const SELF_BURN := 1
 
 func should_abort(stage:STAGE, activation:EventCore, attacked_unit:Unit) -> bool:
 	if stage == apply_on:
-		if not Unit.is_valid(attacked_unit) or not attacked_unit.is_actor(): return true
+		if not Unit.is_valid(attacked_unit) or not attacked_unit.is_character(): return true
 		var unit:Unit = activation.context.unit
 		if not Unit.is_valid(unit): return true
 		var mod_gear:GearCore = unit.get_gear(MOD_ID)

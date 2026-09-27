@@ -101,7 +101,7 @@ func damager(context:Context, holder:Unit) -> Unit:
 	if not Unit.is_valid(context.target_unit): return null
 	var them:Unit = context.target_unit.get_owner_unit_or_self()
 	if not Unit.is_valid(them): return null
-	if not them.is_actor(): return null
+	if not them.is_character(): return null
 	if not UnitRelation.are_enemies(holder, them): return null
 	return them
 
@@ -115,7 +115,7 @@ func candidates(leoleth:Unit) -> Array[Unit]:
 	if not Unit.is_valid(leoleth): return found
 	for other:Unit in leoleth.map.get_all_units():
 		if not Unit.is_valid(other) or other == leoleth: continue
-		if not other.is_actor(): continue
+		if not other.is_character(): continue
 		if eligible_attacks(leoleth, other).is_empty(): continue
 		found.append(other)
 	return found

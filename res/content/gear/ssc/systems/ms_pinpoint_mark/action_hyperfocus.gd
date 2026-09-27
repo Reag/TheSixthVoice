@@ -25,7 +25,7 @@ func is_available_to_activate(unit:Unit, gear:GearCore) -> bool:
 
 func can_target_unit(potential_target:Unit, specific:SpecificAction) -> bool:
 	if not super(potential_target, specific): return false
-	return potential_target.is_actor()
+	return potential_target.is_character()
 
 func activate_for_target(context:Context, activation:EventCore, target_unit:Unit) -> void:
 	var thorn:Unit = context.unit

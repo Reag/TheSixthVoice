@@ -40,7 +40,7 @@ func triggers_on_event(core:BuffCore, unit:Unit, triggering_event:EventCore) -> 
 	if not Agent.is_teleport_by(unit, triggering_event): return false
 	var mover:Unit = context.unit
 	if not Unit.is_valid(mover): return false
-	if mover != unit and not mover.is_actor(): return false # "itself, or another CHARACTER"
+	if mover != unit and not mover.is_character(): return false # "itself, or another CHARACTER"
 	return can_arm(core, unit)
 
 ## The round is unspent and the chip is not held.

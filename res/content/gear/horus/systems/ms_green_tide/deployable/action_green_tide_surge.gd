@@ -81,7 +81,7 @@ func show_in_tooltip(_kit:Kit) -> bool: return false
 func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> bool:
 	if not super(unit, gear, triggering_event): return false
 	var mover:Unit = triggering_event.context.unit
-	if not Unit.is_valid(mover) or not mover.is_actor(): return false
+	if not Unit.is_valid(mover) or not mover.is_character(): return false
 	if mover == unit.get_owner_unit(): return false
 	return UnitAction.can_take_reactions(mover)
 

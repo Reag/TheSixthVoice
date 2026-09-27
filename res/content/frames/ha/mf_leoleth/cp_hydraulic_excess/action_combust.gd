@@ -71,7 +71,7 @@ func is_available_to_activate(_unit:Unit, gear:GearCore) -> bool:
 ## "All CHARACTERS at least partially within the area" - is_actor(), the mod-wide rule (ruling 22).
 func can_target_unit(potential_target:Unit, specific:SpecificAction) -> bool:
 	if not super.can_target_unit(potential_target, specific): return false
-	return potential_target.is_actor()
+	return potential_target.is_character()
 
 ## "...or take 2d6 Kinetic damage". Runs only for a FAILED save (:96-101).
 ##

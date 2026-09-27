@@ -94,7 +94,7 @@ static func targets_of(unit:Unit) -> Array[Unit]:
 	var found:Array[Unit] = []
 	for other:Unit in unit.map.get_all_units(true):
 		if other == unit or not Unit.is_valid(other): continue
-		if not other.is_actor(): continue
+		if not other.is_character(): continue
 		if not UnitRelation.are_enemies(unit, other): continue
 		if UnitRelation.distance_between(unit, other) > ATTACK_RANGE: continue
 		found.append(other)

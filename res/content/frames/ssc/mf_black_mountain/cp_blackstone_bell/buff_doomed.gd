@@ -63,7 +63,7 @@ func on_application(event:EventCore, core:BuffCore, _unit:Unit) -> void:
 ## "Allies" of the Black Mountain that doomed this holder: a CHARACTER on its side, not the Black Mountain.
 ## Reads only what was stored at application.
 static func is_an_ally_of_the_doomer(core:BuffCore, unit:Unit) -> bool:
-	if not Unit.is_valid(unit) or not unit.is_actor(): return false
+	if not Unit.is_valid(unit) or not unit.is_character(): return false
 	if String(unit.core.persistent_id) == String(core.get_state(DOOMED_BY_KEY, '')): return false
 	var side:int = core.get_state(SIDE_KEY, -1)
 	if side < 0: return false

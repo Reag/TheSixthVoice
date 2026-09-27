@@ -13,4 +13,4 @@ extends PassiveAura
 func can_apply_buff_to_unit(moving_unit:Unit, aura_unit:Unit, aura_gear:GearCore) -> bool:
 	if not super(moving_unit, aura_unit, aura_gear): return false
 	if moving_unit == aura_unit: return true
-	return moving_unit.is_actor()
+	return moving_unit.is_character()

@@ -34,7 +34,7 @@ func get_target_range(specific:SpecificAction) -> int: return specific.unit.get_
 
 func can_target_unit(potential_target:Unit, specific:SpecificAction) -> bool:
 	if not super.can_target_unit(potential_target, specific): return false
-	if not potential_target.is_actor(): return false
+	if not potential_target.is_character(): return false
 	return UnitRelation.are_enemies(specific.unit, potential_target)
 
 ## Every invade the unit can choose, in loadout order, each action once: [{gear, action}].

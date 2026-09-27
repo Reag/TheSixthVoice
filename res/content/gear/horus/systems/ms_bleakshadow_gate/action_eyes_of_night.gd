@@ -108,7 +108,7 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	# "You or an allied character within Sensors".
 	if attacker != unit:
 		if not UnitRelation.are_allies(unit, attacker): return false
-		if not attacker.is_actor(): return false
+		if not attacker.is_character(): return false
 		if UnitRelation.distance_between(unit, attacker) > unit.get_sensor_range(): return false
 	# "benefiting from soft or hard cover" - as the roll computed it.
 	var roll:AttackRoll = triggering_context.object

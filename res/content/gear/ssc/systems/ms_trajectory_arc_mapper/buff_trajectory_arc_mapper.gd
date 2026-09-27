@@ -23,7 +23,7 @@ func is_buff_context_valid_for_passive(core:BuffCore, context:Context) -> bool:
 
 func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 	if not super(core, context): return false
-	if not context.target_unit.is_actor(): return false
+	if not context.target_unit.is_character(): return false
 	var weapon:ActionAttackWeapon = context.action
 	var distance:int = UnitRelation.distance_between(context.unit.get_attacker(context), context.target_unit)
 	return distance == weapon.get_target_range(SpecificAction.from_context(context))

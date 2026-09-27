@@ -108,7 +108,7 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if defender == unit: return false
 	# A mech or a pilot, never a drone - the mod's settled reading of "character" (rulings 194, 64/70
 	# and 269). The .tres's require_defender_to_be_character does NOT deliver this; see the header.
-	if not defender.is_actor(): return false
+	if not defender.is_character(): return false
 	# The seam, ruling 6. See the header for why this is is_adjacent and not a radius, and why the
 	# Sluagh is the first argument.
 	return UnitRelation.is_adjacent(unit, defender)

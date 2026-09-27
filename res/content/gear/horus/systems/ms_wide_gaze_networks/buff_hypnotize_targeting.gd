@@ -32,7 +32,7 @@ func is_buff_context_valid_for_passive(core:BuffCore, context:Context) -> bool:
 func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 	if not super(core, context): return false
 	var attacker:Unit = context.unit.get_attacker(context)
-	if not Unit.is_valid(attacker) or not attacker.is_actor(): return false
+	if not Unit.is_valid(attacker) or not attacker.is_character(): return false
 	var naga := core.get_owner_unit(context.map)
 	if not Unit.is_valid(naga) or not UnitRelation.are_allies(attacker, naga): return false
 	var target:Unit = context.target_unit

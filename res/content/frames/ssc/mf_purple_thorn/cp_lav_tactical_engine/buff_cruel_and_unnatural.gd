@@ -58,7 +58,7 @@ func triggers_on_event(core:BuffCore, unit:Unit, triggering_event:EventCore) -> 
 	var context:Context = triggering_event.context
 	if not VigilAction.is_damage_dealt_by(unit, context): return false
 	var victim:Unit = context.unit
-	if not Unit.is_valid(victim) or not victim.is_actor(): return false # "a hostile CHARACTER"
+	if not Unit.is_valid(victim) or not victim.is_character(): return false # "a hostile CHARACTER"
 	if not UnitRelation.are_enemies(unit, victim): return false # "a HOSTILE character"
 	return not core.state_has_id_in(FORCED_KEY, stamp_for(triggering_event, victim))
 

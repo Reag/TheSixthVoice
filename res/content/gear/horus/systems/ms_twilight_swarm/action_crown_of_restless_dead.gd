@@ -66,7 +66,7 @@ func consumes_charges(specific:SpecificAction) -> bool: return false
 ## the header; test_crown_cannot_crown_an_allied_drone is the pin.
 func can_target_unit(potential_target:Unit, specific:SpecificAction) -> bool:
 	if not super(potential_target, specific): return false
-	return potential_target.is_actor()
+	return potential_target.is_character()
 
 
 ## "gains OVERSHIELD equal to YOUR OVERSHIELD" - with none, there is nothing to hand over and no

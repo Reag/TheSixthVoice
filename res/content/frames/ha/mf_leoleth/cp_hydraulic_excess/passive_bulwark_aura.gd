@@ -61,7 +61,7 @@ extends PassiveAura
 
 func can_apply_buff_to_unit(moving_unit:Unit, aura_unit:Unit, aura_gear:GearCore) -> bool:
 	if not super.can_apply_buff_to_unit(moving_unit, aura_unit, aura_gear): return false
-	if not moving_unit.is_actor(): return false
+	if not moving_unit.is_character(): return false
 	# "ALL HOSTILE characters" - the aura's applies_to_enemies=true flag cannot express an exclusion,
 	# see header, so the hostility test is explicit here instead.
 	return UnitRelation.are_enemies(moving_unit, aura_unit)

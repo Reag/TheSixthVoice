@@ -40,7 +40,7 @@ static func soulbind_candidates(unit:Unit) -> Array[Unit]:
 	if not Unit.is_valid(unit): return candidates
 	var sensors:int = unit.get_sensor_range()
 	for other:Unit in unit.map.get_all_characters():
-		if other == unit or not Unit.is_valid(other) or not other.is_actor(): continue
+		if other == unit or not Unit.is_valid(other) or not other.is_character(): continue
 		if UnitRelation.distance_between(unit, other) > sensors: continue
 		candidates.append(other)
 	return candidates

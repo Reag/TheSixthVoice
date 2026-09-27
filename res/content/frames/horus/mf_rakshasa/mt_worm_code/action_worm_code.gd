@@ -56,7 +56,7 @@ func triggers_on_event(unit:Unit, _gear:GearCore, triggering_event:EventCore) ->
 
 	var saver:Unit = context.target_unit
 	if not Unit.is_valid(saver): return false
-	if not saver.is_actor(): return false
+	if not saver.is_character(): return false
 	if not UnitRelation.are_enemies(unit, saver): return false
 	return not is_inside_ensorcel(unit, saver)
 

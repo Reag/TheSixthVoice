@@ -64,7 +64,7 @@ static func is_you_or_an_allied_character_within_sensors(naga:Unit, consumer:Uni
 	if not Unit.is_valid(consumer): return false
 	if consumer == naga: return true
 	if not UnitRelation.are_allies(naga, consumer): return false
-	if not consumer.is_actor(): return false
+	if not consumer.is_character(): return false
 	return UnitRelation.distance_between(naga, consumer) <= naga.get_sensor_range()
 
 func activate(context:Context, activation:EventCore) -> void:

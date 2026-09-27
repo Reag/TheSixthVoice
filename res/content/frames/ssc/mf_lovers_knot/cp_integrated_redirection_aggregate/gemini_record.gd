@@ -66,7 +66,7 @@ static func is_line(specific:SpecificAction) -> bool:
 
 ## A "character" is Unit.is_actor() (ruling 3): a drone is not one.
 static func is_new_character(unit:Unit, knot:Unit, excluded:Array[Unit]) -> bool:
-	return Unit.is_valid(unit) and unit.is_actor() and unit != knot and not excluded.has(unit)
+	return Unit.is_valid(unit) and unit.is_character() and unit != knot and not excluded.has(unit)
 
 ## Whether the KNOT may not aim `action` at `unit`: Sanctuary, False Idol, Cast Doubt, Grey Birds. A
 ## leg's own SpecificAction belongs to a buffless proxy, and ActionAttackWeapon.can_target_unit reads

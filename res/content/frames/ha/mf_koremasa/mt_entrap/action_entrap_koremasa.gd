@@ -33,7 +33,7 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if not super.triggers_on_event(unit, gear, triggering_event): return false
 	var context := triggering_event.context
 	var defender:Unit = context.target_unit
-	if not Unit.is_valid(defender) or not defender.is_actor(): return false
+	if not Unit.is_valid(defender) or not defender.is_character(): return false
 	var weapon := context.action as ActionAttackWeapon
 	if weapon == null or weapon.threat <= 0: return false
 	return has_live_mark(defender, gear, context.map)

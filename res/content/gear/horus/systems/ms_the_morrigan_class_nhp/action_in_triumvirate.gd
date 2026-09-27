@@ -52,7 +52,7 @@ const PARTNER_KEY := 'partner'   # buff_in_triumvirate_pair.gd reads the same ke
 ## the header; test_an_allied_drone_is_not_a_legal_partner is the pin.
 func can_target_unit(potential_target:Unit, specific:SpecificAction) -> bool:
 	if not super(potential_target, specific): return false
-	return potential_target.is_actor()
+	return potential_target.is_character()
 
 
 func activate_for_target(context:Context, activation:EventCore, target_unit:Unit) -> void:

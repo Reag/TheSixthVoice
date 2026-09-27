@@ -83,7 +83,7 @@ func triggers_on_event(_core:BuffCore, unit:Unit, triggering_event:EventCore) ->
 	if attacker == unit: return false
 	# RESOLVED FIRST, THEN is_actor(). An owned drone has already become its owner one line up, so
 	# this refuses only a drone acting in its own right. See the header's ruling-70 paragraph.
-	if not attacker.is_actor(): return false
+	if not attacker.is_character(): return false
 	if not UnitRelation.are_enemies(unit, attacker): return false
 	if not AttackRoll.is_valid(context.object): return false
 	return (context.object as AttackRoll).hit

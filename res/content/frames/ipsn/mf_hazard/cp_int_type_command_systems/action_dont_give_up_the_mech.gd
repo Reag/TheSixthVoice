@@ -30,7 +30,7 @@ static func movers(hazard:Unit) -> Array[Unit]:
 	if not Unit.is_valid(hazard) or hazard.map == null: return allies
 	for other:Unit in hazard.map.get_all_characters():
 		if other == hazard or not Unit.is_valid(other): continue
-		if not other.is_actor(): continue
+		if not other.is_character(): continue
 		if not UnitRelation.are_allies(hazard, other): continue
 		if not UnitRelation.can_affect(hazard, other): continue
 		if UnitRelation.distance_between(hazard, other) > hazard.get_sensor_range(): continue

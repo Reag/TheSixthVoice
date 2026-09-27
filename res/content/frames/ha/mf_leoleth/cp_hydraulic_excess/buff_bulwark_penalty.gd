@@ -43,6 +43,6 @@ func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 	# "against characters other than you" - the CHARACTER half first, fails open on an unresolvable
 	# target for the same reason the owner check above does.
 	if not Unit.is_valid(context.target_unit): return false
-	if not context.target_unit.is_actor(): return false
+	if not context.target_unit.is_character(): return false
 	# ...and the OTHER THAN YOU half.
 	return context.target_unit != leoleth

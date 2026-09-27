@@ -86,7 +86,7 @@ func get_valid_reroll_targets(_core:BuffCore, context:Context) -> Array[Unit]:
 			Unit.is_valid(target) and
 			target != context.target_unit and
 			target != context.unit and
-			target.is_actor()
+			target.is_character()
 		)
 	)
 	return targets

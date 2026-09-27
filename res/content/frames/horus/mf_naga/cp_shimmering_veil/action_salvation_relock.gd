@@ -71,7 +71,7 @@ static func still_locked(loser:Unit) -> bool:
 static func is_a_hostile_character_within_sensors(naga:Unit, loser:Unit) -> bool:
 	if not Unit.is_valid(loser) or loser == naga: return false
 	if not UnitRelation.are_enemies(naga, loser): return false
-	if not loser.is_actor(): return false
+	if not loser.is_character(): return false
 	return UnitRelation.distance_between(naga, loser) <= naga.get_sensor_range()
 
 func activate(context:Context, activation:EventCore) -> void:

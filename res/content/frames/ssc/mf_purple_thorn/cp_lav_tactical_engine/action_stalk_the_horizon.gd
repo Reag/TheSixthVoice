@@ -54,7 +54,7 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if not Unit.is_valid(unit) or not Unit.is_valid(mover): return false
 	if not UnitRelation.can_affect(unit, mover): return false
 	if not UnitRelation.are_enemies(unit, mover): return false # "hostile"
-	if not mover.is_actor(): return false # "character" (row 301: not a drone, not an object)
+	if not mover.is_character(): return false # "character" (row 301: not a drone, not an object)
 	if not MovementType.is_contextual_move_reactable(context): return false # "starts to move"
 	if not UnitRelation.can_see(unit, mover): return false # "in Line of Sight" - the trait's own gate
 	if get_possible_auxes(unit, mover).is_empty(): return false # "with an Auxiliary weapon"

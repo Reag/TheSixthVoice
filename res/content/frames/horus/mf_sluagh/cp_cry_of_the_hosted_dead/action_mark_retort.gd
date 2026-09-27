@@ -100,7 +100,7 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	# A mech or a pilot, never a drone - the mod's settled reading of "character" (rulings 194, 64/70
 	# and 269). The .tres's require_defender_to_be_character does NOT deliver this, because
 	# Unit.is_character() is true of a drone (unit.gd:116-117). See the header.
-	if not defender.is_actor(): return false
+	if not defender.is_character(): return false
 	# The seam, ruling 6: is_adjacent, never a radius, with the SLUAGH as the first argument so it is
 	# the Sluagh's buffs that are read.
 	return UnitRelation.is_adjacent(unit, defender)

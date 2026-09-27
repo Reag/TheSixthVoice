@@ -78,7 +78,7 @@ static func is_you_or_an_allied_character_within_sensors_and_sight(black_mountai
 	if not Unit.is_valid(attacker): return false
 	if attacker == black_mountain: return true
 	if not UnitRelation.are_allies(black_mountain, attacker): return false
-	if not attacker.is_actor(): return false
+	if not attacker.is_character(): return false
 	if UnitRelation.distance_between(black_mountain, attacker) > black_mountain.get_sensor_range(): return false
 	return UnitRelation.can_see(black_mountain, attacker)
 

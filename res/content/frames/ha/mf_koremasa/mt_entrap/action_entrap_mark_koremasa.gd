@@ -19,7 +19,7 @@ const MARK_ID := &'buff_entrap_mark'
 func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> bool:
 	if not super.triggers_on_event(unit, gear, triggering_event): return false
 	var defender:Unit = triggering_event.context.target_unit
-	return Unit.is_valid(defender) and defender.is_actor()
+	return Unit.is_valid(defender) and defender.is_character()
 
 func activate(context:Context, activation:EventCore) -> void:
 	var defender:Unit = context.event.context.target_unit

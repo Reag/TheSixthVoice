@@ -85,7 +85,7 @@ static func is_structure_damage_to_a_hostile_mech(black_mountain:Unit, context:C
 ## THIS BLACK MOUNTAIN's own gear (M-1 fix: scoped by source, so a second Black Mountain is unaffected).
 static func can_benefit(black_mountain:Unit, dealer:Unit, gear:GearCore) -> bool:
 	if not Unit.is_valid(dealer) or dealer == black_mountain: return false
-	if not dealer.is_actor() or not UnitRelation.are_allies(black_mountain, dealer): return false
+	if not dealer.is_character() or not UnitRelation.are_allies(black_mountain, dealer): return false
 	if UnitRelation.distance_between(black_mountain, dealer) > black_mountain.get_sensor_range(): return false
 	if not UnitRelation.can_see(black_mountain, dealer): return false
 	var source:StringName = gear.persistent_id if GearCore.is_valid(gear) else &''

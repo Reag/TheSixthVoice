@@ -138,7 +138,7 @@ static func is_hijackable(rakshasa:Unit, context:Context) -> bool:
 	if not Unit.is_valid(context.unit) or not Action.is_valid(context.action): return false
 	var attacker:Unit = context.unit.get_attacker(context)
 	# "A hostile character": is_actor(), the mod-wide rule (rulings row 301) - a drone is not one.
-	if not Unit.is_valid(attacker) or attacker == rakshasa or not attacker.is_actor(): return false
+	if not Unit.is_valid(attacker) or attacker == rakshasa or not attacker.is_character(): return false
 	if not UnitRelation.are_enemies(rakshasa, attacker): return false
 	# "Within Sensors": the Rakshasa's live Sensors, measured the way Draw Fire measures it.
 	if UnitRelation.distance_between(rakshasa, attacker) > rakshasa.get_sensor_range(): return false
@@ -162,12 +162,12 @@ static func alternatives(rakshasa:Unit, context:Context) -> Array[Unit]:
 	var excluded:Array[Unit] = [rakshasa, attacker, context.unit]
 	if is_area(specific, summary):
 		for caught:Unit in summary.all_attacked_units:
-			if excluded.has(caught) or not Unit.is_valid(caught) or not caught.is_actor(): continue
+			if excluded.has(caught) or not Unit.is_valid(caught) or not caught.is_character(): continue
 			Util.append_nonduplicate(candidates, caught)
 		return candidates
 	var tiles:Array[Vector2i] = UnitTargeting.get_tiles_targetable(specific)
 	for other:Unit in rakshasa.map.get_all_characters():
-		if excluded.has(other) or not Unit.is_valid(other) or not other.is_actor(): continue
+		if excluded.has(other) or not Unit.is_valid(other) or not other.is_character(): continue
 		if summary.all_attacked_units.has(other): continue
 		if not other.occupied_tiles().any(func(tile:Vector2i) -> bool: return tiles.has(tile)): continue
 		if not specific.action.can_target_unit(other, specific): continue

@@ -53,7 +53,7 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 
 	# by a hostile character
 	var shooter:Unit = triggering_context.unit
-	if not Unit.is_valid(shooter) or not shooter.is_actor(): return false
+	if not Unit.is_valid(shooter) or not shooter.is_character(): return false
 	if not UnitRelation.are_enemies(shooter, unit): return false
 
 	# standing strictly lower

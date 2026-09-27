@@ -73,7 +73,7 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	var attacker:Unit = triggering.unit.get_attacker(triggering)
 	if not is_an_allied_character_shielded_by(unit, attacker): return false
 	var defender:Unit = triggering.target_unit
-	if not Unit.is_valid(defender) or not defender.is_actor(): return false
+	if not Unit.is_valid(defender) or not defender.is_character(): return false
 	if UnitRelation.distance_between(unit, defender) > unit.get_sensor_range(): return false
 	return UnitRelation.can_see(unit, defender)
 
@@ -81,7 +81,7 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 static func is_an_allied_character_shielded_by(black_mountain:Unit, attacker:Unit) -> bool:
 	if not Unit.is_valid(attacker) or attacker == black_mountain: return false
 	if not UnitRelation.are_allies(black_mountain, attacker): return false
-	if not attacker.is_actor(): return false
+	if not attacker.is_character(): return false
 	return Overshield.is_granted_by(attacker, black_mountain)
 
 func activate(context:Context, activation:EventCore) -> void:

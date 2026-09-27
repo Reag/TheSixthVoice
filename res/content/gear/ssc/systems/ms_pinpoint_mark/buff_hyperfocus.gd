@@ -49,7 +49,7 @@ func triggers_on_event(core:BuffCore, unit:Unit, triggering_event:EventCore) -> 
 	if context.unit != unit: return false
 	for attacked:Unit in context.resource.all_attacked_units:
 		if not Unit.is_valid(attacked) or attacked == focus: continue
-		if attacked.is_actor() and UnitRelation.are_enemies(unit, attacked): return true
+		if attacked.is_character() and UnitRelation.are_enemies(unit, attacked): return true
 	return false
 
 func activate(core:BuffCore, activation:EventCore) -> void:

@@ -85,6 +85,6 @@ func damager(context:Context, holder:Unit) -> Unit:
 	if not Unit.is_valid(context.target_unit): return null
 	var them:Unit = context.target_unit.get_owner_unit_or_self()
 	if not Unit.is_valid(them): return null
-	if not them.is_actor(): return null
+	if not them.is_character(): return null
 	if not UnitRelation.are_enemies(holder, them): return null
 	return them

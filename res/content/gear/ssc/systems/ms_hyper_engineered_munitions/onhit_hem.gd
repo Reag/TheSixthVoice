@@ -22,7 +22,7 @@ func should_abort(stage:STAGE, activation:EventCore, attacked_unit:Unit) -> bool
 	if not Unit.is_valid(attacked_unit) or not Unit.is_valid(activation.context.unit): return true
 	var attacker:Unit = activation.context.unit.get_attacker(activation.context)
 	if not Unit.is_valid(attacker): return true
-	if not attacked_unit.is_actor(): return true
+	if not attacked_unit.is_character(): return true
 	if not UnitRelation.are_enemies(attacker, attacked_unit): return true
 	return await super(stage, activation, attacked_unit)
 

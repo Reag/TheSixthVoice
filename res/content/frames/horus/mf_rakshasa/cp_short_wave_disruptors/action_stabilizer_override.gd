@@ -29,7 +29,7 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if not super.triggers_on_event(unit, gear, triggering_event): return false
 	if not Core.holds(unit, Core.MODE.STABILIZER_OVERRIDE): return false
 	var defender:Unit = triggering_event.context.target_unit
-	if not Unit.is_valid(defender) or not defender.is_actor(): return false
+	if not Unit.is_valid(defender) or not defender.is_character(): return false
 	if defender.has_status(Lancer.STATUS.PRONE): return false
 	return not UnitCondition.is_immune_to_status(defender, Lancer.STATUS.PRONE, gear.persistent_id)
 

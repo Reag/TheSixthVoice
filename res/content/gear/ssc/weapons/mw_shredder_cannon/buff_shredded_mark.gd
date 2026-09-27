@@ -15,4 +15,4 @@ func is_buff_context_valid_for_passive(core:BuffCore, context:Context) -> bool:
 func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 	if not super(core, context): return false
 	var attacker:Unit = context.unit.get_attacker(context)
-	return Unit.is_valid(attacker) and attacker.is_actor()
+	return Unit.is_valid(attacker) and attacker.is_character()
