@@ -131,4 +131,7 @@ func activate(context:Context, activation:EventCore) -> void:
 	if activation.abort_without_unit(unit): return
 
 	spend_actions(activation)
-	await Overshield.grant(activation, chosen, amount)
+	# grant_by, not grant (close-out Pass D): the same grant plus the Black Mountain family's hidden
+	# "granted by" mark, so Overshield.is_granted_by(chosen, unit) answers. Nothing reads it for the
+	# Myconid today; it is taken for uniformity, and a null gear would degrade to the plain grant.
+	await Overshield.grant_by(activation, chosen, amount, context.gear)
