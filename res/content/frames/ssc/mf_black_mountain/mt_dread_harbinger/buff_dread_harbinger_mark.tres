@@ -1,0 +1,17 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/mt_dread_harbinger/buff_dread_harbinger_mark.gd" id="1_mark"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_dread_harbinger.svg" id="2_icon"]
+
+; DREAD HARBINGER's mark on the locked target (ruling 9; the script's header has the order). until = 0
+; is Lancer.UNTIL.MANUAL: the lock may be consumed rounds later, and the mark clears itself when the
+; lock is lost. trigger_timing = 1 (POST): statuses_changed at POST is a status CLEARED. VISIBLE (the
+; author's call), with its own name and effect rows in the card's words; it carries no status of its
+; own - the Lock On beside it is a real vanilla status. SP3: wears the trait Kit's own glyph (one
+; family with mt_dread_harbinger).
+[resource]
+script = ExtResource("1_mark")
+until = 0
+triggers_on = Array[StringName]([&"statuses_changed"])
+trigger_timing = 1
+icon = ExtResource("2_icon")

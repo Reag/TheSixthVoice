@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+
+; THE OVERSHIELD "GRANTED BY" MARK (Black Mountain SP1, design ruling 5). Hung by
+; Overshield.grant_by / increase_by with from_gear = the granter's gear, so get_owner_unit() names the
+; granter and Overshield.is_granted_by can answer "with OVERSHIELD you granted" for An End to All
+; Things. A plain Buff: no script, no `to`, no trigger - it is a label with a lifetime.
+;
+; until = 10 is Lancer.UNTIL.LOSE_OVERSHIELD ("aceso stabilizer, emperor eventually", lancer.gd:55):
+; event_unit_damage clears it the moment damage zeroes the shield (event_unit_damage.gd:175-177), and
+; the resident Emperor's Storm Shield / Darian Regalia clears do the same. A LARGER grant from anyone
+; else does NOT end it (the author's call: the mark lives while any Overshield remains). It also ends
+; with the granter (the default is_cleared_on_owner_death).
+;
+; NOT EVERY WAY TO ZERO THE SHIELD GOES THROUGH THAT CLEAR (frame close finding 1, Important): heat on
+; a zero-heat-cap actor (event_unit_damage's heat()->damage() branch) and the Pegasus Omnigun's direct
+; EventUnitDamage.damage() both spend Overshield with no LOSE_OVERSHIELD clear, so this mark can go
+; stale. Overshield.is_granted_by() guards the read side (false whenever the unit holds no Overshield
+; right now, mark or no mark) - see overshield.gd's "granted by" section header.
+;
+; HIDDEN: the Overshield number on the token is the player-facing surface; a second chip saying "and
+; the Black Mountain gave it to you" would be noise. No rows, no icon (design ruling 15).
+[resource]
+script = ExtResource("1_buff")
+until = 10
+hide_from_player = true

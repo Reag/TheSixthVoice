@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Buff" format=3]
+
+[ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="1_buff"]
+
+; EXALT's "a character can only benefit from this effect 1/round" (ruling 11): a plain hidden marker on the
+; ally, applied from the core gear so its owner is the Black Mountain. until 6 is
+; Lancer.UNTIL.START_OF_OWNERS_TURN - it clears at the Black Mountain's own turn start, where Exalt's
+; per-round tally resets too (ruling 3), and with the Black Mountain's death. No rows, no icon.
+[resource]
+script = ExtResource("1_buff")
+until = 6
+hide_from_player = true

@@ -42,12 +42,13 @@ const ALT_FRAMES := {
 	&'li_goblin': {frame = &'mf_rakshasa', rank = 2}, # Rakshasa, the Goblin alt (SP1, 2026-09-26)
 	&'li_deaths_head': {frame = &'mf_lovers_knot', rank = 2}, # Lovers Knot, the Death's Head alt (SP1, 2026-09-26)
 	&'li_sunzi': {frame = &'mf_six_sky', rank = 2}, # Six Sky, the Sunzi alt - the base is ANOTHER MOD's (SP1, 2026-09-26)
+	&'li_emperor': {frame = &'mf_black_mountain', rank = 2}, # Black Mountain, the Emperor alt - the base is ANOTHER MOD's (SP1, 2026-09-27)
 }
 
 ## The vanilla licences the alts extend, with the rank each alt attaches to, and the frame that
-## licence grants there today. Eleven of the thirteen alts - li_sunzi from the resident
-## gavstarb-ha_sunzi, the rest from the modkit; the other two have no base here (see
-## test_the_alts_without_a_base_are_known_absent).
+## licence grants there today. Twelve of the thirteen alts - li_sunzi from the resident
+## gavstarb-ha_sunzi, li_emperor from the resident gavstarb-ssc_emperor, the rest from the modkit; the
+## last has no base here (see test_the_alts_without_a_base_are_known_absent).
 ##
 ## Read as: "before we touch it, li_barbarossa grants exactly mf_barbarossa at rank 2". An alt adds
 ## its frame to that array; it must never replace or reorder what is already there, because
@@ -64,15 +65,17 @@ const BASE_LICENSES := {
 	&'li_goblin':         {rank = 2, frame = &'mf_goblin',        alt = 'Rakshasa'},
 	&'li_deaths_head':    {rank = 2, frame = &'mf_deaths_head',   alt = 'Lovers Knot'},
 	&'li_sunzi':          {rank = 2, frame = &'mf_sunzi',         alt = 'Six Sky'},
+	&'li_emperor':        {rank = 2, frame = &'mf_emperor',       alt = 'Black Mountain'},
 }
 
 ## Alts whose base frame this modkit does not ship. Lancer Tactics has the core book complete and
 ## nothing from the KTB or the Long Rim, so these have nowhere to attach. The Six Sky left this table
-## on 2026-09-26 (its SP1): its base, the Sunzi, comes from the resident gavstarb-ha_sunzi, and it is
-## now built and pinned in ALT_FRAMES / BASE_LICENSES like the rest. Named rather than
-## quietly missing, so "why is Seraphim not built" has an answer in the suite and not just in a doc.
+## on 2026-09-26 (its SP1): its base, the Sunzi, comes from the resident gavstarb-ha_sunzi. The Black
+## Mountain left it on 2026-09-27 (its SP1): its base, the Emperor, comes from the resident
+## gavstarb-ssc_emperor. Both are now built and pinned in ALT_FRAMES / BASE_LICENSES like the rest.
+## Named rather than quietly missing, so "why is Seraphim not built" has an answer in the suite and
+## not just in a doc.
 const ALTS_WITHOUT_A_BASE := {
-	'Black Mountain': {license = &'li_emperor', why = 'Emperor (SSC, KTB) - the ssc-emperor mod, optional dependency, phase 6'},
 	'Seraphim': {license = &'li_lich', why = 'Lich (HORUS, Long Rim) - no mod adds the Lich; BLOCKED'},
 }
 
@@ -108,7 +111,7 @@ func _license_paths_by_id() -> Dictionary:
 ## ALT_FRAMES row. It is the tripwire for an alt silently dropping out of the table - a frame that
 ## stops being granted would otherwise just make the loop below shorter, and a shorter loop reads
 ## exactly like a pass.
-const ALTS_BUILT := 11
+const ALTS_BUILT := 12
 
 ## The same tripwire for BASE_LICENSES, which ALTS_BUILT does not cover. Three tests below loop over
 ## it, and emptying it ENTIRELY is caught indirectly (test_every_alt_frame_reaches_its_licence
@@ -116,7 +119,7 @@ const ALTS_BUILT := 11
 ## all three loops simply get quieter, and GUT marks a zero-assert test RISKY rather than FAILED
 ## (gut.gd:581, :821), so the suite still reads green while the baseline it pins has evaporated.
 ## Bump this only when a row is added or removed deliberately.
-const BASE_LICENSES_PINNED := 11
+const BASE_LICENSES_PINNED := 12
 
 func test_the_baseline_table_is_intact():
 	assert_eq(BASE_LICENSES.size(), BASE_LICENSES_PINNED,
@@ -215,7 +218,8 @@ func test_the_alts_without_a_base_are_known_absent():
 	#
 	# The second case was added 2026-09-16, when gavstarb-ssc_emperor joined the residency set and
 	# tripped the old blanket assert_false. Before that the distinction could not arise: no
-	# third-party mod was ever installed in a test run.
+	# third-party mod was ever installed in a test run. li_emperor stays in the loop below even now
+	# that the Black Mountain is built on it: the MODKIT shipping it would still re-cut phase 6.
 	# See lancer-tactics-claude/specs/2026-09-16-mod-compatibility-design.md §1.7.
 	#
 	# Asked of the licence paths rather than through _license(), which would route each miss through

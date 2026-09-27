@@ -1,0 +1,27 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/mt_dread_harbinger/action_dread_harbinger.gd" id="1_action"]
+
+; DREAD HARBINGER's lock (ruling 8; the script's header has the gates). trigger_timing 1 is POST: the
+; roll block that applies require_crit is behind `if trigger_timing == POST`
+; (action_reaction_attacked.gd:101-107), and the AttackRoll the crit is read off exists only there.
+; consumes_rxn false: a trait, not a reaction point; the 1/round is the script's hard limit. Its own
+; usage_group (the Kit carries one action, but the group is spelled out as every reaction here is).
+; RELATION { ANY 0, ALLIES 1, ENEMIES 2 } (action_reaction_attacked.gd:12): the TARGET is an enemy of
+; the Black Mountain; the ATTACKER is ANY, because it may be the Black Mountain itself - the script adds
+; the "or an allied character within Sensors and line of sight" clause. allow_tech and allow_basic both
+; default FALSE and both are set: "critically hits", unqualified - a basic-weapon crit locks, and a tech
+; crit would if the engine allowed one (it does not: ActionAttack.can_crit is false, action_attack.gd:48,
+; measured; the flag is the card's wording and costs nothing). SP3: one glyph family with
+; buff_dread_harbinger_mark.
+[resource]
+script = ExtResource("1_action")
+usage_group = &"action_dread_harbinger"
+triggers_on = Array[StringName]([&"attack"])
+trigger_timing = 1
+consumes_rxn = false
+require_crit = true
+require_attacker_relation = 0
+require_defender_relation = 2
+allow_tech = true
+allow_basic = true

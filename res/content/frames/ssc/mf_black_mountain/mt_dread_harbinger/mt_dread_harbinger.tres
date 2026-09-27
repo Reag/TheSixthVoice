@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="2_action"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/mt_dread_harbinger/action_dread_harbinger.tres" id="3_action"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_dread_harbinger.svg" id="4_icon"]
+
+; DREAD HARBINGER (design 1.3, rulings 8-9): one ATTACK POST crit reaction, automatic, 1/round as a
+; trait, that Locks On the target of a crit by the Black Mountain or an allied character within its
+; Sensors and line of sight, and hangs the VISIBLE mark buff_dread_harbinger_mark that pays 1d6
+; Overshield when that lock is consumed. The Kit's effect row is the card; the reaction is drawn under
+; its own name. SP3: one glyph family with the mark.
+[resource]
+script = ExtResource("1_kit")
+actions = Array[ExtResource("2_action")]([ExtResource("3_action")])
+is_trait = true
+icon_override = ExtResource("4_icon")

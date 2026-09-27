@@ -956,3 +956,24 @@ gear.mw_daykeeper_cycler_bow.effect,This weapon gains +1 |Accuracy| against targ
 gear.mw_daykeeper_cycler_bow.on_crit,Choose yourself or the target to be immediately |teleported=lancer.term.teleport| to a free space within |Range| 2 of their space.
 gear.mw_daykeeper_cycler_bow.crit_self,Yourself
 gear.mw_daykeeper_cycler_bow.crit_target,The target
+frame.mf_black_mountain.name,Black Mountain
+frame.mf_black_mountain.flavor.short,Herald of Glory
+frame.mf_black_mountain.flavor,"The Emperor speaks of progress, of solutions to doors and breaking down the world atom by atom. The Black Mountain is the secondary approach, the soft key, the twisting of the locks and teasing apart of secrets. The Broadcasts provided the perfect set of doors for Smith Shimano to pick, and behind them lay secrets long left hidden. Here! In this code, is the key to that which is truly immortal, the door whom has plagued all mankind for so long. This is no fair task. The Emperor stood as the peak of accomplishment, an unimpeded leviathan of the sum total of all the greatest works. One can not reinvent the bow, it is the apex of its own form. And yet, there is always another peak to climb, another height to reach, another life to live, and another story to tell. Here! Take up your arms, brace your spirit, take heart oh implement of violence, climb that Black Mountain, and write your name in fire across the sky!"
+gear.mt_an_end_to_all_things.name,An End to All Things
+gear.mt_an_end_to_all_things.effect,"2/round, when an allied |character| with |OVERSHIELD| you granted makes a successful attack roll against a hostile |character| within |sensors| and |line of sight|, you may take 1 |heat| to have them deal +3 |bonus damage|."
+gear.mt_an_end_to_all_things.action_an_end_to_all_things.name,An End to All Things
+gear.buff_an_end_to_all_things_bonus.name,An End to All Things
+gear.mt_dread_harbinger.name,Dread Harbinger
+gear.mt_dread_harbinger.effect,"1/round, whenever the Black Mountain or an allied |character| within |Sensors| and |line of sight| critically hits, the target receives |Lock On|. Additionally, when this |Lock On| is consumed, the Black Mountain gains 1d6 |Overshield|."
+gear.mt_dread_harbinger.action_dread_harbinger.name,Dread Harbinger
+gear.buff_dread_harbinger_mark.name,Dread Harbinger
+gear.buff_dread_harbinger_mark.effect,"When this |Lock On| is consumed, the Black Mountain gains 1d6 |Overshield|."
+gear.cp_blackstone_bell.name,Blackstone Bell
+gear.cp_blackstone_bell.effect,Bringer of Glory: Gain the Exalt |reaction|.
+gear.cp_blackstone_bell.action_exalt.name,Exalt
+gear.cp_blackstone_bell.action_exalt.trigger,An allied |character| within |Sensors| and |line of sight| destroys or deals structure damage to a hostile mech |character|.
+gear.cp_blackstone_bell.action_exalt.effect,The triggering allied |character| gains |Overshield| equal to 1 + |GRIT|. If they already have |Overshield| it increases by that much instead. A |character| can only benefit from this effect 1/round.
+gear.cp_blackstone_bell.action_fell_the_mighty.name,Fell the mighty
+gear.cp_blackstone_bell.action_fell_the_mighty.effect,"Choose a hostile |character| within |sensors| and |line of sight|, they are DOOMED for the rest of the scene. Allies attacks against a DOOMED |character| have +1 |Accuracy| and whenever an allied |character| deals damage to them, they increase their |Overshield| by 1. This ability is |Efficient| and will refund 1 Core Point at the end of any scene in which this ability was used."
+gear.buff_doomed.name,DOOMED
+gear.buff_doomed.effect,"Allies attacks against a DOOMED |character| have +1 |Accuracy| and whenever an allied |character| deals damage to them, they increase their |Overshield| by 1."

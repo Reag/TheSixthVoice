@@ -6,6 +6,13 @@
 # of churn. test_the_frozen_interface_pins_these_five_signatures is the guard, and it pins the whole
 # signature - argument order, names, types, and return type - not only that a name survives.
 #
+# THE BLACK MOUNTAIN (SP1, 2026-09-27) ADDED THREE PUBLIC FUNCTIONS - grant_by, increase_by,
+# is_granted_by - and the hidden mark buff_overshield_granted_by (design ruling 5), and changed ONE
+# frozen body: increase() now sends `boolean = true` on the event (ruling 6, a compat fix the resident
+# Emperor mod reads). The pin below now names EIGHT public functions and FAILS ON A NINTH: the
+# underscore-prefixed helpers are private by convention and are not counted. The "granted by" section
+# at the end of this file is that sub-project's addition.
+#
 # WHAT THE HELPER IS FOR. Overshield is one engine event, and it does exactly one surprising thing:
 # event_unit_overshield sets max(old, amount) and NEVER adds (event_unit_overshield.gd:15). Every
 # card that says "gains OVERSHIELD equal to X" wants that; the three that say "increases by that much
@@ -16,6 +23,7 @@
 extends GutTest
 
 const MyconidFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/myconid_fixture.gd')
+const BlackMountainFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/black_mountain_fixture.gd')
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
 
 const SUBJECT_TILE := Vector2i(4, 4)
@@ -60,6 +68,32 @@ const FROZEN_SIGNATURES := {
 	grit = {
 		args = [['unit', TYPE_OBJECT, &'Unit']],
 		return_type = TYPE_INT, return_class = &'',
+	},
+	# The Black Mountain's three (SP1, ruling 5). Frozen the moment SP1 ships, like the five above.
+	grant_by = {
+		args = [
+			['event', TYPE_OBJECT, &'EventCore'],
+			['target', TYPE_OBJECT, &'Unit'],
+			['amount', TYPE_INT, &''],
+			['granter_gear', TYPE_OBJECT, &'GearCore'],
+		],
+		return_type = TYPE_NIL, return_class = &'',
+	},
+	increase_by = {
+		args = [
+			['event', TYPE_OBJECT, &'EventCore'],
+			['target', TYPE_OBJECT, &'Unit'],
+			['amount', TYPE_INT, &''],
+			['granter_gear', TYPE_OBJECT, &'GearCore'],
+		],
+		return_type = TYPE_NIL, return_class = &'',
+	},
+	is_granted_by = {
+		args = [
+			['unit', TYPE_OBJECT, &'Unit'],
+			['granter', TYPE_OBJECT, &'Unit'],
+		],
+		return_type = TYPE_BOOL, return_class = &'',
 	},
 }
 
@@ -115,16 +149,18 @@ func dummy() -> EventCore:
 
 # ---------------------------------------------------------------- the interface itself
 
-func test_the_frozen_interface_pins_these_five_signatures():
+func test_the_frozen_interface_pins_these_eight_signatures():
 	# Roadmap 4 freezes this list when SP1 ships. This pins the FULL signature of each of the five -
 	# argument count, each argument's name and order, each argument's type, and the return type - not
 	# only that the name survives. A rename, a reordered parameter, or a changed argument/return type
 	# is five later frames' worth of churn, and nothing else in the suite would notice any of those
 	# until those frames are written.
 	#
-	# Deliberately does NOT fail if a sixth function is added: the Infection precedent
-	# (infection.gd, task-4-brief.md) is that a later sub-project extends the file with every earlier
-	# spec still green, so this only pins the five that exist today.
+	# It FAILS ON A NINTH PUBLIC FUNCTION (Black Mountain SP1, design 1.2 - the Lock-on pin's shape).
+	# The Infection precedent (a later sub-project extends the file with every earlier spec still
+	# green) still holds for BEHAVIOUR; a new NAME is a new contract, and the sub-project that adds
+	# one updates this table in the same commit. Underscore-prefixed functions are private by
+	# convention (the shared _fire / _mark_if_took paths) and are not counted.
 	#
 	# Through a Script-typed local, not Overshield.get_script_method_list() directly: GDScript reads a
 	# preloaded script constant as a CLASS in a call position, and refuses the call at parse time -
@@ -133,6 +169,10 @@ func test_the_frozen_interface_pins_these_five_signatures():
 	var script:Script = Overshield
 	var by_name:Dictionary = {}
 	for entry:Dictionary in script.get_script_method_list(): by_name[entry.name] = entry
+
+	var public:Array = by_name.keys().filter(func(name:String) -> bool: return not name.begins_with('_'))
+	assert_eq(public.size(), FROZEN_SIGNATURES.size(),
+		'Exactly %d public functions - a ninth is a new contract and belongs in this table: %s' % [FROZEN_SIGNATURES.size(), public])
 
 	for required:String in FROZEN_SIGNATURES:
 		assert_true(by_name.has(required), 'Overshield.%s survives.' % required)
@@ -336,3 +376,190 @@ func test_increase_refreshes_the_cache_too_by_inheriting_grants():
 	await Overshield.increase(dummy(), unit, 3)
 	assert_eq(Overshield.current(unit), 5, 'fixture: 2 + 3, not max(2, 3).')
 	assert_eq(unit.get_sensor_range(), base + 5, 'And the cache followed the additive gain too.')
+
+# ---------------------------------------------------------------- "granted by" (Black Mountain SP1)
+#
+# Design ruling 5: grant_by / increase_by are grant / increase plus a hidden mark
+# (buff_overshield_granted_by, until = LOSE_OVERSHIELD, from_gear = the granter's gear) applied only when
+# the grant TOOK; is_granted_by resolves the mark's owner. The granter here is another dummy's own
+# basic improvised attack gear - any GearCore with an owner will do, and the fixture's dummies carry the
+# basic loadout.
+
+const MARK := &'buff_overshield_granted_by'
+const GRANTER_GEAR := &'mw_improvised_attack'
+
+func granter_gear(granter:Unit) -> GearCore: return granter.get_gear(GRANTER_GEAR)
+func marks_on(target:Unit) -> int: return UnitCondition.get_buffs(target, MARK).size()
+
+func test_a_grant_that_took_marks_the_target_as_granted_by_the_granter():
+	var granter := MyconidFixture.create_ally(game, Vector2i(6, 4))
+	await Overshield.grant_by(dummy(), unit, 3, granter_gear(granter))
+	assert_eq(Overshield.current(unit), 3, 'fixture: the grant landed.')
+	assert_eq(marks_on(unit), 1, 'One mark.')
+	assert_true(Overshield.is_granted_by(unit, granter), 'And it resolves to the granter.')
+	assert_false(Overshield.is_granted_by(unit, unit), 'Not to anyone else.')
+	if marks_on(unit) < 1: return
+	assert_true(UnitCondition.get_buffs(unit, MARK)[0].base.hide_from_player, 'The mark is hidden (ruling 15).')
+	assert_eq(UnitCondition.get_buffs(unit, MARK)[0].base.until, Lancer.UNTIL.LOSE_OVERSHIELD, 'And lives while any Overshield remains.')
+
+func test_a_grant_that_lost_to_a_larger_shield_marks_nothing():
+	var granter := MyconidFixture.create_ally(game, Vector2i(6, 4))
+	await Overshield.grant(dummy(), unit, 5)
+	await Overshield.grant_by(dummy(), unit, 3, granter_gear(granter))
+	assert_eq(Overshield.current(unit), 5, 'fixture: the max rule kept the 5.')
+	assert_eq(marks_on(unit), 0, 'The granter did not grant that shield.')
+	assert_false(Overshield.is_granted_by(unit, granter), 'So is_granted_by is false.')
+
+func test_a_grant_equal_to_the_current_shield_still_marks():
+	# The max rule made the NUMBER a no-op; the card did not. "amount asked >= what it held" marks.
+	var granter := MyconidFixture.create_ally(game, Vector2i(6, 4))
+	await Overshield.grant(dummy(), unit, 3)
+	await Overshield.grant_by(dummy(), unit, 3, granter_gear(granter))
+	assert_eq(Overshield.current(unit), 3, 'fixture: unchanged.')
+	assert_true(Overshield.is_granted_by(unit, granter), 'Refreshed as the granter\'s.')
+
+func test_a_shield_lost_outside_the_damage_event_is_not_granted_by_anyone():
+	# Frame close finding 1 (Important): event_unit_damage's own damage() static (called directly by
+	# the Pegasus's Ushabti Omnigun, action_fire_omnigun.gd:60, and reached internally by heat() on a
+	# zero-heat-cap actor) spends Overshield with NO event and NO LOSE_OVERSHIELD clear - so the mark
+	# is left behind on a unit that no longer holds any Overshield at all. is_granted_by() must read
+	# false regardless, not just "no larger grant beat it".
+	var granter := MyconidFixture.create_ally(game, Vector2i(6, 4))
+	await Overshield.grant_by(dummy(), unit, 1, granter_gear(granter))
+	EventUnitDamage.damage(unit, 1, Lancer.DAMAGE_TYPE.KINETIC) # the Omnigun's path: no event, no clear
+	assert_eq(Overshield.current(unit), 0, 'fixture: the shield is gone.')
+	assert_eq(marks_on(unit), 1, 'fixture: and the engine left the mark behind (the gap this pins).')
+	assert_false(Overshield.is_granted_by(unit, granter), 'No Overshield, so nothing is "granted by" anyone.')
+
+func test_the_granters_death_ends_the_mark_when_the_granter_is_core_gear():
+	# Finding 3b: every OTHER granter in this file is BASIC gear (mw_improvised_attack), and basic
+	# gear is skipped by clear_outgoing_buffs_from_unit's get_all_gear(false) (loadout_core.gd:
+	# 511-518), so a mark from a basic-gear granter actually SURVIVES that granter's death - the
+	# helper's header claim ("ends the mark with the granter") is untrue for that shape and only
+	# reads correct because is_granted_by's OWN Unit.is_valid(granter) guard also goes false. Pin the
+	# real production shape instead: the Black Mountain's CORE gear (traits ARE in get_all_gear), the
+	# one grant_overshield_by actually uses.
+	var bm_game := BlackMountainFixture.create_game(self)
+	var black_mountain := BlackMountainFixture.create_black_mountain(bm_game, Vector2i(4, 4))
+	var target := BlackMountainFixture.create_ally(bm_game, Vector2i(6, 4))
+	await BlackMountainFixture.grant_overshield_by(black_mountain, target, 3)
+	assert_true(Overshield.is_granted_by(target, black_mountain), 'fixture: marked.')
+	await bm_game.execute_event(&'event_unit_die', {unit = black_mountain})
+	assert_eq(UnitCondition.get_buffs(target, MARK).size(), 0,
+		'The mark went with the granter: core gear IS cleared on owner death.')
+	assert_false(Overshield.is_granted_by(target, black_mountain), 'is_granted_by reads false too.')
+
+func test_damage_that_zeroes_the_shield_clears_the_mark():
+	# event_unit_damage.gd:175-177: the moment old_overshield != new and new <= 0, every LOSE_OVERSHIELD
+	# buff on the unit is cleared. The subject is a 200-HP dummy, so nobody dies.
+	var granter := MyconidFixture.create_ally(game, Vector2i(6, 4))
+	await Overshield.grant_by(dummy(), unit, 3, granter_gear(granter))
+	assert_true(Overshield.is_granted_by(unit, granter), 'fixture: marked.')
+	await game.execute_event(&'event_unit_damage', {unit = unit, number = 2, category = Lancer.DAMAGE_TYPE.KINETIC})
+	assert_eq(Overshield.current(unit), 1, 'fixture: 2 of the 3 soaked, 1 remains.')
+	assert_true(Overshield.is_granted_by(unit, granter), 'Still marked while any remains.')
+	await game.execute_event(&'event_unit_damage', {unit = unit, number = 4, category = Lancer.DAMAGE_TYPE.KINETIC})
+	assert_eq(Overshield.current(unit), 0, 'fixture: the shield is gone.')
+	assert_eq(marks_on(unit), 0, 'And the mark went with it.')
+	assert_false(Overshield.is_granted_by(unit, granter), 'is_granted_by reads false.')
+
+func test_a_larger_grant_from_somebody_else_leaves_the_mark():
+	# The author's call (ruling 5): the mark lives while ANY Overshield remains, whoever topped it up.
+	var granter := MyconidFixture.create_ally(game, Vector2i(6, 4))
+	await Overshield.grant_by(dummy(), unit, 3, granter_gear(granter))
+	await Overshield.grant(dummy(), unit, 9)
+	assert_eq(Overshield.current(unit), 9, 'fixture: the foreign grant won the number.')
+	assert_true(Overshield.is_granted_by(unit, granter), 'The mark stays.')
+
+func test_the_same_granter_granting_again_refreshes_rather_than_stacks():
+	var granter := MyconidFixture.create_ally(game, Vector2i(6, 4))
+	await Overshield.grant_by(dummy(), unit, 2, granter_gear(granter))
+	await Overshield.grant_by(dummy(), unit, 4, granter_gear(granter))
+	assert_eq(marks_on(unit), 1, 'apply_buff_alt\'s same-source replacement: one mark, not two.')
+
+func test_two_granters_hold_two_marks():
+	var first := MyconidFixture.create_ally(game, Vector2i(6, 4))
+	var second := MyconidFixture.create_ally(game, Vector2i(8, 4))
+	await Overshield.grant_by(dummy(), unit, 2, granter_gear(first))
+	await Overshield.grant_by(dummy(), unit, 4, granter_gear(second))
+	assert_eq(marks_on(unit), 2, 'Two sources, two marks.')
+	assert_true(Overshield.is_granted_by(unit, first), 'The first is still a granter (the shield never hit 0).')
+	assert_true(Overshield.is_granted_by(unit, second), 'And so is the second.')
+
+func test_increase_by_adds_and_marks():
+	var granter := MyconidFixture.create_ally(game, Vector2i(6, 4))
+	await Overshield.grant(dummy(), unit, 2)
+	await Overshield.increase_by(dummy(), unit, 3, granter_gear(granter))
+	assert_eq(Overshield.current(unit), 5, '2 + 3.')
+	assert_true(Overshield.is_granted_by(unit, granter), 'Marked.')
+
+func test_a_null_or_invalid_granter_gear_degrades_to_the_plain_call_with_no_mark():
+	# DOOMED's +1 after the Black Mountain is destroyed takes this path (ruling 13).
+	await Overshield.grant_by(dummy(), unit, 3, null)
+	assert_eq(Overshield.current(unit), 3, 'The shield still lands.')
+	assert_eq(marks_on(unit), 0, 'No mark without a granter.')
+	await Overshield.increase_by(dummy(), unit, 2, null)
+	assert_eq(Overshield.current(unit), 5, 'increase_by too.')
+	assert_eq(marks_on(unit), 0, 'Still no mark.')
+
+func test_granted_by_calls_inherit_the_no_op_and_validity_guards():
+	var granter := MyconidFixture.create_ally(game, Vector2i(6, 4))
+	log_lines = []
+	await Overshield.grant_by(dummy(), unit, 0, granter_gear(granter))
+	await Overshield.increase_by(dummy(), unit, -1, granter_gear(granter))
+	await Overshield.grant_by(dummy(), null, 3, granter_gear(granter))
+	assert_eq(Overshield.current(unit), 0, 'Nothing changed.')
+	assert_eq(marks_on(unit), 0, 'Nothing marked.')
+	assert_true(log_lines.is_empty(), 'No event fired.')
+
+func test_is_granted_by_is_null_safe():
+	var granter := MyconidFixture.create_ally(game, Vector2i(6, 4))
+	assert_false(Overshield.is_granted_by(null, granter), 'No unit.')
+	assert_false(Overshield.is_granted_by(unit, null), 'No granter.')
+	assert_false(Overshield.is_granted_by(unit, granter), 'Nothing granted yet.')
+
+# ---------------------------------------------------------------- the event data (ruling 6)
+
+## Reads what the resident Emperor mod's Imperial Vestment reads: the overshield event's context at
+## PRE, through the trigger that mod's event_unit_overshield.gd_ext.gd fires. Vanilla has no overshield
+## trigger, so this is the only listener that can see the data - and it is exactly the consumer the flag
+## exists for. Records `boolean` and never acts.
+class BooleanWatcher extends ActionReaction:
+	var seen:Array[bool] = []
+	func _init() -> void:
+		triggers_on = [&'overshield_emperor']
+		trigger_timing = ReactionBus.TIMING.PRE
+		consumes_rxn = false
+	func show_in_tooltip(_kit:Kit) -> bool: return false
+	func get_per_round_hard_limit(_specific:SpecificAction) -> int: return 99
+	func get_required_triggering_context() -> Array[Context.PROP]: return [Context.PROP.unit]
+	func triggers_on_event(_unit:Unit, _gear:GearCore, _triggering_event:EventCore) -> bool: return true
+	func activate(context:Context, _activation:EventCore) -> void:
+		seen.append(context.event.context.boolean)
+
+func skipped_without_the_emperor_trigger() -> bool:
+	var script:Script = load('res://content/events/event_unit_overshield.gd')
+	while script != null:
+		if script.source_code.contains('overshield_emperor'): return false
+		script = script.get_base_script()
+	var message := 'SKIPPED: gavstarb-ssc_emperor is not resident, so no trigger exposes the overshield event data. Restore the residency set with restore-links.ps1.'
+	gut.p(message)
+	pass_test(message)
+	return true
+
+func test_increase_sends_boolean_true_on_the_event_and_grant_does_not():
+	if skipped_without_the_emperor_trigger(): return
+	var watcher := BooleanWatcher.new()
+	var kit := Kit.new()
+	kit.compcon_id = &'overshield_spec_boolean_watcher'
+	kit.is_trait = true
+	kit.actions.append(watcher)
+	unit.core.loadout.equipped_kits.append(kit)
+	SpecFactory.apply_passive_buffs(unit)
+	await Overshield.grant(dummy(), unit, 2)
+	await Overshield.increase(dummy(), unit, 1)
+	await Overshield.grant_by(dummy(), unit, 4, granter_gear(unit))
+	await Overshield.increase_by(dummy(), unit, 1, granter_gear(unit))
+	assert_eq(watcher.seen, [false, true, false, true] as Array[bool],
+		'grant and grant_by carry no boolean; increase and increase_by say boolean = true (ruling 6).')
+	assert_eq(Overshield.current(unit), 5, 'fixture: 2, 3, 4, 5 - the arithmetic is untouched on a non-Emperor.')

@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '1.1.0'
+const EXPECTED_VERSION := '1.2.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -92,6 +92,34 @@ func test_the_manifest_version_matches_the_release_this_mod_claims_to_be():
 	if manifest == null: return
 	assert_eq(manifest.version_number, EXPECTED_VERSION,
 		'manifest.json version_number matches EXPECTED_VERSION - bump both together next release.')
+
+const OUR_LOCALIZATION_CSV := 'res://unpacked/Reag-TheSixthVoice/localization/localizations.csv'
+
+func test_every_localization_csv_row_has_the_headers_column_count():
+	# Frame close I-1 (Black Mountain), C-1: gear.buff_doomed.effect went out unquoted with a comma in
+	# it ("them, they"), so Python's csv module (and Godot's own comma-delimited get_csv_line) split it
+	# into THREE fields instead of two. It imported without error - the compiled artifact just carried
+	# a truncated row - and nothing here or in check_content.py checked column counts. This is the
+	# SECOND time this exact trap has hit (test_jormungandr_nhp.test_the_six_comma_bearing_lines_
+	# survived_the_csv's six barks were the first, quoted correctly that time only because someone
+	# happened to check). A standing guard beats hoping the next author remembers to quote.
+	var file := FileAccess.open(OUR_LOCALIZATION_CSV, FileAccess.READ)
+	assert_not_null(file, '%s opens.' % OUR_LOCALIZATION_CSV)
+	if file == null: return
+	var header:PackedStringArray = file.get_csv_line()
+	var expected_columns:int = header.size()
+	assert_eq(expected_columns, 2, 'fixture: the header is id,en.')
+	var offenders:Array[String] = []
+	while file.get_position() < file.get_length():
+		var line:PackedStringArray = file.get_csv_line()
+		# A genuinely blank line comes back as a single empty field - not an offender.
+		if line.size() == 1 and line[0].is_empty(): continue
+		if line.size() != expected_columns:
+			offenders.append('%s (%d columns, expected %d)' % [line[0], line.size(), expected_columns])
+	file.close()
+	for offender:String in offenders: gut.p('  %s' % offender)
+	assert_eq(offenders.size(), 0,
+		'Every keyed row in localizations.csv has exactly %d columns - an unquoted comma splits one.' % expected_columns)
 
 func test_this_mods_translation_reached_the_translation_server():
 	# NOT a test of what Mod Manage displays. Mod Manage shows ModCore.tr_label()
@@ -1127,6 +1155,20 @@ const ICON_TARGETS := {
 	# it regardless of hide_if_disabled (that flag is not part of the helper's model) - the
 	# mt_solfataric_breach shape, a trait and the action it exists to create share one glyph. KIT.
 	&'mt_starsickness': {&'action_starsickness': KIT},
+	# SP1 (Black Mountain). An End to All Things: one ATTACK POST reaction that never reaches the gear
+	# bar and hides itself from the trait card (show_in_tooltip false: the Kit's effect row is the
+	# card), so nothing the player sees wears an icon for it - the mt_blasting_powder reasoning. Its
+	# hidden one-time +3 buff is drawn nowhere. SP3: the Kit's glyph is the family.
+	&'mt_an_end_to_all_things': {},
+	# SP1 (Black Mountain). Dread Harbinger: the same shape - one hidden crit reaction. Its VISIBLE mark
+	# buff_dread_harbinger_mark is in VISIBLE_BUFFS below and will wear the trait's glyph (one family).
+	&'mt_dread_harbinger': {},
+	# SP1-SP2 (Black Mountain). BLACKSTONE BELL, the core Kit. Bringer of Glory has no action of its own:
+	# the Kit's effect row is its sentence, and EXALT, the real reaction it grants, wears the Kit's glyph
+	# (a trait and the action it creates share one glyph). FELL THE MIGHTY, the Protocol on the gear bar,
+	# is its OWN family with buff_doomed (design section 3: a two-part core power is exactly two
+	# families). action_efficient_refund hides itself and is correctly absent. SP3: icons.
+	&'cp_blackstone_bell': {&'action_exalt': KIT, &'action_fell_the_mighty': &'action_fell_the_mighty'},
 	# SP2 (Six Sky). ORS "DAYKEEPER" CYCLER BOW, the core Kit: its only action is Ritual of the First
 	# God, its OWN family (design section 3, the two-part core power's second half), distinct from the
 	# Kit's own glyph, which it shares with mw_daykeeper_cycler_bow below - one weapon, one picture, on
@@ -1451,6 +1493,11 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# buff_heavenly_weaver_watch is NOT listed - the pair is one mechanic, and the watcher is never a
 	# chip on the unit.
 	&'buff_heavenly_weaver',
+	# SP1 (Black Mountain). Dread Harbinger's mark on the locked target, visible per ruling 9 (the
+	# author's call): the on-token sign that THIS Lock On pays the Black Mountain when consumed. Its own
+	# rows. The helper's buff_overshield_granted_by and the +3 bonus buff are hidden and correctly absent.
+	&'buff_dread_harbinger_mark',
+	&'buff_doomed', # SP2 (Black Mountain): Fell the Mighty's mark, the Fell the Mighty family.
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

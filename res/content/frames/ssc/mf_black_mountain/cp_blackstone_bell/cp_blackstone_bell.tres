@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+[ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="2_action"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/cp_blackstone_bell/action_exalt.tres" id="3_exalt"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/cp_blackstone_bell/action_fell_the_mighty.tres" id="4_fell"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/cp_blackstone_bell/action_efficient_refund.tres" id="5_refund"]
+[ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="6_passive"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/efficient/passive_efficient_used.tres" id="7_stamp"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_blackstone_bell.svg" id="8_icon"]
+
+; BLACKSTONE BELL, the core system (design section 2). SP1 shipped it as a shell; SP2 fills it:
+; - Bringer of Glory, the passive: the Kit's own effect row IS its sentence ("Gain the Exalt reaction"),
+;   and action_exalt is the reaction it grants, drawn under its own name, trigger and effect rows.
+; - Fell the Mighty, the Protocol (action_fell_the_mighty), hanging buff_doomed on a hostile.
+; - The Efficient pair: the Black Mountain's own action_efficient_refund (the shared reaction script) and
+;   the shared passive_efficient_used.tres.
+; The cp_ prefix is load-bearing (kit.gd:66). SP3: two glyph families (Bringer of Glory / Exalt on the
+; Kit, Fell the Mighty / DOOMED on the action - memory icon-glyph-families).
+[resource]
+script = ExtResource("1_kit")
+; EACH ACTION CARRIES ITS OWN usage_group (the Subutai SP2 lesson). The refund hides itself from the card
+; (show_in_tooltip false).
+actions = Array[ExtResource("2_action")]([ExtResource("3_exalt"), ExtResource("4_fell"), ExtResource("5_refund")])
+; THE EFFICIENT STAMP IS LOAD-BEARING, not decoration: GearCore.short_repair throws away every gear-state
+; key except those of PassiveDieCounter passives with resets_on_spawn = false (gear_core.gd:144-150), and
+; every spawn runs short_repair - without it the refund's unit_spawn half reads an empty state.
+passives = Array[ExtResource("6_passive")]([ExtResource("7_stamp")])
+is_trait = true
+icon_override = ExtResource("8_icon")
