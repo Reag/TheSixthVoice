@@ -22,6 +22,11 @@
 # attack d20, a rerolled d20 when one is taken, then the d6, which the fixture's tail makes a 3 - so
 # a hit deals 5.
 #
+# EVERY "NOTHING WAS OFFERED" TEST PROVES ITS ATTACK HAPPENED (Pass F, open item D). "No prompt and no
+# damage" also reads true of an attack that never ran, so each one hangs a RollRecorder (test_ddmr.gd's
+# instrument) and asserts the roll exists and still shows the MISS that was queued - a reroll would
+# have replaced it (event_unit_attack.gd:300 rerolls the same AttackRoll in place).
+#
 #   powershell -ExecutionPolicy Bypass -File D:/DEV/lancer-tactics-claude/tools/run-hidden.ps1 -Log <ssd log> --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_juxtaposition_augments.gd
 extends GutTest
 
@@ -32,6 +37,10 @@ const HOSTILE_TILE := Vector2i(4, 5)
 
 const HIT := 15
 const MISS := 1
+## A runtime Main Melee with BURST 1 (the install_on pattern, test_superpositional_profile.gd): the
+## multi-target clause of onhit_juxtaposition_augments.gd needs one attack that rolls twice.
+const AREA_MELEE := &'spec_juxtaposition_area_melee'
+const SECOND_HOSTILE_TILE := Vector2i(2, 5)
 const CRIT := 20
 const DAMAGE := 5
 ## The Koremasa's heat cap is 8; the DANGER ZONE is half, rounded up.
@@ -60,6 +69,25 @@ func before_each() -> void:
 
 func after_each() -> void:
 	Dice.CHEAT_ROLL_QUEUE.clear()
+
+## A passive that never applies and only keeps references to the AttackRolls it was shown. Copied from
+## test_ddmr.gd's RollRecorder (itself test_biting_retort.gd's) - see that file for why it can be
+## trusted: check_if_passive_applies is polled with the live roll already built, returns false so it
+## is never collected or consumed, and the roll is mutated in place afterwards, so the same reference
+## reads back the final result. `rolls` adds every distinct roll in order, for the multi-target case.
+class RollRecorder extends Buff:
+	var last_roll:AttackRoll = null
+	var rolls:Array[AttackRoll] = []
+
+	func _init() -> void:
+		to = Buff.TO.MODIFY_ATTACK_ROLL
+		hide_from_player = true
+
+	func check_if_passive_applies(_core:BuffCore, context:Context) -> bool:
+		if AttackRoll.is_valid(context.object):
+			last_roll = context.object
+			if not rolls.has(last_roll): rolls.append(last_roll)
+		return false ## never actually a modifier, so never collected and never consumed
 
 # ---------------------------------------------------------------- helpers
 
@@ -91,6 +119,32 @@ func reroll_prompts() -> Array[Dictionary]:
 	return found
 
 func lost(before:int) -> int: return before - hostile.core.current.health
+
+## Hang a fresh RollRecorder on the Koremasa (the attacker's buffs are polled too,
+## event_unit_attack.gd:356) and hand it back. Hang it AFTER fit(): that re-applies passive buffs.
+func watch_roll() -> RollRecorder:
+	var recorder := RollRecorder.new()
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), koremasa, recorder)
+	return recorder
+
+## The attack happened, and its d20 is still the MISS that was queued: nothing rerolled it.
+func assert_missed_unrerolled(recorder:RollRecorder, what:String) -> void:
+	assert_true(recorder.last_roll != null and recorder.last_roll.base_roll == MISS,
+		'LIVENESS: %s really rolled, and kept its MISS (got %s).' % [what,
+			recorder.last_roll.base_roll if recorder.last_roll != null else 'no roll'])
+
+## A Main Melee Kit built at runtime from the GMS main melee's own attack, with a BURST 1 pattern.
+func install_area_melee() -> GearCore:
+	var source:Kit = ContentLibrary.get_kit(Fixture.MELEE)
+	var action:ActionAttackWeapon = source.get_weapon_actions()[0].create_duplicate_for_variant()
+	action.range_pattern = RangePattern.create(Lancer.AOE_TYPE.BURST, 1)
+	var kit := Kit.new()
+	kit.compcon_id = AREA_MELEE
+	kit.actions.append(action)
+	koremasa.core.loadout.equipped_kits.append(kit)
+	koremasa.core.full_repair()
+	UnitTile.update_tracking_and_statuses(game.map)
+	return koremasa.get_gear(AREA_MELEE)
 
 # ---------------------------------------------------------------- the profile
 
@@ -172,7 +226,9 @@ func test_only_the_first_attack_is_offered():
 	await attack([HIT])
 	assert_eq(reroll_prompts().size(), 1, 'LIVENESS: the first attack was offered.')
 	var before := hostile.core.current.health
+	var recorder := watch_roll()
 	await attack([MISS, HIT])
+	assert_missed_unrerolled(recorder, 'the second attack')
 	assert_eq(reroll_prompts().size(), 1, 'The second attack was not.')
 	assert_eq(lost(before), 0, 'So its miss stood.')
 
@@ -192,7 +248,9 @@ func test_outside_the_danger_zone_nothing_is_offered():
 	fit()
 	await Fixture.open_turn(game, koremasa)
 	var before := hostile.core.current.health
+	var recorder := watch_roll()
 	await attack([MISS, HIT])
+	assert_missed_unrerolled(recorder, 'the out-of-zone attack')
 	assert_eq(reroll_prompts().size(), 0, 'Not in the Danger Zone: no reroll.')
 	assert_eq(lost(before), 0, 'The miss stood.')
 
@@ -203,9 +261,39 @@ func test_an_out_of_zone_first_attack_spends_the_turns_chance():
 	assert_eq(chips().size(), 0, 'The first attack spent the chip, in the Danger Zone or not (ruling 30).')
 	Fixture.set_heat(game, koremasa, DANGER)
 	var before := hostile.core.current.health
+	var recorder := watch_roll()
 	await attack([MISS, HIT])
+	assert_missed_unrerolled(recorder, 'the later in-zone attack')
 	assert_eq(reroll_prompts().size(), 0, 'So a later in-zone attack that turn is not offered.')
 	assert_eq(lost(before), 0, 'Its miss stood.')
+
+# ---------------------------------------------------------------- one attack, two targets
+
+## onhit_juxtaposition_augments.gd:8-9: "A multi-target attack spends it on the first target's roll, as
+## the engine does." One Burst 1 swing in the Danger Zone at two hostiles: the first roll MISSES and is
+## offered, the reroll hits, and the second target's roll - a MISS that could be rerolled if the chip
+## were still there - is offered nothing.
+func test_a_multi_target_attack_spends_it_on_the_first_targets_roll():
+	var area := install_area_melee()
+	assert_true(GearCore.is_valid(area), 'fixture: the runtime area melee is equipped.')
+	if not GearCore.is_valid(area): return
+	var mod := Fixture.fit_mod(koremasa, Fixture.JUXTAPOSITION_ID, AREA_MELEE)
+	assert_not_null(mod, 'fixture: the mod fits the area melee.')
+	if mod == null: return
+	var second := Fixture.create_hostile(game, SECOND_HOSTILE_TILE)
+	await Fixture.open_turn(game, koremasa)
+	Fixture.set_heat(game, koremasa, DANGER)
+	assert_eq(chips().size(), 1, 'fixture: the chip is live.')
+	var recorder := watch_roll()
+	await attack([MISS, HIT, MISS], AREA_MELEE)
+	assert_eq(recorder.rolls.size(), 2, 'LIVENESS: one attack, two rolls.')
+	if recorder.rolls.size() != 2: return
+	var targets := [recorder.rolls[0].target_unit, recorder.rolls[1].target_unit]
+	assert_true(targets.has(hostile) and targets.has(second), 'fixture: both hostiles were in the burst.')
+	assert_eq(recorder.rolls[0].base_roll, HIT, 'The first target\'s MISS was rerolled into a hit.')
+	assert_eq(reroll_prompts().size(), 1, 'Exactly one reroll prompt, on the first target.')
+	assert_eq(chips().size(), 0, 'The chip is consumed.')
+	assert_eq(recorder.rolls[1].base_roll, MISS, 'The second target\'s MISS stood: offered nothing.')
 
 # ---------------------------------------------------------------- the weapon and the turn
 
