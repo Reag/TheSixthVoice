@@ -17,6 +17,9 @@
 #      answered by responder.chosen_move_tile; Tile.INVALID cancels;
 #   3. the target - the helper's reticle (Teleport.pick_tile), answered from
 #      responder.chosen_plan_queue; CompconPlan.create_aborted() cancels.
+# THE MENU OFFERS ONLY WHAT CAN HAPPEN (Pass F section 6.1 #2): an option whose teleport the engine
+# would refuse (Immobilized, a ban, no free space) is dropped, and with nothing left no menu is raised -
+# so the indices above hold only when both options survive.
 # The Six Sky's own Starsickness offers a yes/no whenever it teleports a hostile; declined by default
 # (chosen_yesnos = false) and queued explicitly where a test wants it.
 #
@@ -25,6 +28,7 @@ extends GutTest
 
 const Fixture := preload('res://unpacked/Reag-TheSixthVoice/spec/six_sky_fixture.gd')
 const PromptWatcher := preload('res://testkit/prompt_watcher.gd')
+const Teleport := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/teleport/teleport.gd')
 
 const SIX_SKY_TILE := Vector2i(4, 4)
 const AT_FIVE := Vector2i(9, 4)
@@ -227,11 +231,15 @@ func test_a_dead_target_leaves_only_yourself_on_the_menu():
 		'Only yourself is offered.')
 
 func test_immobilized_stops_the_self_teleport():
+	# Pass F section 6.1 #2: the menu offers only what can happen, so "Yourself" is not on it at all.
 	UnitCondition.apply_status(SpecFactory.dummy_event(), six_sky, Lancer.STATUS.IMMOBILIZED, Lancer.UNTIL.MANUAL)
-	responder.multiple_choice_queue.assign([0])
+	responder.multiple_choice_queue.assign([-1])
 	responder.chosen_move_tile = SELF_LANDING
 	await crit()
 	assert_eq(responder.multiple_choice_prompts.size(), 1, 'fixture: the menu was raised.')
+	assert_eq(menu_labels(), PackedStringArray([tr('gear.mw_daykeeper_cycler_bow.crit_target')]),
+		'Immobilized: "Yourself" is not offered, only the target.')
+	assert_eq(move_pathfinders().size(), 0, 'No move picker opens.')
 	assert_eq(six_sky.tile(), SIX_SKY_TILE, 'Immobilized: the preventable self teleport does not happen.')
 
 func test_immobilized_does_not_stop_the_target_teleport():
@@ -248,21 +256,56 @@ func test_an_enemy_interdiction_field_stops_the_self_teleport():
 	# d20 20 into a non-crit.
 	var warden := Fixture.create_dummy(game, Vector2i(6, 6))
 	UnitCondition.apply_buff_id(SpecFactory.dummy_event(), warden, INTERDICTION_FIELD)
-	responder.multiple_choice_queue.assign([0])
+	responder.multiple_choice_queue.assign([-1])
 	responder.chosen_move_tile = SELF_LANDING
 	await crit()
 	assert_eq(responder.multiple_choice_prompts.size(), 1, 'fixture: the menu was raised.')
+	assert_eq(menu_labels(), PackedStringArray([tr('gear.mw_daykeeper_cycler_bow.crit_target')]),
+		'A ban on the Six Sky: "Yourself" is not offered, only the target.')
+	assert_eq(move_pathfinders().size(), 0, 'No move picker opens.')
 	assert_eq(six_sky.tile(), SIX_SKY_TILE, 'A ban stops the self teleport.')
 
 func test_an_allied_interdiction_field_stops_the_target_teleport():
-	# An ALLY of the Six Sky holding the field 1 from the target bans the target, its enemy.
+	# An ALLY of the Six Sky holding the field 1 from the target bans the target, its enemy. The shove is
+	# target-tile, so the ban would refuse it (event_unit_move.gd:139-146): the author's ruling
+	# (2026-09-27, Pass F T2) is that "The target" is then not offered at all.
 	var warden := Fixture.create_ally(game, Vector2i(12, 5))
 	UnitCondition.apply_buff_id(SpecFactory.dummy_event(), warden, INTERDICTION_FIELD)
-	responder.multiple_choice_queue.assign([1])
+	responder.multiple_choice_queue.assign([-1])
 	responder.chosen_plan_queue.append(landing_plan(TARGET_LANDING))
 	await crit()
-	assert_eq(pick_prompts().size(), 1, 'fixture: the reticle opened.')
+	assert_eq(responder.multiple_choice_prompts.size(), 1, 'fixture: the menu was raised.')
+	assert_eq(menu_labels(), PackedStringArray([tr('gear.mw_daykeeper_cycler_bow.crit_self')]),
+		'A ban on the target: "The target" is not offered, only yourself.')
+	assert_eq(pick_prompts().size(), 0, 'No reticle opens.')
 	assert_eq(hostile.tile(), AT_SEVEN, 'A ban stops the target teleport (Teleport.shove is target-tile).')
+
+func test_a_boxed_in_target_is_not_offered():
+	# Every free space within 2 of the target filled: the shove would have nowhere to go.
+	var corner := Vector2i(15, 0)
+	UnitTile.move_to(hostile, corner)
+	UnitTile.update_tracking_and_statuses(game.map)
+	var around := Teleport.candidate_tiles(hostile, 2, false)
+	assert_false(around.is_empty(), 'PRECONDITION: the corner has free spaces within 2 before boxing.')
+	for tile:Vector2i in around: Fixture.create_dummy(game, tile)
+	assert_true(Teleport.candidate_tiles(hostile, 2, false).is_empty(), 'fixture: the target is boxed in.')
+	var specific := bow()
+	responder.multiple_choice_queue.assign([-1])
+	var activation := SpecFactory.dummy_event({unit = six_sky, gear = specific.gear, action = specific.action})
+	await load(Fixture.BOW_SCRIPT).resolve_crit_teleport(activation, six_sky, hostile)
+	assert_eq(responder.multiple_choice_prompts.size(), 1, 'fixture: the menu was raised.')
+	assert_eq(menu_labels(), PackedStringArray([tr('gear.mw_daykeeper_cycler_bow.crit_self')]),
+		'Boxed in: "The target" is not offered, only yourself.')
+
+func test_nothing_possible_raises_no_menu():
+	# An Immobilized Six Sky crits terrain: "Yourself" cannot happen and a ground proxy is no target.
+	UnitCondition.apply_status(SpecFactory.dummy_event(), six_sky, Lancer.STATUS.IMMOBILIZED, Lancer.UNTIL.MANUAL)
+	var proxy := TargetActionUtil.create_targeting_proxy(Vector2i(4, 1), null, 1, &'dep_attack_ground_proxy')
+	assert_true(Unit.is_valid(proxy), 'PRECONDITION: the proxy is a valid unit, as the engine makes it.')
+	responder.multiple_choice_queue.assign([-1])
+	await load(Fixture.BOW_SCRIPT).resolve_crit_teleport(SpecFactory.dummy_event(), six_sky, proxy)
+	assert_eq(responder.multiple_choice_prompts.size(), 0, 'Nothing can happen, so no menu is raised.')
+	assert_eq(six_sky.tile(), SIX_SKY_TILE)
 
 func test_a_cancelled_target_pick_teleports_nobody():
 	responder.multiple_choice_queue.assign([1])
