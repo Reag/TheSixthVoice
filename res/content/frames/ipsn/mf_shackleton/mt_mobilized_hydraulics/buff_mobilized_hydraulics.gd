@@ -5,11 +5,10 @@
 ## the Improvised Attack (both weapon_type MELEE, size NONE) count - ruling 6, the author's call.
 ##
 ## The round limit is hand-rolled because the engine enforces none for a buff-triggered effect
-## (reaction_bus.gd:126-139); buff_knock_em_down.gd is the shape. The gate is read twice per attack
-## and the difference matters: event_unit_attack_declared.gd:42 collects on-hit buffs ONCE before
-## any target is rolled (that list is what on_resolution later runs over, so the arming is always
-## cleared), and event_unit_attack.gd:48 collects them again per target (that list is what on_attack
-## runs over, so a second target in the same attack is not re-offered once the round is spent).
+## (reaction_bus.gd:126-139); buff_knock_em_down.gd is the shape. event_unit_attack.gd:48 collects the
+## on-hit buffs again per target, and that list is what on_attack runs over, so a second target in the
+## same attack is not re-offered once the round is spent. (The arming itself is a stamp on the
+## attack's DeclaredAttackSummary since Pass F task 10, so nothing needs clearing at on_resolution.)
 extends BuffWeaponTypeOnHit
 
 const TRAIT_ID:StringName = &'mt_mobilized_hydraulics'

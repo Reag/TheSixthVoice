@@ -14,7 +14,7 @@
 #
 # NOT TESTED, AND WHY: the multi-target melee case. No vanilla melee weapon has an area (every
 # weapon_type = 2 mw_*.tres under content/gear was checked, 2026-09-24), so there is nothing to swing
-# it with; the state-flag shape that would serve it is argued in onhit_mobilized_hydraulics.gd.
+# it with; the per-attack stamp that would serve it is argued in onhit_mobilized_hydraulics.gd.
 #
 #   powershell -ExecutionPolicy Bypass -File D:/DEV/lancer-tactics-claude/tools/run-hidden.ps1 -Log <ssd log> --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_mobilized_hydraulics.gd
 extends GutTest
@@ -130,3 +130,30 @@ func test_once_a_round() -> void:
 	var next:Dictionary = await attack(Fixture.PIKE, [true])
 	assert_eq(next.prompts, 1, 'a new round offers it again.')
 	assert_eq(next.reach, 3, 'and it works.')
+
+func test_a_stale_arming_does_not_reach_an_unrelated_attack() -> void:
+	# Pass F task 10 (open-items G): the arming used to be a state flag on the trait's GearCore, read by
+	# the knockback buff with no check that the attack in progress was the one that armed it - a flag
+	# left set (a missed on_resolution, a save/load) handed +2 to the next attack of any kind. It is
+	# stamped on the attack's own DeclaredAttackSummary now, so a flag on the gear means nothing.
+	await Fixture.open_turn(game, shackleton)
+	Fixture.spend_hydraulics(shackleton) # the round is spent, so this Ram is not offered it
+	shackleton.get_gear(Fixture.HYDRAULICS_ID).set_state('armed', true)
+	var ram:Dictionary = await attack(Fixture.RAM, [true])
+	assert_eq(ram.prompts, 0, 'fixture: nothing offered.')
+	assert_eq(ram.reach, 1, 'the Ram pushes its own 1.')
+
+func test_an_ai_shackleton_takes_it_without_asking() -> void:
+	# "the AI always takes it" (onhit_mobilized_hydraulics.gd): no prompt, the round spent, and the +2
+	# folds into the same push. An AI knocker raises no reticle (target_action_util.gd:47-75), so the
+	# push is measured by where the target lands: a must-move-max straight push of 3 ends 3 away.
+	var ai := Fixture.create_shackleton(game, Vector2i(10, 8), Faction.AI_ENEMY)
+	Fixture.equip(ai, Fixture.PIKE)
+	var start := Vector2i(12, 8)
+	var victim := Fixture.create_dummy(game, start, -10, Faction.PLAYER)
+	var before:int = watcher.prompts.size()
+	await Fixture.swing(game, ai, victim)
+	assert_eq(hydraulics_prompts(before), 0, 'the AI is not asked.')
+	assert_eq(Fixture.offered_pools(watcher, before).size(), 0, 'and raises no reticle.')
+	assert_eq(Fixture.hydraulics_uses(ai), 1, 'the round is spent.')
+	assert_eq(Tile.distance(start, victim.tile()), 3, 'the pike\'s Knockback 1 became 3.')
