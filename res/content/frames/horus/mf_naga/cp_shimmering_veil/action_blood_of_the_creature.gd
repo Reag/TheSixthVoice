@@ -15,8 +15,8 @@
 # "a drone acts as its owner"). Weapon and tech attacks alike: an invade consuming Lock On counts.
 #
 # THE GATE, in the card's order: the lock was consumed; the locked target is an ENEMY of the Naga;
-# the consumer is the Naga itself, or an allied CHARACTER (is_actor, ruling 21 - an unowned drone is
-# not one) within the Naga's live Sensors (distance_between <= get_sensor_range(), no line of sight:
+# the consumer is the Naga itself, or an allied CHARACTER (is_character(), a drone included - ruling
+# 2026-09-27) within the Naga's live Sensors (distance_between <= get_sensor_range(), no line of sight:
 # the card names Sensors only). Eyes of Night is the mod's "you or an allied character within
 # Sensors" clause verbatim. PURE: the bus polls this several times per attack (the SP1 probe), so no
 # spend, stamp or prompt lives here.
@@ -64,7 +64,7 @@ static func is_you_or_an_allied_character_within_sensors(naga:Unit, consumer:Uni
 	if not Unit.is_valid(consumer): return false
 	if consumer == naga: return true
 	if not UnitRelation.are_allies(naga, consumer): return false
-	if not consumer.is_actor(): return false
+	if not consumer.is_character(): return false
 	return UnitRelation.distance_between(naga, consumer) <= naga.get_sensor_range()
 
 func activate(context:Context, activation:EventCore) -> void:

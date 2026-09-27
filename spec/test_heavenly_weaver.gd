@@ -87,12 +87,13 @@ func test_teleporting_a_hostile_arms_it():
 	assert_eq(hostile.tile(), OTHER_DEST, 'CONTROL: the hostile landed.')
 	assert_true(armed(), 'A hostile is another character too.')
 
-func test_teleporting_a_drone_does_not_arm_it():
+func test_teleporting_a_drone_arms_it():
+	# A drone is a character (rulings.md, mod-wide row of 2026-09-27, reversing row 301/ruling 4).
 	var drone:Unit = Fixture.create_drone(game, OTHER_TILE, Faction.PLAYER)
 	await Fixture.shove(six_sky, drone, OTHER_DEST)
 	assert_eq(drone.tile(), OTHER_DEST, 'CONTROL: the drone landed.')
-	assert_false(armed(), 'A drone is not a character (ruling 4).')
-	assert_eq(Fixture.weaver_uses(six_sky), 0, 'And the round is untouched.')
+	assert_true(armed(), 'A drone is a character (ruling 2026-09-27), so teleporting it arms the chip.')
+	assert_eq(Fixture.weaver_uses(six_sky), 1, 'And the round is spent.')
 
 func test_a_hostile_teleporting_the_six_sky_does_not_arm_it():
 	var hostile:Unit = Fixture.create_hostile(game, OTHER_TILE)

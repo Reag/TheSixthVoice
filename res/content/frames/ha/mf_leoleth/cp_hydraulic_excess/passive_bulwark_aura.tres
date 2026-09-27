@@ -17,7 +17,6 @@ applies_to_enemies = true
 ; Gated on the face chip, so the dome exists only on a 5. PassiveAura.update_unit turns the whole
 ; aura off unless the AURA UNIT holds this buff (passive_aura.gd:40-42).
 requires_buff = ExtResource("3_chip")
-; applies_only_to_characters is left at its true default (passive_aura.gd:11) and is only the CHEAP
-; FIRST GATE: it is is_character(), which is TRUE of a DRONE (unit.gd:116), so the script NARROWS it
-; to is_actor(). starts_active is left at its true default (:18) because the gate is requires_buff,
+; applies_only_to_characters is left at its true default (passive_aura.gd:11): it is is_character(),
+; the card's word, a drone included (rulings.md, mod-wide row of 2026-09-27). starts_active is left at its true default (:18) because the gate is requires_buff,
 ; not the gear toggle - SpecFactory.apply_passive_buffs sets is_aura_active on every gear.

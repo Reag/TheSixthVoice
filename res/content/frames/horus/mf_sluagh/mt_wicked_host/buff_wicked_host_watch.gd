@@ -17,33 +17,27 @@
 ##  - "the Sluagh is HIT": context.target_unit is the holder, and context.object.hit. ONE
 ##    event_unit_attack is queued per attacked unit (event_unit_attack_declared.gd:54-65), so an AoE
 ##    that catches the Sluagh arms exactly one chip however many units it hit.
-##  - "an attack made by a HOSTILE CHARACTER": UnitRelation.are_enemies plus **is_actor**, asked of
+##  - "an attack made by a HOSTILE CHARACTER": UnitRelation.are_enemies plus **is_character**, asked of
 ##    context.unit.get_attacker(context) and NOT of context.unit - a relayed attack (the Ghast's
 ##    nexus, Buff.TO.SET_ATTACK_RELAY) puts the relay in context.unit and get_attacker resolves it.
 ##    PreAttack.create resolves the same way at attack_roll.gd:122.
 ##
-##    THE PAIR - get_attacker() THEN is_actor() - IS THE WHOLE OF RULING 70, AND IT IS THIS FRAME'S
-##    ONLY ATTACKER-SIDE CLAUSE. The mod's settled reading of "character" is that a DRONE IS NOT ONE
-##    IN ITS OWN RIGHT, AND WHERE A DRONE ACTS, IT ACTS AS ITS OWNER (rulings 194, 64 and 70, 269;
-##    the canonical paragraph is in
-##    mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd's header). Everywhere
-##    else on the Sluagh a drone is something a card is asked to shelter, guard, drag, target or
-##    count, and there the bare is_actor() refuses it. Here the drone ACTS, and get_attacker ->
-##    get_owner_unit_or_self (unit.gd:270-282) hands back the mech that deployed it - so AN OWNED
-##    HOSTILE DRONE'S HIT ARMS THE CHIP, as its owner's hit, exactly as Draw Fire's ruling 70 has it.
-##    Draw Fire itself is the precedent: ActionReactionAttacked:66 resolves the same way.
+##    THE PAIR - get_attacker() THEN is_character() - IS RULING 70's ATTRIBUTION, UNCHANGED BY THE
+##    MEMBERSHIP RULING (2026-09-27, mod-wide: "character" is is_character(), a drone included; the
+##    canonical paragraph is in
+##    mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd's header). get_attacker
+##    -> get_owner_unit_or_self (unit.gd:270-282) hands back the mech that deployed an OWNED drone,
+##    so AN OWNED HOSTILE DRONE'S HIT STILL ARMS THE CHIP as its owner's hit, exactly as Draw Fire's
+##    ruling 70 has it. Draw Fire itself is the precedent: ActionReactionAttacked:66 resolves the
+##    same way.
 ##
-##    AN UNOWNED DRONE ARMS NOTHING, and that is the half is_actor() delivers on its own:
-##    get_owner_unit returns null when deployable_owner_id is empty (unit.gd:264-268), so
-##    get_attacker returns the drone itself and is_actor() refuses it. The same is true of a drone
-##    carrying Buff.TO.SET_ATTACK_ROOT, which makes get_attacker return `self` outright
-##    (unit.gd:281) - an Engineer turret that takes responsibility for its own shots is a drone
-##    acting in its own right, and this card does not see one. Both halves are pinned:
+##    AN UNOWNED DRONE NOW ALSO ARMS THE CHIP, IN ITS OWN RIGHT: get_owner_unit returns null when
+##    deployable_owner_id is empty (unit.gd:264-268), so get_attacker returns the drone itself - and a
+##    drone passes is_character() too. The same is true of a drone carrying Buff.TO.SET_ATTACK_ROOT,
+##    which makes get_attacker return `self` outright (unit.gd:281) - an Engineer turret that takes
+##    responsibility for its own shots now arms this the same way. Both halves are pinned:
 ##    test_an_owned_hostile_drones_hit_arms_the_chip_as_its_owners and
-##    test_an_unowned_hostile_drones_hit_arms_nothing.
-##
-##    is_character() WOULD BE WRONG AND THE DIFFERENCE IS VISIBLE: it admits the unowned drone in
-##    its own right, which is the reading the whole frame was moved off at the close.
+##    test_an_unowned_hostile_drones_hit_arms_the_chip_too.
 ##  - "weapon or tech" needs no clause: both go through this one event. That is why this is a Buff
 ##    and not an ActionReactionAttacked, whose allow_tech and allow_basic both default false.
 ##
@@ -81,9 +75,10 @@ func triggers_on_event(_core:BuffCore, unit:Unit, triggering_event:EventCore) ->
 	var attacker:Unit = context.unit.get_attacker(context)
 	if not Unit.is_valid(attacker): return false
 	if attacker == unit: return false
-	# RESOLVED FIRST, THEN is_actor(). An owned drone has already become its owner one line up, so
-	# this refuses only a drone acting in its own right. See the header's ruling-70 paragraph.
-	if not attacker.is_actor(): return false
+	# RESOLVED FIRST, THEN is_character(). An owned drone has already become its owner one line up;
+	# an unowned one now passes this in its own right too (ruling 2026-09-27, mod-wide). See the
+	# header's ruling-70 paragraph.
+	if not attacker.is_character(): return false
 	if not UnitRelation.are_enemies(unit, attacker): return false
 	if not AttackRoll.is_valid(context.object): return false
 	return (context.object as AttackRoll).hit

@@ -6,7 +6,7 @@
 # OVERWATCH'S CHASSIS (action_overwatch.gd:13-40) on ENTIRE_MOVEMENT PRE - the trigger that fires
 # ONCE, before the move begins (event_unit_move.gd:70-71), which is what "starts to move" means to
 # Overwatch and means here. The gate, clause by clause: can_affect (exiled and intangible movers are
-# out), are_enemies ("hostile"), is_actor ("character" - ruling 16 / row 301: a drone is not one),
+# out), are_enemies ("hostile"), is_character() ("character" - a drone included, ruling 2026-09-27),
 # MovementType.is_contextual_move_reactable (a teleport or an involuntary move is not "starts to
 # move", exactly as for Overwatch), UnitRelation.can_see ("in Line of Sight" - THE TRAIT'S OWN
 # GATE, over and above each weapon's: get_weapons_that_can_react_against checks a weapon's LOS
@@ -54,7 +54,7 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if not Unit.is_valid(unit) or not Unit.is_valid(mover): return false
 	if not UnitRelation.can_affect(unit, mover): return false
 	if not UnitRelation.are_enemies(unit, mover): return false # "hostile"
-	if not mover.is_actor(): return false # "character" (row 301: not a drone, not an object)
+	if not mover.is_character(): return false # "character" - a drone included, ruling 2026-09-27 (still not an object)
 	if not MovementType.is_contextual_move_reactable(context): return false # "starts to move"
 	if not UnitRelation.can_see(unit, mover): return false # "in Line of Sight" - the trait's own gate
 	if get_possible_auxes(unit, mover).is_empty(): return false # "with an Auxiliary weapon"

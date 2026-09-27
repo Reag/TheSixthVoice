@@ -6,8 +6,9 @@
 # reason: a deep duplicate of the frame hands the unit COPIES of its trait Kits, whose compcon_id is a
 # lazily derived bare var (kit.gd:11-16) that does not survive duplicate().
 #
-# "CHARACTER" IS Unit.is_actor() (the mod-wide rule, design ruling 4): a drone is not a character.
-# create_hostile_drone is the negative control for every "character" clause.
+# "CHARACTER" IS Unit.is_character(): a drone is a character (rulings.md, mod-wide row of 2026-09-27,
+# reversing row 301). create_drone is still useful as a control for is_actor() (attribution) and
+# is_mech() clauses, which a drone still fails.
 #
 # EVERY TELEPORT HERE GOES THROUGH THE FROZEN HELPER (roadmap section 4), so a spec exercises the very
 # event shapes the traits observe: Teleport.move for the Six Sky's own unpreventable shape, Teleport.shove

@@ -36,20 +36,13 @@
 ##    because of the seam below: ruling 6 has this card taking a third party's widening of
 ##    adjacent_characters, and a widening that included self would make the Sluagh guard itself
 ##    against its own card. This clause is the only thing that would still refuse that.
-##  - `defender.is_actor()`, AND IT IS A REAL NARROWING OF THE ARCHETYPE'S FLAG, not a restatement.
-##    `require_defender_to_be_character` on the .tres is `defender.is_character()`
-##    (action_reaction_attacked.gd:95), and Unit.is_character() returns TRUE for a drone - its own
-##    comment says "active mech/pilot/drone" (unit.gd:116). is_actor() is is_character() and not
-##    is_drone (:117), so AN ADJACENT ALLIED DRONE IS NOT GUARDED and this line is the only thing
-##    that refuses it. Delete it and `test_a_hit_on_an_adjacent_allied_drone_gets_nothing` reddens.
-##    WHY, IN ONE LINE: this is the MOD'S settled reading of "character", not this frame's local
-##    taste - ruling 194 (the Vauban's Gravity Well shelters mechs only), rulings 64 and 70 (a
-##    drone's shot counts as its owner's) and ruling 269 (the Stealing) all say the same thing, and
-##    the canonical paragraph is in
-##    mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd's header. Design
-##    1.5.1's own spec list says an adjacent allied DRONE gets nothing, and agrees.
-##    The archetype's flag is kept anyway - it refuses objects and markers a step earlier and costs
-##    nothing. (NOTE for a later session: the Myconid's action_halo.gd carries a docstring claiming
+##  - `defender.is_character()`, which is now exactly what `require_defender_to_be_character` on the
+##    .tres already asks (action_reaction_attacked.gd:95) - a drone is a character (ruling
+##    2026-09-27, mod-wide), so this line is a redundant restatement, not a narrowing. Kept for
+##    symmetry with this frame's other reaction guards, and because it still refuses objects and
+##    markers a step earlier for free. The canonical paragraph is in
+##    mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd's header.
+##    (NOTE for a later session: the Myconid's action_halo.gd carries a docstring claiming
 ##    get_all_characters() excludes drones. It does not - UnitRelation.filter_for_characters is
 ##    `unit.is_character()` (unit_relation.gd:71) - so HALO really does offer a friendly drone today.
 ##    Shipped content, out of scope here, recorded.)
@@ -106,9 +99,9 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if not Unit.is_valid(defender): return false
 	# Somebody ELSE. are_allies is true of a unit and itself.
 	if defender == unit: return false
-	# A mech or a pilot, never a drone - the mod's settled reading of "character" (rulings 194, 64/70
-	# and 269). The .tres's require_defender_to_be_character does NOT deliver this; see the header.
-	if not defender.is_actor(): return false
+	# "A character": is_character(), a drone included (mod-wide row of 2026-09-27). Same predicate
+	# the .tres's require_defender_to_be_character already asks; see the header.
+	if not defender.is_character(): return false
 	# The seam, ruling 6. See the header for why this is is_adjacent and not a radius, and why the
 	# Sluagh is the first argument.
 	return UnitRelation.is_adjacent(unit, defender)

@@ -3,8 +3,8 @@
 ##
 ## Drain's watcher shape (action_drain.gd) - ATTACKER, ENEMIES, require_hit, tech and basic only - with
 ## a 1/round hard limit on its own usage group. ANY tech attack, invade or not. A HOSTILE CHARACTER:
-## hostile for Drain's reason (every tech hit on an ally is an auto-hit), and "character" is is_actor()
-## (rulings row 301), tested here because the archetype's is_character() admits drones.
+## hostile for Drain's reason (every tech hit on an ally is an auto-hit), and "character" is
+## is_character(), a drone included (ruling 2026-09-27).
 ##
 ## A TARGET IT CANNOT KNOCK PRONE IS EXCLUDED - already Prone, or immune (close review): a STATUS_IMMUNITY
 ## buff (Armor-Lock Plating, Flash Anchor, a Heavy Frame against a smaller knocker), Invulnerable, or
@@ -29,7 +29,7 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if not super.triggers_on_event(unit, gear, triggering_event): return false
 	if not Core.holds(unit, Core.MODE.STABILIZER_OVERRIDE): return false
 	var defender:Unit = triggering_event.context.target_unit
-	if not Unit.is_valid(defender) or not defender.is_actor(): return false
+	if not Unit.is_valid(defender) or not defender.is_character(): return false
 	if defender.has_status(Lancer.STATUS.PRONE): return false
 	return not UnitCondition.is_immune_to_status(defender, Lancer.STATUS.PRONE, gear.persistent_id)
 

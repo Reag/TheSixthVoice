@@ -21,10 +21,8 @@ applies_to_enemies = false
 ; script's header - if that override is ever removed, the default of 1 silently becomes a radius,
 ; which is a different card (ruling 6).
 ;
-; applies_only_to_characters is left at its true default (passive_aura.gd:11) and is only the CHEAP
-; FIRST GATE: it is is_character(), which is TRUE of a DRONE (unit.gd:116), so the script NARROWS it
-; to is_actor() - "character" on this frame, and across this mod, excludes a drone (see the script's
-; header); starts_active is left at its true default (:18) because the gate is
+; applies_only_to_characters is left at its true default (passive_aura.gd:11): it is is_character(),
+; the card's word, a drone included (rulings.md, mod-wide row of 2026-09-27); starts_active is left at its true default (:18) because the gate is
 ; requires_buff, not the gear toggle - SpecFactory.apply_passive_buffs sets is_aura_active = true on
 ; every gear (unit_condition.gd:878-880), which is what the Fungal Network's starts_active = false
 ; exists to defeat and this card does not want.

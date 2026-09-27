@@ -23,13 +23,13 @@
 # number therefore lands whole, and event_unit_damage.gd:121-122 adds it to state.burn as well as
 # dealing it.
 #
-# "A CHARACTER" IS is_actor(), NOT is_character() - the mod-wide rule (ruling 22): unit.gd:116-119,
-# is_character() is TRUE for a drone, only is_actor() excludes it. FIX (2026-09-22): neither
-# should_abort nor on_hit checked this before, so a hit on a hostile turret drone (or any non-actor)
-# both burned it and silently spent the 1/round against a real mech later that round.
-# test_hitting_a_drone_burns_nobody_and_leaves_the_round_unspent below is the measurement, using a
-# DRONE specifically rather than an inert OBJECT - an object already fails is_character() too, so it
-# would abort under either check and prove nothing about which one the gate actually uses.
+# "A CHARACTER" IS is_character() - a drone included (rulings.md, mod-wide row of 2026-09-27,
+# reversing row 301/ruling 22): unit.gd:116-119. FIX (2026-09-22): neither should_abort nor on_hit
+# checked this before, so a hit on a non-character (a wreck, a barrel) both burned it and silently
+# spent the 1/round against a real mech later that round.
+# test_hitting_a_drone_burns_it_and_spends_the_round below is the measurement, using a DRONE
+# deliberately rather than an inert OBJECT - a drone is a character and an object is not, so the two
+# now read differently and the test proves which predicate the gate actually uses.
 #
 #   godot --resolution 800x600 --position -2400,-2400 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_greenlight_projection.gd
 extends GutTest
@@ -194,32 +194,30 @@ func test_a_second_hit_in_the_same_round_burns_nobody_further():
 	assert_eq(victim.state.burn, TARGET_BURN, '"1/round" - and no more burn for the target...')
 	assert_eq(leoleth.state.burn, SELF_BURN, '...nor a second point for the Leoleth.')
 
-## FIX (2026-09-22): "a character" is is_actor(), not is_character() (unit.gd:116-119) - a drone IS
-## a character and only is_actor() excludes it. Uses a DRONE deliberately, not
-## LeolethFixture.create_hostile_object: an OBJECT already fails is_character() too, so it would
-## abort under either check and say nothing about which one onhit_greenlight.gd actually uses.
-func test_hitting_a_drone_burns_nobody_and_leaves_the_round_unspent():
+## A drone is a character (rulings.md, mod-wide row of 2026-09-27, reversing row 301/ruling 22):
+## unit.gd:116-119. Uses a DRONE deliberately, not LeolethFixture.create_hostile_object: an OBJECT
+## still fails is_character(), so the two now read differently and this proves which predicate
+## onhit_greenlight.gd's gate actually uses.
+func test_hitting_a_drone_burns_it_and_spends_the_round():
 	var drone:Unit = LeolethFixture.create_drone(game, DRONE_TILE, Faction.AI_ENEMY)
 	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
-	assert_false(drone.is_actor(), '...and is NOT an actor, which is the distinction the gate uses.')
+	assert_false(drone.is_actor(), '...though still not an actor - attribution is unaffected.')
 	arm_and_fit()
 	await LeolethFixture.open_turn(game, leoleth)
 	queue_a_hit()
 	await SpecFactory.use_solo(game, leoleth, LeolethFixture.MELEE_KIT, drone, [])
-	assert_eq(drone.state.burn, 0, 'The hit landed but the drone is not a character (is_actor()) - '
-		+ 'no burn for it...')
-	assert_eq(leoleth.state.burn, 0,
-		'...and none for the Leoleth either: should_abort has to gate BEFORE spending the round, or '
-		+ 'a non-actor would silently consume the 1/round.')
+	assert_eq(drone.state.burn, TARGET_BURN,
+		'A drone is a character (ruling 2026-09-27), so the hit burns it like any other target.')
+	assert_eq(leoleth.state.burn, SELF_BURN, 'And the Leoleth takes its own point too.')
 
 	# THE VACUITY GUARD, as in test_a_second_hit_in_the_same_round_burns_nobody_further: without
 	# Action.FLAG.AS_FREEBIE the per-turn soft limit refuses a second activation of the same Kit this
 	# turn outright (action.gd:161-163) and the swing below would prove nothing.
 	queue_a_hit()
 	await swing([Action.FLAG.AS_FREEBIE])
-	assert_eq(victim.state.burn, TARGET_BURN,
-		'A REAL character hit right after still burns - the drone never spent the round.')
-	assert_eq(leoleth.state.burn, SELF_BURN, 'And the Leoleth still takes its own point too.')
+	assert_eq(victim.state.burn, 0,
+		'"1/round" - the drone already spent it, so a REAL character hit right after gets nothing.')
+	assert_eq(leoleth.state.burn, SELF_BURN, 'And the Leoleth takes no second point either.')
 
 func test_the_next_round_burns_again():
 	arm_and_fit()

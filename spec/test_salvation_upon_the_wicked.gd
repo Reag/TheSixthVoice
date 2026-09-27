@@ -14,7 +14,7 @@
 # chip nothing triggers; twice in one round both trigger; an allied unit losing Lock On does not.
 # Added at the frame close (2026-09-23): a DOUBLY-locked hostile cleared by Stabilize saves once
 # (fail or pass); losing one of two stacked locks is no loss; a second Naga finds the target already
-# re-locked; a hostile DRONE's loss does not trigger. Every clear here is Stabilize's real line
+# re-locked; a hostile DRONE's loss triggers too (ruling 2026-09-27). Every clear here is Stabilize's real line
 # (NagaFixture.clear_like_stabilize) except the one-of-two case, which needs a sourced clear.
 # Plus the protocol itself (spends the core power, hangs the visible chip, needs a turn) and the rows.
 #
@@ -240,21 +240,21 @@ func test_two_nagas_the_second_finds_the_target_already_relocked() -> void:
 	assert_eq(queued - Dice.CHEAT_ROLL_QUEUE.size(), 1, 'THE CLAIM: one save across both Nagas.')
 	assert_eq(hostile.current_damage(), 1, 'And 1 AP, not 2.')
 
-func test_a_hostile_drone_losing_lock_on_does_not_trigger() -> void:
-	# "A hostile CHARACTER" is is_actor (ruling 21): a drone is_character() but not an actor
-	# (unit.gd:116-117). Within Sensors and hostile, so the actor gate is the only one it fails.
+func test_a_hostile_drone_losing_lock_on_now_triggers() -> void:
+	# "A hostile CHARACTER" is is_character() (ruling 2026-09-27, reversing the old is_actor() reading):
+	# a drone is_character() (unit.gd:116), so within Sensors and hostile it now fails no gate at all.
 	await NagaFixture.press_salvation(game, naga)
 	var drone := NagaFixture.create_drone(game, SECOND_HOSTILE_TILE, Faction.AI_ENEMY)
-	assert_true(drone.is_character() and not drone.is_actor(), 'fixture: a character that is not an actor.')
+	assert_true(drone.is_character(), 'fixture: a drone is a character.')
 	assert_true(UnitRelation.are_enemies(naga, drone), 'fixture: hostile.')
 	assert_lte(UnitRelation.distance_between(naga, drone), naga.get_sensor_range(), 'fixture: within Sensors.')
 	assert_true(NagaFixture.lock_by_hand(naga, drone), 'fixture: locked.')
 	NagaFixture.queue([SAVE_FAIL])
 	var queued:int = Dice.CHEAT_ROLL_QUEUE.size()
 	await NagaFixture.clear_like_stabilize(game, drone, Lancer.STATUS.LOCKON)
-	assert_false(drone.has_status(Lancer.STATUS.LOCKON), 'LIVENESS: the drone lost the lock.')
-	assert_eq(Dice.CHEAT_ROLL_QUEUE.size(), queued, 'No save: a drone is not "a hostile character".')
-	assert_eq(drone.current_damage(), 0, 'No damage.')
+	assert_eq(queued - Dice.CHEAT_ROLL_QUEUE.size(), 1, 'A save WAS rolled: a drone is "a hostile character" now.')
+	assert_eq(drone.current_damage(), 1, 'And a failed save dealt 1 AP.')
+	assert_true(drone.has_status(Lancer.STATUS.LOCKON), 'And re-locked, same as any other character.')
 
 func test_an_allied_unit_losing_lock_on_does_not_trigger() -> void:
 	await NagaFixture.press_salvation(game, naga)

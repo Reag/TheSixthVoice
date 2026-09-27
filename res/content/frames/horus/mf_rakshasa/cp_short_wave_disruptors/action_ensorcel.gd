@@ -7,8 +7,8 @@
 ## action. The .tres carries Scan's own shape - Quick, tech, one target within Sensors and line of sight
 ## - plus self_heat_dice "2", which UnitAction.spend deals (unit_action.gd:292-296).
 ##
-## THE TARGET: a hostile character (is_actor(), rulings row 301), as Scan targets enemies - but without
-## Scan's "something unscanned" filter, because nothing is learned here.
+## THE TARGET: a hostile character (is_character(), a drone included - ruling 2026-09-27), as Scan
+## targets enemies - but without Scan's "something unscanned" filter, because nothing is learned here.
 ##
 ## THE INVADE: every is_invade ActionAttackTech on the Rakshasa's equipped, undestroyed gear, systems,
 ## talents, traits and the core Kit included (loadout.get_all_gear(true); NOT get_all_tech_attacks,
@@ -34,7 +34,7 @@ func get_target_range(specific:SpecificAction) -> int: return specific.unit.get_
 
 func can_target_unit(potential_target:Unit, specific:SpecificAction) -> bool:
 	if not super.can_target_unit(potential_target, specific): return false
-	if not potential_target.is_actor(): return false
+	if not potential_target.is_character(): return false
 	return UnitRelation.are_enemies(specific.unit, potential_target)
 
 ## Every invade the unit can choose, in loadout order, each action once: [{gear, action}].

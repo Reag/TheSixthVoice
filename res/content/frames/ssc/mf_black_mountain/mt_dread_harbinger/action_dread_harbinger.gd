@@ -8,8 +8,9 @@
 ## (action_reaction_attacked.gd:101-107). The archetype applies the crit, the defender relation
 ## (ENEMIES of the Black Mountain), the defender-is-a-character test and the weapon/tech branch.
 ## THREE CLAUSES ARE THIS SCRIPT'S:
-##  - the ATTACKER is the Black Mountain itself, OR an allied CHARACTER (is_actor - the mod's settled
-##    reading, ruling 3; a drone's crit counts as its OWNER's through get_attacker) within the Black
+##  - the ATTACKER is the Black Mountain itself, OR an allied CHARACTER (is_character() - a drone
+##    included, ruling 2026-09-27; an OWNED drone's crit still counts as its owner's through
+##    get_attacker, an unowned one counts as itself) within the Black
 ##    Mountain's live Sensors AND line of sight (ruling 4: distance_between <= get_sensor_range(), and
 ##    UnitRelation.can_see, which carries the Blinded rule the per-tile primitive drops). Eyes of Night's
 ##    "you or an allied character within Sensors" clause, plus the sight test. require_attacker_relation
@@ -78,7 +79,7 @@ static func is_you_or_an_allied_character_within_sensors_and_sight(black_mountai
 	if not Unit.is_valid(attacker): return false
 	if attacker == black_mountain: return true
 	if not UnitRelation.are_allies(black_mountain, attacker): return false
-	if not attacker.is_actor(): return false
+	if not attacker.is_character(): return false
 	if UnitRelation.distance_between(black_mountain, attacker) > black_mountain.get_sensor_range(): return false
 	return UnitRelation.can_see(black_mountain, attacker)
 

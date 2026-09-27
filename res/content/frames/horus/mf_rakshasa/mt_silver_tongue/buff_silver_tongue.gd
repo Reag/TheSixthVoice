@@ -73,8 +73,9 @@ func is_round_spent(core:BuffCore, map:MapState) -> bool:
 
 ## Ruling 8: the tech action's own targetable set - Sensors, line of sight and can_target_unit, which
 ## is what UnitTargeting.get_tiles_targetable computes for the player's picker and the AI alike - of
-## CHARACTERS (is_actor(), rulings row 301), allies included, minus the original target and the
-## Rakshasa itself. vanilla's weapon version, buff_weapon_type_reroll_miss.gd:45-65, less its AoE
+## CHARACTERS (is_character(), a drone included - ruling 2026-09-27), allies included, minus the
+## original target and the Rakshasa itself. vanilla's weapon version,
+## buff_weapon_type_reroll_miss.gd:45-65, less its AoE
 ## branch: a tech attack has no area to re-use.
 func get_valid_reroll_targets(_core:BuffCore, context:Context) -> Array[Unit]:
 	var specific:SpecificAction = SpecificAction.from_context(context)
@@ -86,7 +87,7 @@ func get_valid_reroll_targets(_core:BuffCore, context:Context) -> Array[Unit]:
 			Unit.is_valid(target) and
 			target != context.target_unit and
 			target != context.unit and
-			target.is_actor()
+			target.is_character()
 		)
 	)
 	return targets

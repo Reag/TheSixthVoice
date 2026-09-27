@@ -22,7 +22,8 @@
 ##
 ## THE REST OF THE GATE (rulings 3-4): not SELF_INFLICTED, the type not HEAT, number > 0; the victim a
 ## HOSTILE MECH of the Black Mountain (is_mech: a drone is not one), alive at the gate; the dealer an
-## allied CHARACTER (is_actor) that is NOT the Black Mountain (are_allies is true of a unit and itself,
+## allied CHARACTER (is_character() - a drone included, ruling 2026-09-27) that is NOT the Black Mountain
+## (are_allies is true of a unit and itself,
 ## unit_relation.gd:364-365), within the Black Mountain's Sensors and line of sight, measured from the Black
 ## Mountain to the ALLY (on this card the clause modifies "allied character"); and the dealer does not
 ## already hold buff_exalt_benefited.
@@ -85,7 +86,7 @@ static func is_structure_damage_to_a_hostile_mech(black_mountain:Unit, context:C
 ## THIS BLACK MOUNTAIN's own gear (M-1 fix: scoped by source, so a second Black Mountain is unaffected).
 static func can_benefit(black_mountain:Unit, dealer:Unit, gear:GearCore) -> bool:
 	if not Unit.is_valid(dealer) or dealer == black_mountain: return false
-	if not dealer.is_actor() or not UnitRelation.are_allies(black_mountain, dealer): return false
+	if not dealer.is_character() or not UnitRelation.are_allies(black_mountain, dealer): return false
 	if UnitRelation.distance_between(black_mountain, dealer) > black_mountain.get_sensor_range(): return false
 	if not UnitRelation.can_see(black_mountain, dealer): return false
 	var source:StringName = gear.persistent_id if GearCore.is_valid(gear) else &''

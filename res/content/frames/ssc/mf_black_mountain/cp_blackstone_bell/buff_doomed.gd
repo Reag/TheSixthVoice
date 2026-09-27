@@ -18,7 +18,8 @@
 ## 1. ACCURACY: Marker Shells' target-side shape (to = ATTACK_ROLL_INCOMING, bonus_subtype accuracy,
 ##    bonus_value 1 on the .tres). attack_roll.gd:135 gathers it from the defender with the attack context
 ##    and :182-189 folds it in. check_if_passive_applies: the attacker (get_attacker - an owned drone's shot
-##    is its owner's) is a CHARACTER (is_actor) on the stored side and not the Black Mountain. Weapon and tech
+##    is its owner's, an unowned one is itself) is a CHARACTER (is_character() - a drone included, ruling
+##    2026-09-27) on the stored side and not the Black Mountain. Weapon and tech
 ##    attacks alike ("Allies attacks", unqualified) - so this is a BuffBonus, not a BuffWeaponType, which
 ##    would refuse every tech attack. Not is_onetime: it stays.
 ##
@@ -63,7 +64,7 @@ func on_application(event:EventCore, core:BuffCore, _unit:Unit) -> void:
 ## "Allies" of the Black Mountain that doomed this holder: a CHARACTER on its side, not the Black Mountain.
 ## Reads only what was stored at application.
 static func is_an_ally_of_the_doomer(core:BuffCore, unit:Unit) -> bool:
-	if not Unit.is_valid(unit) or not unit.is_actor(): return false
+	if not Unit.is_valid(unit) or not unit.is_character(): return false
 	if String(unit.core.persistent_id) == String(core.get_state(DOOMED_BY_KEY, '')): return false
 	var side:int = core.get_state(SIDE_KEY, -1)
 	if side < 0: return false

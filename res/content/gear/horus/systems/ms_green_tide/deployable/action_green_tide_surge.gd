@@ -13,7 +13,8 @@
 ## when_start_turn_within, allies only, characters only - all on the .tres.
 ##
 ## WHO IS OFFERED (triggers_on_event, below the archetype's own filter):
-##   - an ACTOR (is_actor): a drone is not a character - the mod-wide rule (rulings row 301).
+##   - a CHARACTER (is_character()): a drone included (ruling 2026-09-27, reversing the mod-wide
+##     is_actor() reading rulings row 301 recorded).
 ##   - NOT THE NAGA ITSELF (SP3 ruling 22): the archetype would count the marker's owner as an ally.
 ##     The card says "allied characters"; the frame's own core passive says "you or an allied
 ##     character" when it means both, so the owner is excluded.
@@ -81,7 +82,7 @@ func show_in_tooltip(_kit:Kit) -> bool: return false
 func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> bool:
 	if not super(unit, gear, triggering_event): return false
 	var mover:Unit = triggering_event.context.unit
-	if not Unit.is_valid(mover) or not mover.is_actor(): return false
+	if not Unit.is_valid(mover) or not mover.is_character(): return false
 	if mover == unit.get_owner_unit(): return false
 	return UnitAction.can_take_reactions(mover)
 

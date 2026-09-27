@@ -295,30 +295,30 @@ func test_the_closest_of_two_in_threat_is_chosen_whichever_was_placed_first():
 	assert_eq(hp(two_out), two_out.core.get_health_max(),
 		'...and the one two spaces out, in Threat but further, was passed over.')
 
-func test_a_drone_is_never_the_closest_candidate():
-	# COVERAGE GAP (frame-close review): action_automatic_retaliation.gd:118's `if not
-	# other.is_actor(): continue` - ruling 22's "character" gate - was never exercised by any test in
-	# this file. LeolethFixture.create_drone is the fixture's own negative control for it, used the
-	# same way for the DAMAGER half of this card by test_hatred.gd:167-196; own_drone is not needed
-	# here because candidates() reads is_actor() alone and never asks who the drone answers to.
+func test_a_drone_is_the_closest_candidate():
+	# A drone is a character (rulings.md, mod-wide row of 2026-09-27, reversing row 301/ruling 22):
+	# action_automatic_retaliation.gd:118's candidates() tests is_character(), TRUE for a drone, so a
+	# drone is now a legitimate candidate like any other character. LeolethFixture.create_drone is
+	# still useful here as the control it always was; own_drone is not needed because candidates()
+	# never asks who the drone answers to.
 	#
 	# THE SAME RIG AS test_the_closest_of_two_in_threat_is_chosen_whichever_was_placed_first (a
 	# swordsman, Threat 2, so two distances fit in reach), on purpose: the drone sits STRICTLY CLOSER
-	# than the character, so if is_actor() did not filter it out first, candidates() would report the
-	# drone as the winning "closest" match and nothing would ever be struck at all.
+	# than the character, so pick_target's distance comparison picks the drone over the character -
+	# nothing here is a tie.
 	var swordsman := LeolethFixture.create_leoleth(game, Vector2i(6, 9))
 	LeolethFixture.equip(swordsman, LeolethFixture.RELIABLE_SWORD)
 	LeolethFixture.arm_jormungandr(swordsman)
 	var drone := LeolethFixture.create_drone(game, Vector2i(7, 9)) # one out - the CLOSER of the two
-	var character := LeolethFixture.create_hostile(game, Vector2i(8, 9)) # two out - the only real candidate
+	var character := LeolethFixture.create_hostile(game, Vector2i(8, 9)) # two out - the further one
 	await LeolethFixture.press_arc(game, swordsman)
 	spend_a_space(swordsman)
 	queue_hit_then_retaliation()
 	await LeolethFixture.shoot(game, shooter, swordsman)
-	assert_eq(hp(drone), drone.core.get_health_max(),
-		'The drone was closer, but is_actor() excludes it from the candidate search entirely.')
-	assert_lt(hp(character), character.core.get_health_max(),
-		'The character two out - the only real candidate once the drone is excluded - answers instead.')
+	assert_lt(hp(drone), drone.core.get_health_max(),
+		'A drone is a character (ruling 2026-09-27) and the closest one, so it is struck.')
+	assert_eq(hp(character), character.core.get_health_max(),
+		'The character two out was passed over for the closer drone.')
 
 func test_a_tie_for_closest_picks_exactly_one_of_the_tied():
 	var left := LeolethFixture.create_hostile(game, OPPOSITE_TILE)

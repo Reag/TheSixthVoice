@@ -7,10 +7,10 @@
 # aura would never run, and every resource assertion about it would still be green. Same note as
 # passive_mark_cover_aura.gd, one frame over.
 #
-# THE ONE OVERRIDE IS is_actor(). PassiveAura's own applies_only_to_characters clause is
-# moving_unit.is_character() (passive_aura.gd:73), and Unit.is_character() returns TRUE for a drone -
-# its own comment says "active mech/pilot/drone" (unit.gd:116). Every "character" on this frame is
-# is_actor() (ruling 22), so the narrowing goes here.
+# "CHARACTER" HERE IS is_character(): a drone is a character, included (rulings.md, mod-wide row of
+# 2026-09-27, reversing row 301/ruling 22). PassiveAura's own applies_only_to_characters clause is
+# already moving_unit.is_character() (passive_aura.gd:73), so this override no longer narrows that
+# test - it stays for the hostility check below, which the base aura cannot express.
 #
 # MARKERS NEED NO CLAUSE: PassiveAura.update_unit returns on its first line for a marker (:25), so the
 # Decimate crater never enters the dome.
@@ -48,11 +48,11 @@
 #
 # BELT AND SUSPENDERS, NOT DEAD CODE. As things stand, no Faction.NONE unit can reach this function's
 # `true` at all, by a SECOND and entirely independent route: Unit.is_active() itself demands
-# get_faction() != Faction.NONE (unit.gd:111), and is_character()/is_actor() both require is_active()
-# (unit.gd:116-117) - so the is_actor() check above already excludes it before this line ever runs.
+# get_faction() != Faction.NONE (unit.gd:111), and is_character() requires is_active() (unit.gd:116)
+# - so the is_character() check above already excludes it before this line ever runs.
 # Verified against this mod's own construction path: SpecFactory.create_unit(map, tile, Faction.NONE)
 # builds a real CHARACTER-entity frame (Frame.create_dummy() defaults entity_type to
-# ENTITY.CHARACTER, frame.gd:63, :88-91) with that faction, and its is_actor() is unconditionally
+# ENTITY.CHARACTER, frame.gd:63, :88-91) with that faction, and its is_character() is unconditionally
 # false regardless of frame type, purely because of the faction clause in is_active(). The hostility
 # check below stays anyway: it is what the CARD says, it is what THIS function is for, and it must
 # not depend on an invariant that lives in a different file and that nothing here enforces - a change
@@ -61,7 +61,7 @@ extends PassiveAura
 
 func can_apply_buff_to_unit(moving_unit:Unit, aura_unit:Unit, aura_gear:GearCore) -> bool:
 	if not super.can_apply_buff_to_unit(moving_unit, aura_unit, aura_gear): return false
-	if not moving_unit.is_actor(): return false
+	if not moving_unit.is_character(): return false
 	# "ALL HOSTILE characters" - the aura's applies_to_enemies=true flag cannot express an exclusion,
 	# see header, so the hostility test is explicit here instead.
 	return UnitRelation.are_enemies(moving_unit, aura_unit)

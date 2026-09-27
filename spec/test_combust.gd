@@ -309,9 +309,11 @@ func test_two_characters_in_the_blast_each_make_their_own_save():
 # ---------------------------------------------------------------- "characters"
 
 func test_a_deployable_in_the_blast_is_untouched():
-	# RULING 22, and it is not cosmetic: a non-character AUTO-FAILS every forced save without rolling
-	# (unit_hasecheck.gd:52-53), so without the is_actor filter every deployable in the area would be
-	# Proned and hit - and would silently eat two d6 out of every queue in this file.
+	# Unaffected by the 2026-09-27 membership ruling - a deployable object still fails is_character()
+	# outright, which is the predicate can_target_unit tests. Not cosmetic: a non-character AUTO-FAILS
+	# every forced save without rolling (unit_hasecheck.gd:52-53), so without that filter every
+	# deployable in the area would be Proned and hit - and would silently eat two d6 out of every
+	# queue in this file.
 	var cover:Unit = LeolethFixture.create_hostile_object(game, IN_THE_BLAST)
 	assert_false(cover.is_character(), 'fixture: a Jericho cover is not a character.')
 	aim_at(BLAST_CENTRE)
@@ -320,16 +322,21 @@ func test_a_deployable_in_the_blast_is_untouched():
 	assert_eq(Dice.CHEAT_ROLL_QUEUE.size(), 60,
 		'And NOTHING was rolled for it - no save, no damage. (queue() tails with sixty 1s.)')
 
-func test_a_drone_in_the_blast_is_untouched():
-	# RULING 22's other half: a drone IS a character (unit.gd:116 - "active mech/pilot/drone") and is
-	# NOT an actor (:117). Every "character" clause on this frame is is_actor().
+func test_a_drone_in_the_blast_is_hit_and_proned():
+	# A drone is a character (rulings.md, mod-wide row of 2026-09-27, reversing row 301/ruling 22):
+	# is_character() is TRUE for a drone (unit.gd:116 - "active mech/pilot/drone"), and that is now the
+	# predicate can_target_unit tests directly, so a drone is a legitimate target of the blast like any
+	# other character. is_actor() is still false for it - that distinction is attribution, not
+	# membership, and this card's filter never used it.
 	var drone:Unit = LeolethFixture.create_drone(game, IN_THE_BLAST, Faction.AI_ENEMY)
 	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
-	assert_false(drone.is_actor(), '...and is NOT an actor, which is the rule this frame uses.')
+	assert_false(drone.is_actor(), '...and still not an actor, which this card does not test.')
 	aim_at(BLAST_CENTRE)
-	await LeolethFixture.rage(game, leoleth, LeolethFixture.FACE_COMBUST, [] as Array[int])
-	assert_eq(drone.current_damage(), 0, 'A drone in the area is untouched.')
-	assert_false(drone.has_status(Lancer.STATUS.PRONE), 'And stays up.')
+	await LeolethFixture.rage(game, leoleth, LeolethFixture.FACE_COMBUST,
+		[SAVE_FAILS, D6, D6] as Array[int])
+	assert_eq(drone.current_damage(), COMBUST_DAMAGE,
+		'A drone is a character (ruling 2026-09-27), so it is caught by the blast.')
+	assert_true(drone.has_status(Lancer.STATUS.PRONE), 'And knocked Prone like any other failing character.')
 
 func test_the_prone_has_no_natural_lifetime():
 	# apply_until = MANUAL (ruling 12). Prone is cleared by standing up, not by a turn passing - so a

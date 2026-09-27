@@ -21,8 +21,9 @@
 #
 # THE GATE: Lockon.is_lost (a statuses_changed event for LOCKON - the same virtual event carries the
 # APPLY at PRE, which is why the .tres says POST); the loser is a live hostile CHARACTER of the Naga
-# (is_actor, ruling 21) within the Naga's Sensors (no line of sight), and who no longer holds ANY
-# Lock On - a stacked double lock cleared by Stabilize fires one POST per copy, and only the last is
+# (is_character(), a drone included - ruling 2026-09-27) within the Naga's Sensors (no line of sight),
+# and who no longer holds ANY Lock On - a stacked double lock cleared by Stabilize fires one POST per
+# copy, and only the last is
 # a loss (still_locked, below; frame close 2026-09-23). Unlimited per round: consumes_rxn false, no
 # hard limit, its own usage group.
 #
@@ -71,7 +72,7 @@ static func still_locked(loser:Unit) -> bool:
 static func is_a_hostile_character_within_sensors(naga:Unit, loser:Unit) -> bool:
 	if not Unit.is_valid(loser) or loser == naga: return false
 	if not UnitRelation.are_enemies(naga, loser): return false
-	if not loser.is_actor(): return false
+	if not loser.is_character(): return false
 	return UnitRelation.distance_between(naga, loser) <= naga.get_sensor_range()
 
 func activate(context:Context, activation:EventCore) -> void:

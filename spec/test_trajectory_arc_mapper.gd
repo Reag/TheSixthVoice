@@ -124,8 +124,9 @@ func test_a_melee_weapon_at_its_threat_gains_nothing():
 	Fixture.step(target, ADJACENT)
 	assert_eq(accuracy(MELEE, target), 0, 'Threat 1, distance 1: a melee weapon has no Range.')
 
-func test_a_drone_at_range_gains_nothing():
+func test_a_drone_at_range_gains_plus_one():
+	# A drone is a character (ruling 2026-09-27): it qualifies at exactly the weapon's range too.
 	with_mapper()
 	var drone := Fixture.create_drone(game, Vector2i(14, 3))
 	assert_eq(UnitRelation.distance_between(thorn, drone), 10, 'fixture: the drone stands at 10.')
-	assert_eq(accuracy(Fixture.MAIN_RIFLE, drone), 0, '"A character": a drone is not one.')
+	assert_eq(accuracy(Fixture.MAIN_RIFLE, drone), 1, '"A character": a drone is one, at its exact range.')

@@ -15,16 +15,17 @@
 ## dice (event_unit_attack_declared.gd:136-143) and AttackUtil.roll_bonus_damage rolls "3" regardless
 ## (attack_util.gd:297-313). A NO_BONUS_DAMAGE attack is refused outright (finding I-2) - that is the
 ## one case that gains nothing. FOUR CLAUSES ARE THIS SCRIPT'S:
-##  - the ATTACKER (get_attacker, so an owned drone's shot is its owner's) is an ALLIED CHARACTER
-##    (is_actor, ruling 3) and NOT THE BLACK MOUNTAIN: are_allies is true of a unit and itself
+##  - the ATTACKER (get_attacker, so an owned drone's shot is its owner's; an unowned drone counts as
+##    itself) is an ALLIED CHARACTER (is_character() - a drone included, ruling 2026-09-27) and NOT THE
+##    BLACK MOUNTAIN: are_allies is true of a unit and itself
 ##    (unit_relation.gd:364-365), and "allied character" excludes you on every card of this frame
 ##    (ruling 3, the author's call). The Black Mountain's own hits never open this.
 ##  - the attacker holds OVERSHIELD THE BLACK MOUNTAIN GRANTED: Overshield.is_granted_by(attacker, unit),
 ##    the shared helper's "granted by" mark (ruling 5) - hung by grant_by / increase_by, alive while any
 ##    Overshield remains, ended by the damage that zeroes it. Vanilla grants and other mods' grants
 ##    carry no mark and never qualify; SP2's Exalt and Fell the Mighty are the Black Mountain's granters.
-##  - the DEFENDER is a hostile CHARACTER (is_actor: the card says "hostile character") within the Black
-##    Mountain's live Sensors AND line of sight (ruling 4: on THIS card the clause modifies the hostile).
+##  - the DEFENDER is a hostile CHARACTER (is_character() - a drone included, ruling 2026-09-27) within
+##    the Black Mountain's live Sensors AND line of sight (ruling 4: on THIS card the clause modifies the hostile).
 ##  - "you MAY take 1 heat": CommonActionUtil.confirm_use for the Black Mountain's controller (an AI
 ##    takes ai_confirms_use, ruling 14); declining returns before spend_actions and costs nothing.
 ##
@@ -73,7 +74,7 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	var attacker:Unit = triggering.unit.get_attacker(triggering)
 	if not is_an_allied_character_shielded_by(unit, attacker): return false
 	var defender:Unit = triggering.target_unit
-	if not Unit.is_valid(defender) or not defender.is_actor(): return false
+	if not Unit.is_valid(defender) or not defender.is_character(): return false
 	if UnitRelation.distance_between(unit, defender) > unit.get_sensor_range(): return false
 	return UnitRelation.can_see(unit, defender)
 
@@ -81,7 +82,7 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 static func is_an_allied_character_shielded_by(black_mountain:Unit, attacker:Unit) -> bool:
 	if not Unit.is_valid(attacker) or attacker == black_mountain: return false
 	if not UnitRelation.are_allies(black_mountain, attacker): return false
-	if not attacker.is_actor(): return false
+	if not attacker.is_character(): return false
 	return Overshield.is_granted_by(attacker, black_mountain)
 
 func activate(context:Context, activation:EventCore) -> void:

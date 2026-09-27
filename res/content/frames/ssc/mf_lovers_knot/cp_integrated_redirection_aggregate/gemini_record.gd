@@ -64,9 +64,9 @@ static func is_line(specific:SpecificAction) -> bool:
 	var pattern := specific.action.get_range_pattern_for_targets(specific)
 	return pattern != null and pattern.pattern == Lancer.AOE_TYPE.LINE
 
-## A "character" is Unit.is_actor() (ruling 3): a drone is not one.
+## A "character" is Unit.is_character() (ruling 2026-09-27): a drone is one.
 static func is_new_character(unit:Unit, knot:Unit, excluded:Array[Unit]) -> bool:
-	return Unit.is_valid(unit) and unit.is_actor() and unit != knot and not excluded.has(unit)
+	return Unit.is_valid(unit) and unit.is_character() and unit != knot and not excluded.has(unit)
 
 ## Whether the KNOT may not aim `action` at `unit`: Sanctuary, False Idol, Cast Doubt, Grey Birds. A
 ## leg's own SpecificAction belongs to a buffless proxy, and ActionAttackWeapon.can_target_unit reads

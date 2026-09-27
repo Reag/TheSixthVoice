@@ -54,7 +54,8 @@
 ## THE SIBLING. onhit_greenlight.gd (wm_greenlight_projection, Leoleth rank III) inherited this
 ## file's original ordering verbatim and was reordered first, at the Leoleth close on 2026-09-22;
 ## this file is the same move made on the frame the pattern started on. The two gates are otherwise
-## different cards - GreenLight additionally filters attacked_unit through is_actor() before it reads
+## different cards - GreenLight additionally filters attacked_unit through is_character() (a drone
+## included, ruling 2026-09-27) before it reads
 ## the counter at all, which the DDMR does not and must not: this chip goes on the PRIMROSE
 ## (apply_buffs_to_self = true), so whom it hit does not decide whether the card is spent.
 ##

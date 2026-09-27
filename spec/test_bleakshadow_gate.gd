@@ -244,26 +244,20 @@ func test_inexorable_formation_extends_the_sensors_the_trigger_reads():
 	await SluaghFixture.shoot(game, ally, hostile)
 	assert_eq(offers(), 1, 'Now offered.')
 
-func test_an_allied_drones_hit_offers_nothing():
-	# THE MOD'S READING OF "CHARACTER", and the only case that pins it on this card. "An allied
-	# CHARACTER" in a TRIGGER is is_actor() - a mech or a pilot, never a drone - which is the same
-	# word spelled the same way in ruling 194 (the Vauban's Gravity Well), rulings 64 and 70 (a
-	# drone's shot counts as its OWNER'S) and ruling 269 (the Stealing). The canonical paragraph is
-	# in action_stealing_of_the_souls.gd's header, and every other Sluagh card follows it.
+func test_an_allied_drones_hit_offers_it_too():
+	# THE MOD'S READING OF "CHARACTER", FLIPPED (ruling 2026-09-27, mod-wide): "an allied CHARACTER"
+	# in this trigger is is_character() again, a drone included - the LCP's own DRONE tag: "Drones
+	# are Size 1/2 characters." The canonical paragraph is in action_stealing_of_the_souls.gd's
+	# header, and every other Sluagh card follows it the same way.
 	#
-	# THE ARCHETYPE CANNOT DELIVER IT AND NEVER COULD: require_defender_to_be_character is about the
-	# DEFENDER (action_reaction_attacked.gd:95) and says nothing at all about who fired, and
-	# Unit.is_character() is true of a drone anyway (unit.gd:116).
+	# THE SETUP ASSERTIONS ARE KEPT AS ENGINE FACTS: this drone really is a drone (is_actor false)
+	# and really is a character (is_character true) - the second is now what the gate reads.
 	#
-	# THE SETUP ASSERTIONS ARE WHAT MAKES THE CASE DISCRIMINATE: this drone really is a drone
-	# (is_actor false) and really is a character (is_character true), so the refusal is attributable
-	# to the clause under test and not to a fixture that quietly built an object.
-	#
-	# The drone stands on ALLY_TILE, three tiles out, so the Sensors clause passes and is_actor() is
-	# the only thing left to refuse it - which is what makes flipping that line redden this case.
+	# The drone stands on ALLY_TILE, three tiles out, so the Sensors clause passes and is_character()
+	# now admits it, exactly as the bare engine predicate always would have.
 	var drone := SluaghFixture.create_drone(game, ALLY_TILE)
-	assert_false(drone.is_actor(), 'fixture: it is NOT an actor, which is what refuses it...')
-	assert_true(drone.is_character(), '...and it IS a character, so the engine alone would admit it.')
+	assert_false(drone.is_actor(), 'fixture: it is not an actor - which no longer decides this...')
+	assert_true(drone.is_character(), '...and it IS a character, which is what the gate now reads.')
 	SluaghFixture.arm_rifle(drone)
 	SluaghFixture.cover(hostile)
 	await SluaghFixture.open_gate(game, sluagh)
@@ -271,9 +265,9 @@ func test_an_allied_drones_hit_offers_nothing():
 	var hp_before:int = hostile.core.current.health
 	SluaghFixture.queue([D20_HITS, COVER_DIE, DAMAGE_DIE])
 	await SluaghFixture.shoot(game, drone, hostile)
-	assert_eq(offers(), 0, 'Nothing offered: a drone is a character, but it is not an ACTOR.')
-	assert_eq(hp_before - hostile.core.current.health, DAMAGE_DIE, 'Just the die - no +3.')
-	assert_eq(sluagh.current_damage(), 0, 'And the Sluagh pays nothing.')
+	assert_eq(offers(), 1, 'Offered on an allied DRONE\'s hit too.')
+	assert_eq(hp_before - hostile.core.current.health, DAMAGE_DIE + EYES_BONUS, 'The drone\'s attack deals the +3...')
+	assert_eq(sluagh.current_damage(), EYES_SELF_DAMAGE, '...and the SLUAGH takes the 2.')
 
 ## TECH IMMUNITY KILLS THE WHOLE REACTION, not just its +3 (close review, slice 6 I-2; the branch
 ## used to document the wrong gate). The Gate is TECH gear - UnitAction.is_tech is true of a Kit

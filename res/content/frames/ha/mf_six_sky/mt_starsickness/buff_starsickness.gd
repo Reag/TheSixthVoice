@@ -5,8 +5,9 @@
 ##
 ## A hidden triggered buff on the Six Sky at ENTIRE_MOVEMENT POST, Heavenly Weaver's watch with a
 ## different victim filter: a completed teleport the Six Sky caused (six_sky_agent.gd, ruling 5) of a
-## HOSTILE (are_enemies) CHARACTER (is_actor - ruling 4, so never a drone). The offer comes AFTER the
-## move, from where the victim landed.
+## HOSTILE (are_enemies) CHARACTER (is_character(), a drone included - rulings.md, mod-wide row of
+## 2026-09-27, reversing row 301/ruling 4). The offer comes AFTER the move, from where the victim
+## landed.
 ##
 ## NO PER-ROUND LIMIT. A hostile teleported by one area effect alongside others is its own move event
 ## and its own offer; the stamp below only stops the SAME move being offered twice.
@@ -41,7 +42,7 @@ func triggers_on_event(core:BuffCore, unit:Unit, triggering_event:EventCore) -> 
 	var context:Context = triggering_event.context
 	if not Agent.is_teleport_by(unit, triggering_event): return false
 	var victim:Unit = context.unit
-	if not Unit.is_valid(victim) or not victim.is_actor(): return false # "a hostile CHARACTER"
+	if not Unit.is_valid(victim) or not victim.is_character(): return false # "a hostile CHARACTER"
 	if not UnitRelation.are_enemies(unit, victim): return false # "a HOSTILE character"
 	return not core.state_has_id_in(OFFERED_KEY, stamp_for(triggering_event, victim))
 

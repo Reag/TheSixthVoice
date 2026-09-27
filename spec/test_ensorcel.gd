@@ -94,13 +94,13 @@ func test_the_variant_is_not_offered_on_another_action():
 	assert_true(invade.get_alternate_actions(SpecificAction.create(rakshasa, gear, invade)).is_empty(),
 		'Only Scan: an ordinary invade gets nothing.')
 
-func test_it_targets_a_hostile_character_only():
+func test_it_targets_a_hostile_character_drone_included():
 	var ally := Fixture.create_ally(game, Vector2i(3, 6))
 	var drone := Fixture.create_hostile_drone(game, Vector2i(5, 6))
 	var tiles := UnitTargeting.get_tiles_targetable(SpecificAction.create(rakshasa, scan_gear(), ensorcel_action()))
 	assert_has(tiles, hostile.tile(), 'A hostile character.')
 	assert_does_not_have(tiles, ally.tile(), 'Not an ally.')
-	assert_does_not_have(tiles, drone.tile(), 'Not a drone (rulings row 301).')
+	assert_has(tiles, drone.tile(), 'A drone is a character too (ruling 2026-09-27).')
 
 # ---------------------------------------------------------------- the effect
 

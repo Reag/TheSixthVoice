@@ -9,7 +9,8 @@
 #
 # WHAT THIS FILE PROVES: the Black Mountain's own crit locks and marks; an ally's crit within Sensors
 # and line of sight locks; an ally one tile outside Sensors does not; an ally behind a wall does not; an
-# unowned allied drone's crit does not and an OWNED drone's counts as its owner's; a hostile's crit on
+# unowned allied drone's crit counts as its own (a drone is a character, ruling 2026-09-27) and an OWNED
+# drone's still counts as its owner's; a hostile's crit on
 # an ally does nothing; a plain hit does nothing; a crit on a target already Locked On spends nothing;
 # 1/round, reset at the Black Mountain's turn; a tech crit locks too; the consume pays 1d6 (max
 # semantics against a larger shield) and clears the mark and the lock; a Stabilize-shaped loss pays
@@ -133,16 +134,18 @@ func test_an_ally_behind_a_wall_does_not() -> void:
 	await crit(ally)
 	assert_untouched(hostile, 'No line of sight to the ally.')
 
-func test_an_unowned_allied_drones_crit_does_not_and_an_owned_ones_counts_as_its_owners() -> void:
+func test_an_unowned_drones_crit_is_offered_as_itself_and_an_owned_ones_as_its_owner() -> void:
+	# A drone is a character (ruling 2026-09-27): an unowned drone's crit now qualifies on its own.
 	var drone := Fixture.create_drone(game, IN_SENSORS)
 	Fixture.arm_rifle(drone)
 	await crit(drone)
-	assert_lt(Fixture.health(hostile), 200, 'LIVENESS (M-6): the unowned drone\'s crit still landed.')
-	assert_untouched(hostile, 'A drone is not a character (ruling 3).')
+	assert_locked_and_marked(hostile, 'An unowned drone is a character and counts as itself.')
+	await Fixture.cycle_turn(game, black_mountain) # a fresh round: two independent scenarios, not the 1/round mechanic
+	var second := Fixture.create_hostile(game, SECOND_HOSTILE_TILE, ALWAYS_HIT)
 	var owner := ally_at(Vector2i(6, 6))
 	Fixture.own_drone(drone, owner)
-	await crit(drone)
-	assert_locked_and_marked(hostile, 'An owned drone acts as its owner, an allied character within Sensors.')
+	await crit(drone, second)
+	assert_locked_and_marked(second, 'An owned drone acts as its owner, an allied character within Sensors.')
 
 func test_a_hostiles_crit_on_an_ally_does_nothing() -> void:
 	var ally := ally_at(IN_SENSORS)

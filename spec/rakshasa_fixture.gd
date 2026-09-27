@@ -13,9 +13,10 @@
 # shared dice queue, which reads as a wrong number rather than a wrong setup. The Rakshasa's own cap
 # is its sheet's 5, so no test here pays Silver Tongue more than twice without a turn boundary.
 #
-# "CHARACTER" IS Unit.is_actor() (the mod-wide author's call, rulings row 301, re-confirmed for this
-# frame at SP1 on 2026-09-26 over design ruling 3's is_character()): a drone is not a character.
-# create_hostile_drone is the negative control for every "hostile character" clause.
+# "CHARACTER" IS Unit.is_character() (the mod-wide author's call, 2026-09-27, reversing rulings row
+# 301's is_actor() reading): a drone IS a character. create_hostile_drone is now the POSITIVE control
+# for every "hostile character" clause, and stays the negative control for an ACTIVATION gate (which
+# still reads is_actor() - a drone has no turn of its own).
 #
 # Static functions, no state, NOT extends GutTest, NOT test_-prefixed, so GUT never collects it.
 extends RefCounted

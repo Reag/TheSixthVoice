@@ -20,48 +20,27 @@
 ## unit. It grants to the Sluagh and stops.
 ##
 ## ===================================================================================================
-## "CHARACTER" ON THIS FRAME IS Unit.is_actor(), EVERYWHERE, AND A DRONE ACTS AS ITS OWNER. THIS
-## PARAGRAPH IS THE CANONICAL ONE; the other eight sites cite it rather than re-arguing it.
+## "CHARACTER" ON THIS FRAME, AND ACROSS THE MOD, IS Unit.is_character() - A DRONE IS A CHARACTER.
+## THIS PARAGRAPH IS THE CANONICAL ONE; every other site cites it rather than re-arguing it.
 ##
-## AUTHOR'S RULING, 2026-09-21 (the Sluagh close, FINAL - it reverses a unification on
-## `Unit.is_character()` taken earlier the same day, and that earlier ruling is withdrawn entirely).
-## The instruction was to fall in line with THE MOD'S OWN SETTLED PRECEDENT rather than with the
-## engine's default, and the mod has ruled on this word three times already, always the same way:
+## AUTHOR'S RULING, 2026-09-27 (mod-wide), REVERSING THE 2026-09-21 "row 301" RULING that had unified
+## the mod on `is_actor()` instead. The LCP's own DRONE tag settles the membership question: "Drones
+## are Size 1/2 characters." Objects, markers, deployables and wrecks are still NOT characters -
+## Frame.ENTITY.OBJECT and is_active() already exclude them, with no clause of ours involved.
+## `test_a_hostile_object_death_grants_nothing` is the standing pin on that half.
 ##
-##   - RULING 194 (Vauban, Gravity Well): "adjacent allied mechs" is `is_mech()`; drones and
-##     deployables are not sheltered.
-##   - RULINGS 64 and 70 (Subutai, Draw Fire, CONFIRMED): a hostile DRONE'S SHOT COUNTS AS ITS
-##     OWNER'S for "hostile character", resolved through `Unit.get_attacker()` (unit.gd:276-282 ->
-##     get_owner_unit_or_self).
-##   - RULING 269 (this trait, at SP1): drones, deployables and wrecks excluded.
+## WHAT SURVIVES IS ATTRIBUTION, a different question: where a card asks WHO did something, the actor
+## still resolves through `Unit.get_attacker(context)` / `get_owner_unit_or_self()` - an OWNED drone's
+## hit still counts as its OWNER'S. mt_wicked_host is this frame's one attacker-side clause and that
+## code is unchanged by this ruling. What changed is that, after that resolution, an UNOWNED drone
+## (which resolves to itself) now PASSES the character test too.
 ##
-## So the rule in one sentence: **A DRONE IS NOT A CHARACTER IN ITS OWN RIGHT, AND WHERE A DRONE
-## ACTS, IT ACTS AS ITS OWNER.** `Unit.is_actor()` is exactly the first half - is_character() and not
-## is_drone (unit.gd:117) - and it is the predicate the engine itself uses for that meaning at
-## action_system_apply_buff.gd:64 ("cannot apply buffs to drones / objects"). The second half is one
-## file's business only: mt_wicked_host, the frame's single ATTACKER-side test, resolves through
-## get_attacker() before asking, so an OWNED hostile drone's hit arms the chip as its owner's while
-## an ownerless one arms nothing. Nowhere else on the frame does a drone ACT; everywhere else it is
-## something the card is asked to shelter, guard, drag, target or count, and there it is not a
-## character.
+## `is_mech()` clauses (ruling 194, the Vauban's Gravity Well) are untouched: a drone is still not a
+## mech.
 ##
-## WHAT ELSE DOES NOT COUNT, and it needs no clause of ours, because is_character() already refuses
-## it under is_actor(): an OBJECT or a WRECK (Frame.ENTITY.OBJECT makes core.frame.is_character()
-## false, frame.gd:100), a MARKER (unit.gd:110), and anything not is_active() - shut down, exiled,
-## off the map. `test_a_hostile_object_death_grants_nothing` is the standing pin on that half.
-##
-## WHY THE UNIFICATION WAS REVERSED, AND IT WAS MEASURED, NOT ARGUED. Under is_character() an
-## ENGAGING DRONE always won the Hunt's "closest character" search - only a character can engage
-## (UnitRelation.can_be_engaged_by:154) and an engager is adjacent by definition, so it is always at
-## distance 1 and every tile in its ring is beside it - and the Hunt could no longer drag a target
-## clear of the thing holding it. One word, spelled the engine's way, silently deleted a card's
-## whole point. The mod's precedent does not have that failure mode, and consistency ACROSS the mod
-## is worth more than consistency with the engine inside one frame.
-##
-## THE SCOPE IS THE WHOLE FRAME, chosen explicitly by the author knowing it reverses two of their own
-## earlier rulings: the SP3 ruling that a drone is a legal Crown target, and the SP4 ruling that a
-## drone is a legal In Triumvirate partner. Both now need a `can_target_unit` override, because
-## `requires_target_character` is the archetype's is_character() and cannot express this.
+## THE HUNT'S "CLOSEST CHARACTER" PROBLEM THAT MOTIVATED THE 2026-09-21 REVERSAL IS SOLVED
+## DIFFERENTLY NOW: its search excludes whatever unit HOLDS the target (any engager, drone or not),
+## not by excluding drones from being characters - see spec/test_hunt.gd.
 ##
 ## THIS IS THE ONE SITE WHERE THE CLAUSE IS LOAD-BEARING ON ITS OWN. This is a plain ActionReaction
 ## with no archetype gate above it, so deleting the line below would let an object's death grant, not
@@ -102,9 +81,10 @@ func triggers_on_event(unit:Unit, _gear:GearCore, triggering_event:EventCore) ->
 	var dead:Unit = triggering_event.context.unit
 	if not Unit.is_valid(dead): return false
 	if dead == unit: return false
-	# A CHARACTER: a mech or a pilot - never a DRONE, an object, a marker or a wreck. See the header's
-	# canonical paragraph; this is the one site on the frame with no archetype gate above it.
-	if not dead.is_actor(): return false
+	# A CHARACTER - is_character(), a drone included (ruling 2026-09-27, mod-wide; see the header).
+	# Still excludes an object, a marker or a wreck, and this is the one site on the frame with no
+	# archetype gate above it.
+	if not dead.is_character(): return false
 	if not UnitRelation.are_enemies(unit, dead): return false
 	# LIVE Sensors, on both sides of the comparison being a live read: distance_between measures
 	# closest tiles, and the dead unit still occupies its own.

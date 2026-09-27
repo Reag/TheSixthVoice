@@ -194,14 +194,16 @@ func test_the_thorns_own_next_attack_gains_it_too():
 	assert_eq(pre_attack(thorn, gear, target).flat_bonus - pre_attack(thorn, gear, Fixture.create_hostile(game, SECOND_TILE)).flat_bonus, 1,
 		'"All characters" includes the Thorn: +1 against the shredded target, none against a fresh one.')
 
-func test_a_non_character_attacker_gains_nothing():
+func test_an_unowned_drone_attacker_gains_the_plus_one():
+	# A drone is a character (ruling 2026-09-27): an unowned drone resolves to itself through
+	# get_attacker, and it is a character, so it gains the +1 like any other attacker.
 	arm_cannon()
 	var drone := Fixture.create_drone(game, DRONE_TILE, Faction.PLAYER)
 	var rifle := Fixture.equip(drone, Fixture.MAIN_RIFLE)
 	var before := pre_attack(drone, rifle, target).flat_bonus
 	await fire(target)
-	assert_eq(pre_attack(drone, rifle, target).flat_bonus, before,
-		'An unowned drone is not a character (is_actor, ruling 16): no +1.')
+	assert_eq(pre_attack(drone, rifle, target).flat_bonus, before + 1,
+		'An unowned drone is a character (ruling 2026-09-27): +1.')
 
 # ---------------------------------------------------------------- the clock
 

@@ -24,14 +24,12 @@
 ##    cannot express is "or". NEVER require_defender_within: that is a radius, and ruling 6 has this
 ##    card TAKING House Guard's widening, which reaches adjacent_characters and nothing that measures
 ##    a radius. The argument order reads the SLUAGH'S buffs, which is the ruling's "direction".
-##  - `defender.is_actor()`, for the reason every other card on this frame carries it:
-##    require_defender_to_be_character is is_character(), and that is TRUE of a drone (unit.gd:116).
-##    So A MISS ON AN ADJACENT ALLIED DRONE DOES NOT ARM THE RETORT, and this line is the only thing
-##    that refuses it - a real narrowing of the archetype's flag, not a restatement, pinned by
-##    `test_a_miss_on_an_adjacent_allied_drone_offers_nothing`. It is the MOD'S settled reading of
-##    "character" (rulings 194, 64/70 and 269), not this frame's local taste; the canonical paragraph
-##    is in mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd's header.
-##    It is asked only of the ADJACENT-ALLY branch: the Sluagh itself is an actor by construction,
+##  - `defender.is_character()`, which now asks exactly what `require_defender_to_be_character`
+##    already asks (action_reaction_attacked.gd:95) - a drone is a character (ruling 2026-09-27,
+##    mod-wide), so this line is a redundant restatement, not a narrowing; pinned by
+##    `test_a_miss_on_an_adjacent_allied_drone_offers_too`. The canonical paragraph is in
+##    mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd's header.
+##    It is asked only of the ADJACENT-ALLY branch: the Sluagh itself is a character by construction,
 ##    and asking it of the self case would only be a way to get the self case wrong.
 ##
 ## allow_tech AND allow_basic ARE SET, and both default false (action_reaction_attacked.gd:42-43).
@@ -97,10 +95,9 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if not Unit.is_valid(defender): return false
 	# "misses YOU or an adjacent allied character" - the one clause the archetype cannot express.
 	if defender == unit: return true
-	# A mech or a pilot, never a drone - the mod's settled reading of "character" (rulings 194, 64/70
-	# and 269). The .tres's require_defender_to_be_character does NOT deliver this, because
-	# Unit.is_character() is true of a drone (unit.gd:116-117). See the header.
-	if not defender.is_actor(): return false
+	# "A character": is_character(), a drone included (mod-wide row of 2026-09-27) - the same
+	# predicate require_defender_to_be_character already asks. See the header.
+	if not defender.is_character(): return false
 	# The seam, ruling 6: is_adjacent, never a radius, with the SLUAGH as the first argument so it is
 	# the Sluagh's buffs that are read.
 	return UnitRelation.is_adjacent(unit, defender)

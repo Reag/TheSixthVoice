@@ -6,7 +6,7 @@
 # (action_grav_amped_shock.gd): a forced_save POST reaction, no reaction point, 1/round on its own
 # usage group, a yes/no BEFORE the round is spent. "The Rakshasa forced" is the forcer's
 # get_owner_unit_or_self(), so a save its mine forces counts (ruling 4). "Hostile character" is
-# is_actor() (rulings row 301, re-confirmed for this frame at SP1): a drone is not one.
+# is_character() (ruling 2026-09-27, reversing rulings row 301's is_actor() reading): a drone is one.
 #
 # EVERY SAVE IS FORCED THROUGH UnitHasecheck WITH A FULL TRIFECTA (vauban_fixture.forcer), never by
 # raising event_unit_save by hand: execute_event returns void, and roll_check drops a forcer that is
@@ -133,16 +133,16 @@ func test_an_ally_failing_the_same_save_takes_nothing():
 	assert_eq(Fixture.heat(ally), before, 'The card says a HOSTILE character.')
 	assert_eq(responder.yesno_prompts.size(), 0, 'No prompt.')
 
-func test_a_hostile_drone_failing_the_same_save_takes_nothing():
-	# is_actor(), not is_character(): make_hull_save lets a drone roll (it IS is_character), so the
-	# event is raised and only the trait's own clause can refuse it.
+func test_a_hostile_drone_failing_the_same_save_takes_heat_too():
+	# A drone is a character too now (ruling 2026-09-27): make_hull_save already let it roll (it IS
+	# is_character()), and the trait's own clause no longer refuses it either.
 	var drone := Fixture.create_hostile_drone(game, Vector2i(9, 6))
 	var before := Fixture.heat(drone)
 	var passed := await fail_hull(drone, Fixture.forcer(rakshasa))
 	assert_true(Fixture.d20_was_rolled(), 'fixture: the save really rolled.')
 	assert_false(passed, 'fixture: the save failed.')
-	assert_eq(Fixture.heat(drone), before, 'A drone is not a character (rulings row 301).')
-	assert_eq(responder.yesno_prompts.size(), 0, 'No prompt.')
+	assert_eq(Fixture.heat(drone) - before, 2, 'A drone is a character too (ruling 2026-09-27).')
+	assert_eq(responder.yesno_prompts.size(), 1, 'After one "may" prompt.')
 
 func test_a_save_forced_with_no_gear_or_action_costs_nothing():
 	# The Vauban's M-3: the saver's buffs never see a forcer that is not a full trifecta, so neither

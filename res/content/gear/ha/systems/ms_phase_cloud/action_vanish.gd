@@ -7,9 +7,10 @@
 ##
 ## THE JORMUNGANDR'S CHASSIS (action_automatic_retaliation.gd): a DAMAGE reaction at POST (the number
 ## is final there), heat excluded, a number above 0 (armor that ate the whole hit arrives as 0), and
-## the dealer resolved to its OWNER - a drone's or a mine's hit is its owner's (rulings row 70) - who
-## must be a hostile ACTOR within the Koremasa's sensors, measured to that owner (the Subutai Draw Fire
-## ruling, row 95). A REAL reaction: the point and the charge are the price, the 1/round is the
+## the dealer resolved to its OWNER - a drone's or a mine's hit is its owner's (rulings row 70,
+## attribution, unaffected by the 2026-09-27 membership ruling) - who must be a hostile CHARACTER
+## within the Koremasa's sensors, measured to that owner (the Subutai Draw Fire ruling, row 95). A
+## REAL reaction: the point and the charge are the price, the 1/round is the
 ## engine's (action_reaction.gd get_per_round_hard_limit), and a Kit at 0 charges refuses it
 ## (can_be_used_while_uncharged). Unlike the Jormungandr's it ASKS first - a reaction is a choice, and
 ## that one's card says "automatically".
@@ -61,7 +62,7 @@ func damager(context:Context, holder:Unit) -> Unit:
 	if not Unit.is_valid(context.target_unit): return null
 	var them:Unit = context.target_unit.get_owner_unit_or_self()
 	if not Unit.is_valid(them): return null
-	if not them.is_actor(): return null
+	if not them.is_character(): return null
 	if not UnitRelation.are_enemies(holder, them): return null
 	return them
 

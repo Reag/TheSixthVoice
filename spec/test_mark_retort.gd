@@ -244,40 +244,33 @@ func test_a_miss_against_an_adjacent_ally_does_the_same():
 	assert_eq(Overshield.current(sluagh), SHIELD,
 		'And the Sluagh KEPT its whole shield - the card spends nothing but the reaction.')
 
-func test_a_miss_on_an_adjacent_allied_drone_offers_nothing():
-	# THE DRONE CASE, WHICH NOTHING PINNED UNTIL THE CLOSE (slice 3 I-2). Both siblings on this Kit
-	# had one and the retort did not, so `defender.is_actor()` in action_mark_retort.gd could have
-	# been deleted outright with the whole suite green - the archetype's
-	# require_defender_to_be_character is is_character(), which a drone PASSES
-	# (action_reaction_attacked.gd:95, unit.gd:116).
+func test_a_miss_on_an_adjacent_allied_drone_offers_too():
+	# THE DRONE CASE, FLIPPED BY THE MOD-WIDE RULING (2026-09-27): a drone is a character, so
+	# `defender.is_character()` in action_mark_retort.gd now passes it - the same predicate
+	# require_defender_to_be_character already asks (action_reaction_attacked.gd:95), so the line is
+	# a redundant restatement rather than a narrowing. The canonical paragraph is in
+	# action_stealing_of_the_souls.gd's header.
 	#
-	# IT STATES THE MOD'S SETTLED READING OF "CHARACTER": a drone is not one in its own right.
-	# Ruling 194 (the Vauban's Gravity Well), rulings 64 and 70 (a drone's shot counts as its
-	# OWNER'S) and ruling 269 (the Stealing) are the three precedents; the canonical paragraph is in
-	# action_stealing_of_the_souls.gd's header. Both siblings on this Kit agree, one file over.
-	#
-	# THE TWO SETUP ASSERTIONS NAME THE PREDICATE, so the green is a statement of the rule rather
-	# than of the outcome: flip the script's clause to is_character() and this is the one test in
-	# the file that reddens.
+	# THE TWO SETUP ASSERTIONS NAME THE ENGINE FACTS: a drone really is a character and really is not
+	# an actor, though the second no longer decides anything here.
 	#
 	# THE DRONE IS BUILT BEFORE arm_the_sluagh(), per SluaghFixture.equip's rule - the Mark is
-	# pressed LAST. It is NOT sheltered by the dome (the same ruling, one card over), so the incoming
-	# roll pops no soft-cover accuracy die; every entry in the queue is a 1 either way, so the
-	# alignment cannot matter.
+	# pressed LAST. Every entry in the queue is a 1 either way (the file header's idiom), so the
+	# alignment cannot matter whether or not the drone is also sheltered by the dome.
 	var drone:Unit = SluaghFixture.create_drone(game, ADJACENT_TILE + Vector2i(0, 1))
 	await arm_the_sluagh()
 	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
-	assert_false(drone.is_actor(), '...and is NOT an actor, which is the distinction the gate uses.')
+	assert_false(drone.is_actor(), '...and is NOT an actor - which no longer matters here.')
 	assert_true(UnitRelation.is_adjacent(sluagh, drone), 'fixture: and it is adjacent.')
 	var before:int = shooter.current_damage()
 
 	SluaghFixture.queue([D20_MISSES, DAMAGE_DIE])
 	await SluaghFixture.shoot(game, shooter, drone)
 
-	assert_eq(offers(), 0, 'The player was never asked...')
-	assert_eq(retort_uses_this_round(), 0, '...and nothing fired for an adjacent allied DRONE.')
-	assert_eq(shooter.current_damage(), before, 'The shooter took nothing back.')
-	assert_eq(Overshield.current(sluagh), SHIELD, 'And the dome is untouched.')
+	assert_eq(offers(), 1, 'The player was asked, exactly once, whether to retort.')
+	assert_eq(retort_uses_this_round(), 1, 'A miss against an adjacent allied DRONE fires it too.')
+	assert_eq(shooter.current_damage() - before, SHIELD, 'The attacker took the Sluagh\'s whole Overshield.')
+	assert_eq(Overshield.current(sluagh), SHIELD, 'And the Sluagh kept its whole shield.')
 
 func test_an_ally_two_tiles_out_offers_nothing():
 	var far:Unit = SluaghFixture.create_ally(game, TWO_OUT_TILE)

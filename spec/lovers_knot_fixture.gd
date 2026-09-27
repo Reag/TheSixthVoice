@@ -7,9 +7,9 @@
 # lazily derived bare var (kit.gd:11-16) that does not survive duplicate(), so
 # unit.get_gear(&'mt_precision_venting') would stop finding anything.
 #
-# "CHARACTER" IS Unit.is_actor() (the mod-wide author's call, rulings row 301; design ruling 3): a
-# drone is not a character. create_hostile_drone is the negative control for every "hostile
-# character" clause.
+# "CHARACTER" IS Unit.is_character() (the mod-wide author's call, ruling 2026-09-27, reversing row
+# 301): a drone is a character too. create_hostile_drone now exists for ATTRIBUTION and
+# "own vs unowned" cases, not as a "hostile character" negative control.
 #
 # Static functions, no state, NOT extends GutTest, NOT test_-prefixed, so GUT never collects it.
 extends RefCounted

@@ -6,8 +6,10 @@
 # (map_state.gd:222-229). So this hidden reaction counts every hostile turn start as it happens: the
 # bus offers every unit's reactions on every event (reaction_bus.gd:50-59), the Pier's included.
 #
-# is_actor() FILTERS THE MIRRORS. event_turn_start re-runs NEW_TURN for each deployable its owner
-# holds (:17-21, :57-59), and a deployable or drone is not an actor (unit.gd:117). An Elite's two
+# is_actor() FILTERS THE MIRRORS - NOT the card's word "character" (the 2026-09-27 ruling does not
+# reach here). event_turn_start re-runs NEW_TURN for each deployable its owner
+# holds (:17-21, :57-59), and a deployable or drone is not an actor (unit.gd:117): a drone has no turn
+# of its own, so its NEW_TURN is its owner's mirrored one, not an activation. An Elite's two
 # activations are two turn starts and count two.
 #
 # THE ROUND STAMP IS THE RESET. Core.add_to_tally reads a tally stamped with an older round as 0, so

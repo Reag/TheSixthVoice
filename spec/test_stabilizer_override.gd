@@ -4,9 +4,9 @@
 #    Prone."
 #
 # Drain's watcher shape plus a 1/round hard limit on its own usage group. Any own ActionAttackTech hit
-# on a HOSTILE character (is_actor()) not already Prone and not immune to it; the round is spent before
-# the save. A Systems save against [PRONE] forced with the full trifecta, so Worm Code sees the failure;
-# Prone MANUAL.
+# on a HOSTILE character (is_character(), a drone included - ruling 2026-09-27) not already Prone and
+# not immune to it; the round is spent before the save. A Systems save against [PRONE] forced with the
+# full trifecta, so Worm Code sees the failure; Prone MANUAL.
 #
 # Dice: the attack d20, then the save d20. Fixture.queue's tail of 3s FAILS every save here, so a save
 # that should never have been forced shows up as a Prone target rather than passing quietly.
@@ -142,13 +142,13 @@ func test_an_ally_hit_forces_nothing():
 	assert_false(prone(ally), 'A hostile character only.')
 	assert_eq(uses(), 0, 'The round is untouched.')
 
-func test_a_hostile_drone_forces_nothing():
+func test_a_hostile_drone_forces_a_save_too():
+	# A drone is a character too now (ruling 2026-09-27): a tech hit on it forces the same save.
 	var drone := Fixture.create_hostile_drone(game, Vector2i(7, 7))
 	await Fixture.choose_mode(game, rakshasa, responder, MODE.STABILIZER_OVERRIDE)
-	await Fixture.invade(game, rakshasa, drone, [HIT])
-	assert_true(Fixture.d20_was_rolled(), 'fixture: the invade rolled.')
-	assert_false(prone(drone), 'A drone is not a character.')
-	assert_eq(uses(), 0, 'The round is untouched.')
+	await Fixture.invade(game, rakshasa, drone, [HIT, SAVE_FAILS])
+	assert_true(prone(drone), 'Knocked Prone, same as any other character.')
+	assert_eq(uses(), 1, 'And the round is spent.')
 
 func test_an_already_prone_target_keeps_the_round():
 	SpecFactory.apply(hostile, Lancer.STATUS.PRONE)

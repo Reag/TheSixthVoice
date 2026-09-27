@@ -12,8 +12,8 @@
 #
 # THE GATE is Vigil's reading of "deals damage" (action_vigil.is_damage_dealt_by: the dealer read off
 # target_unit.get_attacker, number > 0, not HEAT, not SELF_INFLICTED) plus the card's two extra
-# words: the victim is a HOSTILE (are_enemies) CHARACTER (is_actor - row 301: not a drone, not an
-# object). ONCE PER VICTIM PER ATTACK: a two-type hit, or Hyper Engineered Munitions' extra point
+# words: the victim is a HOSTILE (are_enemies) CHARACTER (is_character() - a drone included, ruling
+# 2026-09-27; still not an object). ONCE PER VICTIM PER ATTACK: a two-type hit, or Hyper Engineered Munitions' extra point
 # (SP4), is one attack and forces ONE save; the stamp is the enclosing declared attack's id
 # (attack_trace.gd) joined to the victim's persistent id, in this core's state, and the predicate
 # refuses a repeat. A Blast on two hostiles forces two saves, one each - that is two victims.
@@ -58,7 +58,7 @@ func triggers_on_event(core:BuffCore, unit:Unit, triggering_event:EventCore) -> 
 	var context:Context = triggering_event.context
 	if not VigilAction.is_damage_dealt_by(unit, context): return false
 	var victim:Unit = context.unit
-	if not Unit.is_valid(victim) or not victim.is_actor(): return false # "a hostile CHARACTER"
+	if not Unit.is_valid(victim) or not victim.is_character(): return false # "a hostile CHARACTER"
 	if not UnitRelation.are_enemies(unit, victim): return false # "a HOSTILE character"
 	return not core.state_has_id_in(FORCED_KEY, stamp_for(triggering_event, victim))
 

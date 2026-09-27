@@ -222,28 +222,22 @@ func test_an_adjacent_enemy_is_not_sheltered():
 	assert_true(UnitRelation.is_adjacent(sluagh, enemy), 'fixture: it really is adjacent.')
 	assert_false(sheltered(enemy), 'applies_to_enemies is false: the dome shelters its own.')
 
-func test_an_adjacent_allied_drone_is_not_sheltered():
+func test_an_adjacent_allied_drone_is_sheltered_too():
 	# applies_only_to_characters is checked by PassiveAura.can_apply_buff_to_unit (passive_aura.gd:73)
-	# - and a drone IS a character to the engine (unit.gd:116), so that flag does NOT refuse it. The
-	# aura therefore carries its own is_actor() clause, and this case is the only thing that pins it.
+	# - and a drone IS a character to the engine (ruling 2026-09-27, mod-wide), so the aura's own
+	# explicit `moving_unit.is_character()` clause (passive_mark_cover_aura.gd) now asks the same
+	# predicate the flag already does - a redundant restatement, not a narrowing.
 	#
-	# IT IS THE MOD'S READING OF "CHARACTER", NOT THIS FRAME'S. Ruling 194 is the nearest precedent
-	# and it is the SAME MECHANISM one frame over: the Vauban's Gravity Well is a range-1 aura whose
-	# "adjacent allied mechs" explicitly does not shelter drones or deployables. Rulings 64/70 (a
-	# drone's shot counts as its owner's) and 269 (the Stealing) complete the set; the canonical
-	# paragraph is in action_stealing_of_the_souls.gd's header.
-	#
-	# THE TWO SETUP ASSERTIONS ARE KEPT: they name WHICH predicate is being read, so the green is a
-	# statement of the rule. Flip passive_mark_cover_aura.gd's clause to is_character() and this is
-	# the one test in the file that reddens.
+	# THE TWO SETUP ASSERTIONS ARE KEPT AS ENGINE FACTS: a drone really is a character and really is
+	# not an actor, though the second no longer decides anything here.
 	var drone:Unit = SluaghFixture.create_drone(game, OTHER_ADJACENT_TILE)
 	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
-	assert_false(drone.is_actor(), '...and is NOT an actor, which is the distinction the gate uses.')
+	assert_false(drone.is_actor(), '...and is NOT an actor - which no longer matters here.')
 	await SluaghFixture.press_mark(game, sluagh)
 	assert_true(UnitRelation.is_adjacent(sluagh, drone), 'fixture: and it really is adjacent.')
-	assert_false(sheltered(drone), 'An adjacent allied DRONE is not sheltered.')
-	assert_eq(cover_against_the_shooter(drone), Lancer.COVER.NONE,
-		'And the engine\'s own cover pipeline agrees: no soft cover reaches it.')
+	assert_true(sheltered(drone), 'An adjacent allied DRONE is sheltered too.')
+	assert_eq(cover_against_the_shooter(drone), Lancer.COVER.SOFT,
+		'And the engine\'s own cover pipeline agrees: soft cover reaches it.')
 
 func test_without_the_mark_nobody_is_sheltered():
 	# requires_buff is what gates the whole aura (passive_aura.gd:40-42), and it is why the core

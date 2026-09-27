@@ -14,7 +14,7 @@
 # get_target_range would hand back its threat - so an adjacent swing would otherwise always qualify.
 # A THROWN attack is a melee weapon too, and is excluded by the same filter.
 #
-# "A CHARACTER" is is_actor(): the mod-wide row, design ruling 16 - a drone or an object is not one.
+# "A CHARACTER" is is_character() (ruling 2026-09-27) - a drone is one; an object still is not.
 extends BuffWeaponTypeBonus
 
 func is_buff_context_valid_for_passive(core:BuffCore, context:Context) -> bool:
@@ -23,7 +23,7 @@ func is_buff_context_valid_for_passive(core:BuffCore, context:Context) -> bool:
 
 func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 	if not super(core, context): return false
-	if not context.target_unit.is_actor(): return false
+	if not context.target_unit.is_character(): return false
 	var weapon:ActionAttackWeapon = context.action
 	var distance:int = UnitRelation.distance_between(context.unit.get_attacker(context), context.target_unit)
 	return distance == weapon.get_target_range(SpecificAction.from_context(context))

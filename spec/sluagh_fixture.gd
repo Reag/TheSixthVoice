@@ -148,34 +148,35 @@ static func create_hostile(game:Gamemaster, tile:Vector2i, evasion:int = 10) -> 
 static func create_ally(game:Gamemaster, tile:Vector2i) -> Unit:
 	return FitzgeraldFixture.create_dummy(game, tile, 10, Faction.PLAYER)
 
-## An allied DRONE: a character that is NOT an actor. It is the NEGATIVE control for every "allied
-## character" clause on this frame.
+## An allied DRONE: a character (ruling 2026-09-27, mod-wide - a drone IS a character; see the
+## canonical paragraph below). Used to build the positive "a drone counts" cases, and the owned/
+## unowned pair where a card's clause is about ATTRIBUTION rather than membership.
 ##
-## "CHARACTER" ON THIS FRAME IS Unit.is_actor(), AND A DRONE IS NOT ONE. Unit.is_character() IS true
-## of a drone (unit.gd:116, "active mech/pilot/drone"), which is exactly why every clause has to say
-## is_actor() (:117) for itself. A drone is therefore NOT sheltered by the Mark's dome, NOT guarded
-## by Astral Guardian, does NOT arm the Mark's retort, does NOT open the Eyes, does NOT grant on the
-## Stealing, is NOT the Hunt's closest character, and is NOT a legal In Triumvirate partner or Crown
-## target. The canonical statement of the rule - and of the mod-wide precedent behind it (rulings
-## 194, 64/70 and 269) - lives in the production header of
+## "CHARACTER" ON THIS FRAME, AND ACROSS THE MOD, IS Unit.is_character() - a drone included (the
+## LCP's own DRONE tag: "Drones are Size 1/2 characters"). This REVERSES row 301 (2026-09-21, which
+## read "character" as `is_actor()`). A drone is therefore sheltered by the Mark's dome, guarded by
+## Astral Guardian, arms the Mark's retort, opens the Eyes, grants on the Stealing, can be the Hunt's
+## closest character, and is a legal In Triumvirate partner or Crown target - all in its own right,
+## not only through an owner. The canonical statement lives in the production header of
 ## res/content/frames/horus/mf_sluagh/mt_the_stealing_of_the_souls_of_the_dead/action_stealing_of_the_souls.gd.
 ##
-## THE ONE PLACE A DRONE STILL COUNTS IS WHERE IT **ACTS**, and there it acts as its OWNER: ruling
-## 70's Draw Fire resolution. mt_wicked_host is the frame's only attacker-side clause and resolves
-## through `Unit.get_attacker()` before asking is_actor(), so an OWNED hostile drone's hit arms the
-## chip as its owner's. `own_drone` below is what builds that case; an unowned drone is the control.
+## ATTRIBUTION IS UNCHANGED AND IS A DIFFERENT QUESTION: where a card asks WHO did something, the
+## actor still resolves through `Unit.get_attacker()` first - ruling 70's Draw Fire resolution - so an
+## OWNED hostile drone's hit still arms mt_wicked_host as its owner's, exactly as before. `own_drone`
+## below builds that case; an unowned drone now ALSO passes the character test in its own right,
+## rather than being the control it used to be.
 ##
-## WHAT IS EXCLUDED FOR A DIFFERENT REASON is an OBJECT, a WRECK or a MARKER, and
-## create_hostile_object below is the control for that half - is_character() is already false for
-## those (unit.gd:110, frame.gd:100), with no clause of ours involved.
+## WHAT IS STILL EXCLUDED is an OBJECT, a WRECK or a MARKER, and create_hostile_object below is the
+## control for that half - is_character() is already false for those (unit.gd:110, frame.gd:100),
+## with no clause of ours involved.
 ##
-## THE ENGINE FLAGS DO NOT DELIVER ANY OF THIS, and that correction is worth keeping because it has
-## been got wrong twice: `require_defender_to_be_character` (action_reaction_attacked.gd:95),
-## `PassiveAura.applies_only_to_characters` (passive_aura.gd:73) and
-## `ActionSystemTargetUnit.requires_target_character` (action_system_target_unit.gd:16) are ALL
-## `is_character()`, which a drone passes. Every spec that reads a drone therefore keeps its
-## `assert_true(drone.is_character())` / `assert_false(drone.is_actor())` pair: those two lines are
-## what make the test state the RULE rather than only the outcome.
+## THE ENGINE FLAGS NOW DELIVER THIS DIRECTLY. `require_defender_to_be_character`
+## (action_reaction_attacked.gd:95), `PassiveAura.applies_only_to_characters` (passive_aura.gd:73)
+## and `ActionSystemTargetUnit.requires_target_character` (action_system_target_unit.gd:16) are ALL
+## `is_character()`, which a drone passes - and every content-side clause that used to narrow that to
+## is_actor() has been flipped to match. Every spec that reads a drone still keeps its
+## `assert_true(drone.is_character())` / `assert_false(drone.is_actor())` pair as an ENGINE FACT: the
+## second line no longer decides the outcome anywhere on this frame, but both are still true.
 ##
 ## Built by flipping is_drone on an ALREADY-ISOLATED frame rather than by loading a vanilla drone
 ## frame, the Vauban fixture's reasoning verbatim: create_dummy calls FrameIsolation.isolate_frame,
@@ -195,9 +196,10 @@ static func create_drone(game:Gamemaster, tile:Vector2i, faction:Faction.SIDE = 
 ## one), get_owner_unit reads it back through map.get_unit_by_id (unit.gd:264-268), and
 ## get_attacker -> get_owner_unit_or_self is what ruling 70 resolves through (unit.gd:270-282).
 ##
-## AN UNOWNED DRONE IS THE CONTROL, and it is the default create_drone gives: with no owner id
-## get_attacker returns the drone itself, which is not an actor, so nothing arms. That pair is the
-## whole of the Wicked Host drone evidence.
+## AN UNOWNED DRONE gets get_attacker() returning itself (the default create_drone gives) - which
+## used to be the control for the Wicked Host pair before ruling 2026-09-27 (mod-wide) made a drone a
+## character in its own right; an unowned drone now ALSO arms what it hits. own_drone still isolates
+## the OWNED half, ruling 70's attribution, unaffected by the membership ruling.
 static func own_drone(drone:Unit, owner:Unit) -> Unit:
 	drone.state.set_owner(owner)
 	return drone

@@ -3,7 +3,8 @@
 # Design 1.3, ruling 6.
 #
 # A real ActionReactionMovement (1/round by the engine, consumes_rxn), on ATTACK POST with the Knot as
-# the target. The shooter is context.unit and must be a hostile is_actor() whose
+# the target. The shooter is context.unit and must be a hostile character (is_character(), a drone
+# included, ruling 2026-09-27) whose
 # UnitTile.effective_floor is STRICTLY lower than the Knot's; a flier counts at +3. The move is
 # Util.half(speed max), rounded up, as an ordinary voluntary move.
 #
@@ -146,14 +147,16 @@ func test_a_melee_miss_does_not_offer_it():
 	assert_eq(knot.current_damage(), 0, 'Fixture: and missed.')
 	assert_eq(offers(), 0, 'A melee miss is not a ranged attack.')
 
-func test_a_drones_miss_does_not_offer_it():
+func test_a_drones_miss_offers_it():
+	# A drone is a character (ruling 2026-09-27): its own miss now qualifies too. Reposition reads
+	# context.unit directly (not get_attacker), so this is unaffected by ownership either way.
 	raise_plateau()
 	var drone:Unit = Fixture.create_hostile_drone(game, SHOOTER_TILE)
-	assert_false(drone.is_actor(), 'Fixture: a drone is not a character (ruling 3).')
+	assert_true(drone.is_character(), 'Fixture: a drone is a character (ruling 2026-09-27).')
 	arm(false)
 	await miss_from(drone)
 	assert_eq(knot.current_damage(), RELIABLE, 'Fixture: the shot went off and missed.')
-	assert_eq(offers(), 0, 'A drone is not a hostile character.')
+	assert_eq(offers(), 1, 'A drone is a hostile character: offered.')
 
 func test_an_allys_miss_does_not_offer_it():
 	raise_plateau()

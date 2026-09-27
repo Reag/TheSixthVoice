@@ -234,12 +234,12 @@ func test_heat_the_black_mountains_own_and_a_hostiles_damage_give_nothing() -> v
 	await Fixture.damage(game, hostile, 3, other_hostile)
 	assert_eq(Fixture.overshield(other_hostile), 0, 'A hostile\'s.')
 
-func test_an_unowned_allied_drone_is_not_a_character_and_an_owned_one_acts_as_its_owner() -> void:
+func test_an_unowned_drones_hit_gives_itself_overshield_and_an_owned_ones_gives_its_owner() -> void:
 	var stray := Fixture.create_drone(game, ALLY_TILE + Vector2i(0, 2))
 	var owned := Fixture.own_drone(Fixture.create_drone(game, ALLY_TILE + Vector2i(0, -2)), ally)
 	await doom()
 	await Fixture.damage(game, hostile, 3, stray)
-	assert_eq(Fixture.overshield(stray), 0, 'An unowned drone is not a character.')
+	assert_eq(Fixture.overshield(stray), 1, 'An unowned drone is a character (ruling 2026-09-27) and counts as itself.')
 	await Fixture.damage(game, hostile, 3, owned)
 	assert_eq(Fixture.overshield(ally), 1, 'An owned drone hit counts as its owner hit (get_attacker).')
 	assert_eq(Fixture.overshield(owned), 0, 'Not the drone itself.')

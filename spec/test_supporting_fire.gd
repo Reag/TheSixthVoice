@@ -112,7 +112,7 @@ func test_an_ally_two_tiles_out_is_not_offered():
 func test_an_allied_drones_turn_start_is_not_offered():
 	var drone := Fixture.create_drone(game, ADJACENT)
 	await start(drone)
-	assert_eq(offers(), 0, '"allied character": a drone is not one.')
+	assert_eq(offers(), 0, 'A drone has no turn of its own: its NEW_TURN is its owner\'s mirrored one, not an activation.')
 
 func test_a_hostiles_turn_start_is_not_offered():
 	var enemy := Fixture.create_hostile(game, ADJACENT)

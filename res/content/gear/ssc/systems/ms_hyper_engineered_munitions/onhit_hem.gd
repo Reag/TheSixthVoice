@@ -8,8 +8,8 @@
 ## TWO EFFECTS BECAUSE should_abort RUNS THE SAVE and a passed save skips the whole effect: one
 ## effect would let a passed Hull save cancel the AP point too.
 ##
-## "WHENEVER YOU HIT A HOSTILE CHARACTER": both gate on the victim being an ACTOR (the mod-wide
-## row 301 / ruling 16 - a drone is_character() but not is_actor()) and an enemy of the attacker.
+## "WHENEVER YOU HIT A HOSTILE CHARACTER": both gate on the victim being a CHARACTER
+## (is_character() - a drone included, ruling 2026-09-27) and an enemy of the attacker.
 ## A hit on an object or an ally does nothing, and forces no save.
 ##
 ## THE AP POINT IS ITS OWN DAMAGE EVENT, dealt by the Thorn (generate_damage_events blames
@@ -22,7 +22,7 @@ func should_abort(stage:STAGE, activation:EventCore, attacked_unit:Unit) -> bool
 	if not Unit.is_valid(attacked_unit) or not Unit.is_valid(activation.context.unit): return true
 	var attacker:Unit = activation.context.unit.get_attacker(activation.context)
 	if not Unit.is_valid(attacker): return true
-	if not attacked_unit.is_actor(): return true
+	if not attacked_unit.is_character(): return true
 	if not UnitRelation.are_enemies(attacker, attacked_unit): return true
 	return await super(stage, activation, attacked_unit)
 

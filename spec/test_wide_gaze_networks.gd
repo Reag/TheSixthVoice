@@ -368,8 +368,9 @@ func test_the_nagas_own_rifle_is_smart_against_the_target() -> void:
 	assert_eq(pre.against, AttackRoll.ATTACK_TYPE.TECH, 'The Naga benefits too ("allied characters", self included).')
 	assert_eq(pre.target_defense, 8, 'Against E-DEF 8.')
 
-## AUTHOR DECISION 2 (2026-09-23): a drone is not a character, but where it attacks it attacks as
-## its OWNER (mod-wide row 301, Draw Fire's rule) - Unit.get_attacker, unit.gd:276-282.
+## AUTHOR DECISION 2 (2026-09-23): where a drone attacks, it attacks as its OWNER (mod-wide row 301's
+## attribution half, Draw Fire's rule) - Unit.get_attacker, unit.gd:276-282. Unaffected by the
+## 2026-09-27 reversal of that row's MEMBERSHIP half: attribution still resolves first either way.
 func test_an_allied_drone_attacks_as_its_owner() -> void:
 	defences(target, 8, 10)
 	var ally := NagaFixture.create_ally(game, Vector2i(12, 8))
@@ -382,14 +383,16 @@ func test_an_allied_drone_attacks_as_its_owner() -> void:
 	var pre := pre_attack(drone)
 	assert_eq(pre.target_defense, 8, 'And it rolls against E-DEF 8, the lower one.')
 
-func test_an_unowned_drone_does_not_benefit() -> void:
+func test_an_unowned_drone_benefits_too() -> void:
+	# get_attacker resolves an unowned drone to itself, and a drone is a character too now (ruling
+	# 2026-09-27) - so it clears the character gate the same as an owned one clears it through its owner.
 	defences(target, 8, 10)
 	var drone := NagaFixture.create_drone(game, ALLY_TILE)
 	NagaFixture.arm_rifle(drone)
 	await hypnotize()
 	UnitTile.update_tracking_and_statuses(game.map)
 	assert_true(UnitCondition.has_buff(drone, TARGETING), 'LIVENESS: the aura reaches the drone.')
-	assert_false(rifle_is_smart(drone, target), 'No owner: get_attacker is the drone itself, not a character.')
+	assert_true(rifle_is_smart(drone, target), 'No owner: get_attacker is the drone itself, and it is a character.')
 
 func test_a_drone_whose_owner_is_hostile_does_not_benefit() -> void:
 	defences(target, 8, 10)

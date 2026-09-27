@@ -166,34 +166,25 @@ func test_an_allied_invade_applies_nothing():
 		'fixture: the invade really landed - the fragment signal applied Impaired.')
 	assert_false(has_chip(), 'An ALLY hitting the Sluagh arms nothing - the card says hostile.')
 
-## THE TWO DRONE CASES BELOW ARE ONE RULING IN TWO HALVES, and nothing in this file pinned either
-## until the close (slice 2 I-1). Every attacker here was a mech, so buff_wicked_host_watch.gd's
-## attacker predicate could have been flipped or deleted with the whole suite green.
+## THE TWO DRONE CASES BELOW ARE BOTH POSITIVE, under the ruling of 2026-09-27 (mod-wide): "character"
+## is is_character(), a drone included - reversing row 301 (2026-09-21), which excluded one via
+## is_actor(). The canonical paragraph is in action_stealing_of_the_souls.gd's header.
 ##
-## THE MOD'S SETTLED READING OF "CHARACTER" is that A DRONE IS NOT ONE IN ITS OWN RIGHT, AND WHERE A
-## DRONE ACTS, IT ACTS AS ITS OWNER - ruling 194 (the Vauban's Gravity Well), rulings 64 and 70
-## (Draw Fire, CONFIRMED: a hostile drone's shot counts as its owner's, resolved through
-## Unit.get_attacker) and ruling 269 (the Stealing). The canonical paragraph is in
-## action_stealing_of_the_souls.gd's header.
-##
-## THIS IS THE FRAME'S ONLY ATTACKER-SIDE CLAUSE, so it is the only place the second half of that
-## sentence does any work: the watcher resolves through get_attacker() BEFORE asking is_actor(), so
-## the owned drone below arms the chip as its OWNER'S hit while the unowned one arms nothing. Every
-## other Sluagh card asks the bare predicate and refuses a drone outright.
-##
-## THE PAIR IS THE EVIDENCE, NOT EITHER CASE ALONE. Owned-only would pass under a bare
-## is_character(); unowned-only would pass under a build with no get_attacker call at all. Together
-## they say exactly which two lines are doing the work, and each names the predicate out loud.
+## ATTRIBUTION IS UNCHANGED AND IS STILL WHAT get_attacker() DOES: the watcher resolves through it
+## before asking is_character(), so an OWNED hostile drone's hit still arms the chip as its OWNER'S -
+## ruling 70's Draw Fire resolution, unaffected by the membership ruling. An UNOWNED drone now ALSO
+## arms the chip, in its own right, because get_attacker() resolves to the drone itself and a drone
+## passes is_character() too.
 
 func test_an_owned_hostile_drones_hit_arms_the_chip_as_its_owners():
 	# RULING 70's own sentence, on this card. The drone's owner is `shooter`, a hostile MECH, so
 	# get_attacker -> get_owner_unit_or_self (unit.gd:270-282) hands the watcher an ACTOR and the
-	# chip is armed - by a unit that is not itself a character on this frame.
+	# chip is armed - by a unit that is a character on this frame either way, before or after ruling.
 	var drone:Unit = SluaghFixture.create_drone(game, SHOOTER_TILE + Vector2i(0, 1), Faction.AI_ENEMY)
 	SluaghFixture.own_drone(drone, shooter)
 	SluaghFixture.arm_rifle(drone)
 	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
-	assert_false(drone.is_actor(), '...and is NOT an actor, so it never qualifies in its own right.')
+	assert_false(drone.is_actor(), '...and is NOT an actor, though that no longer decides anything on its own.')
 	assert_eq(drone.get_attacker(), shooter,
 		'fixture: but its shots resolve to its OWNER, which is the whole of ruling 70.')
 	assert_true(shooter.is_actor(), 'fixture: and the owner IS an actor.')
@@ -202,23 +193,22 @@ func test_an_owned_hostile_drones_hit_arms_the_chip_as_its_owners():
 	assert_eq(sluagh.current_damage(), DAMAGE_DIE, 'fixture: the drone\'s shot really hit, for 3.')
 	assert_true(has_chip(), 'An OWNED hostile drone\'s hit arms the chip - as its owner\'s hit.')
 
-func test_an_unowned_hostile_drones_hit_arms_nothing():
-	# THE OTHER HALF, and the one that pins is_actor() rather than is_character(). With no owner id
-	# get_owner_unit returns null (unit.gd:264-268), so get_attacker hands back the DRONE, and a
-	# drone is not a character on this frame. Flip buff_wicked_host_watch.gd's predicate to
-	# is_character() and this is the one test in the file that reddens.
+func test_an_unowned_hostile_drones_hit_arms_the_chip_too():
+	# THE OTHER HALF, and the one the ruling flipped. With no owner id get_owner_unit returns null
+	# (unit.gd:264-268), so get_attacker hands back the DRONE itself - and a drone is a character
+	# (ruling 2026-09-27, mod-wide), so it now arms the chip in its own right too.
 	#
 	# THE HIT ITSELF IS ASSERTED FIRST, which is what stops this passing for the boring reason: a
 	# shot that missed, or never happened, would also leave no chip.
 	var drone:Unit = SluaghFixture.create_drone(game, SHOOTER_TILE + Vector2i(0, 1), Faction.AI_ENEMY)
 	SluaghFixture.arm_rifle(drone)
 	assert_true(drone.is_character(), 'fixture: a drone IS a character to the engine...')
-	assert_false(drone.is_actor(), '...and is NOT an actor, which is the distinction the gate uses.')
+	assert_false(drone.is_actor(), '...and is NOT an actor - which no longer matters here.')
 	assert_eq(drone.get_attacker(), drone, 'fixture: unowned, so it answers for its own shots.')
 	SluaghFixture.queue([D20_HITS, DAMAGE_DIE])
 	await SluaghFixture.shoot(game, drone, sluagh)
 	assert_eq(sluagh.current_damage(), DAMAGE_DIE, 'fixture: the drone\'s shot really hit, for 3.')
-	assert_false(has_chip(), 'An UNOWNED hostile drone acts in its own right, and is not a character.')
+	assert_true(has_chip(), 'An UNOWNED hostile drone acts in its own right, and IS a character now.')
 
 func test_a_hostile_tech_attack_that_hits_applies_it():
 	# "Any attack roll, weapon or tech" - ruling 9. ms_fragment_signal is an ActionAttackTech and it

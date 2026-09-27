@@ -2,7 +2,8 @@
 # mechs". The Vauban's Gravity Well shape (passive_gravity_well_aura.gd): range 1, self and allies,
 # not enemies, on the .tres; this script adds the one clause the base class cannot express -
 # MECHS. applies_only_to_characters is not enough, because a drone is a character (unit.gd:116);
-# the card says mech, so is_mech() (the mod-wide is_actor rule is for "character").
+# the card says mech, so is_mech() (is_character() is the mod-wide rule for "character", ruling
+# 2026-09-27 - a drone included there, but never a mech).
 #
 # ADJACENCY IS MEASURED BY THE AURA (passive_aura.gd:85, distance_between against aura_range), so a
 # third-party widening of adjacent_characters (House Guard) does NOT reach this - author's ruling,

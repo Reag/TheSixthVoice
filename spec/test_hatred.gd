@@ -165,10 +165,10 @@ func test_an_allys_friendly_fire_costs_nothing():
 	assert_eq(friend.current_damage(), 0, 'But the card says HOSTILE character.')
 
 func test_a_hostile_drones_hit_costs_its_owner():
-	# RULING 22, both halves at once: the DRONE is not an actor, so it cannot be the "hostile
-	# character" - and get_owner_unit_or_self resolves the hit to the character that owns it
-	# (unit.gd:270-273), which can. An UNOWNED drone would resolve to itself and answer nobody, which
-	# is the control the fixture's create_drone gives by default.
+	# ATTRIBUTION, unaffected by the 2026-09-27 membership ruling: get_owner_unit_or_self resolves an
+	# OWNED drone's hit to the character that owns it (unit.gd:270-273), so the owner answers rather
+	# than the drone. An UNOWNED drone would resolve to itself and now answers for itself instead (see
+	# test_an_unowned_hostile_drones_hit_costs_it_the_answer below) - a drone is a character too.
 	var drone:Unit = LeolethFixture.create_drone(game, SECOND_TILE, Faction.AI_ENEMY)
 	LeolethFixture.own_drone(drone, shooter)
 	LeolethFixture.arm_rifle(drone)
@@ -180,22 +180,21 @@ func test_a_hostile_drones_hit_costs_its_owner():
 	assert_eq(drone.current_damage(), 0, 'The drone itself takes nothing...')
 	assert_eq(shooter.current_damage(), ANSWER, '...and its OWNER takes the 3.')
 
-func test_an_unowned_hostile_drones_hit_answers_nobody():
-	# THE ELEVENTH CASE, ADDED ON MEASUREMENT (Task 12, Step 5 mutation 3, which the plan anticipated:
-	# "if this mutation reddens nothing, say so and add an unowned-drone case"). With an OWNED drone
-	# the is_actor() clause is unreachable, because get_owner_unit_or_self() has already walked past
-	# the drone to a character; swapping is_actor() for is_character() reddened nothing at all. An
-	# UNOWNED hostile drone is the only shape that reaches the clause: get_owner_unit_or_self()
-	# returns the drone ITSELF (unit.gd:270-273, no owner id), is_character() is TRUE for a drone
-	# (unit.gd:116) and is_actor() is FALSE (:117). Ruling 22 says this frame's "character" is always
-	# is_actor, so the hit is answered by nobody.
+func test_an_unowned_hostile_drones_hit_costs_it_the_answer():
+	# THE ELEVENTH CASE (Task 12, Step 5 mutation 3), now read the OTHER way: a drone is a character
+	# (rulings.md, mod-wide row of 2026-09-27, reversing row 301/ruling 22). An OWNED drone still
+	# resolves to its owner - get_owner_unit_or_self() walks past it (attribution, unchanged - see
+	# test_a_hostile_drones_hit_costs_its_owner above) - but an UNOWNED drone resolves to itself
+	# (unit.gd:270-273, no owner id), and the damager clause now tests is_character(), which is TRUE
+	# for a drone (unit.gd:116). So the hit is answered, by the drone itself.
 	var drone:Unit = LeolethFixture.create_drone(game, SECOND_TILE, Faction.AI_ENEMY)
 	LeolethFixture.arm_rifle(drone)
 	assert_eq(drone.get_owner_unit_or_self(), drone, 'fixture: an unowned drone resolves to itself.')
 	assert_true(drone.is_character(), 'fixture: and it IS a character...')
-	assert_false(drone.is_actor(), '...which is not an actor.')
+	assert_false(drone.is_actor(), '...though still not an actor - attribution is unaffected.')
 	await LeolethFixture.rage(game, leoleth, LeolethFixture.FACE_HATRED)
 	LeolethFixture.queue([D20_HITS, DAMAGE_DIE])
 	await LeolethFixture.shoot(game, drone, leoleth)
 	assert_gt(leoleth.current_damage(), 0, 'LIVENESS: the drone\'s shot landed.')
-	assert_eq(drone.current_damage(), 0, 'And nobody was answered for it.')
+	assert_eq(drone.current_damage(), ANSWER,
+		'A drone is a character (ruling 2026-09-27), so it answers for its own hit.')

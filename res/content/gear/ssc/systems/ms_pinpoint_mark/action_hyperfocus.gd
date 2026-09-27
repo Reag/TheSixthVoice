@@ -6,7 +6,8 @@
 ##
 ## ActionSystemTargetUnit (the .tres: QUICK, target_range_is_sensors, enemies only, LOS as the
 ## archetype's baseline - Mark for Death's "within Sensors, seen"). A charge is spent by the default
-## consumes_charges inside spend_actions. "A character" is is_actor() (ruling 16): a drone is refused.
+## consumes_charges inside spend_actions. "A character" is is_character() (a drone included, ruling
+## 2026-09-27).
 ##
 ## THE LOCK is is_available_to_activate: refused while the stored focus is alive and on the map
 ## (Mark for Death's own gate, action_mark_for_death.gd:6-7).
@@ -25,7 +26,7 @@ func is_available_to_activate(unit:Unit, gear:GearCore) -> bool:
 
 func can_target_unit(potential_target:Unit, specific:SpecificAction) -> bool:
 	if not super(potential_target, specific): return false
-	return potential_target.is_actor()
+	return potential_target.is_character()
 
 func activate_for_target(context:Context, activation:EventCore, target_unit:Unit) -> void:
 	var thorn:Unit = context.unit

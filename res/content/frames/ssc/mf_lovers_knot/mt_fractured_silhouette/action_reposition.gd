@@ -8,8 +8,8 @@
 ## nothing.
 ##
 ## THE SHOOTER IS context.unit, NOT get_attacker(): the card's subject is whoever fired, and a drone's
-## shot has a drone for its unit. It must be a hostile CHARACTER, which in this mod is is_actor() (ruling
-## 3: a drone is not one).
+## shot has a drone for its unit. It must be a hostile CHARACTER, is_character() (a drone included,
+## ruling 2026-09-27) - so a drone's own miss qualifies regardless of ownership.
 ##
 ## "A RANGED ATTACK" IS UnitAction.is_ranged_weapon (unit_action.gd:555-559): any ActionAttackWeapon
 ## that is not MELEE. A tech attack is not an ActionAttackWeapon, so it never triggers this.
@@ -53,7 +53,7 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 
 	# by a hostile character
 	var shooter:Unit = triggering_context.unit
-	if not Unit.is_valid(shooter) or not shooter.is_actor(): return false
+	if not Unit.is_valid(shooter) or not shooter.is_character(): return false
 	if not UnitRelation.are_enemies(shooter, unit): return false
 
 	# standing strictly lower
