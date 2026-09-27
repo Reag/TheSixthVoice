@@ -97,6 +97,25 @@ func assert_not_offered(message:String, target:Unit = hostile) -> void:
 
 # ---------------------------------------------------------------- the offer
 
+func test_two_offers_on_one_attack_keep_both_defenders_their_own_plus_three() -> void:
+	# I-1 (Important): buff_an_end_to_all_things_bonus had no multiple_copies_can_stack, so
+	# apply_buff_alt's same-source replacement (unit_condition.gd:741-747, matched on compcon_id +
+	# from_gear + to + until, blind to DEFENDER_KEY state) let the SECOND offer's bonus buff silently
+	# replace the first's. On a real Blast/Line hitting two hostiles the player would pay 2 heat for
+	# one +3. Cheap direct pin (the reviewer's suggested shape): two keyed copies from the same trait
+	# gear must both survive on the ally.
+	var gear:GearCore = black_mountain.get_gear(Fixture.AN_END_ID)
+	var first_defender := Fixture.create_hostile(game, Vector2i(10, 6))
+	var second_defender := Fixture.create_hostile(game, Vector2i(10, 8))
+	var bonus_a := BuffCore.create(ContentLibrary.get_buff(Fixture.AN_END_BONUS), gear.persistent_id)
+	bonus_a.set_state('an_end_defender', first_defender.core.persistent_id)
+	var bonus_b := BuffCore.create(ContentLibrary.get_buff(Fixture.AN_END_BONUS), gear.persistent_id)
+	bonus_b.set_state('an_end_defender', second_defender.core.persistent_id)
+	UnitCondition.apply_buff_alt(SpecFactory.dummy_event({unit = ally}), ally, bonus_a)
+	UnitCondition.apply_buff_alt(SpecFactory.dummy_event({unit = ally}), ally, bonus_b)
+	assert_eq(UnitCondition.get_buffs(ally, Fixture.AN_END_BONUS).size(), 2,
+		'Two offers on one attack, each carrying its own defender - both must survive.')
+
 func test_the_kit_and_its_reaction_are_registered() -> void:
 	var kit:Kit = ContentLibrary.get_kit(Fixture.AN_END_ID)
 	assert_true(Kit.is_valid(kit), 'mt_an_end_to_all_things is in the kits index.')
@@ -144,6 +163,7 @@ func test_an_ally_whose_granted_shield_was_zeroed_is_not_offered() -> void:
 	assert_false(Overshield.is_granted_by(ally, black_mountain), 'fixture: and the mark with it.')
 	await shoot(ally)
 	assert_not_offered('The Overshield the Black Mountain granted is spent.')
+	assert_eq(damage_taken(hostile), RIFLE_DIE, 'LIVENESS (M-6): the ally\'s shot actually hit.')
 
 func test_the_black_mountains_own_hit_is_never_offered() -> void:
 	# Ruling 3 (the author's call): "allied character" excludes the Black Mountain, even one that
@@ -170,6 +190,7 @@ func test_a_hostile_the_black_mountain_cannot_see_is_not_offered() -> void:
 	await Fixture.grant_overshield_by(black_mountain, side_ally, 3)
 	await shoot(side_ally)
 	assert_not_offered('No line of sight to the hostile.')
+	assert_eq(damage_taken(hostile), RIFLE_DIE, 'LIVENESS (M-6): the side ally\'s shot actually hit.')
 
 func test_a_hostile_drone_is_not_offered() -> void:
 	var drone := Fixture.create_drone(game, Vector2i(10, 2), Faction.AI_ENEMY)
@@ -178,6 +199,7 @@ func test_a_hostile_drone_is_not_offered() -> void:
 	await Fixture.grant_overshield_by(black_mountain, ally, 3)
 	await shoot(ally, drone)
 	assert_not_offered('A drone is not a hostile CHARACTER (ruling 3).', drone)
+	assert_eq(damage_taken(drone), RIFLE_DIE, 'LIVENESS (M-6): the shot actually hit the drone.')
 
 func test_an_allied_drones_hit_is_not_offered_unless_it_is_owned_by_a_marked_ally() -> void:
 	var drone := Fixture.create_drone(game, Vector2i(6, 6))
@@ -198,6 +220,38 @@ func test_a_miss_is_not_offered() -> void:
 	await Fixture.shoot(game, ally, evasive)
 	assert_eq(damage_taken(evasive), 2, 'fixture: missed - the rifle\'s RELIABLE 2 is what landed (attack_util.gd:144-147).')
 	assert_not_offered('A miss is not a successful attack roll.', evasive)
+
+func test_a_no_bonus_damage_attack_is_not_offered_and_leaves_nothing_behind() -> void:
+	# I-2 (Important): nothing refused Action.FLAG.NO_BONUS_DAMAGE (set on every mounted aux follow-up,
+	# action_attack_weapon.gd:69-73, and on mw_annihilator/mw_arc_projector/Hunter 3's Disdainful
+	# Blade). event_unit_attack_declared.gd:139-140 takes the get_no_bonus_damage_summary() branch and
+	# never calls roll_specific_bonus_damage, which is the ONLY consumer of BONUS_DAMAGE_SPECIFIC - so
+	# the offered, paid-for bonus buff (MANUAL lifetime, is_onetime) was never rolled and never
+	# consumed. It then rode onto the ally's NEXT hit on that same defender, rounds later if need be.
+	# Follow Order's own bonus-damage reaction refuses exactly this flag
+	# (t_leader/rank_3/action_follow_order_damage.gd:22), which is the fix's precedent.
+	await Fixture.grant_overshield_by(black_mountain, ally, 3)
+	await Fixture.cycle_turn(game, ally)
+	Fixture.queue([RIFLE_DIE, RIFLE_DIE, RIFLE_DIE, RIFLE_DIE])
+	await SpecFactory.use_solo(game, ally, Fixture.MAIN_RIFLE, hostile, [Action.FLAG.AS_FREEBIE, Action.FLAG.NO_BONUS_DAMAGE])
+	assert_eq(offers(), 0, 'A NO_BONUS_DAMAGE attack is not offered.')
+	assert_eq(Fixture.heat(black_mountain), 0, 'No heat.')
+	assert_false(UnitCondition.has_buff(ally, Fixture.AN_END_BONUS), 'And no leftover bonus buff rides on the ally.')
+	responder.yesno_queue.assign([false]) # in case anything is (wrongly) offered on the follow-up
+	await shoot_again(ally)
+	assert_eq(damage_taken(hostile), 2 * RIFLE_DIE, 'A plain follow-up hit is exactly two rifle shots - nothing leaked from the declined attack.')
+
+func test_a_ram_that_deals_no_base_damage_still_gets_the_plus_three() -> void:
+	# M-1 (ruling, the author, 2026-09-27): "any successful attack roll qualifies" - a Ram (a basic
+	# ActionAttackWeapon with no damage dice at all) still gets the +3, contra the old header claim
+	# ("an attack that deals no damage gains nothing"). The +3 is the entire hit here.
+	await Fixture.grant_overshield_by(black_mountain, ally, 3)
+	await Fixture.cycle_turn(game, ally)
+	Fixture.queue([Fixture.HIT_ROLL])
+	await SpecFactory.use_solo(game, ally, &'mw_ram', hostile)
+	assert_eq(offers(), 1, 'A successful Ram is offered.')
+	assert_eq(Fixture.heat(black_mountain), 1, 'Paid.')
+	assert_eq(damage_taken(hostile), BONUS, 'The Ram deals no base damage - the +3 is the whole hit.')
 
 func test_two_per_round_reset_at_the_black_mountains_turn() -> void:
 	await Fixture.grant_overshield_by(black_mountain, ally, 3)

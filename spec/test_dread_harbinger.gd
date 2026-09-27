@@ -15,10 +15,12 @@
 # semantics against a larger shield) and clears the mark and the lock; a Stabilize-shaped loss pays
 # nothing and clears the mark; no prompt is ever raised.
 #
-# DICE. Hostiles here have EVASION -10, so every d20 hits and only "is it 20+" matters: 30 crits, 4
-# does not. The queue is then a run of ONE value, so whichever die the engine pops in whichever order -
-# the accuracy d6 of a consumed lock, the damage dice of a hit column and a crit column, the mark's own
-# 1d6 - the answer is that value, and the order need not be pinned. Fixture.queue tails with 1s.
+# DICE (M-6: corrected wording - crit() queues FIVE values, not a run of one). Hostiles here have
+# EVASION -10, so every d20 hits and only "is it 20+" matters: 30 crits, 4 does not. The d20 is
+# followed by a run of the SAME value (4) for every OTHER die the engine pops - the accuracy d6 of a
+# consumed lock, the damage dice of a hit column and a crit column, the mark's own 1d6 - so their
+# relative order need not be pinned; only the first (d20) value distinguishes crit() from hit().
+# Fixture.queue tails with 1s.
 #
 # GEOMETRY (map 30x12). The Black Mountain at (4,4), Sensors 10. IN_SENSORS (6,4) is 2 from it;
 # OUT_OF_SENSORS (15,4) is 11. HOSTILE (10,4) is 6 from the Black Mountain, 4 from the near ally, 5 from
@@ -135,6 +137,7 @@ func test_an_unowned_allied_drones_crit_does_not_and_an_owned_ones_counts_as_its
 	var drone := Fixture.create_drone(game, IN_SENSORS)
 	Fixture.arm_rifle(drone)
 	await crit(drone)
+	assert_lt(Fixture.health(hostile), 200, 'LIVENESS (M-6): the unowned drone\'s crit still landed.')
 	assert_untouched(hostile, 'A drone is not a character (ruling 3).')
 	var owner := ally_at(Vector2i(6, 6))
 	Fixture.own_drone(drone, owner)
@@ -145,6 +148,7 @@ func test_a_hostiles_crit_on_an_ally_does_nothing() -> void:
 	var ally := ally_at(IN_SENSORS)
 	Fixture.arm_rifle(hostile)
 	await crit(hostile, ally)
+	assert_lt(Fixture.health(ally), 200, 'LIVENESS (M-6): the hostile\'s crit still landed on the ally.')
 	assert_untouched(ally, 'The target must be a hostile of the Black Mountain.')
 	assert_untouched(hostile, 'And the attacker is not locked either.')
 
@@ -186,6 +190,7 @@ func test_one_per_round_reset_at_the_black_mountains_turn() -> void:
 	assert_locked_and_marked(hostile, 'The first crit.')
 	Fixture.queue([Fixture.CRIT_ROLL, 4, 4, 4, 4])
 	await Fixture.shoot_again(game, black_mountain, second)
+	assert_lt(Fixture.health(second), 200, 'LIVENESS (M-6): the second, unanswered crit still actually hit.')
 	assert_false(Fixture.is_locked(second), 'The second crit in the round locks nothing.')
 	assert_eq(Fixture.marks(second), 0, 'And marks nothing.')
 	await crit(black_mountain, second) # shoot() cycles the Black Mountain's turn: the tally resets
@@ -217,15 +222,64 @@ func test_consuming_the_lock_pays_the_black_mountain_a_d6_and_clears_the_mark() 
 	assert_eq(Fixture.marks(hostile), 0, 'The mark cleared itself.')
 
 func test_the_payoff_keeps_the_engines_max_rule() -> void:
-	# Astral Guardian's reading: a low roll on a Black Mountain already shielded may change nothing.
+	# Astral Guardian's reading: a low roll on a Black Mountain already shielded may change nothing -
+	# but the roll must still be READ. REWORKED (M-6): the original held-6-roll-4-expect-6 shape cannot
+	# tell a real max(6, 4) = 6 apart from the payoff never firing at ALL (both leave the number at 6).
+	# Held 2, rolled 4: max(2, 4) = 4 only happens if the grant actually ran with the rolled value.
 	var ally := ally_at(IN_SENSORS)
 	await crit(black_mountain)
-	await Fixture.grant_overshield(black_mountain, 6)
+	await Fixture.grant_overshield(black_mountain, 2)
 	Fixture.queue([4, 4, 4, 4, 4, 4]) # the 1d6 is a 4
 	await Fixture.shoot(game, ally, hostile)
 	assert_false(Fixture.is_locked(hostile), 'LIVENESS: consumed.')
-	assert_eq(Overshield.current(black_mountain), 6, 'max(6, 4) is 6: no gain, which is the engine\'s Overshield.')
+	assert_eq(Overshield.current(black_mountain), 4, 'max(2, 4) is 4 - the payoff ran with the rolled value, and the engine\'s max rule held.')
 	assert_eq(Fixture.marks(hostile), 0, 'The mark still cleared.')
+
+## Stack a SECOND Lock On (source = other_source) onto target by hand, then clear THAT ONE specific
+## status object directly (clear_specific_status - the ability-clear primitive Stabilize itself calls,
+## the one that reaches one stacked StatusCondition by object rather than by type; LOCKON's own
+## status_lockon.tres sets remains_when_gear_destroyed = true, so clear_status_source refuses to touch
+## it at all, unit_condition.gd:336-338). Run inside a REAL root event block (clear_like_stabilize's
+## own shape) so the POST reaction it queues actually runs before this returns.
+class StackAndClearAnotherLockEvent extends EventBase:
+	func get_required_context() -> Array[Context.PROP]:
+		return [Context.PROP.unit, Context.PROP.string]
+	func execute(core:EventCore) -> void:
+		var target:Unit = core.context.unit
+		var other_source:StringName = core.context.string
+		UnitCondition.apply_status(core, target, Lancer.STATUS.LOCKON, Lancer.UNTIL.MANUAL, other_source)
+		for condition:StatusCondition in target.state.statuses.duplicate():
+			if condition.type == Lancer.STATUS.LOCKON and condition.source == other_source:
+				UnitCondition.clear_specific_status(core, target, condition)
+
+func stack_and_clear_another_lock(target:Unit, other_source:StringName) -> void:
+	var core := EventCore.new()
+	core.base = StackAndClearAnotherLockEvent.new()
+	core.base.event_type = &'event_reag_spec_stack_and_clear_lock'
+	core.context = Context.create({unit = target, string = other_source})
+	core.id = Util.generate_random_hexcode()
+	await game.execute_event_block(EventBlock.create_multiple([core]))
+
+func test_a_stacked_second_lock_ons_loss_does_not_pay_out_or_clear_the_harbingers_own_mark() -> void:
+	# M-3: is_lost() only checks the CATEGORY (any Lock On lost on the holder), and
+	# UnitCondition.apply_status never refuses stacking a SECOND Lock On from another source - unlike
+	# Lockon.apply, which is the vanilla-shaped guard the Harbinger itself calls. Unguarded appliers
+	# exist (e.g. ms_athena_class_nhp/deployable/action_simulacrum_lock_on.gd:9). Clearing that OTHER
+	# lock fires the identical statuses_changed POST event while the Harbinger's own lock is still
+	# live, and the old code paid nothing and cleared the mark anyway - so the REAL later consume of
+	# the Harbinger's own lock would pay nothing at all.
+	var ally := ally_at(IN_SENSORS)
+	await crit(black_mountain)
+	assert_locked_and_marked(hostile, 'fixture:')
+	var other_gear:GearCore = ally.get_gear(Fixture.MAIN_RIFLE) # any OTHER gear will do as a second source
+	await stack_and_clear_another_lock(hostile, other_gear.persistent_id)
+	assert_true(Fixture.is_locked(hostile), 'LIVENESS: the Harbinger\'s own lock is still there.')
+	assert_eq(Fixture.marks(hostile), 1, 'The mark survives a loss that was not its own lock\'s.')
+	Fixture.queue([6, 6, 6, 6, 6, 6])
+	await Fixture.shoot(game, ally, hostile) # consumes the Harbinger's REAL lock
+	assert_false(Fixture.is_locked(hostile), 'LIVENESS: the real consume landed.')
+	assert_eq(Overshield.current(black_mountain), 6, 'And the later real consume still pays.')
+	assert_eq(Fixture.marks(hostile), 0, 'The mark cleared on the real loss.')
 
 func test_a_lock_lost_any_other_way_pays_nothing_and_clears_the_mark() -> void:
 	await crit(black_mountain)

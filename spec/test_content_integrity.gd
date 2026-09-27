@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '1.1.0'
+const EXPECTED_VERSION := '1.2.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -92,6 +92,34 @@ func test_the_manifest_version_matches_the_release_this_mod_claims_to_be():
 	if manifest == null: return
 	assert_eq(manifest.version_number, EXPECTED_VERSION,
 		'manifest.json version_number matches EXPECTED_VERSION - bump both together next release.')
+
+const OUR_LOCALIZATION_CSV := 'res://unpacked/Reag-TheSixthVoice/localization/localizations.csv'
+
+func test_every_localization_csv_row_has_the_headers_column_count():
+	# Frame close I-1 (Black Mountain), C-1: gear.buff_doomed.effect went out unquoted with a comma in
+	# it ("them, they"), so Python's csv module (and Godot's own comma-delimited get_csv_line) split it
+	# into THREE fields instead of two. It imported without error - the compiled artifact just carried
+	# a truncated row - and nothing here or in check_content.py checked column counts. This is the
+	# SECOND time this exact trap has hit (test_jormungandr_nhp.test_the_six_comma_bearing_lines_
+	# survived_the_csv's six barks were the first, quoted correctly that time only because someone
+	# happened to check). A standing guard beats hoping the next author remembers to quote.
+	var file := FileAccess.open(OUR_LOCALIZATION_CSV, FileAccess.READ)
+	assert_not_null(file, '%s opens.' % OUR_LOCALIZATION_CSV)
+	if file == null: return
+	var header:PackedStringArray = file.get_csv_line()
+	var expected_columns:int = header.size()
+	assert_eq(expected_columns, 2, 'fixture: the header is id,en.')
+	var offenders:Array[String] = []
+	while file.get_position() < file.get_length():
+		var line:PackedStringArray = file.get_csv_line()
+		# A genuinely blank line comes back as a single empty field - not an offender.
+		if line.size() == 1 and line[0].is_empty(): continue
+		if line.size() != expected_columns:
+			offenders.append('%s (%d columns, expected %d)' % [line[0], line.size(), expected_columns])
+	file.close()
+	for offender:String in offenders: gut.p('  %s' % offender)
+	assert_eq(offenders.size(), 0,
+		'Every keyed row in localizations.csv has exactly %d columns - an unquoted comma splits one.' % expected_columns)
 
 func test_this_mods_translation_reached_the_translation_server():
 	# NOT a test of what Mod Manage displays. Mod Manage shows ModCore.tr_label()

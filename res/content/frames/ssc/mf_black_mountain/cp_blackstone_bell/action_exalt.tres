@@ -7,7 +7,9 @@
 ; point; the script's hard limit is the card's 3/round. recheck_trigger_before_execution stays false ON
 ; PURPOSE: the structure arithmetic is only right when the gate is asked at queue time. Its own
 ; usage_group: the Kit also carries Fell the Mighty and the Efficient refund. SP3: the Kit's glyph (Bringer
-; of Glory / Exalt is one family).
+; of Glory / Exalt is one family). PROMPTS (author ruling, close): taking a reaction is the player's
+; choice, so activate() asks CommonActionUtil.confirm_use before spending; no separate ai_confirms_use
+; override, so an AI Black Mountain still accepts automatically (Action's own default).
 [resource]
 script = ExtResource("1_action")
 usage_group = &"action_exalt"

@@ -8,8 +8,13 @@
 ## of the Creature's heat payment. ATTACK / POST with require_hit; the archetype applies the hit, the
 ## defender relation (ENEMIES of the Black Mountain), the defender-is-a-character test and the
 ## weapon/tech branch (allow_tech and allow_basic set: "a successful attack roll", unqualified - an
-## invade counts, though one that deals no damage gains nothing, since the +3 is read where damage is
-## rolled). FOUR CLAUSES ARE THIS SCRIPT'S:
+## invade counts). RULING (M-1, the author, 2026-09-27, correcting an earlier claim here): "any
+## successful attack roll qualifies", full stop - an attack that deals NO base damage (a Ram, a
+## Grapple, a damage-less tech attack) still gains the +3; in that case the +3 IS the whole hit,
+## because roll_specific_bonus_damage runs for every valid non-NO_BONUS_DAMAGE roll whatever the base
+## dice (event_unit_attack_declared.gd:136-143) and AttackUtil.roll_bonus_damage rolls "3" regardless
+## (attack_util.gd:297-313). A NO_BONUS_DAMAGE attack is refused outright (finding I-2) - that is the
+## one case that gains nothing. FOUR CLAUSES ARE THIS SCRIPT'S:
 ##  - the ATTACKER (get_attacker, so an owned drone's shot is its owner's) is an ALLIED CHARACTER
 ##    (is_actor, ruling 3) and NOT THE BLACK MOUNTAIN: are_allies is true of a unit and itself
 ##    (unit_relation.gd:364-365), and "allied character" excludes you on every card of this frame
@@ -58,6 +63,13 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if not super(unit, gear, triggering_event): return false
 	if not Unit.is_valid(unit): return false
 	var triggering:Context = triggering_event.context
+	# I-2 (Important, frame close): a NO_BONUS_DAMAGE attack (every mounted aux follow-up,
+	# action_attack_weapon.gd:69-73; mw_annihilator, mw_arc_projector, Hunter 3's Disdainful Blade)
+	# never reaches roll_specific_bonus_damage (event_unit_attack_declared.gd:139-143), the only
+	# consumer of BONUS_DAMAGE_SPECIFIC - so a bonus offered on one would be paid for and then leak,
+	# unconsumed, onto the ally's next hit on that defender. Follow Order's own bonus-damage reaction
+	# refuses the identical flag (t_leader/rank_3/action_follow_order_damage.gd:22).
+	if triggering.flags.has(Action.FLAG.NO_BONUS_DAMAGE): return false
 	var attacker:Unit = triggering.unit.get_attacker(triggering)
 	if not is_an_allied_character_shielded_by(unit, attacker): return false
 	var defender:Unit = triggering.target_unit

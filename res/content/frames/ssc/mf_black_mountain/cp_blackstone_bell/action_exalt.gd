@@ -31,11 +31,20 @@
 ## (owner = the Black Mountain), so it clears at the Black Mountain's own turn start, where its per-round
 ## tally resets too (ruling 3). It is RE-CHECKED at the top of activate: one hit structuring two hostiles
 ## queues two POSTs, both pass the gate before either runs, and the second must be refused there.
+## SCOPED TO THIS BLACK MOUNTAIN'S OWN GEAR (close review M-1/finding 2, fixed): can_benefit's third
+## argument is the reacting gear, and UnitCondition.get_buffs(dealer, BENEFITED, gear.persistent_id) only
+## matches a mark hung by THIS core Kit - so two Black Mountains' Exalts stack on the same ally, as ruling
+## 13 already says two DOOMs do, instead of the first silently blocking the second.
 ##
 ## A REAL REACTION (author): consumes_rxn true, so it needs and spends the reaction point; the hard limit is
-## 3 (ActionReaction's default for one that consumes a point is 1). Own usage_group. AUTOMATIC: the card
-## has no "may", so no prompt. The reaction point refreshes at every unit's turn start while the 3 counts
-## only from the Black Mountain's own turn start (Draw Fire's measured reading of "1/round").
+## 3 (ActionReaction's default for one that consumes a point is 1). Own usage_group. PROMPTS (author ruling,
+## close): the card has no "may", but taking a reaction is always the reacting player's choice in Lancer,
+## and this one costs the rest of the turn's Brace/Overwatch and breaks Hidden - CommonActionUtil.confirm_use
+## is asked after the re-check and before the spend, the same shape as An End to All Things and Draw Fire.
+## Declining costs nothing (no spend, no mark, no shield). An AI Black Mountain always accepts
+## (Action.ai_confirms_use's default, unoverridden, per ruling 14's own reading). The reaction point
+## refreshes at every unit's turn start while the 3 counts only from the Black Mountain's own turn start
+## (Draw Fire's measured reading of "1/round").
 ##
 ## THE EFFECT is one call, Overshield.increase_by(activation, dealer, 1 + GRIT, this core gear): additive
 ## covers both sentences (an ally at 0 ends at 1 + GRIT, one holding N at N + 1 + GRIT), and the "granted
@@ -54,14 +63,14 @@ func get_per_round_hard_limit(_specific:SpecificAction) -> int: return USES_PER_
 func get_required_triggering_context() -> Array[Context.PROP]:
 	return [Context.PROP.unit, Context.PROP.number]
 
-func triggers_on_event(unit:Unit, _gear:GearCore, triggering_event:EventCore) -> bool:
+func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> bool:
 	if not Unit.is_valid(unit): return false
 	var context:Context = triggering_event.context
 	if context == null or not Unit.is_valid(context.target_unit): return false
 	var dealer:Unit = context.target_unit.get_attacker(context)
 	if not VigilAction.is_damage_dealt_by(dealer, context): return false
 	if not is_structure_damage_to_a_hostile_mech(unit, context): return false
-	return can_benefit(unit, dealer)
+	return can_benefit(unit, dealer, gear)
 
 ## The victim is a live hostile MECH of the Black Mountain, and this damage took it from above 0 HP to 0
 ## or below. Read at queue time - see the header.
@@ -72,13 +81,15 @@ static func is_structure_damage_to_a_hostile_mech(black_mountain:Unit, context:C
 	var health:int = victim.core.current.health
 	return health <= 0 and health + context.number > 0
 
-## "An allied character within Sensors and line of sight", not the Black Mountain, not yet exalted.
-static func can_benefit(black_mountain:Unit, dealer:Unit) -> bool:
+## "An allied character within Sensors and line of sight", not the Black Mountain, not yet exalted BY
+## THIS BLACK MOUNTAIN's own gear (M-1 fix: scoped by source, so a second Black Mountain is unaffected).
+static func can_benefit(black_mountain:Unit, dealer:Unit, gear:GearCore) -> bool:
 	if not Unit.is_valid(dealer) or dealer == black_mountain: return false
 	if not dealer.is_actor() or not UnitRelation.are_allies(black_mountain, dealer): return false
 	if UnitRelation.distance_between(black_mountain, dealer) > black_mountain.get_sensor_range(): return false
 	if not UnitRelation.can_see(black_mountain, dealer): return false
-	return UnitCondition.get_buffs(dealer, BENEFITED).is_empty()
+	var source:StringName = gear.persistent_id if GearCore.is_valid(gear) else &''
+	return UnitCondition.get_buffs(dealer, BENEFITED, source).is_empty()
 
 func activate(context:Context, activation:EventCore) -> void:
 	var unit:Unit = context.unit
@@ -86,7 +97,13 @@ func activate(context:Context, activation:EventCore) -> void:
 	var dealer:Unit = triggering.target_unit.get_attacker(triggering) if Unit.is_valid(triggering.target_unit) else null
 	if activation.abort_without_units([unit, dealer]): return
 	# The re-check event_gear_activate does not do for us (recheck_trigger_before_execution is off).
-	if activation.abort_when(not can_benefit(unit, dealer)): return
+	if activation.abort_when(not can_benefit(unit, dealer, context.gear)): return
+
+	# "A character can only benefit..." has no "may", but a reaction is always the player's choice
+	# (author ruling, close review finding 1): ask before spending, the same shape as An End to All
+	# Things and Draw Fire. Declining leaves the reaction point, the mark and the shield all untouched.
+	var confirmed:bool = await CommonActionUtil.confirm_use(context, [dealer])
+	if activation.abort_when(not confirmed): return
 
 	spend_actions(activation)
 	apply_buff_id(activation, dealer, BENEFITED)

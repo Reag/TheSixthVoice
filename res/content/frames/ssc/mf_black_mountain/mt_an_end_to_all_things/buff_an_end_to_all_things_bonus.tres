@@ -8,6 +8,13 @@
 ; Night's measurement). HIDDEN, and named in the battle log through gear.buff_an_end_to_all_things_bonus.name.
 ; In NEITHER icon table: it lives for the width of one damage roll. inherit_type_from_attack and
 ; require_hit as the Heavenly Weaver chip spells them.
+;
+; multiple_copies_can_stack = true (frame close finding I-1, Important): without it,
+; apply_buff_alt's same-source replacement (unit_condition.gd:741-747) matches on compcon_id +
+; from_gear + to + until ALONE - it is blind to the DEFENDER_KEY state the .gd's check_if_passive_applies
+; reads - so a SECOND offer on one attack (2/round permits it, e.g. a Blast hitting two hostiles)
+; silently replaced the FIRST defender's +3 instead of coexisting beside it. Safe to stack: each copy
+; is one-time and scoped to its own defender, so nothing can double-dip once it is consumed.
 [resource]
 script = ExtResource("1_bonus")
 to = &"bonus_damage_specific"
@@ -17,3 +24,4 @@ require_hit = true
 is_onetime = true
 hide_from_player = true
 can_apply_to_tech_attacks = true
+multiple_copies_can_stack = true

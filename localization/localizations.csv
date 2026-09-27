@@ -964,16 +964,16 @@ gear.mt_an_end_to_all_things.effect,"2/round, when an allied |character| with |O
 gear.mt_an_end_to_all_things.action_an_end_to_all_things.name,An End to All Things
 gear.buff_an_end_to_all_things_bonus.name,An End to All Things
 gear.mt_dread_harbinger.name,Dread Harbinger
-gear.mt_dread_harbinger.effect,"1/round, whenever the Black Mountain or an allied |character| within |Sensors| and |line of sight| |critically hits|, the target receives |Lock On|. Additionally, when this |Lock On| is consumed, the Black Mountain gains 1d6 |Overshield|."
+gear.mt_dread_harbinger.effect,"1/round, whenever the Black Mountain or an allied |character| within |Sensors| and |line of sight| critically hits, the target receives |Lock On|. Additionally, when this |Lock On| is consumed, the Black Mountain gains 1d6 |Overshield|."
 gear.mt_dread_harbinger.action_dread_harbinger.name,Dread Harbinger
 gear.buff_dread_harbinger_mark.name,Dread Harbinger
 gear.buff_dread_harbinger_mark.effect,"When this |Lock On| is consumed, the Black Mountain gains 1d6 |Overshield|."
 gear.cp_blackstone_bell.name,Blackstone Bell
-gear.cp_blackstone_bell.effect,Gain the Exalt |reaction|.
+gear.cp_blackstone_bell.effect,Bringer of Glory: Gain the Exalt |reaction|.
 gear.cp_blackstone_bell.action_exalt.name,Exalt
 gear.cp_blackstone_bell.action_exalt.trigger,An allied |character| within |Sensors| and |line of sight| destroys or deals structure damage to a hostile mech |character|.
 gear.cp_blackstone_bell.action_exalt.effect,The triggering allied |character| gains |Overshield| equal to 1 + |GRIT|. If they already have |Overshield| it increases by that much instead. A |character| can only benefit from this effect 1/round.
 gear.cp_blackstone_bell.action_fell_the_mighty.name,Fell the mighty
 gear.cp_blackstone_bell.action_fell_the_mighty.effect,"Choose a hostile |character| within |sensors| and |line of sight|, they are DOOMED for the rest of the scene. Allies attacks against a DOOMED |character| have +1 |Accuracy| and whenever an allied |character| deals damage to them, they increase their |Overshield| by 1. This ability is |Efficient| and will refund 1 Core Point at the end of any scene in which this ability was used."
 gear.buff_doomed.name,DOOMED
-gear.buff_doomed.effect,Allies attacks against a DOOMED |character| have +1 |Accuracy| and whenever an allied |character| deals damage to them, they increase their |Overshield| by 1.
+gear.buff_doomed.effect,"Allies attacks against a DOOMED |character| have +1 |Accuracy| and whenever an allied |character| deals damage to them, they increase their |Overshield| by 1."

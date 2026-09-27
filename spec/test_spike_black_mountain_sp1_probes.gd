@@ -147,8 +147,12 @@ func test_p2_a_plain_grant_of_three_on_an_emperor_holding_two_ends_at_five_which
 
 func test_p2_control_a_non_emperor_ally_is_untouched_either_way() -> void:
 	# The Vestment rewrites the number only when the SHIELDED unit is the Emperor; for anyone else the
-	# vanilla body runs untouched, boolean or no boolean.
+	# vanilla body runs untouched, boolean or no boolean. FIX (finding 4): an Emperor must actually be
+	# ON THE MAP for the Vestment reaction to be POLLED at all - without one this control could not
+	# fail whatever the code did. Assert only the ALLY: a live Emperor's own Vestment has a known echo
+	# onto ITSELF (memory sixth-voice-build-state), which is not this control's business.
 	if skipped_without_the_emperor(): return
+	var _emperor := Fixture.create_emperor(game, EMPEROR_TILE)
 	var ally := Fixture.create_ally(game, ALLY_TILE)
 	await Fixture.grant_overshield(ally, 2)
 	await Fixture.increase_overshield(ally, 1)

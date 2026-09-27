@@ -23,6 +23,7 @@
 extends GutTest
 
 const MyconidFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/myconid_fixture.gd')
+const BlackMountainFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/black_mountain_fixture.gd')
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
 
 const SUBJECT_TILE := Vector2i(4, 4)
@@ -416,6 +417,37 @@ func test_a_grant_equal_to_the_current_shield_still_marks():
 	await Overshield.grant_by(dummy(), unit, 3, granter_gear(granter))
 	assert_eq(Overshield.current(unit), 3, 'fixture: unchanged.')
 	assert_true(Overshield.is_granted_by(unit, granter), 'Refreshed as the granter\'s.')
+
+func test_a_shield_lost_outside_the_damage_event_is_not_granted_by_anyone():
+	# Frame close finding 1 (Important): event_unit_damage's own damage() static (called directly by
+	# the Pegasus's Ushabti Omnigun, action_fire_omnigun.gd:60, and reached internally by heat() on a
+	# zero-heat-cap actor) spends Overshield with NO event and NO LOSE_OVERSHIELD clear - so the mark
+	# is left behind on a unit that no longer holds any Overshield at all. is_granted_by() must read
+	# false regardless, not just "no larger grant beat it".
+	var granter := MyconidFixture.create_ally(game, Vector2i(6, 4))
+	await Overshield.grant_by(dummy(), unit, 1, granter_gear(granter))
+	EventUnitDamage.damage(unit, 1, Lancer.DAMAGE_TYPE.KINETIC) # the Omnigun's path: no event, no clear
+	assert_eq(Overshield.current(unit), 0, 'fixture: the shield is gone.')
+	assert_eq(marks_on(unit), 1, 'fixture: and the engine left the mark behind (the gap this pins).')
+	assert_false(Overshield.is_granted_by(unit, granter), 'No Overshield, so nothing is "granted by" anyone.')
+
+func test_the_granters_death_ends_the_mark_when_the_granter_is_core_gear():
+	# Finding 3b: every OTHER granter in this file is BASIC gear (mw_improvised_attack), and basic
+	# gear is skipped by clear_outgoing_buffs_from_unit's get_all_gear(false) (loadout_core.gd:
+	# 511-518), so a mark from a basic-gear granter actually SURVIVES that granter's death - the
+	# helper's header claim ("ends the mark with the granter") is untrue for that shape and only
+	# reads correct because is_granted_by's OWN Unit.is_valid(granter) guard also goes false. Pin the
+	# real production shape instead: the Black Mountain's CORE gear (traits ARE in get_all_gear), the
+	# one grant_overshield_by actually uses.
+	var bm_game := BlackMountainFixture.create_game(self)
+	var black_mountain := BlackMountainFixture.create_black_mountain(bm_game, Vector2i(4, 4))
+	var target := BlackMountainFixture.create_ally(bm_game, Vector2i(6, 4))
+	await BlackMountainFixture.grant_overshield_by(black_mountain, target, 3)
+	assert_true(Overshield.is_granted_by(target, black_mountain), 'fixture: marked.')
+	await bm_game.execute_event(&'event_unit_die', {unit = black_mountain})
+	assert_eq(UnitCondition.get_buffs(target, MARK).size(), 0,
+		'The mark went with the granter: core gear IS cleared on owner death.')
+	assert_false(Overshield.is_granted_by(target, black_mountain), 'is_granted_by reads false too.')
 
 func test_damage_that_zeroes_the_shield_clears_the_mark():
 	# event_unit_damage.gd:175-177: the moment old_overshield != new and new <= 0, every LOSE_OVERSHIELD

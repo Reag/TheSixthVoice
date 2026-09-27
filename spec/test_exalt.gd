@@ -12,12 +12,17 @@
 # mark; buff_exalt_benefited (hidden, START_OF_OWNERS_TURN) is the 1/round-per-character.
 #
 # WHAT THIS FILE PROVES: an ally's structuring hit within Sensors and LOS shields the ally by 1+Grit (the
-# BLACK MOUNTAIN's Grit), with the "granted by" mark, before the structure roll, with no prompt; an ally
-# holding N ends at N+1+Grit; destruction counts; an owned drone's hit shields its owner. And NOT: the
-# Black Mountain's own hit, a hostile drone victim, an allied victim, heat, self-inflicted, a hit that
-# leaves HP above zero, a second chunk after HP is already below zero, a sourceless burn tick, the ally
-# outside LOS, the ally outside Sensors, the same ally twice before the Black Mountain's next turn, a
-# fourth trigger in one round. And the mark clears at the Black Mountain's turn start.
+# BLACK MOUNTAIN's Grit), with the "granted by" mark, before the structure roll, PROMPTED and accepted
+# (author ruling, close review finding 1 - a real reaction is always the reacting player's choice, so
+# declining spends nothing); an ally holding N ends at N+1+Grit; destruction counts; an owned drone's hit
+# shields its owner; two Black Mountains each exalt the SAME ally independently (M-1 fix: the 1/round mark
+# is scoped to the granting Black Mountain's own gear). And NOT: the Black Mountain's own hit, a hostile
+# drone victim, an allied victim, heat (even a zero-heat-cap victim whose heat crosses zero as converted
+# HP damage - the type exclusion, not the arithmetic, refuses it there), a hit that leaves HP above zero,
+# a hit landing exactly on zero (counts) versus a second chunk landing exactly on zero after an earlier
+# chunk already crossed it (does not), a sourceless burn tick, the ally outside LOS, the ally outside
+# Sensors, the same ally twice before the Black Mountain's next turn, a fourth trigger in one round. And
+# the mark clears at the Black Mountain's turn start.
 #
 # DAMAGE IS DEALT THROUGH Fixture.damage (a bare event_unit_damage with the ally as dealer) except in the
 # one rifle-shot test: the card reads "deals structure damage", not "attacks", and the bare event is
@@ -81,6 +86,15 @@ func hostile_mech(tile:Vector2i, evasion:int = 10) -> Unit:
 
 func uses() -> int: return Fixture.uses_this_round(black_mountain, Fixture.CORE_ID, Fixture.EXALT_ACTION)
 
+## The confirm prompts this reaction raised - titled with its own name row (An End to All Things'
+## offers() pattern, test_an_end_to_all_things.gd).
+func offers() -> int:
+	var name:String = X.tr('gear.cp_blackstone_bell.action_exalt.name')
+	var count := 0
+	for seen:Dictionary in responder.yesno_prompts:
+		if String(seen.get('title', '')).contains(name) or String(seen.get('desc', '')).contains(name): count += 1
+	return count
+
 func structure(victim:Unit = hostile, dealer:Unit = ally, amount:int = HIT,
 		type:Lancer.DAMAGE_TYPE = Lancer.DAMAGE_TYPE.KINETIC) -> void:
 	await Fixture.damage(game, victim, amount, dealer, type)
@@ -125,7 +139,15 @@ func test_an_allys_structuring_hit_shields_the_ally_by_one_plus_the_black_mounta
 	assert_eq(uses(), 1, 'One of three spent.')
 	assert_eq(black_mountain.core.current.reactions, black_mountain.core.get_reactions_max() - 1,
 		'A real reaction: the point is spent.')
-	assert_eq(responder.yesno_prompts.size(), 0, 'Automatic: nothing asked.')
+	assert_eq(offers(), 1, 'Offered once (author ruling); accepted by default.')
+
+func test_the_player_may_decline_exalt() -> void:
+	responder.yesno_queue.assign([false])
+	await structure()
+	assert_eq(offers(), 1, 'Offered once.')
+	assert_not_exalted(ally, 'Declined: no Overshield, no use spent, the reaction point is intact.')
+	assert_true(UnitCondition.get_buffs(ally, Fixture.EXALT_BENEFITED).is_empty(),
+		'Declined: no benefited mark either.')
 
 func test_grit_zero_still_gives_one() -> void:
 	Fixture.set_grit(black_mountain, 0)
@@ -182,13 +204,39 @@ func test_an_allied_mech_victim_is_not_hostile() -> void:
 	assert_not_exalted(ally, 'An allied victim.')
 
 func test_heat_does_not_count() -> void:
+	# A normal heat cap: heat never touches HP (event_unit_damage.gd's heat() adds to the heat pool),
+	# so the arithmetic gate refuses this alone - the HEAT exclusion is never actually asked. See the
+	# next test for the case where it is.
 	await structure(hostile, ally, HIT, Lancer.DAMAGE_TYPE.HEAT)
-	assert_not_exalted(ally, 'Heat.')
+	assert_eq(Fixture.health(hostile), 3, 'CONTROL: heat never touched HP.')
+	assert_not_exalted(ally, 'Heat, with a normal heat cap.')
+
+func test_heat_does_not_count_even_when_it_crosses_zero_via_a_zero_heat_cap_victim() -> void:
+	# No stock NPC has heat 0 (slice3 finding 6 records this as academic), but the exclusion must hold
+	# even here: a zero heat cap converts heat straight to ENERGY damage to HP
+	# (event_unit_damage.gd:207-208), crossing zero - so this time it is the HEAT type exclusion
+	# itself (VigilAction.is_damage_dealt_by), not the arithmetic, that refuses it.
+	# NOT asserted on final Fixture.health(hostile): a surviving (non-destroying) structure result
+	# heals HP back up to max (event_unit_structure.gd:41-44), so by the time this returns the crossing
+	# is no longer observable on the unit - only the gate, evaluated at DAMAGE POST queue time before
+	# the structure event runs, ever saw it. That is exactly what assert_not_exalted below checks.
+	hostile.core.frame.stat.heat = 0
+	await structure(hostile, ally, HIT, Lancer.DAMAGE_TYPE.HEAT)
+	assert_not_exalted(ally, 'Heat, even when it crosses zero.')
 
 func test_a_hit_that_leaves_hp_above_zero_does_not_count() -> void:
 	await structure(hostile, ally, 2)
 	assert_eq(Fixture.health(hostile), 1, 'CONTROL: still standing.')
 	assert_not_exalted(ally, 'No structure damage.')
+
+func test_a_hit_landing_exactly_on_zero_counts() -> void:
+	# health < 0 would be a bug: the card is "takes it to 0 or below". Weaken so the hit lands exactly
+	# on zero rather than past it. NOT asserted on final Fixture.health(hostile): a surviving structure
+	# result heals HP back to max (event_unit_structure.gd:41-44) by the time this returns - see the
+	# heat test above for the same note.
+	Fixture.weaken(hostile, HIT)
+	await structure()
+	assert_exalted(ally, SHIELD, 'A hit landing exactly on zero still counts (health <= 0).')
 
 func test_a_second_chunk_after_hp_is_already_below_zero_does_not_refire() -> void:
 	# Two chunks of one hit in ONE block - the two-type shape: both land before either POST runs, and
@@ -215,6 +263,18 @@ func test_a_second_allys_chunk_after_hp_is_already_below_zero_does_not_count() -
 		[ally, second_ally])
 	assert_eq(Fixture.overshield(ally), SHIELD, 'The ally whose hit crossed zero.')
 	assert_eq(Fixture.overshield(second_ally), 0, 'Not the one hitting a mech already below zero.')
+
+func test_a_second_allys_chunk_landing_exactly_on_zero_after_hp_already_crossed_it_does_not_count() -> void:
+	# The gate is health + number > 0, not >= 0. Weaken so the FIRST chunk lands exactly on zero (and
+	# benefits, per the test above); the second chunk's own arithmetic then sits right on the boundary
+	# (-5 + 5 = 0) and must still be refused.
+	Fixture.weaken(hostile, HIT)
+	black_mountain.core.current.reactions = 2
+	var second_ally := Fixture.create_ally(game, ALLY_B_TILE)
+	await damage_block([hostile, hostile], [Lancer.DAMAGE_TYPE.KINETIC, Lancer.DAMAGE_TYPE.KINETIC],
+		[ally, second_ally])
+	assert_eq(Fixture.overshield(ally), SHIELD, 'The ally whose hit landed exactly on zero.')
+	assert_eq(Fixture.overshield(second_ally), 0, 'Not the one hitting a mech already at zero (boundary: > 0, not >= 0).')
 
 func test_with_a_point_to_spare_one_hit_on_two_hostiles_still_shields_once() -> void:
 	black_mountain.core.current.reactions = 2
@@ -266,6 +326,17 @@ func test_the_same_ally_benefits_once_before_the_black_mountains_next_turn() -> 
 	Fixture.queue([6, 6, 6, 6])
 	await structure(third, other)
 	assert_exalted(other, SHIELD, 'CONTROL: another ally.')
+
+func test_two_black_mountains_each_exalt_the_same_ally() -> void:
+	# M-1 fix: the 1/round mark is scoped to the GRANTING Black Mountain's own gear
+	# (UnitCondition.get_buffs(dealer, BENEFITED, gear.persistent_id)), so a second Black Mountain is
+	# unaffected by the first's mark - the same reading ruling 13 already gives two DOOMs.
+	var second_bm := Fixture.create_black_mountain(game, Vector2i(2, 4))
+	Fixture.set_grit(second_bm, GRIT)
+	await structure()
+	assert_eq(Fixture.overshield(ally), 2 * SHIELD, 'Each Black Mountain\'s Exalt is its own effect: they stack.')
+	assert_true(Overshield.is_granted_by(ally, black_mountain), 'Marked as the first Black Mountain\'s grant.')
+	assert_true(Overshield.is_granted_by(ally, second_bm), 'And as the second\'s.')
 
 func test_the_benefit_mark_clears_at_the_black_mountains_turn_start() -> void:
 	await structure()

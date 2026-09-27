@@ -92,7 +92,8 @@ static func grant(event:EventCore, target:Unit, amount:int) -> void:
 	await _fire(event, target, amount, false)
 
 ## Additive: the target ends with what it had PLUS amount. For the cards that say "increases by that
-## much instead" - Black Mountain's Exalt, Fell the Mighty, Dread Harbinger.
+## much instead" - Black Mountain's Exalt, Fell the Mighty, DOOMED (frame close finding M-4: Dread
+## Harbinger's 1d6 is a plain grant(), max semantics per ruling 9 - it is not an increase_by caller).
 ##
 ## Built on the same private path as grant() rather than on state.overshield directly, so it inherits
 ## the no-op, the validity guard, the event plumbing and the cache refresh rather than re-deriving them.
@@ -132,7 +133,18 @@ static func grit(unit:Unit) -> int:
 # the engine's own lifetime for "attached to this Overshield" - Lancer.UNTIL.LOSE_OVERSHIELD
 # ("aceso stabilizer, emperor eventually", lancer.gd:55): event_unit_damage clears every buff carrying
 # it the moment damage zeroes the shield (event_unit_damage.gd:175-177), and the resident Emperor's two
-# clears do the same. Nothing else in the engine or the residents writes state.overshield down.
+# clears do the same. THAT IS NOT EVERY PATH (frame close finding 1, Important): TWO vanilla routes
+# write state.overshield down WITHOUT that clear -
+#   (a) HEAT on a unit with heat cap <= 0 (a pilot on foot): event_unit_damage's HEAT branch calls
+#       heat(), which turns heat into damage(unit, amount, ENERGY) when get_heat_max() <= 0, and
+#       damage() spends Overshield first - that whole branch never touches LOSE_OVERSHIELD.
+#   (b) THE PEGASUS'S USHABTI OMNIGUN (action_fire_omnigun.gd:60) calls
+#       EventUnitDamage.damage(target_unit, amount, KINETIC) DIRECTLY, skipping the event (and its
+#       clear) entirely.
+# Either can zero a marked unit's shield and leave the mark stale. is_granted_by() closes the READ
+# side (it checks has(unit) first, so a unit with no Overshield never reads as "granted by" anyone
+# regardless of a stale mark); a foreign grant landing on a still-stale mark could still re-credit it
+# to the wrong granter, which is recorded as a remaining gap rather than fixed here.
 #
 # THE MARK IS APPLIED ONLY WHEN THE GRANT TOOK: after the event, the target holds Overshield, and
 # either it holds MORE than before or the amount asked was at least what it held (a grant equal to
@@ -167,10 +179,14 @@ static func increase_by(event:EventCore, target:Unit, amount:int, granter_gear:G
 	_mark_if_took(event, target, before, before + amount, granter_gear)
 
 ## Does `unit` hold Overshield that `granter` granted (through grant_by / increase_by) and has not
-## lost since? False for an invalid unit, an invalid granter, or a mark whose owner cannot be resolved
-## (the granter's gear is gone). Cheap enough for a reaction gate: it walks the unit's own buffs.
+## lost since? False for an invalid unit, an invalid granter, a unit with no Overshield RIGHT NOW
+## (frame close finding 1, Important - see the "granted by" section header: two vanilla paths can
+## zero state.overshield without clearing the mark, so the mark alone is not proof), or a mark whose
+## owner cannot be resolved (the granter's gear is gone). Cheap enough for a reaction gate: it walks
+## the unit's own buffs.
 static func is_granted_by(unit:Unit, granter:Unit) -> bool:
 	if not Unit.is_valid(unit) or not Unit.is_valid(granter): return false
+	if not has(unit): return false
 	for mark:BuffCore in UnitCondition.get_buffs(unit, GRANTED_BY_MARK):
 		if mark.get_owner_unit(unit.map) == granter: return true
 	return false

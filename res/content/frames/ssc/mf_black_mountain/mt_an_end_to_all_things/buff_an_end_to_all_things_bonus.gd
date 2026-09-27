@@ -9,7 +9,16 @@
 ## WHY IT IS SCOPED: a Blast lands one per-target attack event per unit hit, and An End to All Things
 ## fires on the first of them (and, 2/round, may fire on the second). Without this clause a buff meant
 ## for one defender would be rolled into the other's damage too. The stamped id is the defender of the
-## roll the reaction answered; with two offers on one Blast each buff carries its own defender.
+## roll the reaction answered; with two offers on one Blast each buff carries its own defender - AND
+## THE .tres NEEDS multiple_copies_can_stack = true FOR THAT TO BE TRUE (frame close finding I-1,
+## Important): DEFENDER_KEY is buff STATE, and apply_buff_alt's same-source replacement
+## (unit_condition.gd:741-747) never looks at buff state - it matches on compcon_id + from_gear + to +
+## until alone, so without the flag the second offer silently replaced the first's copy.
+##
+## RULING (M-2, the author, 2026-09-27): the +3 stays UNHALVED even on a multi-character attack.
+## BONUS_DAMAGE_SPECIFIC is never run through declared_summary.halve_bonus_damage() - only
+## Buff.TO.BONUS_DAMAGE is (event_unit_attack_declared.gd:94-96) - which matches Eyes of Night's own
+## precedent and the engine's standing convention for this channel.
 ##
 ## NO `until`, AND FINISH_DAMAGE IS THE ONE VALUE THAT MUST NOT BE SET - Eyes of Night's MEASURED reason:
 ## event_unit_damage.gd:76-77 clears every FINISH_DAMAGE buff on the DAMAGED unit whenever a damage

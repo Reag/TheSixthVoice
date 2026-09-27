@@ -114,6 +114,9 @@ func test_the_core_kit_carries_the_protocol_exalt_the_refund_and_the_stamp() -> 
 	assert_eq(doomed.until, Lancer.UNTIL.MANUAL, 'For the rest of the scene.')
 	assert_false(doomed.is_cleared_on_owner_death(), 'Survives the Black Mountain (author).')
 	assert_eq(X.tr('gear.buff_doomed.name'), 'DOOMED', 'Its own name row.')
+	assert_eq(X.tr('gear.buff_doomed.effect'),
+		'Allies attacks against a DOOMED |character| have +1 |Accuracy| and whenever an allied |character| deals damage to them, they increase their |Overshield| by 1.',
+		'Its own effect row, verbatim (frame close C-1: was truncated at the comma, unquoted).')
 
 # ---------------------------------------------------------------- the Protocol
 
@@ -125,8 +128,14 @@ func test_the_protocol_dooms_the_target_spends_the_core_power_and_stamps_efficie
 	assert_true(Efficient.is_marked(core_gear()), 'And Efficient is stamped.')
 
 func test_it_cannot_be_pressed_twice_in_a_scene() -> void:
+	# Cycle the Black Mountain's turn before the second press (slice3 finding 4): a Protocol has a
+	# FREE cost, so Action.get_per_round_hard_limit refuses a same-turn second press on its own, before
+	# consumes_cp is ever asked. Without the cycle this test measures the per-round hard limit, not the
+	# spent core power its comment claims. Mutation check: consumes_cp = false on the .tres reddens
+	# this WITH the cycle and not without it (recorded 2026-09-27).
 	var second := Fixture.create_hostile(game, HOSTILE_B_TILE)
 	await doom()
+	await Fixture.cycle_turn(game, black_mountain)
 	await doom(second)
 	assert_false(Fixture.is_doomed(second), 'The spent core power refuses the second press.')
 
@@ -246,13 +255,35 @@ func test_doomed_survives_the_black_mountains_death_and_still_gives_both() -> vo
 	assert_eq(accuracy_for(ally), 1, 'Still +1 Accuracy.')
 	await Fixture.damage(game, hostile, 3, ally)
 	assert_eq(Fixture.overshield(ally), 1, 'Still +1 Overshield - unmarked, nothing of the Black Mountain is left.')
+	assert_eq(UnitCondition.get_buffs(ally, Fixture.GRANTED_BY_MARK).size(), 0,
+		'And truly unmarked (slice1 finding 5): no granted-by mark - DOOMED.get_owner_gear resolved null.')
+
+func test_doomed_survives_a_serialise_round_trip() -> void:
+	# BuffCore has its own serialize/deserialize (buff_core.gd:36,53), used by UnitBattleState for a
+	# mid-scene save. Round-trip the DOOMED BuffCore through JSON (which is what a real save does, and
+	# which turns doomed_by_side's stored int into a float on the way back - buff_doomed.gd:61,68) and
+	# confirm both halves of the card still read it.
+	await doom()
+	var original:BuffCore = UnitCondition.get_buffs(hostile, Fixture.DOOMED).front()
+	if not assert_not_null(original, 'fixture: DOOMED is on the hostile.'): return
+	var index:int = hostile.state.buffs.find(original)
+	if not assert_ne(index, -1, 'fixture: found in state.buffs.'): return
+	var restored:BuffCore = BuffCore.deserialize(JSON.parse_string(JSON.stringify(original.serialize())))
+	hostile.state.buffs[index] = restored
+	assert_eq(accuracy_for(ally), 1, 'DOOMED still gives +1 Accuracy after the round trip.')
+	await Fixture.damage(game, hostile, 3, ally)
+	assert_eq(Fixture.overshield(ally), 1, 'And still +1 Overshield on a damaging hit.')
 
 func test_the_doomed_targets_death_ends_it() -> void:
+	# NOT asserted over game.map.get_all_units() (slice3 finding 5): a destroyed unit is removed from
+	# the map, so that loop never sees the only unit that could carry DOOMED and passes vacuously
+	# whatever DOOMED's lifetime is. Read the held reference's own state directly instead -
+	# event_service.gd's clear_all_buffs is what actually does this.
 	await doom()
 	await kill(hostile, ally)
 	assert_false(Unit.is_valid(hostile), 'fixture: destroyed.')
-	for unit:Unit in game.map.get_all_units():
-		assert_true(UnitCondition.get_buffs(unit, Fixture.DOOMED).is_empty(), 'Nobody carries DOOMED.')
+	assert_true(UnitCondition.get_buffs(hostile, Fixture.DOOMED).is_empty(),
+		'The dead hostile carries no DOOMED: clear_all_buffs ran on its death.')
 
 func test_two_black_mountains_stack() -> void:
 	var second := Fixture.create_black_mountain(game, BM_B_TILE)

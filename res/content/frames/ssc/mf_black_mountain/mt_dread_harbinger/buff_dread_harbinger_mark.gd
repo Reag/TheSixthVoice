@@ -42,9 +42,24 @@ func triggers_on_event(_core:BuffCore, unit:Unit, triggering_event:EventCore) ->
 func activate(core:BuffCore, activation:EventCore) -> void:
 	var holder:Unit = activation.context.unit
 	if not Unit.is_valid(holder): return
+	# M-3 (Minor, frame close): is_lost() only checks the LOCKON category - ANY Lock On lost on this
+	# holder fires this activation, and apply_status never refuses stacking a SECOND Lock On from
+	# another source (unguarded appliers exist, e.g. Athena NHP's Simulacrum). So a source-targeted
+	# clear of that OTHER lock could fire this same event while the Harbinger's OWN lock (sourced to
+	# this mark's from_gear) is still live. If it is, this loss was not about this mark at all - keep
+	# it for the real loss.
+	if _still_holds_its_own_lock(core, holder): return
 	if UnitCondition.has_buff(holder, Lockon.CONSUMED_BUFF):
 		var black_mountain:Unit = core.get_owner_unit(holder.map)
 		if Unit.is_valid(black_mountain):
 			await Overshield.grant(activation, black_mountain, Dice.roll_d6())
 	# Whatever happened, the lock this mark was about is gone.
 	if Unit.is_valid(holder): UnitCondition.clear_buff(activation, holder, core)
+
+## True while a LOCKON sourced to THIS mark's own gear (core.from_gear, the Harbinger trait) is still
+## on the holder - StatusCondition.source, walked directly the way Lockon.source_of does (it returns
+## only the FIRST live LOCKON's source, which is not enough once a second one can be stacked).
+static func _still_holds_its_own_lock(core:BuffCore, holder:Unit) -> bool:
+	for condition:StatusCondition in holder.state.statuses:
+		if condition.type == Lancer.STATUS.LOCKON and condition.source == core.from_gear: return true
+	return false

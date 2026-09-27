@@ -201,12 +201,14 @@ func test_the_trait_rows_resolve_verbatim():
 	assert_eq(X.tr('gear.mt_an_end_to_all_things.effect'),
 		'2/round, when an allied |character| with |OVERSHIELD| you granted makes a successful attack roll against a hostile |character| within |sensors| and |line of sight|, you may take 1 |heat| to have them deal +3 |bonus damage|.')
 	assert_eq(X.tr('gear.mt_dread_harbinger.effect'),
-		'1/round, whenever the Black Mountain or an allied |character| within |Sensors| and |line of sight| |critically hits|, the target receives |Lock On|. Additionally, when this |Lock On| is consumed, the Black Mountain gains 1d6 |Overshield|.')
+		'1/round, whenever the Black Mountain or an allied |character| within |Sensors| and |line of sight| critically hits, the target receives |Lock On|. Additionally, when this |Lock On| is consumed, the Black Mountain gains 1d6 |Overshield|.')
 
 func test_the_core_rows_are_already_written():
 	# Design 1.1: SP1 writes the core system's rows so SP2 builds against text that already exists. The
 	# LCP's core_system carries no description, so there is no flavour row.
 	assert_eq(X.tr('gear.cp_blackstone_bell.name'), 'Blackstone Bell', 'The LCP\'s core name.')
+	# The close (author): the passive's name leads the Kit's row, since Bringer of Glory has no action to carry it.
+	assert_eq(X.tr('gear.cp_blackstone_bell.effect'), 'Bringer of Glory: Gain the Exalt |reaction|.')
 	assert_eq(X.tr('gear.cp_blackstone_bell.action_exalt.name'), 'Exalt')
 	assert_string_contains(X.tr('gear.cp_blackstone_bell.action_exalt.effect'), 'equal to 1 + |GRIT|')
 	assert_eq(X.tr('gear.cp_blackstone_bell.action_fell_the_mighty.name'), 'Fell the mighty', 'The LCP\'s own capitalisation.')
@@ -332,8 +334,19 @@ func test_a_unit_can_actually_wear_the_frame():
 
 func test_fragile_really_bites_the_live_unit():
 	# Vanilla's shared trait, applied by the loadout: +1 difficulty on Hull checks and saves is a
-	# SAVE-channel buff on the unit (buff_skill_save). Pinned through has_buff_to so a Fragile that
-	# stopped being applied by the frame (a broken reference) shows here.
+	# SAVE-channel buff on the unit (buff_skill_save). Finding 6 (Minor): has_buff_to(SAVE) alone would
+	# pass for ANY SAVE-channel buff from ANY source, not specifically mt_fragile - assert the SOURCE
+	# too (from_gear traces to the frame's own Fragile gear), plus a negative control with no Fragile.
 	var game:Gamemaster = Fixture.create_game(self)
 	var black_mountain:Unit = Fixture.create_black_mountain(game, Vector2i(4, 4))
 	assert_true(UnitCondition.has_buff_to(black_mountain, Buff.TO.SAVE), 'Fragile\'s save buff is live on the unit.')
+	var fragile_gear:GearCore = black_mountain.get_gear(Fixture.FRAGILE_ID)
+	assert_true(GearCore.is_valid(fragile_gear), 'fixture: mt_fragile is on the loadout.')
+	if not GearCore.is_valid(fragile_gear): return
+	var save_buffs_from_fragile:Array = UnitCondition.get_buffs_to(black_mountain, Buff.TO.SAVE)
+	save_buffs_from_fragile = save_buffs_from_fragile.filter(
+		func(core:BuffCore) -> bool: return core.from_gear == fragile_gear.persistent_id)
+	assert_false(save_buffs_from_fragile.is_empty(), 'The SAVE buff traces to mt_fragile specifically, not just any SAVE-channel source.')
+	# CONTROL: a plain dummy has no Fragile trait, so no SAVE buff at all.
+	var dummy:Unit = Fixture.create_dummy(game, Vector2i(6, 6))
+	assert_false(UnitCondition.has_buff_to(dummy, Buff.TO.SAVE), 'CONTROL: nobody else on the map has a SAVE buff.')
