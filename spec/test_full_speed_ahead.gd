@@ -24,6 +24,8 @@ const ACTION_ID := &'action_full_speed_ahead'
 # The Fitzgerald's Speed is 4 (01-fitzgerald.md). Everything below is measured in those four tiles.
 const SPEED := 4
 const START := Vector2i(2, 4)
+## A vanilla melee weapon (threat 1) for the engaged blocker, so it CAN overwatch.
+const BLOCKER_WEAPON := &'mw_tactical_melee_weapon'
 
 var game:Gamemaster
 var fitz:Unit
@@ -141,10 +143,32 @@ func test_an_engaged_fitzgerald_leaves_without_provoking_overwatch() -> void:
 	# overwatch shot would pop its own die off the same queue (a 20 against evasion 10 is a hit) and
 	# move the number. The placement is deliberately unchanged - adjacent AND in the way is the case
 	# worth testing.
+	#
+	# THE BLOCKER IS ARMED (close-out Pass D, open item "no positive control"). A bare dummy carries no
+	# weapon, so it could never overwatch and the "nothing shot" line could not fail. With a melee
+	# weapon at threat 1 it is the watcher test_an_ordinary_move_out_of_engagement_draws_overwatch
+	# proves DOES fire, and an overwatch here would pop a 20 off the save queue - a hit - and damage
+	# the Fitzgerald for far more than the 1 AP kinetic the card itself charges for crossing the
+	# blocker's space (test_crossing_two_occupied_spaces_costs_two_self_damage).
+	FitzgeraldFixture.equip(blocker, BLOCKER_WEAPON)
 	cheat_passed_saves()
 	await dash_to(START + Vector2i(SPEED, 0))
 	assert_eq(fitz.tile(), START + Vector2i(SPEED, 0), 'Engagement did not hold it.')
+	assert_eq(fitz.current_damage(), 1,
+		'Only the crossing cost: the armed blocker took no overwatch on the way out.')
 	assert_eq(blocker.core.current.health, blocker_health, 'Nothing shot at it on the way out.')
+
+## THE POSITIVE CONTROL for the test above: the same armed blocker, the same adjacency, an ORDINARY
+## move out of its threat - and it overwatches. Without this, "no overwatch on the dash" could be
+## passing because the watcher never overwatches anything.
+func test_an_ordinary_move_out_of_engagement_draws_overwatch() -> void:
+	var blocker := FitzgeraldFixture.create_dummy(game, START + Vector2i(1, 0), 10)
+	FitzgeraldFixture.equip(blocker, BLOCKER_WEAPON)
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	Dice.cheat_attack([20], [6, 6, 6, 6, 6, 6])
+	await SpecFactory.move(game, fitz, START + Vector2i(-2, 0))
+	assert_eq(fitz.tile(), START + Vector2i(-2, 0), 'fixture: it actually walked away.')
+	assert_gt(fitz.current_damage(), 0, "Leaving the blocker's threat the ordinary way draws its overwatch.")
 
 # ---------------------------------------------------------------- the path walk (Task 2)
 #
