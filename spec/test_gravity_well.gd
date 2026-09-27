@@ -227,6 +227,11 @@ func test_an_ally_two_tiles_out_never_gets_the_buff():
 # miss attributable to Gravity Well alone. (A difficulty die of 1 does NOT work: with the gate broken
 # that 1 becomes the damage die and the Vauban's armour eats it, so a hit reads as a miss - measured,
 # by killing buff_gravity_well's gate.)
+#
+# A MISS STILL READS ZERO ONLY BECAUSE OF THE ARMOUR. mw_assault_rifle is Reliable 2, so a miss deals
+# 2 - and the Vauban's armour 2 takes all of it. That is what lets current_damage() == 0 stand for
+# "missed"; the broken-gate hit above lands 6 - 2 = 4. If the Vauban's armour or the rifle ever
+# changes, re-derive these numbers before trusting the miss assertions.
 
 const VAUBAN_EVASION := 6
 
