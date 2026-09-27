@@ -279,9 +279,11 @@ func test_the_card_text_is_the_lcp_verbatim():
 	# check_content.py cannot see a weapon mod at all, so this is the ONLY pin on this text, and
 	# three .contains() checks would still pass if the row were rewritten to swap the burn numbers
 	# (e.g. "you take 3 Burn and the target takes 1 Burn" still contains '1/round' and '3 |Burn|').
-	# The pipes are the row exactly as authored (localization/localizations.csv:530) - do not strip
+	# The pipes are the row exactly as authored (localization/localizations.csv:540) - do not strip
 	# them, tr() does not either (precedent: test_aaaa_difficulty.gd:94, test_in_triumvirate.gd:626).
+	# MELEE is the LCP's casing since close-out Pass C (2026-09-27); check_content.py has read the
+	# LCP's `mods` list since Naga SP4, so it now pins this row too.
 	assert_eq(X.tr('gear.%s.effect' % id),
-		'Choose one |melee| weapon: 1/round, after you hit a character with this weapon, you take 1 '
+		'Choose one |MELEE| weapon: 1/round, after you hit a character with this weapon, you take 1 '
 		+ '|Burn| and the target takes 3 |Burn|.',
 		'The LCP\'s effect row, verbatim, pipes included.')

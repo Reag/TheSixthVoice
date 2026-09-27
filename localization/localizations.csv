@@ -33,12 +33,12 @@ gear.buff_more_black_powder.name,More Black Powder
 gear.buff_more_black_powder.effect,"The BIZARRE CANNON has a second, heavier profile for the rest of this scene."
 ,
 gear.mt_hole_puncher.name,Hole Puncher
-gear.mt_hole_puncher.effect,"The Fitzgerald may ignore line of sight when attacking with |cannon| or |Line| weapons. Targets attacked this way have |soft cover|."
+gear.mt_hole_puncher.effect,"The Fitzgerald may ignore line of sight when attacking with |Cannon| or |Line| weapons. Targets attacked this way have |soft cover|."
 gear.buff_hole_puncher_soft_cover.name,Soft cover (Hole Puncher)
 gear.buff_hole_puncher_soft_cover.effect,"Attacked without being seen: the shot treats this target as having soft cover."
 ,
 gear.mt_knock_em_down.name,Knock 'em down
-gear.mt_knock_em_down.effect,"1/round, when the Fitzgerald critically hits a character with a |cannon|, that character must make a |hull save| or be knocked |Prone|."
+gear.mt_knock_em_down.effect,"1/round, when the Fitzgerald critically hits a character with a |Cannon|, that character must make a |Hull save| or be knocked |Prone|."
 ,
 gear.mw_breech_loading_swivel_gun.name,Breech-loading Swivel Gun
 gear.mw_breech_loading_swivel_gun.flavor,306 lb. of tungsten will fix most problems.
@@ -51,7 +51,7 @@ gear.mw_breech_loading_swivel_gun.action_swivel_grapeshot.effect,"Firing all thr
 ,
 gear.ms_heaer.name,HEAER
 gear.ms_heaer.flavor,"HIGH EXPLOSIVE ANTI EVERYTHING ROUNDS as they have been called, are crammed full of as much explosive power as possible, leading to devastating, if unreliable, results."
-gear.ms_heaer.effect,"Whenever you destroy a hostile character or deployable with a |rifle|, |launcher|, or |cannon| you may expend a charge to make them explode violently. All characters within |Burst 1| of the destroyed character or deployable must make an |Agility save| or take 1d6+1 |AP| kinetic damage."
+gear.ms_heaer.effect,"Whenever you destroy a hostile character or deployable with a |rifle|, |launcher|, or |cannon| you may expend a charge to make them explode violently. All characters within |burst 1| of the destroyed character or deployable must make an |Agility save| or take 1d6+1 |AP| kinetic damage."
 gear.ms_heaer.action_heaer_detonate.confirm,Expend a HEAER charge?
 ,
 gear.mt_blasting_powder.name,Blasting Powder
@@ -60,7 +60,7 @@ gear.mt_blasting_powder.effect,"1/round, when the Fitzgerald makes a successful 
 gear.ms_hull_break_thrusters.name,Hull-break Thrusters
 gear.ms_hull_break_thrusters.flavor,"Originally based on the Nelson's iconic Ramjet technology, the Hull-break Thrusters take it in a new direction. Control and survivability are thrown out the window to focus on pure power. Why go around someone when you can go straight through them?"
 gear.ms_hull_break_thrusters.action_full_speed_ahead.name,FULL SPEED AHEAD
-gear.ms_hull_break_thrusters.action_full_speed_ahead.effect,"Expend a charge: you fly your |Speed| in a straight line in any direction, moving through hostile characters. All hostile characters you pass through or become adjacent with during this movement, must make a |hull save| or be knocked |Prone| and take 3 |AP| kinetic damage. For each occupied space you pass through, you take 1 |AP| kinetic damage. This movement ignores |engagement| and does not provoke reactions."
+gear.ms_hull_break_thrusters.action_full_speed_ahead.effect,"Expend a charge: you fly your |speed| in a straight line in any direction, moving through hostile characters. All hostile characters you pass through or become adjacent with during this movement, must make a |Hull save| or be knocked |Prone| and take 3 |AP| Kinetic damage. For each occupied space you pass through, you take 1 |AP| Kinetic damage. This movement ignores |engagement| and doesn’t provoke reactions."
 ,
 gear.wm_ripper_mod.name,RIPPER MOD
 gear.wm_ripper_mod.flavor,"A masterwork of design built to devastate any target with heavy armor. A solid tungsten shell is applied to all munitions and their inner casings are filled with a shaped warhead charge. Unfortunately, due to the specific conditions needed to trigger the activation of the warhead, RIPPER rounds provide no significant advantage against non-armored targets."
@@ -68,9 +68,9 @@ gear.wm_ripper_mod.effect,"This weapon deals +1d6 bonus damage against targets w
 ,
 gear.mw_rapier_class_carronade.name,Rapier Class Carronade
 gear.mw_rapier_class_carronade.flavor,"The Carronade functions on a simple principle: there is no such thing as cover from a wrecking ball. So, IPS-N made that wrecking ball, packed it into a cannon, and leased it out to those discerning individuals who understand the true spirit of hard working hunks of metal moving very quickly."
-gear.mw_rapier_class_carronade.effect,"This weapon ignores cover and deals 10 |AP| kinetic damage to all objects or terrain within the line."
+gear.mw_rapier_class_carronade.effect,"This weapon ignores cover and deals 10 |AP| Kinetic damage to all objects or terrain within the line."
 gear.mw_rapier_class_carronade.action_rapier_carronade.name,Rapier Class Carronade
-gear.mw_rapier_class_carronade.action_rapier_carronade.effect,"This weapon ignores cover and deals 10 |AP| kinetic damage to all objects or terrain within the line."
+gear.mw_rapier_class_carronade.action_rapier_carronade.effect,"This weapon ignores cover and deals 10 |AP| Kinetic damage to all objects or terrain within the line."
 ,
 gear.ms_grit_latch_magnets.name,Grit Latch Magnets
 gear.ms_grit_latch_magnets.flavor,"Originally meant to quickly patch hull breaches, the Grit Latch Magnets are a uniquely ISP-N innovation. Consisting of a fine metal grit packed tightly into a sphere, upon activation the grit explodes outwards into a cloud, where it magnetically attaches to all nearby metal. Tiny thermal charges bound to the granules then quickly burn, melting it into a slag almost instantaneously. The result is an effective, if temporary, layer of armature."
@@ -86,7 +86,7 @@ gear.mt_rapid_stabilization_jets.action_rapid_stabilization_jets.effect,"Ignore 
 gear.buff_rapid_stabilization_jets.name,Rapid Stabilization Jets
 gear.buff_rapid_stabilization_jets.effect,"|Ordnance| weapons may be fired this turn after moving or acting."
 gear.mt_hybridized_shot.name,Hybridized Shot
-gear.mt_hybridized_shot.effect,"Gain +1 |Accuracy| on the first attack you make with a |Loading| weapon that is not |Superheavy| on your turn."
+gear.mt_hybridized_shot.effect,"Gain +1 |Accuracy| on the first attack roll you make with a |loading| weapon that is not |SUPERHEAVY| on your turn."
 gear.buff_hybridized_shot.name,Hybridized Shot
 gear.buff_hybridized_shot.effect,"+1 |Accuracy| on this attack."
 gear.cp_auxiliary_power_rerouter.name,Auxiliary Power Rerouter
@@ -257,7 +257,7 @@ gear.mw_rend_axe.action_rend_axe_free.effect,"1/round, you may expend a charge t
 gear.ms_dazzling_wind.name,Dazzling Wind
 gear.ms_dazzling_wind.flavor,"While its name does not bely its true purpose, the Dazzling Wind suite of systems is nevertheless a core part of SSC's LIM-AMOK line. Powerful hydraulic mobility augments allow for a pilot to leap across a battlefield, easily clearing any terrain or hostile forces. Unfortunately for its users however, each time it is recharged, it must be manually put back together in a painstakingly long process to achieve maximum combat efficiency."
 gear.ms_dazzling_wind.action_leap.name,Leap
-gear.ms_dazzling_wind.action_leap.effect,"Expend a charge: fly your |Speed| in a straight line. At the end of your movement, you may choose a hostile character adjacent to you; they must make a |hull save| or be knocked |Prone|."
+gear.ms_dazzling_wind.action_leap.effect,"Fly your |speed| in a straight line. At the end of your movement, you may choose a hostile character adjacent to you, they must make a |Hull save| or be knocked |prone|."
 ,
 gear.mw_acrasial_falcata.name,Acrasial Falcata
 gear.mw_acrasial_falcata.flavor,"SSC does not acknowledge the common term for weapons such as the Acrasial Falcata. It is uncouth, a violent misrepresentation of the mastery of its design. A long elegant blade, fashioned in the style of ancient Cradle. A flash-printer ammunition feed contained within the handle. The small cannon in the cross-guard, the perfect response to a would-be assailant. The Falcata is no mere ""gunsword"", it is far too sharp, too clever, and too wonderous to be contained by such a term."
@@ -537,7 +537,7 @@ gear.buff_arc.name,A.R.C Active
 gear.buff_arc.effect,"JÖRMUNGANDR retaliates against the first hostile to damage you each round, you deal +1d6 bonus damage on a successful |melee| attack against |Slowed| or |Impaired| targets, and every attack you make costs you 1 |heat|."
 gear.wm_greenlight_projection.name,GreenLight Projection
 gear.wm_greenlight_projection.flavor,Split the sun with thy furious blows!
-gear.wm_greenlight_projection.effect,"Choose one |melee| weapon: 1/round, after you hit a character with this weapon, you take 1 |Burn| and the target takes 3 |Burn|."
+gear.wm_greenlight_projection.effect,"Choose one |MELEE| weapon: 1/round, after you hit a character with this weapon, you take 1 |Burn| and the target takes 3 |Burn|."
 ,
 frame.mf_naga.name,Naga
 frame.mf_naga.flavor.short,Shimmering Havoc

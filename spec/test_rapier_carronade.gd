@@ -903,5 +903,6 @@ func test_the_rules_text_promises_the_damage_the_code_deals() -> void:
 	# directive and this assertion went red - correctly, and for the wrong reason: the conjunction
 	# was never what it is here to pin. What it pins is the NUMBER, which is why LINE_DAMAGE is
 	# interpolated rather than written out. Match the source's phrasing, keep the number binding.
-	assert_string_contains(effect, '%d |AP| kinetic damage to all objects or terrain' % LINE_DAMAGE,
+	# "Kinetic" capitalised, the LCP's casing, since close-out Pass C (2026-09-27).
+	assert_string_contains(effect, '%d |AP| Kinetic damage to all objects or terrain' % LINE_DAMAGE,
 		'The rules text promises exactly the number the code deals.')
