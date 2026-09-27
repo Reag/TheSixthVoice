@@ -11,7 +11,10 @@
 ## applicator and the Myriad share it.
 ##
 ## on_clear is NOT AWAITED (buff.gd:176) and runs for every clear, however it happens; nothing here
-## awaits, and a chip cleared early (the Knot destroyed) re-stamps a round nobody can use.
+## awaits, and a chip cleared early (the Knot destroyed) re-stamps a round nobody can use. THE SAME IS
+## TRUE OF ANY EARLY CLEAR, not only the harmless destroyed case: an enemy that strips the chip mid-turn
+## (a status-clearing effect, say) re-stamps the round right there, so that turn's second Gemini - the
+## one the still-open Myriad turn was meant to keep - is lost, not merely spent a beat sooner.
 extends Buff
 
 const Record := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/gemini_record.gd')

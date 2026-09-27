@@ -22,8 +22,8 @@ const ASKED:StringName = &'reag_gemini_asked'
 const LEG_TILES:StringName = &'reag_gemini_leg_tiles'
 ## buff_gemini_ignore_cover.tres: the leg's cover skips it when asking whether the Knot ignores cover.
 const GEMINI_IGNORE_COVER:StringName = &'buff_gemini_ignore_cover'
-## Form of the Myriad's chip (SP3). While it is held, one Gemini use chains up to 4 legs, each at the
-## weapon's full reach (rulings 18-19). Until SP3 applies it, has_buff on an id nobody applies is false.
+## Form of the Myriad's chip (SP3, buff_form_of_the_myriad.gd). While it is held, one Gemini use chains
+## up to 4 legs, each at the weapon's full reach (rulings 18-19).
 const MYRIAD_CHIP:StringName = &'buff_form_of_the_myriad'
 const MYRIAD_LEGS := 4
 

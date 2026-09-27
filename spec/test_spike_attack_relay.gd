@@ -35,6 +35,14 @@
 #   f  "One attack roll": a MODIFY_ATTACK_ROLL buff at auto_miss / auto_hit / turn_hit_to_crit
 #      answers the second roll from the first roll's total against the second target's own defense,
 #      and copies the numbers so the log shows one roll. Miss, hit and crit cases.
+#      TESTS f AND f2 DELETED (Pass F, task 6, open item B): they pinned this "same total" reading,
+#      which the author's ruling 9 superseded - production gives each redirected target the contact's
+#      d20 FACE with its OWN accuracy and difficulty dice (buff_gemini_shared_roll.gd:1-2), not the
+#      first roll's total verbatim. Covered instead by test_gemini_charge.gd's
+#      test_the_redirected_target_shares_the_contacts_d20 (:424),
+#      test_a_higher_evasion_misses_on_the_same_face_and_reliable_is_halved (:438) and
+#      test_the_redirected_targets_own_cover_from_the_contact_changes_only_its_total (:451). f3 (the
+#      shared natural 20) still holds under either reading and is kept.
 #   g  Cover for the appended target is measured from the summary's source_voxels - the attacker's
 #      - by default; an attacker-side IGNORE_COVER scoped to that target zeroes it, and the cover
 #      the card wants (from the contact's space) is one determine_cover call.
@@ -386,40 +394,6 @@ func test_e2_control_without_the_stand_in_the_rifle_deals_full_damage_to_one_tar
 
 
 # ============ f: ONE ATTACK ROLL ============
-
-func test_f_the_second_target_is_answered_from_the_first_targets_roll() -> void:
-	arm_gemini()
-	Dice.CHEAT_ROLL_QUEUE.assign([14, 6])
-	await fire(rifle, [plan_unit(contact), plan_unit(second)])
-	var summary := last_summary()
-	var first := roll_against(summary, contact)
-	var roll := roll_against(summary, second)
-	if first == null or roll == null:
-		fail_test('both rolls must exist')
-		return
-	assert_eq(first.base_roll, 14, 'the contact rolled the cheated 14')
-	assert_eq(roll.base_roll, 14, 'the second target carries the SAME d20')
-	assert_eq(roll.total_roll, first.total_roll, 'and the same total')
-	assert_true(roll.hit, '14 beats evasion 10')
-	assert_false(roll.crit, 'not a crit')
-	assert_eq(second.current_damage(), 3, 'hit, halved')
-
-func test_f2_a_higher_evasion_on_the_second_target_turns_the_shared_roll_into_a_miss() -> void:
-	second.core.frame.stat.evasion = 15
-	second.core.full_repair()
-	arm_gemini()
-	Dice.CHEAT_ROLL_QUEUE.assign([14, 6])
-	await fire(rifle, [plan_unit(contact), plan_unit(second)])
-	var summary := last_summary()
-	var first := roll_against(summary, contact)
-	var roll := roll_against(summary, second)
-	if first == null or roll == null:
-		fail_test('both rolls must exist')
-		return
-	assert_true(first.hit, 'the contact (evasion 10) is hit by 14')
-	assert_false(roll.hit, 'the second target (evasion 15) is missed by the same 14')
-	assert_eq(roll.base_roll, 14, 'the miss still shows the shared d20')
-	assert_eq(second.current_damage(), 1, 'FACT: a miss still deals the rifle\'s Reliable 2, and "all damage halved" halves that too: 1')
 
 func test_f3_a_natural_20_crits_both() -> void:
 	arm_gemini()

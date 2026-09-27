@@ -221,6 +221,15 @@ func test_the_core_systems_rows_are_already_written():
 	# The LCP's core_system carries no description, so there is no flavour row to write.
 	assert_eq(X.tr('gear.cp_integrated_redirection_aggregate.name'), 'Integrated Redirection Aggregate', 'The LCP\'s name.')
 
+func test_gemini_charges_own_rows_and_the_core_systems_effect_row_are_already_written():
+	# Design 2 (Pass F, task 6, open item C, step 4): Gemini Charge's own name+effect, and the core
+	# system's own effect row - none pinned before this. The effect text is the card's, word for word,
+	# on both the core system Kit and its passive half's buff (they are the same trigger/effect).
+	assert_eq(X.tr('gear.buff_gemini_charge.name'), 'Gemini Charge', 'The LCP\'s name for the passive half.')
+	for key:String in ['gear.buff_gemini_charge.effect', 'gear.cp_integrated_redirection_aggregate.effect']:
+		assert_ne(X.tr(key), key, '%s resolves.' % key)
+		assert_string_contains(X.tr(key), 'redirect its shot upon contact with a')
+
 # ---------------------------------------------------------------- the licence
 
 func test_the_deaths_head_licence_grants_the_lovers_knot_at_rank_two():

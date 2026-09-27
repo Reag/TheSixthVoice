@@ -220,3 +220,46 @@ func test_a_grappled_knot_cannot_reposition():
 	assert_eq(knot.current_damage(), RELIABLE, 'Fixture: the shot went off and missed.')
 	assert_eq(offers(), 0, 'A Grappled Knot is not offered Reposition.')
 	assert_eq(knot.state.tile, KNOT_TILE, 'And does not move.')
+
+# A voluntary move is refused under Slowed (action_reaction_movement.gd:44-49's own
+# is_available_to_activate, called via action_reposition.gd's super()) - the OTHER half of the
+# Grappled test above, which instead proves can_take_reactions.
+func test_a_slowed_knot_cannot_reposition():
+	raise_plateau()
+	UnitCondition.apply_status(SpecFactory.dummy_event(), knot, Lancer.STATUS.SLOWED, Lancer.UNTIL.MANUAL)
+	assert_true(UnitCondition.is_slowed(knot), 'Fixture: Slowed.')
+	var shooter:Unit = Fixture.create_hostile(game, SHOOTER_TILE)
+	arm(true)
+	await miss_from(shooter)
+	assert_eq(knot.current_damage(), RELIABLE, 'Fixture: the shot went off and missed - liveness, not merely nothing happening.')
+	assert_eq(offers(), 0, 'A Slowed Knot is not offered Reposition: a voluntary move is refused under Slowed.')
+	assert_eq(knot.state.tile, KNOT_TILE, 'And does not move.')
+
+# "A RANGED ATTACK" excludes a tech attack: ms_fragment_signal (every mech's basic loadout,
+# ActionAttackTech) is not an ActionAttackWeapon, so UnitAction.is_ranged_weapon refuses it
+# (action_reposition.gd:52) whatever its result. The popped d20 is the control that it actually fired.
+func test_a_tech_attacks_miss_from_below_does_not_offer_it():
+	raise_plateau()
+	var shooter:Unit = Fixture.create_hostile(game, SHOOTER_TILE)
+	assert_lt(UnitTile.effective_floor(shooter), UnitTile.effective_floor(knot), 'Fixture: the shooter stands lower.')
+	arm(false)
+	await miss_from(shooter, &'ms_fragment_signal')
+	assert_lt(Dice.CHEAT_ROLL_QUEUE.size(), QUEUED, 'Fixture: the tech attack went off (its d20 was popped).')
+	assert_eq(offers(), 0, 'A miss with a tech attack is not "a ranged attack": nothing is offered.')
+
+# 1/round, spent by acceptance (ActionReaction's own economy, action_reposition.tres's consumes_rxn):
+# a second qualifying miss the same round is never even offered, because the reaction is gone.
+func test_accepting_it_once_leaves_nothing_for_a_second_lower_miss_the_same_round():
+	raise_plateau()
+	var shooter:Unit = Fixture.create_hostile(game, SHOOTER_TILE)
+	Fixture.equip(shooter, Fixture.RANGED_2) # a second gun, equipped before its first shot: the per-turn
+	# soft limit refuses the same weapon twice in one turn (memory lancer-tactics-spec-harness-traps).
+	var half:int = Util.half(knot.get_speed_max())
+	arm(true)
+	responder.chosen_move_tile = KNOT_TILE + Vector2i(0, half)
+	await miss_from(shooter)
+	assert_eq(offers(), 1, 'Fixture: the first miss was offered and accepted.')
+	assert_eq(knot.core.current.reactions, 0, 'Fixture: the reaction is spent.')
+	# another gun: the per-turn soft limit would otherwise refuse the shooter's same weapon twice.
+	await miss_from(shooter, Fixture.RANGED_2)
+	assert_eq(offers(), 1, 'A second lower miss the same round is not offered again: no reaction left to spend.')

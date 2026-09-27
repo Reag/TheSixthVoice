@@ -103,6 +103,18 @@ static func create_hostile_drone(game:Gamemaster, tile:Vector2i) -> Unit:
 	drone.core.full_repair()
 	return drone
 
+## A drone OWNED by `owner`, holding the rifle - Unit.get_owner_unit reads state.deployable_owner_id,
+## so get_attacker resolves this drone's attacks to `owner` (unit.gd:276-282), owner's buffs and all.
+## Delegates to the same create_dummy/equip primitives create_hostile_drone uses, the way
+## six_sky_fixture.gd:116 builds its own owned drone.
+static func create_owned_drone(game:Gamemaster, tile:Vector2i, owner:Unit) -> Unit:
+	var drone := create_dummy(game, tile, 10, owner.get_faction())
+	drone.core.frame.is_drone = true
+	drone.core.full_repair()
+	drone.state.deployable_owner_id = owner.core.persistent_id
+	equip(drone, RANGED)
+	return drone
+
 ## Put a Kit on a unit as a SYSTEM (which keeps a weapon out of loadout.basic - BuffWeaponType refuses
 ## basic gear) and hand back its GearCore. equip_system full_repairs, which CLEARS every gear's state
 ## and usage AND the unit's heat, so equip everything BEFORE a test spends or sets anything.
