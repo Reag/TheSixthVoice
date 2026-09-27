@@ -13,7 +13,9 @@
 ## THE INVADE: every is_invade ActionAttackTech on the Rakshasa's equipped, undestroyed gear, systems,
 ## talents, traits and the core Kit included (loadout.get_all_gear(true); NOT get_all_tech_attacks,
 ## which is equipped attacks plus basics and misses the rest, loadout_core.gd:439-440, :527-531), each
-## action once, and only those whose own can_target_unit accepts the chosen target (invade_options).
+## action once, and only those whose own can_target_unit accepts the chosen target (invade_options) -
+## less HEAT_LATER, the invades whose payload heats the target after this window closes and so cannot
+## honour "cannot apply any heat" (close review row 626).
 ## Auto-picked when there is one (Fragment Signal alone); a mandatory menu for a player otherwise. Its
 ## on_hit and on-hit effects then run on the target, and nothing else of the attack flow does: no
 ## event_unit_attack, so no ATTACK reaction (Drain, Stabilizer Override, the Koremasa's mark), no
@@ -49,6 +51,20 @@ func can_target_unit(potential_target:Unit, specific:SpecificAction) -> bool:
 ## Stabilizers' melee attacks, the Sekhmet's ranged ones), and Ensorcel "does not count as an attack" -
 ## an open question for the author, not a gate to guess at. Nor uses or charges, which Ensorcel does
 ## not spend (ruling 21).
+##
+## FILTERED: an invade whose payload deals heat AFTER this window closes, which the suppressor cannot
+## reach - "cannot apply any heat" (ruling 22) is not a promise the engine can keep for heat dealt once
+## the suppressor is already gone (close review row 626). Sear deals its heat INSIDE its own effect
+## (action_sear.gd:12-17) and stays offered. The other three do not:
+##   - action_shrike_code: buff_shrike_code.gd:13-24 hangs a buff that heats the target on every attack
+##     IT later makes, long after Ensorcel's window.
+##   - action_banish: buff_banish.gd:13-39 hangs a buff that heats the target 2 per later voluntary
+##     move, capped at 6.
+##   - action_dimensional_emblems: onhit_dimensional_emblems.gd deploys a marker whose
+##     deployable/action_dimensional_emblem_trigger.gd:10-15 heats whatever steps within its range,
+##     whenever that happens to be.
+const HEAT_LATER:Array[StringName] = [&'action_shrike_code', &'action_banish', &'action_dimensional_emblems']
+
 static func invade_options(unit:Unit, target:Unit = null) -> Array:
 	var options:Array = []
 	if not Unit.is_valid(unit): return options
@@ -57,6 +73,7 @@ static func invade_options(unit:Unit, target:Unit = null) -> Array:
 		if not gear.is_intact(): continue
 		for action:ActionAttackTech in gear.kit.get_tech_attack_actions():
 			if not action.is_invade or seen.has(action): continue
+			if HEAT_LATER.has(action.get_id()): continue
 			if Unit.is_valid(target) and not action.can_target_unit(target, SpecificAction.create(unit, gear, action)): continue
 			seen.append(action)
 			options.append({gear = gear, action = action})

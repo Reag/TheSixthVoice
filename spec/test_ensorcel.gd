@@ -205,18 +205,34 @@ func test_a_real_invade_after_ensorcel_still_deals_heat():
 	assert_eq(Fixture.heat(hostile) - before, 2, 'The suppressor does not outlive the Ensorcel.')
 
 func test_a_systems_invade_is_offered():
+	# Neurospike carries two invades; Shrike Code deals its heat LATER (buff_shrike_code.gd) and is
+	# filtered (test_heat_later_invades_are_not_offered, below), so Mirage is the one still offered here.
 	Fixture.equip(rakshasa, Fixture.SHRIKE)
 	var offered:Array[StringName] = []
 	for option in options(): offered.append(option.action.get_id())
-	assert_has(offered, Fixture.SHRIKE_ACTION, 'Shrike Code, a system\'s invade, is offered.')
+	assert_has(offered, &'action_mirage', 'Mirage, a system\'s invade, is offered.')
+	assert_does_not_have(offered, Fixture.SHRIKE_ACTION, 'Shrike Code deals its heat later: not offered.')
 	assert_eq(Fixture.invade_index(options(), Fixture.TECH) >= 0, true, 'And Fragment Signal.')
 
-func test_a_systems_invade_applies_its_effect():
-	Fixture.equip(rakshasa, Fixture.SHRIKE)
-	await Fixture.choose_mode(game, rakshasa, responder, MODE.ENSORCEL)
-	await Fixture.ensorcel(game, rakshasa, hostile, responder, Fixture.SHRIKE, Fixture.SHRIKE_ACTION)
-	assert_true(UnitCondition.has_buff(hostile, &'buff_shrike_code'), 'Shrike Code\'s effect landed.')
-	assert_false(hostile.has_status(Lancer.STATUS.IMPAIRED), 'And not Fragment Signal\'s.')
+# test_a_systems_invade_applies_its_effect (formerly here) is dropped: test_sears_heat_is_suppressed
+# already covers a systems invade's effect landing through Ensorcel, and Shrike Code - the invade this
+# test used - is no longer offered (test_heat_later_invades_are_not_offered).
+
+## Close review row 626 ("Ensorcel, heat an invade deals LATER"): "cannot apply any heat" (ruling 22)
+## only suppresses heat dealt INSIDE the window. Pass F's mapping found exactly three vanilla invades
+## whose payload heats the target after the window closes, and none of them is offered - Sear
+## (action_sear.gd:12-17) deals its heat inside its own effect and stays offered, proven by
+## test_sears_heat_is_suppressed and test_a_real_sear_deals_its_heat.
+func test_heat_later_invades_are_not_offered():
+	Fixture.equip(rakshasa, Fixture.SHRIKE) # buff_shrike_code.gd:13-24: heat on every later attack.
+	assert_eq(Fixture.invade_index(options(), Fixture.SHRIKE, Fixture.SHRIKE_ACTION), -1,
+		'Shrike Code is not offered.')
+	Fixture.equip(rakshasa, &'ms_viral_logic_suite') # buff_banish.gd:13-39: 2 heat per later voluntary move.
+	assert_eq(Fixture.invade_index(options(), &'ms_viral_logic_suite', &'action_banish'), -1,
+		'Banish is not offered.')
+	Fixture.equip(rakshasa, &'ms_h0r_os_system_upgrade_iii') # the deployed marker's own later trigger.
+	assert_eq(Fixture.invade_index(options(), &'ms_h0r_os_system_upgrade_iii', &'action_dimensional_emblems'), -1,
+		'Dimensional Emblems is not offered.')
 
 func test_a_talents_invade_is_offered_and_applies():
 	# Vanilla Hacker rank 2's Hack/Slash is an invade on a TALENT, which get_all_tech_attacks (equipped
