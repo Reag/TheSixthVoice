@@ -14,7 +14,7 @@
 # Impaired via applies_statuses, MANUAL, not cleared on the owner's death, 1 AP Kinetic per VOLUNTARY
 # step (the Barricade's Drag Down), capped at 5 PER TURN of the victim (ruling 21, the Excommunicate
 # key), and carrying the victim's own detach as situational gear (the Hornet's javelins). A second
-# magnet from the same Koremasa REPLACES the first (ruling 22). The mine is vanilla's (arm at a
+# magnet from ANY Koremasa REPLACES the first (ruling 22; Pass E). The mine is vanilla's (arm at a
 # character's end of turn, trigger within 1, allies too - ruling 25), and its detonation reaches the
 # triggering character only. The second mine is an Iskander Mine Deployers reaction on a mine DEPLOY
 # only (ruling 24), costing the second charge.
@@ -27,6 +27,7 @@ extends GutTest
 
 const Fixture := preload('res://unpacked/Reag-TheSixthVoice/spec/koremasa_fixture.gd')
 const FrameIsolation := preload('res://testkit/frame_isolation.gd')
+const Attached := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/ha/systems/ms_makibishi_magnets/buff_makibishi_attached.gd')
 
 const KOREMASA_TILE := Vector2i(4, 5)
 const VICTIM_TILE := Vector2i(8, 5)   ## 4 away: inside Range 5
@@ -61,6 +62,35 @@ func after_each() -> void:
 	responder.chosen_move_tile = Tile.INVALID
 	responder.abort_all = false
 
+## Records every event_unit_damage landing on its holder and WHO the engine was told did it
+## (context.target_unit, event_unit_damage.gd:35). Copied from test_solfataric_breach.gd's
+## DamageRecorder; activate() does not call super, which would clear it (buff.gd:254-255).
+class DamageRecorder extends Buff:
+	var hits:Array[Dictionary] = []
+
+	func _init() -> void:
+		compcon_id = &'buff_spec_makibishi_damage_recorder'
+		to = Buff.TO.NONE
+		triggers_on = [ReactionBus.TRIGGER.DAMAGE]
+		trigger_timing = ReactionBus.TIMING.POST
+		until = Lancer.UNTIL.MANUAL
+		hide_from_player = true
+
+	func get_required_triggering_context() -> Array[Context.PROP]:
+		return []
+
+	func triggers_on_event(_core:BuffCore, holder:Unit, triggering_event:EventCore) -> bool:
+		var context:Context = triggering_event.context
+		if context.unit != holder: return false
+		hits.append({
+			number = context.number,
+			damager = context.target_unit.core.persistent_id if Unit.is_valid(context.target_unit) else &'',
+		})
+		return false
+
+	func activate(_core:BuffCore, _activation:EventCore) -> void:
+		pass
+
 # ---------------------------------------------------------------- helpers
 
 func throw_at(target:Unit, save_d20:int, by:Unit = null) -> void:
@@ -70,19 +100,28 @@ func throw_at(target:Unit, save_d20:int, by:Unit = null) -> void:
 	await SpecFactory.use(game, by, Fixture.MAKIBISHI_ID, Fixture.THROW_MAGNETS_ACTION, target)
 
 ## A second Koremasa with its own Makibishi Kit - a different Kit persistent id, so a different source.
-##
-## ITS KIT IS LOOKED UP ONCE HERE, BEFORE ANY MAGNET EXISTS, and that is load-bearing. Vanilla's
-## MapState.get_unit_from_source_id caches the FIRST unit carrying a buff with ANY situational gear as
-## the owner of whatever id it was asked for (map_state.gd:290-293), and get_gear_by_id gives up with
-## null at the same point (:261-264). This Koremasa is created after the victim, so without the warm-up
-## the first lookup of its Kit - apply_buff_alt's owner read, while the victim already wears the first
-## magnet - resolves to the VICTIM and stays cached, and the detach falls back to the DC 10 check.
-## Measured 2026-09-27 (pf-task-7-report.md); a vanilla bug, reported, not worked around in content.
+## Created AFTER the victim, so the victim comes first in the map's unit list: exactly the order that
+## trips vanilla's owner lookup (map_state.gd:290-293, see buff_makibishi_attached.gd). No warm-up
+## lookup here - the magnet has to find its owner on its own (Pass F 7b).
 func second_koremasa(tile:Vector2i) -> Unit:
 	var other := Fixture.create_koremasa(game, tile)
-	var gear := Fixture.equip(other, Fixture.MAKIBISHI_ID)
-	assert_eq(game.map.get_unit_from_source_id(gear.persistent_id), other, 'fixture: the source cache knows the second Koremasa.')
+	Fixture.equip(other, Fixture.MAKIBISHI_ID)
 	return other
+
+## What a save/load does to the owner lookup: the map's source cache starts empty
+## (map_state.gd:102), and here the victim is also moved ahead of `unit` in the unit list, so the
+## first unit the vanilla search meets wearing situational gear is the victim. The order has to be
+## changed at its SOURCE, the map node's unit list: MapState.all_units is rebuilt from it on every
+## tracking update (map_state.gd:353-356, gamemaster.gd:277), so reordering all_units alone is undone
+## by the victim's first step.
+func simulate_load_with_victim_first(unit:Unit) -> void:
+	var tree_units = game.map_node.units
+	tree_units.erase(unit)
+	tree_units.append(unit)
+	game.map.update_unit_tile_tracking(game.map_node.get_all_units_in_tree())
+	game.map.cached_source_to_unit.clear()
+	var order:Array = game.map.all_units.keys()
+	assert_lt(order.find(victim.core.persistent_id), order.find(unit.core.persistent_id), 'fixture: the victim is listed first.')
 
 func attached(unit:Unit) -> Array[BuffCore]:
 	return UnitCondition.get_buffs(unit, Fixture.MAKIBISHI_BUFF)
@@ -298,6 +337,66 @@ func test_the_cap_survives_another_koremasas_magnet_mid_turn():
 		assert_eq(found[0].from_gear, other.get_gear(Fixture.MAKIBISHI_ID).persistent_id, "fixture: the mine's magnet stayed.")
 	await walk(victim, MINE_TILE + Vector2i(1, 4)) # (6,9): three more voluntary spaces
 	assert_eq(damage_taken(victim) - before - 2, 5, "Per-step damage this turn, less the mine's 1d3 (2): still capped at 5.")
+
+## Pass F 7b (author, on the task 7 concern): the magnet resolves its real owner even when the
+## map's source cache is empty - as after every load - and the victim is listed ahead of the
+## Koremasa. The step damage is the Koremasa's, and the detach saves against the Koremasa's save
+## target, not the DC 10 no-owner fallback. The Koremasa's save target is raised to 18 first, so a 15
+## passes ONLY through the fallback.
+func test_after_a_load_the_magnet_still_answers_to_its_koremasa():
+	FrameIsolation.isolate_frame(koremasa)
+	koremasa.core.frame.stat.save_target = 18
+	await throw_at(victim, FAIL)
+	assert_true(is_attached(victim), 'fixture: attached.')
+	await SpecFactory.end_turn(game, koremasa)
+	simulate_load_with_victim_first(koremasa)
+	var recorder := DamageRecorder.new()
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), victim, recorder)
+	await Fixture.cycle_turn(game, victim)
+	await walk(victim, VICTIM_TILE + Vector2i(0, 1))
+	assert_eq(recorder.hits.size(), 1, 'LIVENESS: one step, one damage event.')
+	if not recorder.hits.is_empty():
+		assert_eq(recorder.hits[0].damager, koremasa.core.persistent_id,
+			"The step damage is credited to the Koremasa, not to the victim.")
+	var offered := detaches_offered(victim)
+	assert_eq(offered.size(), 1, 'LIVENESS: offered.')
+	if offered.is_empty(): return
+	var applier:SpecificAction = offered.front().action.get_applier_specific(attached(victim)[0])
+	assert_true(SpecificAction.is_valid(applier) and applier.unit == koremasa, 'The detach names the Koremasa as its applier.')
+	Fixture.queue([PASS])
+	await SpecFactory.use_specific(game, offered.front())
+	assert_true(is_attached(victim), "15 (less Impaired's difficulty) against the Koremasa's 18: still attached - not the DC 10 fallback.")
+
+## The replacement, built directly (review Minor): a victim already carrying TWO magnets - a thrown one
+## that has charged 3 steps this turn and a SOURCELESS one (a mine that outlived its Koremasa, row 568)
+## at 1 - which the game can no longer produce, but a save from before Pass F can hold. A new magnet
+## leaves exactly one, and it inherits the BUSIEST count and its detach. The busier core is listed
+## FIRST, so clearing in list order would hand over the wrong one.
+func assert_one_magnet_inheriting_the_busiest(from_gear:GearCore, what:String) -> void:
+	var buff = ContentLibrary.get_buff(Fixture.MAKIBISHI_BUFF)
+	await Fixture.cycle_turn(game, victim)
+	var busy := BuffCore.create(buff, koremasa.get_gear(Fixture.MAKIBISHI_ID).persistent_id)
+	var sourceless := BuffCore.create(buff, &'')
+	for pair:Array in [[busy, 3], [sourceless, 1]]:
+		var core:BuffCore = pair[0]
+		core.situational_gear = GearCore.create_from_id(Fixture.DETACH_KIT)
+		core.set_state(Attached.TURN_KEY, buff.turn_key(victim))
+		core.set_state(Attached.STEPS_KEY, pair[1])
+		victim.state.buffs.append(core)
+	assert_eq(attached(victim).size(), 2, 'fixture: two magnets on one victim.')
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), victim, buff, from_gear)
+	var found := attached(victim)
+	assert_eq(found.size(), 1, '%s: one magnet left.' % what)
+	if found.size() != 1: return
+	assert_eq(buff.steps_this_turn(found[0], victim), 3, '%s: the busiest count (3) carried over.' % what)
+	assert_eq(found[0].situational_gear, busy.situational_gear, '%s: and the busiest core\'s detach.' % what)
+
+func test_a_new_magnet_replaces_two_old_ones_from_another_source():
+	var other := second_koremasa(OTHER_TILE)
+	await assert_one_magnet_inheriting_the_busiest(other.get_gear(Fixture.MAKIBISHI_ID), 'Another Koremasa')
+
+func test_a_new_magnet_replaces_two_old_ones_from_the_same_source():
+	await assert_one_magnet_inheriting_the_busiest(koremasa.get_gear(Fixture.MAKIBISHI_ID), 'The same Koremasa')
 
 func test_an_involuntary_move_costs_nothing():
 	await throw_at(victim, FAIL)
