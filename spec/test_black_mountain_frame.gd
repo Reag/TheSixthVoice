@@ -11,9 +11,8 @@
 # that mod logs no error (design ruling 2), and test_late_licence_extension.gd pins the other install
 # order.
 #
-# THE SPRITE IS THE PLACEHOLDER, ASSERTED AS SUCH (the Leoleth's pre-close shape): when the author's art
-# lands, test_the_frame_wears_the_placeholder_until_the_author_supplies_art goes red and the swap is a
-# deliberate edit, not something that slides in.
+# THE SPRITE IS THE AUTHOR'S OWN (supplied after the close, 2026-09-27): the placeholder test flipped
+# to test_the_frame_has_a_sprite_that_actually_loaded, and the colour scheme is a 3-means over the art.
 #
 #   powershell -ExecutionPolicy Bypass -File D:/DEV/lancer-tactics-claude/tools/run-hidden.ps1 -Log <ssd log> --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_black_mountain_frame.gd
 extends GutTest
@@ -162,19 +161,46 @@ func test_the_core_is_a_core_power_carrying_exalt_fell_the_mighty_and_the_effici
 		'Exalt, Fell the Mighty, the Efficient refund.')
 	assert_eq(core.passives.size(), 1, 'One passive: the shared Efficient stamp.')
 
-func test_the_frame_wears_the_placeholder_until_the_author_supplies_art():
-	# ASSERTED THE OPPOSITE WAY ROUND FROM EVERY SHIPPED FRAME, on purpose (the Leoleth's pre-close
-	# shape): no art exists for this frame yet, and the ledger carries the debt. When the author's art
-	# lands this goes red and the swap is a deliberate edit - then this becomes the "own art" assertion
-	# and the colour scheme is re-derived over it.
+func test_the_frame_has_a_sprite_that_actually_loaded():
+	# THE AUTHOR SUPPLIED THE ART AFTER THE CLOSE, 2026-09-27, and this test flipped with it (the
+	# Leoleth's shape). It used to assert the OPPOSITE - that the frame still wore the shared placeholder -
+	# so that the swap would redden one named test and be a deliberate edit. This is that edit.
+	#
+	# A .tres pointing at an unimported PNG does not fail loudly: the whole frame drops out of
+	# ContentLibrary with no error a player would see. Both halves are asserted - not the placeholder, AND
+	# this frame's own filename - because several of this mod's frames are 80x80 with no "placeholder" in
+	# their paths, so a sibling's sprite would pass the weaker check alone.
 	var frame:Frame = _frame()
 	assert_not_null(frame, 'mf_black_mountain loads.')
-	if frame == null or frame.sprites.is_empty(): return
+	if frame == null: return
+	assert_false(frame.sprites.is_empty(), 'The frame carries at least one sprite.')
+	if frame.sprites.is_empty(): return
 	var sprite:Texture2D = frame.sprites[0]
-	assert_not_null(sprite, 'The sprite texture loaded - a .tres pointing at an unimported PNG fails the whole frame out of ContentLibrary silently.')
+	assert_not_null(sprite, 'The sprite texture loaded.')
 	if sprite == null: return
-	assert_eq(sprite.get_size(), Vector2(80, 80), 'The size-1 stand-in, not the 160x160 sibling.')
-	assert_true(sprite.resource_path.ends_with('/placeholder/mf_placeholder.png'), 'The shared placeholder: DEBT, recorded in the SP1 ledger.')
+	assert_eq(sprite.get_size(), Vector2(80, 80), 'A size-1 (half) frame uses an 80x80 sprite.')
+	assert_false(sprite.resource_path.contains('placeholder'), "The author's own art, not the shared stand-in.")
+	assert_true(sprite.resource_path.ends_with('/mf_black_mountain.png'),
+		"The frame wears its OWN sprite - not a sibling frame's, and not the stand-in.")
+
+func test_the_colour_scheme_is_derived_from_the_frames_own_art():
+	# A 3-MEANS OVER THE AUTHOR'S ART (the Lovers Knot's method), replacing the Lovers Knot's plum that
+	# SP1 borrowed as a stand-in. mf_black_mountain.png (80x80, 1,596 opaque pixels) has ZERO
+	# channel-encoded pixels, so the scheme cannot repaint the token and is INERT (memory
+	# frame-sprites-not-channel-encoded) - pinned anyway, so the .tres cannot drift from the art it was
+	# counted from. Most-used first, per the Iskander's slot convention.
+	var frame:Frame = _frame()
+	assert_not_null(frame, 'mf_black_mountain loads.')
+	if frame == null: return
+	var ours:ColorScheme = frame.default_color_scheme
+	assert_not_null(ours, 'The Black Mountain carries a default colour scheme.')
+	if ours == null: return
+	assert_eq(ours.base_0, Color(0.11764706, 0.07058824, 0.13725490, 1),
+		"base_0 is the sprite's near-black violet body (30,18,35 - 735px).")
+	assert_eq(ours.base_1, Color(0.25490196, 0.75294118, 0.82352941, 1),
+		"base_1 is the sprite's cyan glow (65,192,210 - 513px).")
+	assert_eq(ours.base_2, Color(0.29019608, 0.30980392, 0.43921569, 1),
+		"base_2 is the sprite's slate (74,79,112 - 348px).")
 
 func test_the_name_and_flavour_and_tagline_resolve():
 	var translation:Translation = load(OUR_TRANSLATION)

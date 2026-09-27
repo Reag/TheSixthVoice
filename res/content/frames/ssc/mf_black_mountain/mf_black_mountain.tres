@@ -7,23 +7,24 @@
 [ext_resource type="Script" uid="uid://djuk56crywqss" path="res://engine/character/unit_core/mount_type.gd" id="5_mounttype"]
 [ext_resource type="Resource" uid="uid://bsktp4ushq6g1" path="res://content/mounts/mount_flex.tres" id="6_mountflex"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="7_kit"]
-[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/placeholder/mf_placeholder.png" id="8_sprite"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ssc/mf_black_mountain/mf_black_mountain.png" id="8_sprite"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/mt_an_end_to_all_things/mt_an_end_to_all_things.tres" id="9_an_end"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/mt_dread_harbinger/mt_dread_harbinger.tres" id="10_harbinger"]
 [ext_resource type="Resource" uid="uid://dmgrmsd135cq0" path="res://content/frames/shared/mt_fragile.tres" id="11_fragile"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/cp_blackstone_bell/cp_blackstone_bell.tres" id="12_core"]
 
-; THE SPRITE IS THE SHARED 80x80 PLACEHOLDER (SP1, 2026-09-27): no art exists for this frame yet, and
-; the ledger carries the debt. When the author's art lands, the colour scheme below is re-derived as a
-; 3-means over it (the Lovers Knot's method) and test_black_mountain_frame.gd's sprite test flips the
-; way test_leoleth_frame.gd's did. Until then these three are the Lovers Knot's SSC plum, deliberately
-; borrowed so a Black Mountain on the board reads as SSC beside its sibling and not as a grey blank.
+; THE SPRITE IS THE AUTHOR'S OWN 80x80 ART (supplied after the close, 2026-09-27; SP1 wore the shared
+; placeholder). THE COLOUR SCHEME IS A 3-MEANS OVER IT (the Lovers Knot's method): 1,596 opaque pixels,
+; NONE channel-encoded, so the player's colour picker cannot repaint this token and these three are
+; inert until encoded art lands (memory frame-sprites-not-channel-encoded). Clusters, luminance-tertile
+; seeded, most-used first: near-black violet body (30,18,35) x735, cyan glow (65,192,210) x513, slate
+; (74,79,112) x348.
 [sub_resource type="Resource" id="Resource_colorscheme"]
 script = ExtResource("3_colorscheme")
 palette_2 = ExtResource("4_toneramp")
-base_0 = Color(0.38039216, 0.28627452, 0.41960785, 1)
-base_1 = Color(0.7294118, 0.60784316, 0.68235296, 1)
-base_2 = Color(0.15686275, 0.13333334, 0.23529412, 1)
+base_0 = Color(0.11764706, 0.07058824, 0.1372549, 1)
+base_1 = Color(0.25490196, 0.7529412, 0.8235294, 1)
+base_2 = Color(0.2901961, 0.30980393, 0.4392157, 1)
 
 ; The sheet's table (specs/sixth-voice/20-black-mountain.md), design ruling 2. SIZE 1/2 IS `size = 1`
 ; PLUS `is_size_half = true` - the Fitzgerald's and the Koremasa's form; UnitCore.is_size_half() reads
