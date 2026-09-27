@@ -45,8 +45,8 @@
 ## may overlap) and the Vauban itself. WHAT IT COSTS: filter_for_free_spaces drops the acting unit's
 ## OWN tiles before asking the predicate anything (unit_targeting.gd:252-256), so the Vauban cannot
 ## centre a crater on the space it is standing in - it can centre one beside it and stand in the
-## result. A measured divergence from ruling 8, recorded for the close and pinned by
-## test_the_vaubans_own_tile_is_not_a_valid_centre.
+## result. A measured divergence from ruling 8, recorded in rulings.md (2026-09-18, "The Vauban cannot
+## centre a Maar on its own space") and pinned by test_the_vaubans_own_tile_is_not_a_valid_centre.
 ##
 ## AND ONE MORE THING IT LETS THROUGH, WHICH IS A CLOSE RULING (M-5, 2026-09-18): INVALID ENDPOINTS.
 ## Replacing check_if_tile_is_free wholesale rather than composing with it drops the FIRST clause of
