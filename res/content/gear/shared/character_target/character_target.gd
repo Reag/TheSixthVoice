@@ -22,7 +22,7 @@
 # A consumer with an extra gate after super applies it on the drone branch too.
 #
 # !! A COPY OF VANILLA. can_target_drone is ActionSystemApplyBuff.can_target_unit
-# (engine/character/gear_action/archtypes/action_system_apply_buff.gd:59-79, modkit 1.4.3) with its
+# (engine/character/gear_action/archtypes/action_system_apply_buff.gd:58-79, modkit 1.4.3) with its
 # is_actor() line (:64) removed and every member read through `action`. Lines :61-63 and :67-78 are
 # otherwise verbatim. AFTER A MODKIT UPDATE, diff that function against this one: a gate vanilla adds
 # there would silently not apply to drones here.

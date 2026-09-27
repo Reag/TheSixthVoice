@@ -600,14 +600,14 @@ func test_an_owned_drones_pair_expires_with_the_fitzgeralds_next_turn() -> void:
 	assert_eq(drone.get_armor(), armor_before, 'The display half expired at the end of it...')
 	assert_eq(count_buff(drone, REDUCTION_BUFF_ID), 0, '...and the reduction half with it.')
 
-func test_an_unowned_drones_pair_never_expires_a_recorded_engine_limit() -> void:
-	# PROBE, Pass F T11, pinned as a RECORDED ENGINE LIMIT (the author's T14 ruling stands). The buff's
-	# turn_count rises only when its HOLDER starts a turn (new_turn_for_statuses, from
-	# event_turn_start.handle_starting_unit), and a drone starts its turn only as its OWNER's deployable.
-	# An unowned drone never starts one, so turn_count stays 0 and END_OF_OWNERS_NEXT_TURN is skipped at
-	# every Fitzgerald turn end (unit_condition.gd:62): the pair stays for the scene. Measured: the full
-	# cycle Fitzgerald -> hostile -> Fitzgerald -> end, and two more Fitzgerald turns, leave both halves.
-	# If this goes red the engine started ageing unowned drones' buffs - re-measure, do not just flip it.
+func test_an_unowned_drones_pair_expires_with_the_fitzgeralds_next_turn() -> void:
+	# Pass F T11b, the author's ruling on the T11 probe ("Clear it myself"). The engine alone never
+	# ages an unowned drone's copies: turn_count rises only when the HOLDER starts a turn
+	# (new_turn_for_statuses, from event_turn_start.handle_starting_unit), and a drone starts one only
+	# as its OWNER's deployable - so END_OF_OWNERS_NEXT_TURN was skipped at every Fitzgerald turn end
+	# (unit_condition.gd:62) and the pair stayed for the scene (T11's measured limit). The Kit's hidden
+	# action_reinforcement_blast_age reaction ages them at the Fitzgerald's turn start, so the engine's
+	# own clear takes both halves at the END of the Fitzgerald's next turn, as for anyone else.
 	var drone := FitzgeraldFixture.create_drone(game, IN_BLAST_HOSTILE, Faction.AI_ENEMY)
 	var hostile := FitzgeraldFixture.create_dummy(game, ONE_TILE_OUT + Vector2i(3, 0), 10)
 	var armor_before:int = drone.get_armor()
@@ -615,16 +615,45 @@ func test_an_unowned_drones_pair_never_expires_a_recorded_engine_limit() -> void
 	assert_eq(drone.get_armor(), armor_before + 1, 'fixture: the pair landed on the unowned drone.')
 
 	await SpecFactory.end_turn(game, fitz)
+	assert_eq(count_buff(drone, REDUCTION_BUFF_ID), 1, 'Not cleared at the end of the turn it was applied.')
 	await SpecFactory.pass_turn(game, hostile)
 	await SpecFactory.start_turn(game, fitz)
+	assert_eq(drone.get_armor(), armor_before + 1, "Still armoured through the Fitzgerald's next turn...")
+	assert_eq(count_buff(drone, REDUCTION_BUFF_ID), 1, '...both halves.')
 	await SpecFactory.end_turn(game, fitz)
-	assert_eq(drone.get_armor(), armor_before + 1, "Still armoured after the Fitzgerald's next turn ends...")
-	assert_eq(count_buff(drone, REDUCTION_BUFF_ID), 1, '...both halves (the limit, recorded).')
+	assert_eq(drone.get_armor(), armor_before, 'The display half expired at the end of it...')
+	assert_eq(count_buff(drone, REDUCTION_BUFF_ID), 0, '...and the reduction half with it.')
 
+func test_a_hostile_owned_drones_pair_ages_on_its_owners_turn_and_expires_with_the_fitzgeralds() -> void:
+	# Pass F T11b. A drone a hostile NPC owns starts its turn with that NPC, so the ENGINE ages its
+	# copies (turn_count 0 -> 1 on the NPC's turn) and the ageing reaction leaves it alone - it acts
+	# only on a drone no unit on the map owns. Expiry is then the ordinary END_OF_OWNERS_NEXT_TURN.
+	var hostile := FitzgeraldFixture.create_dummy(game, ONE_TILE_OUT + Vector2i(3, 0), 10)
+	var drone := FitzgeraldFixture.create_drone(game, IN_BLAST_HOSTILE, Faction.AI_ENEMY)
+	drone.state.set_owner(hostile)
+	assert_true(drone.state.is_owned_by(hostile), 'fixture: the hostile owns the drone.')
+	var armor_before:int = drone.get_armor()
+	await blast_at(CENTRE)
+	assert_eq(count_buff(drone, REDUCTION_BUFF_ID), 1, 'fixture: the pair landed on the owned drone.')
+	assert_eq(pair_turn_counts(drone), [0, 0], 'fixture: fresh copies, not yet aged.')
+
+	await SpecFactory.end_turn(game, fitz)
 	await SpecFactory.pass_turn(game, hostile)
-	await SpecFactory.pass_turn(game, fitz)
-	await SpecFactory.pass_turn(game, fitz)
-	assert_eq(count_buff(drone, REDUCTION_BUFF_ID), 1, 'And two turns after that: it never ages.')
+	assert_eq(pair_turn_counts(drone), [1, 1], "Both copies aged once, on the owner's turn.")
+	await SpecFactory.start_turn(game, fitz)
+	assert_eq(pair_turn_counts(drone), [1, 1], "The Fitzgerald's turn start does not age an owned drone again.")
+	assert_eq(drone.get_armor(), armor_before + 1, "Still armoured through the Fitzgerald's next turn.")
+	await SpecFactory.end_turn(game, fitz)
+	assert_eq(drone.get_armor(), armor_before, 'The display half expired at the end of it...')
+	assert_eq(count_buff(drone, REDUCTION_BUFF_ID), 0, '...and the reduction half with it.')
+
+## The turn_count of each of the pair's cores on `unit`, sorted.
+func pair_turn_counts(unit:Unit) -> Array:
+	var counts:Array = []
+	for buff_core:BuffCore in unit.state.buffs:
+		if buff_core.base.compcon_id in [BUFF_ID, REDUCTION_BUFF_ID]: counts.append(buff_core.turn_count)
+	counts.sort()
+	return counts
 
 # ---------------------------------------------------------------- the hidden half's own wiring
 

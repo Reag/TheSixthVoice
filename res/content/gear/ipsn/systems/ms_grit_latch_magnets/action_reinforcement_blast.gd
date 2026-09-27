@@ -12,10 +12,11 @@
 ## LIFETIME ON A DRONE (measured, Pass F Task 11): both buffs are until = 7, END_OF_OWNERS_NEXT_TURN,
 ## skipped while the buff's turn_count <= 0 (unit_condition.gd:62). turn_count rises only when the
 ## HOLDER starts a turn (event_turn_start.handle_starting_unit -> new_turn_for_statuses), and a drone
-## starts its turn only with its owner. So a drone the Fitzgerald OWNS loses the pair on the same
-## clock as anyone else, and an UNOWNED drone never loses it - its copies never age, and it keeps the
-## armour for the scene. A recorded engine limit, not changed here (the T14 ruling stands); both cases
-## are pinned in spec/test_reinforcement_blast.gd.
+## starts its turn only with its owner. So an OWNED drone (the Fitzgerald's or a hostile NPC's) loses
+## the pair on the same clock as anyone else, and on its own an UNOWNED drone never would (measured,
+## Task 11). The Kit's hidden action_reinforcement_blast_age reaction ages those copies at the
+## Fitzgerald's turn start (Task 11b, the author's ruling), so they too go at the end of the
+## Fitzgerald's next turn. All three cases are pinned in spec/test_reinforcement_blast.gd.
 extends ActionSystemApplyBuff
 
 const CharacterTarget := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/character_target/character_target.gd')
