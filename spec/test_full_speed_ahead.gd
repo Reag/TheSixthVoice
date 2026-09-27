@@ -90,7 +90,9 @@ func test_the_movement_type_carries_every_clause_of_the_card() -> void:
 	# The Fitzgerald carries no FLYING status, so MovementType.create's "flying implies
 	# straight_line" fallback (movement_type.gd:54-55) never fires for it: straight_line and flying
 	# only reach the merged type because the .tres sets them explicitly, so deleting either one from
-	# the .tres has to turn this test - and the realized path - red.
+	# the .tres turns THIS test red. Not the realized path: measured at the Primrose's SP2, a walked
+	# path and a drawn line between the same two tiles end on the same tile on an open map, so the
+	# landing-tile test above stays green with straight_line deleted - this assertion is the only pin.
 	var action:ActionSystemMovement = thrusters.kit.get_action(ACTION_ID) as ActionSystemMovement
 	var movement_type := action.get_movement_type(fitz)
 	assert_true(movement_type.flying, 'FLYING: "fly your speed" on the card.')
