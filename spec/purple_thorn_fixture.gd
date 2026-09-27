@@ -82,11 +82,7 @@ static func create_game(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> G
 ## must assert that a "may" prompt was or was NOT raised: the stock responder answers and records
 ## nothing. add_responder = false is what stops TWO responders answering the same request.
 static func create_game_with_prompt_queues(test:GutTest, map_size:Vector2i = DEFAULT_MAP_SIZE) -> Array:
-	var game := SpecFactory.setup_gamemaster(test, false,
-		SpecFactory.create_combat(Landscape.create_default(map_size)), {}, false)
-	game.map.shape.forbidden_interiors_enabled = true
-	var responder = test.add_child_autoqfree(load('res://testkit/mod_choice_responder.gd').new())
-	return [game, responder]
+	return FitzgeraldFixture.create_game_with_prompt_queues(test, map_size)
 
 ## A Purple Thorn with its traits' passive buffs applied. PLAYER faction, which SpecFactory's own
 ## default gives us and which is load-bearing twice over: every hostile/ally relation in the ability
@@ -117,10 +113,7 @@ static func create_ally(game:Gamemaster, tile:Vector2i) -> Unit:
 ## drone now PASSES every "character" clause too - it is no longer a membership negative control, only
 ## an is_actor()/is_mech() one, and the fixture for ATTRIBUTION (own_drone) cases.
 static func create_drone(game:Gamemaster, tile:Vector2i, faction:Faction.SIDE = Faction.AI_ENEMY) -> Unit:
-	var drone := FitzgeraldFixture.create_dummy(game, tile, 10, faction)
-	drone.core.frame.is_drone = true
-	drone.core.full_repair()
-	return drone
+	return FitzgeraldFixture.create_drone(game, tile, faction)
 
 ## A hostile OBJECT (a Jericho cover deployable), the Sluagh fixture's create_hostile_object shape:
 ## Vigil's "the victim any unit - an object counts" case and Rend's "a hit on an object forces
@@ -157,11 +150,7 @@ static func cycle_turn(game:Gamemaster, unit:Unit) -> void:
 ## re-applies every passive buff from scratch. So: equip everything first, press Rend LAST, never
 ## equip again after pressing.
 static func equip(unit:Unit, kit_id:StringName) -> GearCore:
-	var existing := unit.get_gear(kit_id)
-	if GearCore.is_valid(existing): return existing
-	unit.core.equip_system(kit_id)
-	SpecFactory.apply_passive_buffs(unit)
-	return unit.get_gear(kit_id)
+	return FitzgeraldFixture.equip(unit, kit_id)
 
 static func arm_rifle(unit:Unit) -> GearCore: return equip(unit, MAIN_RIFLE)
 static func arm_nexus(unit:Unit) -> GearCore: return equip(unit, AUX_NEXUS)

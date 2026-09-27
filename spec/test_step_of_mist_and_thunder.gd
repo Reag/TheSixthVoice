@@ -52,7 +52,7 @@ func before_each() -> void:
 	# can no longer take a Step, so there is no second answer queued behind the confirm - but a test that
 	# presses more than once in a run, or declines or cancels by hand, still needs its answers read back
 	# in the order it queued them. See the fixture's own header.
-	var pair := MaidensBlushFixture.create_game_with_sequenced_prompts(self, MAP_SIZE)
+	var pair := MaidensBlushFixture.create_game_with_prompt_queues(self, MAP_SIZE)
 	game = pair[0]
 	responder = pair[1]
 	blush = MaidensBlushFixture.create_maidens_blush(game, BLUSH_TILE)
@@ -98,7 +98,7 @@ func reticle_tiles() -> Array[Vector2i]:
 ## Wall the Blush in: every playable tile within `radius` of it, bar the one it stands on and any in
 ## `except`, becomes a full-height forbidden interior, so Teleport.candidate_tiles finds nothing
 ## standable to offer. Same setpiece the walls in test_hole_puncher.gd and test_juggernaut_drive.gd
-## are built from; forbidden_interiors_enabled is set by the fixture's create_game_with_sequenced_prompts.
+## are built from; forbidden_interiors_enabled is set by the fixture's create_game_with_prompt_queues.
 ##
 ## `except` exists for the one test that needs a CHARACTER standing next to a boxed-in Blush: a tile a
 ## unit occupies is not standable either, so leaving it un-walled still empties the candidate set.

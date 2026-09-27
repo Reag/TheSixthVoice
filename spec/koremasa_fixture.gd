@@ -94,12 +94,7 @@ static func create_hostile_drone(game:Gamemaster, tile:Vector2i) -> Unit:
 ## Put a Kit on a unit and hand back its GearCore. IDEMPOTENT: equip_system full_repairs and
 ## apply_passive_buffs re-applies every passive, so equip everything BEFORE a test sets any state.
 static func equip(unit:Unit, kit_id:StringName) -> GearCore:
-	var existing := unit.get_gear(kit_id)
-	if GearCore.is_valid(existing): return existing
-	unit.core.equip_system(kit_id)
-	SpecFactory.apply_passive_buffs(unit)
-	UnitTile.update_tracking_and_statuses(unit.map)
-	return unit.get_gear(kit_id)
+	return FitzgeraldFixture.equip(unit, kit_id)
 
 static func open_turn(game:Gamemaster, unit:Unit) -> void:
 	await FitzgeraldFixture.open_turn(game, unit)

@@ -166,11 +166,7 @@ static func open_turn(game:Gamemaster, unit:Unit) -> void:
 ## THE RULE EVERY PRIMROSE SPEC FOLLOWS: equip everything first, press the protocol LAST, and never
 ## equip again inside a test that has already pressed or already counted.
 static func equip(unit:Unit, kit_id:StringName) -> GearCore:
-	var existing := unit.get_gear(kit_id)
-	if GearCore.is_valid(existing): return existing
-	var gear := unit.core.equip_system(kit_id)
-	SpecFactory.apply_passive_buffs(unit)
-	return unit.get_gear(kit_id)
+	return FitzgeraldFixture.equip(unit, kit_id)
 
 static func equip_superheavy_melee(unit:Unit) -> GearCore: return equip(unit, SUPERHEAVY_MELEE)
 static func equip_heavy_melee(unit:Unit) -> GearCore: return equip(unit, HEAVY_MELEE)
