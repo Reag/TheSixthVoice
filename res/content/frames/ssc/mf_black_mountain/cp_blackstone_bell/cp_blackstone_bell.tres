@@ -7,6 +7,7 @@
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/cp_blackstone_bell/action_efficient_refund.tres" id="5_refund"]
 [ext_resource type="Script" uid="uid://n33no7rw7y82" path="res://engine/character/gear_passive/passive.gd" id="6_passive"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/efficient/passive_efficient_used.tres" id="7_stamp"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/cp_blackstone_bell.svg" id="8_icon"]
 
 ; BLACKSTONE BELL, the core system (design section 2). SP1 shipped it as a shell; SP2 fills it:
 ; - Bringer of Glory, the passive: the Kit's own effect row IS its sentence ("Gain the Exalt reaction"),
@@ -26,3 +27,4 @@ actions = Array[ExtResource("2_action")]([ExtResource("3_exalt"), ExtResource("4
 ; every spawn runs short_repair - without it the refund's unit_spawn half reads an empty state.
 passives = Array[ExtResource("6_passive")]([ExtResource("7_stamp")])
 is_trait = true
+icon_override = ExtResource("8_icon")

@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="2_action"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/mt_an_end_to_all_things/action_an_end_to_all_things.tres" id="3_action"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_an_end_to_all_things.svg" id="4_icon"]
 
 ; AN END TO ALL THINGS (design 1.4, ruling 7): one ATTACK POST reaction, 2/round as a trait, that offers
 ; 1 heat for +3 bonus damage when an allied character holding Overshield the Black Mountain granted hits
@@ -13,3 +14,4 @@
 script = ExtResource("1_kit")
 actions = Array[ExtResource("2_action")]([ExtResource("3_action")])
 is_trait = true
+icon_override = ExtResource("4_icon")

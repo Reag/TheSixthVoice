@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/cp_blackstone_bell/action_fell_the_mighty.gd" id="1_action"]
 [ext_resource type="Script" uid="uid://cqrqkdgcf8mti" path="res://engine/character/buff/buff.gd" id="2_buff"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/cp_blackstone_bell/buff_doomed.tres" id="3_doomed"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/action_fell_the_mighty.svg" id="4_icon"]
 
 ; FELL THE MIGHTY, the core active (ruling 12; the script's header has the reasoning). action_type 4 is
 ; Lancer.ACTION.PROTOCOL; consumes_cp spends the core power. apply_to_sensors: the target range is the
@@ -19,3 +20,4 @@ can_reapply = true
 action_type = 4
 consumes_cp = true
 usage_group = &"action_fell_the_mighty"
+icon_override = ExtResource("4_icon")
