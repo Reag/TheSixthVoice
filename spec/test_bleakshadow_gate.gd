@@ -508,6 +508,27 @@ func test_an_invade_on_a_covered_enemy_offers_nothing_because_a_tech_attack_comp
 	assert_eq(hostile.core.current.heat - heat_before, 2, 'The invade\'s own 2 heat, and no bonus.')
 	assert_eq(sluagh.current_damage(), 0, 'Nothing paid.')
 
+## A NO_BONUS_DAMAGE ATTACK IS NOT OFFERED (close review, §6.1 #1). Every mounted aux follow-up sets
+## Action.FLAG.NO_BONUS_DAMAGE (action_attack_weapon.gd:69-73), and event_unit_attack_declared.gd
+## takes the get_no_bonus_damage_summary() branch and never calls roll_specific_bonus_damage - the
+## ONLY consumer of BONUS_DAMAGE_SPECIFIC. Without the guard the offered, paid-for bonus buff (a
+## MANUAL-lifetime one-time buff) is never rolled and never consumed, so it rides onto the Sluagh's
+## NEXT qualifying hit instead. An End to All Things' identical fix (action_an_end_to_all_things.gd:73)
+## is the precedent, and its spec is the model for the liveness check below (nothing leaked to the
+## follow-up because the flag refused the offer at the trigger, not because the buff quietly expired).
+func test_a_no_bonus_damage_attack_is_not_offered_and_leaves_nothing_behind():
+	SluaghFixture.cover(hostile)
+	await SluaghFixture.open_gate(game, sluagh)
+	forget_prompts()
+	var hp_before:int = hostile.core.current.health
+	SluaghFixture.queue([D20_HITS, COVER_DIE, DAMAGE_DIE])
+	await SpecFactory.use_solo(game, sluagh, SluaghFixture.MAIN_RIFLE, hostile,
+		[Action.FLAG.AS_FREEBIE, Action.FLAG.NO_BONUS_DAMAGE])
+	assert_eq(offers(), 0, 'A NO_BONUS_DAMAGE attack is not offered.')
+	assert_eq(sluagh.current_damage(), 0, 'No self-damage paid.')
+	assert_false(UnitCondition.has_buff(sluagh, SluaghFixture.EYES_BONUS), 'And no leftover bonus buff rides on the Sluagh.')
+	assert_eq(hp_before - hostile.core.current.health, DAMAGE_DIE, 'Liveness: the hostile still took exactly the plain die.')
+
 # ---------------------------------------------------------------- Task 3: the card text and rank 3
 
 func test_the_card_rows_resolve():
