@@ -110,6 +110,23 @@ func accuracy_from_plan(target:Unit, planned:Vector2i) -> int:
 	}))
 	return pre.accuracy_mods_total()
 
+## The same pass as a REAL ROLL builds it: the summary action_attack.gd:253-258 declares, with origin
+## voxels from `shooter` (the Six Sky, or a relay standing in for it) where it stands, and the roll's
+## context.unit that same shooter (event_unit_attack_declared.gd:57-65).
+func accuracy_as_declared(target:Unit, shooter:Unit) -> int:
+	var specific := bow()
+	var declaring := SpecificAction.create(shooter, specific.gear, specific.action)
+	var target_tiles:Array[Vector2i] = [target.tile()]
+	var declared := DeclaredAttackSummary.create(
+		[target], target_tiles, target.occupied_tiles(),
+		specific.action.get_origin_voxels(declaring, target_tiles, shooter.tile())
+	)
+	var pre := AttackRoll.PreAttack.create(Context.create({
+		unit = shooter, target_unit = target, gear = specific.gear, action = specific.action,
+		resource = declared, flags = [],
+	}))
+	return pre.accuracy_mods_total()
+
 ## The helper's reticle prompts, i.e. the target option's picks.
 func pick_prompts() -> Array:
 	return responder.plan_prompts.filter(func(info:Dictionary) -> bool:
@@ -189,6 +206,23 @@ func test_the_preview_from_the_current_space_matches_the_roll():
 	assert_eq(accuracy_from_plan(hostile, SIX_SKY_TILE), 1, 'No move planned: 5 away, the +1.')
 	UnitTile.move_to(hostile, AT_SIX)
 	assert_eq(accuracy_from_plan(hostile, SIX_SKY_TILE), 0, 'No move planned: 6 away, nothing.')
+
+func test_a_real_roll_declared_from_where_it_stands_reads_as_before():
+	UnitTile.move_to(hostile, AT_FIVE)
+	assert_eq(accuracy_as_declared(hostile, six_sky), 1, 'Declared at 5: the +1.')
+	UnitTile.move_to(hostile, AT_SIX)
+	assert_eq(accuracy_as_declared(hostile, six_sky), 0, 'Declared at 6: nothing.')
+
+func test_a_relayed_roll_still_measures_from_the_six_sky():
+	# A relay (Buff.TO.SET_ATTACK_RELAY, action_attack.gd:120-127, :233) declares from ITS space, and
+	# the roll's context.unit is the relay; get_attacker is still the Six Sky, its owner. The +1 has
+	# always been measured from the attacker, and the planned-space reading must not change that.
+	var relay := Fixture.create_ally(game, Vector2i(6, 4)) # 5 from the target at AT_SEVEN
+	relay.state.set_owner(six_sky)
+	assert_eq(relay.get_attacker(), six_sky, 'PRECONDITION: the relay blames the Six Sky.')
+	assert_eq(UnitRelation.distance_between(relay, hostile), 5, 'PRECONDITION: the relay is 5 away...')
+	assert_eq(UnitRelation.distance_between(six_sky, hostile), 7, '...and the Six Sky 7.')
+	assert_eq(accuracy_as_declared(hostile, relay), 0, 'Relayed: measured from the Six Sky, 7 away, no +1.')
 
 func test_the_accuracy_turns_a_bare_miss_into_a_hit_at_five():
 	UnitTile.move_to(hostile, AT_FIVE)

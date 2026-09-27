@@ -9,10 +9,15 @@
 ## (attack_roll.gd:192), as a NAMED line in the breakdown - Shatterhead's shape. It has to live here and
 ## not in get_attack_accuracy, which is handed only the gear and cannot see the target
 ## (action_attack.gd:31). Measured from the ATTACKER's space at roll time, so a Ritual shot measures from
-## where the Ritual teleport put the Six Sky - EXCEPT in the hit-chance preview (Pass F section 6.1 #3),
-## which hands the roll the PLANNED space's origin voxels (attack_preview.gd:40-46): origin voxels that
-## are not the attacker's own are measured from instead (close_range_distance), so a move-then-shoot
-## preview shows the +1 the shot will actually get.
+## where the Ritual teleport put the Six Sky, and a relayed shot from the Six Sky, not the relay.
+## THE ONE EXCEPTION is a PLANNED space (Pass F section 6.1 #3): the hit-chance preview hands the roll a
+## virtual summary whose origin voxels stand on the tile the player means to move to
+## (attack_preview.gd:40-46). The planned space is used exactly when the roll's summary is a valid
+## DeclaredAttackSummary, the weapon is not a Blast, and its source_voxels DIFFER from what a
+## declaration by context.unit from its current tile would produce (action_attack.gd:253-258, rebuilt in
+## planned_anchor). A real roll declared where the shooter stands - relay or not - matches, and reads
+## exactly as before. The one real-roll case that also differs is a shooter MOVED between declaration
+## and roll: it is then measured from the declared space, which is where the engine measures its cover.
 ##
 ## NO HEAT IN A RITUAL (ruling 18). The Ritual fires this bow with Action.FLAG.NO_SELF_HEAT, which the
 ## engine honours for Heat Self at spend (unit_action.gd:226-227) and NOWHERE else - so this script reads
@@ -61,27 +66,43 @@ func modify_pre_attack_data(context:Context, pre_attack_data:AttackRoll.PreAttac
 	var kit:Kit = context.gear.kit if GearCore.is_valid(context.gear) else null
 	pre_attack_data.add_mod(name(SpecificAction.create(attacker, context.gear, self)), 1, get_icon(kit))
 
-## The distance the +1 is measured over. The hit-chance preview hands the roll a VIRTUAL declared attack
-## whose origin voxels stand on the PLANNED tile (attack_preview.gd:40-46), while the real roll's are the
-## attacker's own at declaration (action_attack.gd:253-258). So: origin voxels that are not the
-## attacker's own occupied voxels are measured from, keeping distance_between's max(horizontal,
-## vertical) (unit_relation.gd:13-25); anything else is the attacker's space as it stands.
+## The distance the +1 is measured over - see the header's THE ACCURACY for when each branch runs.
+## The planned branch is distance_between (unit_relation.gd:13-25) with the attacker moved to the
+## planned anchor: horizontal from the planned tiles, vertical from effective_floor at the anchor.
 static func close_range_distance(context:Context, attacker:Unit) -> int:
 	var target:Unit = context.target_unit
-	if not DeclaredAttackSummary.is_valid(context.resource): return UnitRelation.distance_between(attacker, target)
-	var voxels:Array[Vector3i] = []
-	voxels.assign(context.resource.source_voxels)
-	if voxels.is_empty() or voxels == UnitTile.get_occupied_voxels(attacker):
-		return UnitRelation.distance_between(attacker, target)
-	var horizontal:int = Tile.get_closest_pair_between(Tile.from_voxels(voxels), target.occupied_tiles()).distance
-	var bottom:int = voxels.front().y
-	var top:int = bottom
-	for voxel:Vector3i in voxels:
-		bottom = mini(bottom, voxel.y)
-		top = maxi(top, voxel.y)
+	var anchor := planned_anchor(context)
+	if anchor == Tile.INVALID: return UnitRelation.distance_between(attacker, target)
+	var from_tiles := Tile.from_voxels(context.resource.source_voxels)
+	var horizontal:int = Tile.get_closest_pair_between(from_tiles, target.occupied_tiles()).distance
 	var vertical:int = UnitTile.get_elevation_distance_between(
-		bottom, top - bottom + 1, UnitTile.effective_floor(target), target.get_height(false))
+		UnitTile.effective_floor(attacker, anchor),
+		attacker.get_height(false),
+		UnitTile.effective_floor(target),
+		target.get_height(false),
+	)
 	return maxi(horizontal, vertical)
+
+## The PLANNED space the roll's summary was built from, or Tile.INVALID for "the attacker as it stands".
+## A declaration from the CURRENT space is rebuilt exactly as action_attack.gd:253-258 builds it - from
+## context.unit (the relay, when there is one; event_unit_attack_declared.gd:57-65), over the summary's
+## own directly-attacked tiles, from that unit's tile - and only origin voxels that DIFFER from it are a
+## plan. A Blast's origin is the blast, never a space the attacker stands in, so it is never a plan.
+static func planned_anchor(context:Context) -> Vector2i:
+	if not DeclaredAttackSummary.is_valid(context.resource): return Tile.INVALID
+	var summary:DeclaredAttackSummary = context.resource
+	if summary.source_voxels.is_empty(): return Tile.INVALID
+	var declaring := SpecificAction.create(context.unit, context.gear, context.action)
+	var aoe = context.action.get_range_pattern_for_targets(declaring)
+	if aoe and aoe.pattern == Lancer.AOE_TYPE.BLAST: return Tile.INVALID
+	var from_here:Array[Vector3i] = context.action.get_origin_voxels(declaring, summary.directly_attacked_tiles, context.unit.tile())
+	if summary.source_voxels == from_here: return Tile.INVALID
+	# The minimum-x/z tile: get_occupied_voxels_alt grows +x/+z from the from_tile (unit_tile.gd:66-80).
+	var anchor := Tile.INVALID
+	for tile:Vector2i in Tile.from_voxels(summary.source_voxels):
+		if anchor == Tile.INVALID or tile.x < anchor.x or (tile.x == anchor.x and tile.y < anchor.y):
+			anchor = tile
+	return anchor
 
 func is_overkill(context:Context) -> bool:
 	if context != null and context.flags.has(Action.FLAG.NO_SELF_HEAT): return false
