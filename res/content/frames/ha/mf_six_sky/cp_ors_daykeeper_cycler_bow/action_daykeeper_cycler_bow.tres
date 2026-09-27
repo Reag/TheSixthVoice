@@ -4,7 +4,8 @@
 
 ; DAYKEEPER CYCLER BOW (design 2.1, ruling 12): Main (weapon_size 1) Launcher (weapon_type 4), 1d6+3
 ; Energy (damage_type 1), Range 10, HEAT SELF 1 (self_heat_dice, paid at spend unless NO_SELF_HEAT),
-; OVERKILL. The accuracy, the Ritual's no-heat reading and the crit are the script's. SP3: icon.
+; OVERKILL. The accuracy, the Ritual's no-heat reading and the crit are the script's. No icon_override
+; of its own - a KIT row, it inherits mw_daykeeper_cycler_bow's glyph (icon-sharing.md section 5).
 [resource]
 script = ExtResource("1_bow")
 damage_type = 1

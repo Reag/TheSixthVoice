@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="white">
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:rights>Reag-TheSixthVoice 2026</dc:rights><dc:creator>Reag / Claude</dc:creator></rdf:Description></rdf:RDF></metadata>
+<!-- mw_daykeeper_cycler_bow : Reag-TheSixthVoice Six Sky icon, shared with cp_ors_daykeeper_cycler_bow -->
+<path d="M32,32 Q48,22 46,6 Q40,20 32,32 Z"/><path d="M32,32 Q48,42 46,58 Q40,44 32,32 Z"/><path d="M45,6 L47,6 L47,58 L45,58 Z"/><path d="M44,30.5 L44,33.5 L10,33 L10,31 Z"/><path d="M10,26 L2,32 L10,38 Z"/>
+</svg>

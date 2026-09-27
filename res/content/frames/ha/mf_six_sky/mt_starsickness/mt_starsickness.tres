@@ -7,9 +7,12 @@
 [ext_resource type="Script" uid="uid://b8unc74nyhjr0" path="res://engine/character/gear_action/action.gd" id="5_action"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/mt_starsickness/buff_starsickness.tres" id="6_buff"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/mt_starsickness/action_starsickness.tres" id="7_action"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_starsickness.svg" id="8_icon"]
 
 ; STARSICKNESS (design 1.4, ruling 11): one applicator hanging the hidden trigger on the Six Sky,
-; reapplied each turn, and the hidden action that names the save's forcer. SP3: icon.
+; reapplied each turn, and the action that names the save's forcer (hide_if_disabled, never on the
+; hotbar or in a tooltip - action_starsickness.gd's header). One family with the Kit (KIT row in
+; test_content_integrity.gd): the trait and the action it exists to create share one glyph.
 [sub_resource type="Resource" id="Resource_applicator"]
 script = ExtResource("3_applicator")
 applied_buffs = Array[ExtResource("2_buff")]([ExtResource("6_buff")])
@@ -20,3 +23,4 @@ script = ExtResource("4_kit")
 actions = Array[ExtResource("5_action")]([ExtResource("7_action")])
 passives = Array[ExtResource("1_passive")]([SubResource("Resource_applicator")])
 is_trait = true
+icon_override = ExtResource("8_icon")
