@@ -24,15 +24,18 @@
 ##
 ## WHICH TELEPORTS (ruling 3, the author's call, SUPERSEDING the spike's proposed "own voluntary
 ## only"):
-##   - the mech's own VOLUNTARY teleports - Abjuration, a Fold Knife crit, a Prospector tunnel, any
-##     teleport gear it carries;
+##   - the mech's own VOLUNTARY teleports - Abjuration, a Fold Knife crit, any teleport gear it
+##     carries;
 ##   - NOT Step of Mist and Thunder, and not any other own-but-INVOLUNTARY teleport: reach design
 ##     ruling C (2026-09-17) REVERSED ruling 157 and made the card's "cannot be prevented" absolute,
 ##     the mech's own trait included;
 ##   - a HOSTILE FORCED teleport: involuntary, not NO_RXNS, with a forcer that is an enemy.
-## Never a scripted placement - event_unit_teleport sets NO_RXNS unconditionally (:31) - and never an
+## Never a scripted placement - event_unit_teleport sets NO_RXNS unconditionally (:31); never an
 ## involuntary teleport with no readable forcer, which is Flash Anchor's own prompt-spam guard
-## (action_flash_lock.gd:42).
+## (action_flash_lock.gd:42); and NEVER A TUNNEL (close-out Pass F Task 4, 2026-09-27,
+## Teleport.is_tunnel) - the talents mod's Prospector hands its move a MovementType that answers
+## is_teleport() true but is digging through solid rock, which the card's "if the Maiden's Blush would
+## teleport" was never written to mean, own or hostile.
 ##
 ## resource.ignore_rxns IS DELIBERATELY NOT CONSULTED, as Flash Anchor does not consult it:
 ## MovementType.create_for_involuntary sets it on EVERY forced move (movement_type.gd:65), so it says
@@ -65,7 +68,9 @@ func get_per_round_hard_limit(_specific:SpecificAction) -> int:
 func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> bool:
 	if not super.triggers_on_event(unit, gear, triggering_event): return false
 	var context:Context = triggering_event.context
-	if not Teleport.is_teleport(context): return false
+	# A Prospector tunnel is a teleport by Teleport.is_teleport's own reading (MovementType.teleport is
+	# set on it like any other) but is not one by the card's - see this file's header, Task 4.
+	if not Teleport.is_teleport(context) or Teleport.is_tunnel(context): return false
 	# A scripted placement asks not to be reacted to. Honouring that is the whole difference between
 	# "an enemy is moving me" and "the mission is moving me" (ruling 3).
 	if context.flags.has(EventUnitMove.FLAG.NO_RXNS): return false

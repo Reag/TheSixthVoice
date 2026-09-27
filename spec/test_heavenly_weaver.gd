@@ -185,6 +185,22 @@ func test_a_sourceless_involuntary_teleport_does_not_arm_it():
 	assert_false(move.context.resource.voluntary, 'PRECONDITION: involuntary.')
 	assert_false(armed(), 'Nobody teleported it, so it is not the Six Sky\'s teleport.')
 
+func test_the_six_sky_tunnelling_itself_does_not_arm_it():
+	# A Prospector tunnel is not a teleport (close-out Pass F Task 4, 2026-09-27): the talents mod's
+	# Prospector hands the move a runtime MovementType subclass carrying
+	# `func is_tunneling() -> bool: return true`, which is_teleport still reads true (MovementType.teleport
+	# is set on it like any other) - so without Teleport.is_tunnel this would arm the chip exactly like
+	# test_teleporting_itself_arms_it above, for the wrong reason.
+	var s := GDScript.new()
+	s.source_code = "extends MovementType\nfunc is_tunneling() -> bool: return true\n"
+	s.reload()
+	var type:MovementType = s.new()
+	type.teleport = true
+	type.voluntary = true
+	await game.execute_event(&'event_unit_move', {unit = six_sky, target_tiles = [AWAY], resource = type})
+	assert_eq(six_sky.tile(), AWAY, 'CONTROL: the Six Sky landed.')
+	assert_false(armed(), 'Tunnelling is not teleporting, own tunnel included.')
+
 # ---------------------------------------------------------------- the damage
 
 func test_without_the_chip_the_rifle_does_its_own_damage():

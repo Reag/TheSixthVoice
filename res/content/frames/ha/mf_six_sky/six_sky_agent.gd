@@ -62,7 +62,14 @@ static func enclosing_activator(move:EventCore) -> Unit:
 	return null
 
 ## Is `move` a teleport that `six_sky` caused?
+##
+## NOT A TUNNEL (close-out Pass F Task 4, 2026-09-27): the talents mod's Prospector hands the move event
+## a MovementType subclass that answers is_teleport() true but is digging through solid rock, not
+## teleporting - neither "the Six Sky teleports itself, or another character" (Heavenly Weaver) nor "the
+## Six Sky teleports a hostile character" (Starsickness) means a tunnel, so both traits exclude it here,
+## the one place both read.
 static func is_teleport_by(six_sky:Unit, move:EventCore) -> bool:
 	if not Unit.is_valid(six_sky): return false
-	if move == null or not Teleport.is_teleport(move.context): return false
+	if move == null or not Teleport.is_teleport(move.context) or Teleport.is_tunnel(move.context):
+		return false
 	return agent_of(move) == six_sky

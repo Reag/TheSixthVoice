@@ -16,6 +16,13 @@
 # question, which nothing built until a card needed to move a unit that is not the caller. THIRTEEN
 # functions now, and not one of the eleven moved. See each one's own header.
 #
+# A FOURTEENTH FUNCTION LANDED AT CLOSE-OUT PASS F TASK 4 (2026-09-27, §6.1 #4): is_tunnel(context), so
+# a caller can tell a Prospector tunnel apart from an ordinary teleport - a runtime-built MovementType
+# subclass answering has_method(&'is_tunneling') true (the talents mod's Prospector,
+# action_create_entrance.gd:153-185, returns one as the move event's context.resource). Precedent: the
+# Sunzi's own guard against the same shape, action_redirect_teleport.gd:32. FOURTEEN functions now, and
+# not one of the thirteen above moved.
+#
 # No class_name (res/content/gear/shared/README.md): global class names are registered from
 # project.godot's class list, which is built at startup, so one declared in a script a mod loads at
 # runtime is never registered and cannot be referenced by that name at all. Callers preload this
@@ -54,6 +61,31 @@ static func is_teleport(context:Context) -> bool:
 	if context == null: return false
 	if not MovementType.is_valid(context.resource): return false
 	return context.resource.teleport
+
+
+## Is this move context a TUNNEL, not a teleport - the talents mod's Prospector, whose
+## action_create_entrance.gd:153-185 builds a runtime GDScript subclass of MovementType carrying
+## `func is_tunneling() -> bool: return true` and hands it back as the move event's context.resource
+## (pathfinder.gd:331, :908-916 is where a pathfinder-planned move's context.resource is set).
+##
+## READ BY has_method, NOT is (Task 4 close review): the Prospector's type is built with
+## GDScript.new().reload() at runtime and is never declared with `extends` against anything this mod
+## can reference by class, so `context.resource is ProspectorTunnelType` cannot be written here at all -
+## has_method is the only thing a caller CAN test. Precedent: the Sunzi's own guard against the exact
+## same shape, action_redirect_teleport.gd:32 (`movement_type.has_method("is_tunneling")`).
+##
+## WHY THIS EXISTS: is_teleport(context) answers true for a tunnel too - MovementType.teleport is set on
+## the Prospector's type like any other - so a listener that only asks is_teleport treats a dig through
+## solid rock as a teleport. Six Sky's Heavenly Weaver and Starsickness (six_sky_agent.gd's
+## is_teleport_by) and the Maiden's Blush's Uncertainty Field both gate on is_teleport and both need this
+## second check alongside it; see each call site's own header for why a tunnel is not what either card
+## means by "teleports".
+##
+## GUARDED AGAINST A NULL CONTEXT AND AN ABSENT RESOURCE, same as is_teleport immediately above - the
+## bus offers this context to every listener on every move, so a throw here is an error storm.
+static func is_tunnel(context:Context) -> bool:
+	return context != null and MovementType.is_valid(context.resource) \
+		and context.resource.has_method(&'is_tunneling')
 
 
 ## Where the move is going. A move arrives in exactly TWO shapes and a listener has to read both: a
