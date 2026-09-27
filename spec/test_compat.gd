@@ -1553,3 +1553,115 @@ func test_a_sunzi_blink_anchor_redirects_the_rituals_teleport_and_the_ritual_fol
 	assert_eq(six_sky.tile(), ANCHOR_SPOT, 'The anchor pulled the Six Sky to its side.')
 	assert_eq(SixSkyFixture.weaver_chips(six_sky), 0, 'RULED: the Weaver armed, and the first hit spent it...')
 	assert_eq(200 - SixSkyFixture.health(hostile), 15, '...on the hostile beside the ANCHOR: 9 + the Weaver 6.')
+
+
+# ===================== THE OVERSHIELD SEAM, SECOND ROW (Black Mountain, rulings 5-6) =====================
+# The Black Mountain is BUILT on the overshield seam the resident gavstarb-ssc_emperor extends, and its
+# design found the mod's first genuine compat defect: the Emperor's Imperial Vestment reacts to EVERY
+# overshield event and, when the shielded unit is the Emperor, rewrites the number to min(current +
+# delta, 6 + Grit) - with delta the whole number unless the event carries `boolean = true`
+# (action_imperial_vestment.gd:14-22). The frozen Overshield.increase() used to pass current + amount
+# with no flag, so an Emperor ally increased by 1 gained current + 1 ON TOP of current (probe P2:
+# 2 -> 5). Ruling 6 put `boolean = true` on increase's event and left grant's alone: a plain grant to an
+# Emperor lands as the Emperor's own card says (additive, capped), which is its rule and not a defect.
+# Both are pinned here against the RESIDENT, on a real Emperor wearing the Vestment; the helper-side
+# data pin is test_overshield.gd's. Ruling 5's mark is pinned to survive the resident's PRE/POST
+# trigger, and ruling 9's payoff to survive a FREEBIE consume - the flag gms Brilliance fires its
+# borrowed tech attacks with (action_brilliance.gd:39, :63).
+
+const BlackMountainFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/black_mountain_fixture.gd')
+const BRILLIANCE_SCRIPT := 'res://unpacked/gavstarb-gms_1st_party/res/content/frames/gms/mf_chomolungma/mt_brilliance/action_brilliance.gd'
+const FREEBIE_MARKER := 'AS_FREEBIE'
+
+func skipped_without_the_emperor_frame() -> bool:
+	if skipped_without_emperor_overshield(): return true
+	if Frame.is_valid(ContentLibrary.get_mech_frame(BlackMountainFixture.EMPEROR_ID)): return false
+	var message := 'SKIPPED: %s is resident but mf_emperor did not load, so the Vestment cannot be worn.' % SSC_EMPEROR_MOD
+	gut.p(message)
+	pass_test(message)
+	return true
+
+func test_an_emperor_increased_by_one_ends_exactly_one_higher_under_the_resident() -> void:
+	# THE FIX (ruling 6). RED before it: 2 -> 5.
+	if skipped_without_the_emperor_frame(): return
+	var bm_game:Gamemaster = BlackMountainFixture.create_game(self)
+	var emperor:Unit = BlackMountainFixture.create_emperor(bm_game, Vector2i(4, 8))
+	await BlackMountainFixture.grant_overshield(emperor, 2)
+	assert_eq(Overshield.current(emperor), 2, 'fixture: the Emperor holds 2.')
+	await BlackMountainFixture.increase_overshield(emperor, 1)
+	assert_eq(Overshield.current(emperor), 3, 'THE RULING: increase() by 1 is +1 on an Emperor too (boolean = true).')
+
+func test_a_plain_grant_to_an_emperor_lands_additively_and_capped_which_is_the_emperors_rule() -> void:
+	# RECORDED, NOT OURS TO FIX: Imperial Vestment says a grant to the Emperor increases rather than
+	# replaces, capped at Storm Shield's 6 + Grit. grant() carries no boolean so the card lands.
+	if skipped_without_the_emperor_frame(): return
+	var bm_game:Gamemaster = BlackMountainFixture.create_game(self)
+	var emperor:Unit = BlackMountainFixture.create_emperor(bm_game, Vector2i(4, 8))
+	var cap := 6 + Overshield.grit(emperor)
+	await BlackMountainFixture.grant_overshield(emperor, 2)
+	await BlackMountainFixture.grant_overshield(emperor, 3)
+	assert_eq(Overshield.current(emperor), 5, 'THE EMPEROR\'S RULE: 2 + 3, additive.')
+	await BlackMountainFixture.grant_overshield(emperor, 20)
+	assert_eq(Overshield.current(emperor), cap, 'And capped at 6 + Grit (%d) by the Vestment.' % cap)
+
+func test_a_granted_by_mark_survives_the_residents_pre_and_post_trigger() -> void:
+	# Ruling 5: the mark is hung AFTER the event returns, whatever reactions the resident's invented
+	# trigger ran inside it. Pinned on an ordinary ally (the Vestment rewrites only the Emperor's
+	# number) and on the Emperor itself.
+	if skipped_without_the_emperor_frame(): return
+	var bm_game:Gamemaster = BlackMountainFixture.create_game(self)
+	var black_mountain:Unit = BlackMountainFixture.create_black_mountain(bm_game, Vector2i(4, 4))
+	var ally:Unit = BlackMountainFixture.create_ally(bm_game, Vector2i(6, 4))
+	var emperor:Unit = BlackMountainFixture.create_emperor(bm_game, Vector2i(4, 8))
+	await BlackMountainFixture.grant_overshield_by(black_mountain, emperor, 3)
+	assert_eq(Overshield.current(emperor), 3, 'fixture: the Emperor took the grant (0 + 3).')
+	assert_true(Overshield.is_granted_by(emperor, black_mountain), 'An Emperor ally is marked under the resident.')
+	await BlackMountainFixture.grant_overshield_by(black_mountain, ally, 3)
+	assert_eq(Overshield.current(ally), 3, 'fixture: the ally took its grant.')
+	assert_true(Overshield.is_granted_by(ally, black_mountain), 'The ally is marked under the resident.')
+	# THE RESIDENT'S ECHO, RECORDED (found on the first tier-2 run, 2026-09-27): the Vestment's "whenever
+	# the Emperor grants Overshield to another character, it gains the same amount" is implemented off
+	# `unit_doing_current_action`, an INSTANCE VAR on the shared action resource that its own
+	# triggers_on_event sets from every unit_action / gear_activate it is polled with - including its
+	# own reaction to the grant above. So an ally's grant that follows any Emperor reaction is echoed
+	# onto the Emperor (3 -> 6 here) whoever granted it. The Emperor mod's shape, not ours; the Black
+	# Mountain's granters will feed it in the real game, and the mark still lands on both units.
+	assert_eq(Overshield.current(emperor), 6, 'The Vestment echoed the ally\'s 3 onto the Emperor it believes is acting (its rule, recorded).')
+	assert_true(Overshield.is_granted_by(emperor, black_mountain), 'The Emperor\'s mark survived the echo.')
+
+func skipped_without_brilliance() -> bool:
+	if ResourceLoader.exists(BRILLIANCE_SCRIPT):
+		var script:Script = load(BRILLIANCE_SCRIPT)
+		if script != null and script.source_code.contains(FREEBIE_MARKER): return false
+	var message := 'SKIPPED: gavstarb-gms_1st_party\'s Brilliance is not resident or no longer fires AS_FREEBIE attacks, so the freebie consume is unmeasured.'
+	gut.p(message)
+	pass_test(message)
+	return true
+
+func test_a_harbinger_lock_consumed_by_a_freebie_attack_still_pays() -> void:
+	# Ruling 9's "consumed" branch under Brilliance's mechanism: that trait activates a quick tech
+	# attack with Action.FLAG.AS_FREEBIE. A freebie consume runs the same action_consume_lock_on and
+	# hangs the same buff_lock_consumed, so the mark reads it and pays. Driven with the FLAG itself
+	# rather than through Brilliance's two gear pickers; skipped, announced, if the resident stops
+	# firing that flag.
+	if skipped_without_brilliance(): return
+	var bm_game:Gamemaster = BlackMountainFixture.create_game(self)
+	var black_mountain:Unit = BlackMountainFixture.create_black_mountain(bm_game, Vector2i(4, 4))
+	BlackMountainFixture.arm_rifle(black_mountain)
+	var ally:Unit = BlackMountainFixture.create_ally(bm_game, Vector2i(6, 4))
+	var hostile:Unit = BlackMountainFixture.create_hostile(bm_game, Vector2i(10, 4), -10)
+	BlackMountainFixture.queue([BlackMountainFixture.CRIT_ROLL, 4, 4, 4, 4])
+	await BlackMountainFixture.shoot(bm_game, black_mountain, hostile)
+	assert_true(BlackMountainFixture.is_locked(hostile), 'fixture: the crit locked and marked.')
+	assert_eq(BlackMountainFixture.marks(hostile), 1, 'fixture: marked.')
+	await BlackMountainFixture.open_turn(bm_game, ally)
+	# THE MARK'S d6 POPS BEFORE THE ATTACK'S d20 (measured on the first tier-2 run): the consume is an
+	# ATTACK_DECLARED PRE reaction, so the STATUSES_CHANGED POST block it queues - and the mark's grant
+	# inside it - runs before the per-target attack rolls. Queue order: the d6, then the d20 (19 hits
+	# E-Def 8; a tech attack's flat 2 rolls nothing).
+	BlackMountainFixture.queue([6, BlackMountainFixture.HIT_ROLL])
+	await SpecFactory.use_solo(bm_game, ally, BlackMountainFixture.INVADE, hostile, [Action.FLAG.AS_FREEBIE])
+	assert_false(BlackMountainFixture.is_locked(hostile), 'LIVENESS: the freebie invade consumed the lock.')
+	assert_eq(BlackMountainFixture.heat(hostile), 2, 'LIVENESS: and hit (Fragment Signal\'s 2 heat).')
+	assert_eq(Overshield.current(black_mountain), 6, 'THE RULING: the Black Mountain was paid its d6 (the queued 6).')
+	assert_eq(BlackMountainFixture.marks(hostile), 0, 'And the mark cleared.')

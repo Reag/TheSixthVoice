@@ -1,0 +1,23 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/mt_an_end_to_all_things/action_an_end_to_all_things.gd" id="1_action"]
+
+; AN END TO ALL THINGS (ruling 7; the script's header has the gates). trigger_timing 1 is POST: the roll
+; block that applies require_hit is behind `if trigger_timing == POST` (action_reaction_attacked.gd:
+; 101-107). consumes_rxn false: a trait, not a reaction point; the 2/round is the script's hard limit.
+; RELATION { ANY 0, ALLIES 1, ENEMIES 2 }: the DEFENDER is an enemy of the Black Mountain; the ATTACKER
+; is ANY on the .tres because the script's clause is stricter than ALLIES (an ally, a character, NOT the
+; Black Mountain, and shielded by it). allow_tech and allow_basic both default FALSE and both are set:
+; "a successful attack roll", unqualified. SP3: the trait's glyph is the family; the bonus buff is
+; hidden and never drawn.
+[resource]
+script = ExtResource("1_action")
+usage_group = &"action_an_end_to_all_things"
+triggers_on = Array[StringName]([&"attack"])
+trigger_timing = 1
+consumes_rxn = false
+require_hit = true
+require_attacker_relation = 0
+require_defender_relation = 2
+allow_tech = true
+allow_basic = true

@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="Frame" format=3]
+
+[ext_resource type="Script" uid="uid://daycu0mqh1rbq" path="res://engine/character/unit_core/frame.gd" id="1_frame"]
+[ext_resource type="Script" uid="uid://bxpc46igtsmvw" path="res://engine/character/unit/statblock.gd" id="2_statblock"]
+[ext_resource type="Script" uid="uid://dch85ypcupfgo" path="res://engine/character/unit_core/color_scheme.gd" id="3_colorscheme"]
+[ext_resource type="Texture2D" uid="uid://6tm738lnctjy" path="res://assets/palettes/toneramps/tone_highhue.png" id="4_toneramp"]
+[ext_resource type="Script" uid="uid://djuk56crywqss" path="res://engine/character/unit_core/mount_type.gd" id="5_mounttype"]
+[ext_resource type="Resource" uid="uid://bsktp4ushq6g1" path="res://content/mounts/mount_flex.tres" id="6_mountflex"]
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="7_kit"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/placeholder/mf_placeholder.png" id="8_sprite"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/mt_an_end_to_all_things/mt_an_end_to_all_things.tres" id="9_an_end"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/mt_dread_harbinger/mt_dread_harbinger.tres" id="10_harbinger"]
+[ext_resource type="Resource" uid="uid://dmgrmsd135cq0" path="res://content/frames/shared/mt_fragile.tres" id="11_fragile"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_black_mountain/cp_blackstone_bell/cp_blackstone_bell.tres" id="12_core"]
+
+; THE SPRITE IS THE SHARED 80x80 PLACEHOLDER (SP1, 2026-09-27): no art exists for this frame yet, and
+; the ledger carries the debt. When the author's art lands, the colour scheme below is re-derived as a
+; 3-means over it (the Lovers Knot's method) and test_black_mountain_frame.gd's sprite test flips the
+; way test_leoleth_frame.gd's did. Until then these three are the Lovers Knot's SSC plum, deliberately
+; borrowed so a Black Mountain on the board reads as SSC beside its sibling and not as a grey blank.
+[sub_resource type="Resource" id="Resource_colorscheme"]
+script = ExtResource("3_colorscheme")
+palette_2 = ExtResource("4_toneramp")
+base_0 = Color(0.38039216, 0.28627452, 0.41960785, 1)
+base_1 = Color(0.7294118, 0.60784316, 0.68235296, 1)
+base_2 = Color(0.15686275, 0.13333334, 0.23529412, 1)
+
+; The sheet's table (specs/sixth-voice/20-black-mountain.md), design ruling 2. SIZE 1/2 IS `size = 1`
+; PLUS `is_size_half = true` - the Fitzgerald's and the Koremasa's form; UnitCore.is_size_half() reads
+; the flag (unit_core.gd:391). NOT the Emperor's numbers: HP 6 (Emperor 2 + Storm Shield), Evasion 8
+; (10), Speed 4 (5), Heat cap 6 (5), Save 10 (11), Sensors 10 (15), Tech attack -2 (1), SP 6 (7).
+[sub_resource type="Resource" id="Resource_statblock"]
+script = ExtResource("2_statblock")
+size = 1
+is_size_half = true
+structure = 4
+stress = 4
+health = 6
+armor = 1
+evasion = 8
+edef = 8
+speed = 4
+heat = 6
+save_target = 10
+sensor_range = 10
+tech_attack = -2
+repairs = 3
+systems_points = 6
+reactions = 1
+activations = 1
+
+[resource]
+script = ExtResource("1_frame")
+default_color_scheme = SubResource("Resource_colorscheme")
+sprites = Array[Texture2D]([ExtResource("8_sprite")])
+; SHEET ORDER: An End to All Things, Dread Harbinger, Fragile (VANILLA, content/frames/shared -
+; ruling 10), then the core system. The core Kit is a SHELL at SP1 (design 1.1): a name row so the
+; frame loads and the character sheet titles the box. SP2 fills it.
+traits = Array[ExtResource("7_kit")]([ExtResource("9_an_end"), ExtResource("10_harbinger"), ExtResource("11_fragile"), ExtResource("12_core")])
+; Flex alone - the sheet.
+mount_types = Array[ExtResource("5_mounttype")]([ExtResource("6_mountflex")])
+stat = SubResource("Resource_statblock")
+; SUPPORT (5), CONTROLLER (3) - Lancer.SQUAD_ROLE, lancer.gd:181, in the sheet's order.
+role_primary = 5
+role_secondary = 3

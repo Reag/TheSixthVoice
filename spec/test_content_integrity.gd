@@ -1127,6 +1127,17 @@ const ICON_TARGETS := {
 	# it regardless of hide_if_disabled (that flag is not part of the helper's model) - the
 	# mt_solfataric_breach shape, a trait and the action it exists to create share one glyph. KIT.
 	&'mt_starsickness': {&'action_starsickness': KIT},
+	# SP1 (Black Mountain). An End to All Things: one ATTACK POST reaction that never reaches the gear
+	# bar and hides itself from the trait card (show_in_tooltip false: the Kit's effect row is the
+	# card), so nothing the player sees wears an icon for it - the mt_blasting_powder reasoning. Its
+	# hidden one-time +3 buff is drawn nowhere. SP3: the Kit's glyph is the family.
+	&'mt_an_end_to_all_things': {},
+	# SP1 (Black Mountain). Dread Harbinger: the same shape - one hidden crit reaction. Its VISIBLE mark
+	# buff_dread_harbinger_mark is in VISIBLE_BUFFS below and will wear the trait's glyph (one family).
+	&'mt_dread_harbinger': {},
+	# SP1 (Black Mountain). Blackstone Bell, the core Kit: an EMPTY shell until SP2 (design 1.1), so
+	# only the Kit's own icon is ever shown. SP2 adds its rows here as it adds the actions.
+	&'cp_blackstone_bell': {},
 	# SP2 (Six Sky). ORS "DAYKEEPER" CYCLER BOW, the core Kit: its only action is Ritual of the First
 	# God, its OWN family (design section 3, the two-part core power's second half), distinct from the
 	# Kit's own glyph, which it shares with mw_daykeeper_cycler_bow below - one weapon, one picture, on
@@ -1451,6 +1462,10 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# buff_heavenly_weaver_watch is NOT listed - the pair is one mechanic, and the watcher is never a
 	# chip on the unit.
 	&'buff_heavenly_weaver',
+	# SP1 (Black Mountain). Dread Harbinger's mark on the locked target, visible per ruling 9 (the
+	# author's call): the on-token sign that THIS Lock On pays the Black Mountain when consumed. Its own
+	# rows. The helper's buff_overshield_granted_by and the +3 bonus buff are hidden and correctly absent.
+	&'buff_dread_harbinger_mark',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():

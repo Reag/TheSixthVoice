@@ -22,10 +22,15 @@ const EXTENDED_RESOURCES:Array[String] = [
 	# at that mod's unpacked path and is OPTIONAL: extendable() drops it while it is not mounted, and
 	# deferred() hands it to the late extension - see queue_late_extensions().
 	'res://unpacked/gavstarb-ha_sunzi/res/content/licenses/ha/li_sunzi.tres',
+	# Black Mountain, the Emperor alt, appended to rank 2. ANOTHER MOD'S licence (gavstarb-ssc_emperor),
+	# the Six Sky's shape exactly: optional, dropped by extendable() while unmounted, deferred to the
+	# late extension when the Emperor installs after us.
+	'res://unpacked/gavstarb-ssc_emperor/res/content/licenses/ssc/li_emperor.tres',
 ]
 
 ## The key a LATE extension is queued on: a resource of our own, so the engine's load() of it never
-## misses. Our Six Sky frame; nothing else extends it. See queue_late_extensions().
+## misses. Our Six Sky frame; nothing else extends it, and one carrier serves every deferred path
+## (the Black Mountain's li_emperor rides the same callable). See queue_late_extensions().
 const LATE_EXTENSION_CARRIER := 'res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/mf_six_sky.tres'
 
 ## Stamped on each resource INSTANCE we have edited, so a re-activation never edits it twice. On the

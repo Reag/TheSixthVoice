@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Kit" format=3]
+
+[ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="1_kit"]
+
+; BLACKSTONE BELL, the core system - A SHELL AT SP1 (design 1.1): a name row and nothing else, so the
+; frame loads and the character sheet titles the box. SP2 (design section 2) fills it: Bringer of Glory
+; (the Exalt reaction, action_exalt), Fell the Mighty (the Protocol, action_fell_the_mighty, with
+; buff_doomed), and the Efficient pair (action_efficient_refund + the shared passive_efficient_used).
+; The cp_ prefix is load-bearing (kit.gd:66). SP3: two glyph families (Bringer of Glory / Exalt, Fell
+; the Mighty / DOOMED - memory icon-glyph-families).
+[resource]
+script = ExtResource("1_kit")
+is_trait = true

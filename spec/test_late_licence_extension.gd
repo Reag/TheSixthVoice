@@ -1,4 +1,5 @@
-# THE SIX SKY'S LICENCE IN EITHER INSTALL ORDER (frame close, 2026-09-27; the author's call).
+# THE SIX SKY'S LICENCE IN EITHER INSTALL ORDER (frame close, 2026-09-27; the author's call) - AND THE
+# BLACK MOUNTAIN'S, which rides the same carrier since its SP1 the same day (the last section).
 #
 # In the real game ModApplier installs one mod at a time and mounts each zip only as it installs it
 # (mod_applier.gd:110-113, :139-141). Vanilla modset.gd:253 assigns an int to the dependency_importance
@@ -86,3 +87,38 @@ func test_the_late_call_without_the_sunzi_does_nothing():
 	var returned = MainScript.extend_late(carrier, [MISSING] as Array[String], retained)
 	assert_eq(returned, carrier, 'The carrier comes back.')
 	assert_true(retained.is_empty(), 'Nothing loaded, nothing retained.')
+
+# ---------------------------------------------------------------- the Black Mountain rides the same carrier
+
+const BlackMountainFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/black_mountain_fixture.gd')
+
+func test_the_emperor_licence_is_declared_and_deferrable_like_the_sunzis():
+	assert_has(MainScript.EXTENDED_RESOURCES, BlackMountainFixture.LICENSE_PATH,
+		'li_emperor is declared by the Emperor mod\'s own path.')
+	var paths:Array[String] = [BlackMountainFixture.LICENSE_PATH, MISSING]
+	assert_eq(MainScript.deferred(paths), [MISSING] as Array[String],
+		'Mounted in a test run, so not deferred - the SAME test a Sixth-Voice-first install would fail and defer.')
+
+func test_the_late_call_extends_an_unextended_emperor_licence_once_and_retains_it():
+	# The Sixth-Voice-first state for li_emperor: loaded fresh, no Black Mountain, no stamp.
+	var emperor_license:UnlockTree = load(BlackMountainFixture.LICENSE_PATH)
+	var black_mountain:Frame = ContentLibrary.get_mech_frame(BlackMountainFixture.FRAME_ID)
+	var saved:Array[Frame] = []
+	saved.assign(emperor_license.rank_2.granted_frames)
+	var was_stamped := emperor_license.has_meta(MainScript.APPLIED_META)
+	emperor_license.rank_2.granted_frames.erase(black_mountain)
+	emperor_license.remove_meta(MainScript.APPLIED_META)
+	assert_eq(emperor_license.rank_2.granted_frames.count(black_mountain), 0, 'fixture: un-extended.')
+	var retained:Array = []
+	var carrier:Resource = load(MainScript.LATE_EXTENSION_CARRIER)
+	var returned = MainScript.extend_late(carrier, [BlackMountainFixture.LICENSE_PATH] as Array[String], retained)
+	assert_eq(returned, carrier, 'The carrier comes back unchanged.')
+	assert_eq(emperor_license.rank_2.granted_frames.count(black_mountain), 1, 'The Black Mountain is granted.')
+	assert_true(emperor_license.has_meta(MainScript.APPLIED_META), 'Stamped.')
+	assert_true(retained.has(emperor_license), 'Retained.')
+	MainScript.extend_late(carrier, [BlackMountainFixture.LICENSE_PATH] as Array[String], retained)
+	assert_eq(emperor_license.rank_2.granted_frames.count(black_mountain), 1, 'A second call does not append it again.')
+	# Leave the shared, cached li_emperor exactly as the run's install left it.
+	emperor_license.rank_2.granted_frames.assign(saved)
+	if was_stamped: emperor_license.set_meta(MainScript.APPLIED_META, true)
+	else: emperor_license.remove_meta(MainScript.APPLIED_META)
