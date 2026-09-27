@@ -199,6 +199,22 @@ func test_declining_the_confirm_costs_nothing() -> void:
 	await press([14], [plan_unit(contact)])
 	assert_false(knot.core.has_core_power, 'CONTROL: confirmed, it is spent.')
 
+# Pass E item 3 as the author settled it (T6, 2026-09-27): the press already writes the engine's own
+# "used" line (spend_actions -> unit_action.gd:231-234 -> action.gd:132-137), so this PINS that line
+# rather than adding text. Read off the bus, test_thermal_death_axe.gd's pattern.
+func test_a_press_writes_the_used_line_to_the_battle_log() -> void:
+	var action_name := X.tr('gear.cp_integrated_redirection_aggregate.action_form_of_the_myriad.name')
+	assert_eq(action_name, 'Form of the Myriad', 'Fixture: the name resolves.')
+	var lines:Array[String] = []
+	var collect := func(text:String) -> void: lines.append(text)
+	Action.battle_log.on_log_text.connect(collect)
+	await press([14], [plan_unit(contact)])
+	# UNCONDITIONAL, and before the assertions: the bus is an autoload that outlives this test.
+	if Action.battle_log.on_log_text.is_connected(collect): Action.battle_log.on_log_text.disconnect(collect)
+	assert_false(knot.core.has_core_power, 'Guard: the press went through.')
+	assert_true(lines.any(func(text:String) -> bool: return text.contains(' used ') and text.contains(action_name)),
+		'The press announced itself in the battle log: %s' % [lines])
+
 func test_the_chooser_offers_every_mounted_weapon_attack_and_honours_the_pick() -> void:
 	Fixture.equip(knot, Fixture.RANGED_2)
 	Fixture.equip(knot, Fixture.LINE)
