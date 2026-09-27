@@ -109,6 +109,18 @@ func test_an_engaged_gloire_leaves_without_provoking() -> void:
 	assert_eq(gloire.core.current.health, health, 'nothing struck it on the way out.')
 	assert_eq(hostile.core.current.reactions, reactions, 'and the hostile spent no reaction.')
 
+## THE POSITIVE CONTROL for the test above (close-out Pass D, open item "no positive control"): the
+## same armed hostile, the same walk south, taken as an ORDINARY move - and the hostile overwatches.
+## Without it, "spent no reaction" could be passing because this hostile never overwatches anything.
+## Read off the reaction spend, so a missed overwatch still counts as one fired.
+func test_an_ordinary_move_from_the_same_spot_draws_the_overwatch() -> void:
+	var hostile := Fixture.create_dummy(game, Vector2i(6, 4))
+	Fixture.equip(hostile, Fixture.PIKE)
+	var reactions:int = hostile.core.current.reactions
+	await SpecFactory.move(game, gloire, SOUTH_4)
+	assert_eq(gloire.tile(), SOUTH_4, 'fixture: it actually walked.')
+	assert_lt(hostile.core.current.reactions, reactions, "Walking out of the Pike's threat draws its overwatch.")
+
 # ---------------------------------------------------------------- the free Ram
 
 func test_the_free_ram_follows_the_dash_and_the_frames_loop_closes() -> void:
