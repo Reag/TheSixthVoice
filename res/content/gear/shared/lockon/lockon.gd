@@ -1,5 +1,6 @@
 # LOCK ON: the mod's shared "Lock On consumed / lost / applied" hook. Born with the Naga (SP1
-# Task 5); its consumer-to-come is the Black Mountain.
+# Task 5). Consumers: the Naga (the core passive, the core active, Ping, Binding Fangs), the Black
+# Mountain (Dread Harbinger) and the Koremasa (Blinkblade Slice, action_slash.gd).
 #
 # FROZEN INTERFACE (design ruling 20 of the Naga, roadmap 4). Five functions, exactly these names,
 # argument names and types: was_consumed consumer is_lost apply source_of. A later frame that needs
@@ -76,11 +77,23 @@ static func is_lost(triggering:EventCore) -> bool:
 ## vanilla's own targeting refuses that (action_lock_on.gd:5-11), and a second stacked StatusCondition
 ## would leave a stale source behind the first clear. Returns false when the target is immune, which
 ## apply_status reports by returning null.
+##
+## A NULL EVENT FALLS BACK TO THE LEVEL, like its siblings (Overshield._fire, Teleport._run,
+## Terrain.lay; close-out Pass F Task 21): false when there is no level, otherwise the lock lands on
+## the stand-in a spec's dummy event is (SpecFactory.dummy_event, EventCore.create(&'event_delay', ...)).
+## apply_status dereferences the event unguarded (on_status_application queues the statuses_changed
+## virtual event on it), so without this a null event threw. This stays synchronous - the frozen
+## signature returns bool - so the stand-in has no block and the apply's statuses_changed PRE
+## reactions are not queued; a caller that needs them passes its live activation.
 static func apply(event:EventCore, target:Unit, source_gear:GearCore) -> bool:
 	if not Unit.is_valid(target): return false
 	if not GearCore.is_valid(source_gear): return false
 	if UnitCondition.has_status(target, Lancer.STATUS.LOCKON): return false
-	var applied := UnitCondition.apply_status(event, target, Lancer.STATUS.LOCKON, Lancer.UNTIL.MANUAL,
+	var carrier := event
+	if carrier == null or carrier.context == null:
+		if X.current_level() == null: return false
+		carrier = EventCore.create(&'event_delay', {unit = target})
+	var applied := UnitCondition.apply_status(carrier, target, Lancer.STATUS.LOCKON, Lancer.UNTIL.MANUAL,
 		source_gear.persistent_id)
 	return applied != null
 

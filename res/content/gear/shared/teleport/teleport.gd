@@ -2,8 +2,9 @@
 # Uncertainty Field (SP1 Task 1).
 #
 # FROZEN INTERFACE, OBSERVE/INTERCEPT HALF (roadmap §4, design §1.4). Six functions, exactly these
-# names and signatures. Five later frames consume them - Purple Thorn, Leoleth (ZIP), Sluagh (Hunt),
-# Koremasa (Vanish), Six Sky - so a rename is five frames' worth of churn.
+# names and signatures. Five later frames consume them - Purple Thorn, Sluagh (Hunt), Koremasa
+# (Vanish), Six Sky, Shackleton (Calamitous Impact) - so a rename is five frames' worth of churn. (The
+# Leoleth's ZIP was once listed here; nothing of the Leoleth's preloads this file.)
 #
 # THE PERFORM HALF IS NOW IN THIS SAME FILE and frozen with it (SP2, design §2.4: candidate_tiles,
 # pathfinder, pick_tile, move, move_along) - eleven functions in total, with every SP1 spec still
@@ -331,6 +332,9 @@ static func pathfinder(unit:Unit, tiles:Array[Vector2i]) -> Pathfinder:
 ## returns when set (:207-208), so no subclass hook is needed to install it.
 static func pick_tile(context:Context, activation:EventCore, tiles:Array[Vector2i]) -> Vector2i:
 	if tiles.is_empty(): return Tile.INVALID
+	# A null context, or one with no action to proxy, is refused like an invalid unit (close-out
+	# Pass F Task 21): both were dereferenced unguarded below.
+	if context == null or context.action == null: return Tile.INVALID
 	if not Unit.is_valid(context.unit): return Tile.INVALID
 
 	var reqs := TargetRequirements.create(1, RangePattern.create(Lancer.AOE_TYPE.NONE, 0))
@@ -503,7 +507,7 @@ static func _source(activation:EventCore) -> SpecificAction:
 
 
 ## Run one event on the caller's own block when there is one, and through the level when there is not
-## - the Overshield helper's idiom (overshield.gd:46-53), for the same two reasons: a caller inside a
+## - the Overshield helper's idiom (overshield.gd _fire), for the same two reasons: a caller inside a
 ## live activation wants its move ordered inside that activation, and a caller holding a spec's dummy
 ## event has no block to queue onto. Hands the core back either way, which is the whole point of this
 ## half of the helper.

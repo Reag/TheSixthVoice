@@ -1933,6 +1933,50 @@ func test_the_mod_reports_what_it_contributed():
 		gut.p('  %-10s %d' % [index_name, count])
 		assert_gt(count, 0, '%s has at least one of ours in the %s index.' % [MOD_ID, index_name])
 
+const ARMOR_STATBLOCK_SCRIPT := 'res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/armor/buff_armor_statblock.gd'
+const ARMOR_REDUCTION_SCRIPT := 'res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/armor/buff_armor_reduction.gd'
+## The damage types real armour reduces - never HEAT or BURN (buff_armor_reduction.gd's header, "WHY
+## damage_types IS SPELLED OUT").
+const ARMOR_DAMAGE_TYPES:Array[int] = [Lancer.DAMAGE_TYPE.KINETIC, Lancer.DAMAGE_TYPE.ENERGY, Lancer.DAMAGE_TYPE.EXPLOSIVE]
+## Pairs this mod ships today. A floor, not an exact count: a new armour grant raises it deliberately,
+## and a sweep that silently found nothing (a moved script, a renamed folder) fails here instead.
+const ARMOR_PAIRS_AT_LEAST := 4
+
+func test_every_armor_grant_is_a_matching_statblock_and_reduction_pair():
+	# Close-out Pass F Task 21. An armour grant is TWO buffs (the shared armor/ folder's headers): a
+	# visible STATBLOCK half that reduces nothing, and a hidden RESIST_DAMAGE half that does the work.
+	# The two must carry the same `until` and the same amount, or the mechanic tears in half - a chip
+	# with no reduction behind it, or damage quietly going missing with no chip. Each consumer pairs
+	# them by NAME: <buff>.tres and <buff>_reduction.tres beside it (buff_rapid_rushdown_armor /
+	# buff_rapid_rushdown_armor_reduction, buff_reinforcement_blast / buff_reinforcement_blast_reduction).
+	var statblocks := {}
+	var reductions := {}
+	for buff:Buff in ModResources.load_ours(MOD_ID, &'buffs'):
+		var script:Script = buff.get_script()
+		if script == null: continue
+		if script.resource_path == ARMOR_STATBLOCK_SCRIPT: statblocks[buff.resource_path] = buff
+		elif script.resource_path == ARMOR_REDUCTION_SCRIPT: reductions[buff.resource_path] = buff
+
+	for path:String in reductions:
+		var display_path := path.trim_suffix('_reduction.tres') + '.tres'
+		assert_true(statblocks.has(display_path), '%s has its display half %s.' % [path, display_path])
+
+	var pairs := 0
+	for path:String in statblocks:
+		var reduction_path := path.get_basename() + '_reduction.tres'
+		assert_true(reductions.has(reduction_path), '%s has its reduction half %s.' % [path, reduction_path])
+		if not reductions.has(reduction_path): continue
+		pairs += 1
+		var display:Buff = statblocks[path]
+		var reduction:Buff = reductions[reduction_path]
+		assert_eq(reduction.until, display.until, '%s: both halves share one `until`.' % path.get_file())
+		assert_eq(int(reduction.reduction_amount), display.armor_amount,
+			'%s: the reduction is the armour number the chip shows.' % path.get_file())
+		var types:Array = Array(reduction.damage_types)
+		types.sort()
+		assert_eq(types, Array(ARMOR_DAMAGE_TYPES), '%s: the reduction covers exactly the damage types armour reduces.' % path.get_file())
+	assert_gte(pairs, ARMOR_PAIRS_AT_LEAST, 'The sweep found every armour pair this mod ships (%d).' % pairs)
+
 ## An icon has to exist AND not be a stand-in. Shared by the kit, action and buff guards.
 func _assert_real_icon(icon:Texture2D, label:String) -> void:
 	assert_not_null(icon, '%s has an icon.' % label)

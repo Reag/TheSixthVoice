@@ -635,6 +635,14 @@ func test_pathfinder_is_empty_for_an_immobilized_unit():
 
 # ---------------------------------------------------------------- move
 
+func test_pick_tile_is_invalid_without_a_context_or_an_action():
+	# Close-out Pass F Task 21: pick_tile dereferenced context.unit and context.action unguarded, so a
+	# null context (or one with no action to proxy) threw instead of returning the failure value.
+	var tiles:Array[Vector2i] = [DESTINATION]
+	assert_eq(await Teleport.pick_tile(null, null, tiles), Tile.INVALID, 'A null context picks nothing.')
+	var no_action := Context.create({unit = unit})
+	assert_eq(await Teleport.pick_tile(no_action, null, tiles), Tile.INVALID, 'A context with no action picks nothing.')
+
 func test_move_lands_by_tile_and_returns_a_completed_core():
 	var core:EventCore = await Teleport.move(sourced_activation(), unit, DESTINATION)
 	assert_not_null(core, 'It handed the move core back.')

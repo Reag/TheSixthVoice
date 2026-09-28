@@ -2,7 +2,8 @@
 #
 # Roadmap 4: a shared helper is born with its first consumer, in its own sub-folder, with its own
 # specs, and its interface is frozen the moment that sub-project ships. Design ruling 20 names the
-# five functions; the Black Mountain is the consumer-to-come. test_the_frozen_interface_pins_these_five_signatures
+# five functions; the Black Mountain and the Koremasa's Slash have since consumed them.
+# test_the_frozen_interface_pins_these_five_signatures
 # is the guard, and pins the whole signature - names, argument names and types, return types, static.
 #
 # The two measured facts the helper's header records (probe spec/test_spike_naga_sp1_seams.gd) are
@@ -245,6 +246,11 @@ func test_apply_refuses_invalid_arguments():
 	assert_false(Lockon.apply(dummy(), other, null), 'A null gear is refused.')
 	assert_false(other.has_status(Lancer.STATUS.LOCKON), 'And nothing was applied.')
 	assert_false(Lockon.apply(dummy(), null, lock_gear()), 'A null target is refused.')
+	# Close-out Pass F Task 21: a NULL EVENT is not refused - it falls back to the level the way
+	# Overshield._fire, Teleport._run and Terrain.lay do, on the dummy-event carrier. Before the guard
+	# apply_status reached on_status_application's event.queue_reaction_events on a null event.
+	assert_true(Lockon.apply(null, other, lock_gear()), 'A null event falls back to the level and locks.')
+	assert_eq(Lockon.source_of(other), lock_gear().persistent_id, 'Sourced to the gear as usual.')
 
 func test_source_of_follows_a_real_lock_and_its_consume():
 	assert_eq(Lockon.source_of(hostile), &'', 'Unlocked reads empty.')

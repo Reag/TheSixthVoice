@@ -2,8 +2,9 @@
 # Gravity Well (SP1 Task 2).
 #
 # FROZEN INTERFACE (design §1.2, rulings row 2026-09-18). Four functions, exactly these names and
-# signatures. Leoleth and the Shackleton consume them, and SP2's Mastication of the Maar is lay()'s
-# first real caller, so a rename is three frames' worth of churn. Additions are allowed and reshapes
+# signatures. Leoleth, the Shackleton and the Koremasa (Phase Cloud's Vanish, action_vanish.gd) consume
+# them, and SP2's Mastication of the Maar is lay()'s first real caller, so a rename is four frames'
+# worth of churn. Additions are allowed and reshapes
 # are not; spec/test_terrain.gd is the guard.
 #
 # Not born here, deliberately (design §1.2): a lifetime for laid terrain (Leoleth's Decimate lasts
@@ -114,7 +115,7 @@ static func is_entering_difficult(unit:Unit, next_anchor:Vector2i) -> bool:
 ## priority orders its crater against its own attack; a caller whose whole effect is the spawn has
 ## nothing to order against, and a queued spawn would hand back a Unit that is not on the map yet.
 ## Same shape, and the same X.current_level() fallback for a caller with no live activation, as
-## Teleport._run (teleport.gd:383-390).
+## Teleport._run (teleport.gd _run).
 ##
 ## *** NULL MEANS "DID NOT LAND", AND THE SPAWN'S OWN EventCore IS WHAT SAYS SO. *** Teleport._run
 ## hands its core back precisely so a caller can check; this helper's contract is the unit, so it does

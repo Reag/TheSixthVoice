@@ -6,7 +6,7 @@
 ## in the move: it was already amount-agnostic, because `reduction_amount` and `until` live on each
 ## user's .tres and not here.
 ##
-## THREE USERS, EACH WITH ITS OWN .tres POINTING AT THIS ONE SCRIPT:
+## FOUR USERS, EACH WITH ITS OWN .tres POINTING AT THIS ONE SCRIPT:
 ##   - Fitzgerald, REINFORCEMENT BLAST: buff_reinforcement_blast_reduction.tres, 1, until the end of
 ##     the OWNER's next turn (7 = END_OF_OWNERS_NEXT_TURN).
 ##   - Myconid, FUNGAL NETWORK: buff_fungal_network_armor_reduction.tres, 1, held by the aura
@@ -14,6 +14,7 @@
 ##     the zone.
 ##   - Myconid, UFFISH GYRE: buff_uffish_gyre_armor_reduction.tres, 2, until the struck ALLY's own
 ##     next turn start (START_OF_TURN).
+##   - Gloire, RAPID RUSHDOWN: buff_rapid_rushdown_armor_reduction.tres, 1, until START_OF_TURN.
 ##
 ## EVERY USER IS A PAIR, AND THIS IS THE HALF NOBODY CAN SEE. Each one also applies a visible
 ## Buff.TO.STATBLOCK sibling carrying the same armor number - that is what the unit readout shows
