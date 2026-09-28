@@ -55,6 +55,35 @@ class DeclaredRecorder extends Buff:
 		seen.append(activation.context.event.context.resource)
 
 
+## A one-time +1 on attacks against the holder: Lock On's channel (ATTACK_ROLL_INCOMING).
+class OnetimeIncoming extends Buff:
+	var consumed_by:Array[StringName] = []
+	func _init() -> void:
+		compcon_id = &'buff_spec_onetime_incoming'
+		to = Buff.TO.ATTACK_ROLL_INCOMING
+		is_onetime = true
+		hide_from_player = true
+	func get_values(_core:BuffCore, _context:Context) -> Context:
+		return Context.create({category_str = Buff.BONUS_SUBTYPE.ACCURACY, number = 1})
+	func on_consumption(event:EventCore, _core:BuffCore, _unit:Unit) -> bool:
+		consumed_by.append(event.base.event_type)
+		return true
+
+## A one-time "cannot benefit from cover" on the holder: a TARGET-held IGNORE_COVER.
+class OnetimeRefuseCover extends Buff:
+	var consumed_by:Array[StringName] = []
+	func _init() -> void:
+		compcon_id = &'buff_spec_onetime_refuse_cover'
+		to = Buff.TO.IGNORE_COVER
+		is_onetime = true
+		hide_from_player = true
+	func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
+		return context.target_unit == core.get_holder_unit(context.map)
+	func on_consumption(event:EventCore, _core:BuffCore, _unit:Unit) -> bool:
+		consumed_by.append(event.base.event_type)
+		return true
+
+
 var game:Gamemaster
 var responder
 var knot:Unit
@@ -164,7 +193,27 @@ func test_a_line_that_bends_gives_every_character_on_the_leg_the_siphon() -> voi
 	assert_eq(Fixture.gemini_uses(knot), 1, 'Guard: the line bent.')
 	for unit:Unit in [contact, second, further]:
 		assert_eq(accuracy_against(unit), 1, '%s reads the +1.' % unit.tile())
+	assert_eq(count(SIPHON_PLUS), 0, 'Consumed once, after.')
 	assert_eq(count(SIPHON_MINUS), 1, 'The -1 lands exactly once.')
+
+func test_a_target_held_one_time_buff_is_still_spent_on_its_own_targets_roll() -> void:
+	# Only the KNOT's one-time buffs are deferred. A target's own one-time buffs - Lock On's shape, an
+	# incoming +1, and a "cannot benefit from cover" refusal, which PreAttack.create collects from the
+	# TARGET with the same Buff.TO the Knot's deferred IGNORE_COVER uses (attack_roll.gd:160-162) - are
+	# consumed by the contact's own roll, never by the declared attack. The refusal is what the holder
+	# filter alone keeps out of the deferred set; the incoming +1 is kept out by its channel too.
+	var second := dummy(SECOND_TILE)
+	var incoming := OnetimeIncoming.new()
+	var refusal := OnetimeRefuseCover.new()
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), contact, incoming)
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), contact, refusal)
+	await fire(Fixture.RANGED, contact, [14], [plan_unit(second)])
+	assert_eq(Fixture.gemini_uses(knot), 1, 'Guard: the shot was redirected.')
+	assert_eq(accuracy_against(contact), 1, 'The contact reads its own incoming +1.')
+	assert_eq(accuracy_against(second), 0, 'The redirected target never reads the contact\'s buff.')
+	for buff:Buff in [incoming, refusal]:
+		assert_eq(buff.consumed_by, [&'event_unit_attack'] as Array[StringName],
+			'%s is consumed once, by the contact\'s own roll - not deferred to the declared attack.' % buff.compcon_id)
 
 
 # ============ SCOPE: A PLAIN MULTI-TARGET ATTACK STAYS VANILLA ============

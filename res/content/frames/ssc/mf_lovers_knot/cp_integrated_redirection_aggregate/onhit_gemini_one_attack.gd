@@ -22,6 +22,13 @@
 ##                  telegraph and consume the set-aside buffs, as the per-target event would have
 ##                  (event_unit_attack.gd:111-114) - so Core Siphon's -1 lands once, here.
 ##
+## LIVE, NOT A SNAPSHOT: a later target reads the Knot's one-time buffs as they stand when ITS roll is
+## built, not a copy of what the contact read. The two differ only if the Knot gains or loses such a buff
+## mid-attack (a reaction during an earlier target's roll); then the later target reads the new state.
+## Only the KNOT's buffs are deferred (the holder filter): a target's own one-time buffs - Lock On's
+## ATTACK_ROLL_INCOMING, a target-held "cannot benefit from cover" IGNORE_COVER - are still consumed by
+## that target's own roll.
+##
 ## Ruling 9 is untouched: one d20 face, each target's own accuracy and difficulty. These buffs are simply
 ## part of each target's own accuracy now.
 ##
