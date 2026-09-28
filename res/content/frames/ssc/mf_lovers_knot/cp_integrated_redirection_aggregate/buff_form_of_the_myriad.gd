@@ -15,6 +15,17 @@
 ## TRUE OF ANY EARLY CLEAR, not only the harmless destroyed case: an enemy that strips the chip mid-turn
 ## (a status-clearing effect, say) re-stamps the round right there, so that turn's second Gemini - the
 ## one the still-open Myriad turn was meant to keep - is lost, not merely spent a beat sooner.
+##
+## THE OWNER IS READ FROM THE HOLDER'S OWN LOADOUT (Pass F final review, a VANILLA BUG on
+## MapState.get_gear_by_id, map_state.gd:261-264, reports/2026-09-27-map-state-source-lookup.md): the
+## engine's own lookup returns - and caches - null the moment ANY unit earlier in the map's unit list
+## than the chip's holder carries a buff with situational gear, whatever id was actually asked for; the
+## search stops there and never reaches the holder. The cache starts empty after every load
+## (map_state.gd:102), so this could misfire on a freshly loaded save. The chip's holder is always its
+## own owner (apply_buff stamps core.from_gear to the acting gear, and the chip is applied to that same
+## unit), so on_clear reads unit.core.loadout directly instead of going through the buggy map lookup -
+## the Koremasa magnet's find_kit_holder pattern (buff_makibishi_attached.gd), simplified because here
+## the holder and the owner are already the same unit.
 extends Buff
 
 const Record := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/gemini_record.gd')
@@ -24,8 +35,8 @@ const RESTORED_KEY := 'reag_myriad_restored_gemini'
 
 func on_clear(event:EventCore, core:BuffCore, unit:Unit) -> void:
 	if int(core.get_state(RESTORED_KEY, 0)) <= 0: return
-	var map:MapState = unit.map if Unit.is_valid(unit) else null
-	var gear:GearCore = core.get_owner_gear(map)
+	if not Unit.is_valid(unit): return
+	var gear:GearCore = unit.core.loadout.get_by_persistent_id(core.from_gear)
 	if not GearCore.is_valid(gear): return
 	if gear.get_uses_this_round_alt(Record.USAGE_KEY) == 0:
 		gear.increment_action_usage(Record.USAGE_KEY, false)

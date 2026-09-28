@@ -424,6 +424,49 @@ func test_a_restored_gemini_round_is_spent_again_when_the_chip_expires() -> void
 	assert_false(chip_held(), 'Fixture: the chip ended with the Knot\'s turn.')
 	assert_eq(Fixture.gemini_uses(knot), 1, 'The chip\'s expiry spends the restored round again.')
 
+# Pass F final review (vanilla bug, reports/2026-09-27-map-state-source-lookup.md): on_clear used to
+# find the core gear through MapState.get_gear_by_id, which returns null the moment ANY unit earlier
+# in the map's unit list than the Knot carries a buff with situational gear - the search stops at
+# that unit's buff loop and never reaches the Knot's own loadout. A decoy dummy is given a throwaway
+# situational-gear buff and pushed ahead of the Knot in the tree's unit list (the same technique
+# test_makibishi_magnets.gd's simulate_load_with_victim_first uses), with the source cache cleared as
+# it is after every load (map_state.gd:102). Fixed by reading the chip holder's own loadout directly
+# (buff_form_of_the_myriad.gd's on_clear), since the chip's holder IS the owner here.
+func test_the_chip_still_restamps_when_a_situational_gear_buff_precedes_the_knot_in_the_unit_list() -> void:
+	Fixture.equip(knot, Fixture.RANGED_2) # two weapons, so the chooser is offered and can be cancelled
+	var b := dummy(NEAR_B)
+	var decoy := dummy(NEAR_C)
+	# ANY buff with valid situational_gear trips the bug; its own compcon_id and semantics are unused -
+	# but it must be MANUAL (not END_OF_THIS_TURN, which the Knot's own turn end would clear it as too,
+	# hiding the trap before the chip's own on_clear ever runs). buff_makibishi_attached is MANUAL.
+	var decoy_buff:Buff = ContentLibrary.get_buff(&'buff_makibishi_attached')
+	var decoy_core := BuffCore.create(decoy_buff, &'')
+	decoy_core.situational_gear = GearCore.create_from_id(Fixture.RANGED)
+	decoy.state.buffs.append(decoy_core)
+
+	await fire(contact, [14], [plan_unit(b)])
+	assert_eq(b.current_damage(), 3, 'Fixture: an earlier shot redirected.')
+	assert_eq(Fixture.gemini_uses(knot), 1, 'Fixture: Gemini\'s round is spent.')
+	await press([14], [], [null])
+	assert_true(chip_held(), 'Fixture: the chip is up, the Myriad attack cancelled.')
+	assert_eq(Fixture.gemini_uses(knot), 0, 'Fixture: the Myriad restored the spent round for its turn.')
+
+	# Push the decoy ahead of the Knot in the tree's own unit list, and clear the source cache the
+	# way a load leaves it (map_state.gd:102) - the same reordering test_makibishi_magnets.gd uses.
+	var tree_units = game.map_node.units
+	tree_units.erase(knot)
+	tree_units.append(knot)
+	game.map.update_unit_tile_tracking(game.map_node.get_all_units_in_tree())
+	game.map.cached_source_to_unit.clear()
+	var order:Array = game.map.all_units.keys()
+	assert_lt(order.find(decoy.core.persistent_id), order.find(knot.core.persistent_id), 'fixture: the decoy is listed first.')
+	assert_null(game.map.get_gear_by_id(Fixture.core_gear(knot).persistent_id),
+		'Guard: this alone reproduces the vanilla bug - the engine\'s own lookup finds nothing.')
+
+	await SpecFactory.end_turn(game, knot)
+	assert_false(chip_held(), 'Fixture: the chip ended with the Knot\'s turn.')
+	assert_eq(Fixture.gemini_uses(knot), 1, 'The chip\'s expiry still re-stamps the round, despite the decoy.')
+
 func test_a_myriad_turn_with_no_earlier_gemini_leaves_the_round_open() -> void:
 	Fixture.equip(knot, Fixture.RANGED_2)
 	await press([14], [], [null])
