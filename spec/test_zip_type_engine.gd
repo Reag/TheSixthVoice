@@ -389,6 +389,59 @@ func test_a_real_system_movement_action_teleports_and_heats():
 	assert_eq(leoleth.tile(), TWO_EAST, 'The dash landed where the responder chose.')
 	assert_eq(leoleth.core.current.heat, heat + 1, 'THE SEAM END TO END: one heat for the tagged teleport.')
 
+# ---------------------------------------------------------------- compat: the Trueblack Aegis (Pass F Task 15)
+
+## Ruling 2026-09-27 "ZIP disengage and a forced deactivate": a Napoleon's Trueblack Aegis
+## (content/frames/ha/mf_napoleon/cp_trueblack_aegis/, base game, read-only) switches ZIP off.
+## Equipped here for the seam only - the Leoleth is not a Napoleon, but nothing in
+## action_activate_aegis.gd cares who is holding the core power.
+##
+## PROBE, CONFIRMED (mapping's suspicion): action_activate_aegis.gd:44-50 blanket-clears every
+## "prohibited" buff DIRECTLY via UnitCondition.clear_buff - it never goes through the disengage
+## action at all. is_buff_prohibited (:55-79) returns true for the ZIP chip on its own holder: the
+## zip system is not a shield, its chip is not applied by a PassiveBuffApplicator/PassiveWeaponMod,
+## UnitAction.is_tech(zip) is false and the zip kit is not a trait, so the "anything else" branch at
+## :77 fires. So _held() already reads false the instant the Aegis resolves, metatag or not - this
+## is PINNED, not RED, and stays true both before and after Task 15's edit.
+##
+## What the metatag actually changes is the RESTRICTION buff the same action applies
+## (buff_trueblack_aegis_restrictions.gd, to = action_forbidden): its check_if_passive_applies
+## exempts only an action whose id contains 'deactivate' or carries Action.METATAG.deactivate
+## (:18-19) - neither of which action_zip_disengage.tres had. So today disengage is FORBIDDEN under
+## the restriction for as long as it is up, even though (per the probe above) there is usually no
+## chip left to clear. Tested here independent of chip state - via has_buff_to directly - because
+## _available() can't isolate it: ActionSystemClearBuff has no availability gate of its own, and
+## action_zip_disengage.gd's own is_available_to_activate override checks ONLY whether the chip is
+## held, which the blanket clear will have already stripped by the time a real Aegis run gets this
+## far (get_gear_unavailable_reason checks the action's own availability at :156, before
+## FORBIDDEN at :157 - so REASON.SPECIFIC always wins first once the chip is gone).
+const AEGIS_ID := &'cp_trueblack_aegis'
+const AEGIS_ACTION_ID := &'action_activate_aegis'
+const AEGIS_RESTRICTION_BUFF := &'buff_trueblack_aegis_restrictions'
+
+func test_a_trueblack_aegis_clears_the_chip_directly_with_no_metatag_involved():
+	LeolethFixture.equip(leoleth, AEGIS_ID)
+	await LeolethFixture.open_turn(game, leoleth)
+	await LeolethFixture.engage_zip(game, leoleth)
+	assert_true(_held(), 'fixture: engaged before the Aegis fires.')
+	await SpecFactory.use(game, leoleth, AEGIS_ID, AEGIS_ACTION_ID)
+	assert_false(_held(),
+		'PROBE, CONFIRMED: the blanket clear (action_activate_aegis.gd:44-50) drops the chip on its '
+		+ 'own, with or without a metatag on disengage.')
+
+## THE FIX, RED before action_zip_disengage.tres gains metatags = [deactivate]: the restriction buff
+## forbids disengage while it is up, because neither of its two exemptions (id contains 'deactivate',
+## or the metatag) match today.
+func test_the_disengage_metatag_exempts_it_from_the_aegis_restriction():
+	assert_true(_disengage().metatags.has(Action.METATAG.deactivate),
+		'THE FIX: disengage carries the deactivate metatag, the sanctioned channel '
+		+ '(action.gd METATAG comment: "napoleon CP activates this").')
+	SpecFactory.apply_buff(leoleth, AEGIS_RESTRICTION_BUFF, zip)
+	var buff_context:Context = SpecificAction.create(leoleth, zip, _disengage()).to_context()
+	assert_false(UnitCondition.has_buff_to(leoleth, Buff.TO.ACTION_FORBIDDEN, buff_context),
+		'And the restriction no longer forbids it - check_if_passive_applies\' metatag exemption '
+		+ '(buff_trueblack_aegis_restrictions.gd:19) now matches.')
+
 # ---------------------------------------------------------------- the licence
 
 func test_the_licence_grants_the_zip_at_rank_two():

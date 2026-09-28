@@ -8,14 +8,14 @@ script = ExtResource("1_penalty")
 bonus_subtype = &"accuracy"
 bonus_value = -1
 to = &"attack_roll"
-hide_from_player = true
 ; NO `until`: the AURA owns this buff's lifetime - PassiveAura.update_unit strips it the moment the
 ; aura stops being active or the unit leaves range (passive_aura.gd:55-59). A lifetime here would be a
 ; second, competing clock.
 ;
-; HIDDEN, and flagged J for the author (ruling 13 leaves it "on sight"): the Leoleth's own chip is the
-; signal, and the Mark's soft cover is this mod's precedent for plumbing beside a visible chip. It is
-; STILL drawn in the roll breakdown - attack_roll.gd:189 passes buff_core.base.icon RAW - which is why
-; it is listed in HIDDEN_BUFFS_NEEDING_ICONS. SP5: reuses buff_rage_bulwark's own tint - one mechanic,
-; one picture, whichever side of it is asking.
+; VISIBLE (ruling 2026-09-27, Pass E "Bulwark penalty visibility", settling plan J's HIDDEN flag): a
+; player should see the penalty before attacking, not only in the roll breakdown. Carries its own
+; effect row (gear.buff_bulwark_penalty.effect, the card sentence verbatim) rather than falling back
+; to the core Kit's - attack_roll.gd:189 also draws buff_core.base.icon RAW into the roll breakdown,
+; which is why the icon below (reusing buff_rage_bulwark's own tint - one mechanic, one picture,
+; whichever side of it is asking) already covered both places before this flip.
 icon = ExtResource("2_icon")

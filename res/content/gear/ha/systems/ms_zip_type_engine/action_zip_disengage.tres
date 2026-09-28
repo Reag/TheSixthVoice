@@ -7,6 +7,14 @@
 
 ; DISENGAGE. FREE, its OWN usage group (the archetype's own reminder: a different group from the
 ; main action), no save. Its own glyph - the author asked that on and off differ at a glance.
+;
+; metatags = [deactivate] (Pass F Task 15, ruling 2026-09-27 "ZIP disengage and a forced
+; deactivate"): the sanctioned channel a Napoleon's Trueblack Aegis reads (action.gd METATAG
+; comment: "napoleon CP activates this") - action_activate_aegis.gd:22 fires any deactivate-tagged
+; action on a gear it is shutting down, and buff_trueblack_aegis_restrictions.gd:19 exempts it from
+; the Aegis' own action_forbidden lockdown. The Aegis already clears the chip directly regardless
+; (action_activate_aegis.gd:44-50, is_buff_prohibited); this closes the OTHER half - disengage no
+; longer reads FORBIDDEN under the restriction once it is up.
 [resource]
 script = ExtResource("2_clear")
 clear_buffs = Array[ExtResource("1_buff")]([ExtResource("3_chip")])
@@ -15,3 +23,4 @@ action_type = 3
 usage_group = &"zip_disengage"
 icon_override = ExtResource("4_icon")
 hide_if_disabled = true
+metatags = Array[StringName]([&"deactivate"])

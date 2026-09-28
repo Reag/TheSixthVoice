@@ -1498,6 +1498,11 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# rows. The helper's buff_overshield_granted_by and the +3 bonus buff are hidden and correctly absent.
 	&'buff_dread_harbinger_mark',
 	&'buff_doomed', # SP2 (Black Mountain): Fell the Mighty's mark, the Fell the Mighty family.
+	# Pass F Task 15 (Leoleth), ruling 2026-09-27 "Bulwark penalty visibility": VISIBLE on the
+	# hostile now - a player should see the penalty before attacking, not only in the roll
+	# breakdown. Moved out of HIDDEN_BUFFS_NEEDING_ICONS below; it already has an icon (shares
+	# buff_rage_bulwark's tint).
+	&'buff_bulwark_penalty',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -1886,11 +1891,6 @@ const HIDDEN_BUFFS_NEEDING_ICONS:Array[StringName] = [
 	# BuffBonus's difficulty-svg fallback never runs there and a null leaves a blank beside the -2.
 	# Its icon is SP5's, so this row is what makes this test deliberately red until then.
 	&'buff_aaaa_difficulty',
-	# SP1 Task 11 (Leoleth). Bulwark's penalty is hidden on each hostile, but attack_roll.gd:189 draws
-	# it in the roll breakdown regardless, from buff_core.base.icon RAW rather than through
-	# Buff.get_icon() - so BuffBonus's difficulty-svg fallback never runs there and a null leaves a
-	# blank beside the -1. Its icon is SP5's.
-	&'buff_bulwark_penalty',
 	# SP2 Task 2 (Purple Thorn). Trajectory Arc Mapper's +1 accuracy is hidden - the system card says
 	# it - but attack_roll.gd:189 draws it in the roll breakdown from buff_core.base.icon RAW, the 43
 	# As' case with the sign flipped. Its icon is SP5's.
