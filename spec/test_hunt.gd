@@ -21,7 +21,7 @@
 # available; a PASSED save does not. Both are pinned, because the two are the same absence of a move.
 #
 # THE TILE PICK IS A compcon_plan REQUEST, NOT reag_tile_set. Teleport.pick_tile goes through
-# TargetActionUtil.ask_for_targets_alt (teleport.gd:315), whose player branch is
+# TargetActionUtil.ask_for_targets_alt (teleport.gd pick_tile), whose player branch is
 # choice_bus.choose_compcon_plan (target_action_util.gd:200) -> create_request(TYPE.compcon_plan)
 # (choice_bus.gd:110-113). testkit/tile_set_answerer.gd filters on &'reag_tile_set' (:23) and is
 # irrelevant here. Answered the way test_step_of_mist_and_thunder.gd answers one:
@@ -143,7 +143,7 @@ func hunt_specific() -> SpecificAction:
 ## The tile set the picker was actually OFFERED - see this file's header for why the landing cannot
 ## stand in for it. UnitTargeting.get_tiles_targetable returns a targetable_tiles_override VERBATIM
 ## before any other filtering (unit_targeting.gd:68-74), and Teleport.pick_tile installs exactly such
-## an override carrying the caller's tiles (teleport.gd:302-307), so this reads back the array
+## an override carrying the caller's tiles (teleport.gd pick_tile), so this reads back the array
 ## destinations_beside built.
 func offered_tiles() -> Array[Vector2i]:
 	if responder.plan_prompts.is_empty(): return []
@@ -247,7 +247,7 @@ func test_a_size_two_target_is_only_offered_tiles_its_footprint_fits():
 	# DEPARTURE 8, pinned. UnitTile.filter_to_free_tiles - what the design named - takes no unit and
 	# no size (unit_tile.gd:605-610), so it would offer a size-2 target a tile its footprint cannot
 	# occupy. Teleport.candidate_tiles uses UnitTile.is_tile_standable with a solipsistic Katamari of
-	# the MOVER (teleport.gd:249-255), which reaches Occupation's bigunit_invalid_endpoint
+	# the MOVER (teleport.gd candidate_tiles), which reaches Occupation's bigunit_invalid_endpoint
 	# (pathfinder.gd:805-812) and is therefore size-aware.
 	#
 	# ASSERTED ON THE OFFERED SET, NOT ON THE LANDING - see this file's header. Nothing validates the
@@ -285,7 +285,7 @@ func test_no_free_tile_means_no_move_and_the_stamp_still_lands():
 	assert_true(stamped(target), 'But the save was forced and the stamp stands.')
 
 func test_cancelling_the_tile_pick_moves_nothing_and_the_stamp_stands():
-	# Teleport.pick_tile returns Tile.INVALID when the player cancels (teleport.gd:316-317), and a
+	# Teleport.pick_tile returns Tile.INVALID when the player cancels (teleport.gd pick_tile), and a
 	# cancel is NOT a refund: the invade hit, so the character is spent. Recorded as the reading
 	# rather than left to chance.
 	responder.abort_all = true

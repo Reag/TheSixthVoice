@@ -16,7 +16,7 @@
 #      (CompconPlan.create_aborted()) is the "cancelled pick" case.
 #   3. If that shot hits a hostile character while the chip is held (it is - the chip lands before
 #      the shot), the SAVE pops a d20, and on a FAIL Rend's PICK opens - a compcon_plan request in
-#      Rend's own name (Teleport.pick_tile, teleport.gd:300-324); responder.chosen_plan_queue,
+#      Rend's own name (Teleport.pick_tile); responder.chosen_plan_queue,
 #      CompconPlan.create([landing], [], []). The offered tiles are read back the way test_hunt.gd
 #      reads them: UnitTargeting.get_tiles_targetable on the prompt's `using`.
 #
@@ -168,6 +168,23 @@ func test_pressing_rend_spends_the_core_power_hangs_the_chip_and_fires_the_free_
 	assert_eq(hostile.current_damage(), 3, 'The free Skirmish fired the Nexus for its die.')
 	assert_eq(UnitAction.current_total(thorn), actions_before - 1,
 		'ONE action gone - Rend\'s own QUICK. The Skirmish cost nothing (AS_FREEBIE).')
+
+# Pass E item 3 as the author settled it (T6, 2026-09-27): the press already writes the engine's own
+# "used" line (spend_actions -> unit_action.gd:231-234 -> action.gd:132-137), so this PINS that line
+# rather than adding text. Read off the bus, test_thermal_death_axe.gd's pattern.
+func test_a_press_writes_the_used_line_to_the_battle_log():
+	Fixture.mount_pair(thorn, 0, Fixture.AUX_NEXUS)
+	var action_name := X.tr('gear.cp_lav_tactical_engine.action_rend.name')
+	assert_eq(action_name, 'Rend That which is Cruel and Unnatural', 'Fixture: the name resolves.')
+	var lines:Array[String] = []
+	var collect := func(text:String) -> void: lines.append(text)
+	Action.battle_log.on_log_text.connect(collect)
+	await press(hostile, SAVE_PASSES)
+	# UNCONDITIONAL, and before the assertions: the bus is an autoload that outlives this test.
+	if Action.battle_log.on_log_text.is_connected(collect): Action.battle_log.on_log_text.disconnect(collect)
+	assert_false(thorn.core.has_core_power, 'Guard: the press went through.')
+	assert_true(lines.any(func(text:String) -> bool: return text.contains(' used ') and text.contains(action_name)),
+		'The press announced itself in the battle log: %s' % [lines])
 
 func test_a_cancelled_weapon_pick_leaves_the_chip_and_the_spend():
 	Fixture.mount_pair(thorn, 0, Fixture.AUX_NEXUS)

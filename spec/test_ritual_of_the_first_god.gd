@@ -226,6 +226,63 @@ func test_the_teleport_reaches_fifty_without_line_of_sight_and_not_fifty_one():
 	assert_false(pathfinder.is_movable(Vector2i(53, 5)), '...and one 51 away is not.')
 	assert_eq(six_sky.tile(), Vector2i(52, 5), 'and the Six Sky lands there.')
 
+
+# ---------------------------------------------------------------- Safe Harbor (Sunzi, resident; open item A)
+## The gavstarb-ha_sunzi Safe Harbor buff is an ADDITIVE Buff.TO.MOVEMENT_RESTRICTION: while a teleporter is
+## within 50 of the Sunzi it merges the spaces beside the Sunzi into what Pathfinder.create may offer
+## (buff_safe_harbor.gd; pathfinder.gd:345-356). THE RULING PINNED HERE: it does not widen the Ritual's
+## Range 50, because the helper's pathfinder is built over an EXPLICIT tile set and generate_for_given_tiles filters
+## the result back down to it (pathfinder.gd:303-313), adds and all.
+##
+## DEAD IN THE SHIPPED SUNZI - mt_safe_harbor_sunzi.tres carries no actions - so the buff is hung by hand
+## from the Sunzi's own gear, which is what makes get_owner_unit resolve to the Sunzi. The positive
+## control proves the add is live for this very movement type before the ruling is asserted.
+##
+## WHAT IS ASSERTED IS THE OFFER - movable AND reachable, the latter being what the real move picker
+## accepts a click on (tilepicker_movement.gd:72, :101) - and NOT where a forced answer lands. The spec
+## responder hands back any tile it is told to, and the pathfinder's A* graph was built BEFORE the given-tile
+## filter, adds included, so a responder answering the added tile does land there (measured on this pin's
+## first run). No player can: the picker never offers it.
+const SAFE_HARBOR_BUFF_PATH := 'res://unpacked/gavstarb-ha_sunzi/res/content/frames/ha/mf_sunzi/mt_safe_harbor/buff_safe_harbor.tres'
+const SAFE_HARBOR_KIT := &'mt_safe_harbor_sunzi'
+
+func skipped_without_safe_harbor() -> bool:
+	if ResourceLoader.exists(SAFE_HARBOR_BUFF_PATH) and Kit.is_valid(ContentLibrary.get_kit(SAFE_HARBOR_KIT)): return false
+	var message := 'SKIPPED: %s is not resident, so there is no Safe Harbor to widen anything. Restore the residency set with restore-links.ps1.' % Fixture.SUNZI_MOD
+	gut.p(message)
+	pass_test(message)
+	return true
+
+## Hang Safe Harbor on `unit` from a Sunzi standing at `sunzi_tile`, as the Sunzi's own gear would.
+func give_safe_harbor(unit:Unit, sunzi_tile:Vector2i) -> void:
+	var sunzi := Fixture.create_ally(game, sunzi_tile)
+	var harbor := Fixture.equip(sunzi, SAFE_HARBOR_KIT)
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), unit, load(SAFE_HARBOR_BUFF_PATH), harbor)
+
+## True when a MOVEMENT_RESTRICTION buff on `unit` ADDS `tile` for the helper's teleport type - the read
+## Pathfinder.create makes, with the same context shape (pathfinder.gd:347).
+func movement_restriction_adds(unit:Unit, tile:Vector2i) -> bool:
+	var context := Context.create({unit = unit, resource = Fixture.Teleport.movement_type(unit)})
+	for core:BuffCore in UnitCondition.get_buffs_to(unit, Buff.TO.MOVEMENT_RESTRICTION, context):
+		var values := core.get_values(context)
+		if values.boolean and values.object is PackedInt64Array and Tile.in_bitwise_array(values.object, tile): return true
+	return false
+
+func test_safe_harbor_does_not_widen_the_teleport_past_fifty():
+	if skipped_without_safe_harbor(): return
+	UnitTile.move_to(six_sky, Vector2i(2, 5))
+	give_safe_harbor(six_sky, Vector2i(52, 5)) # 50 away, so the buff applies; (53, 5) beside it is 51
+	assert_true(movement_restriction_adds(six_sky, Vector2i(53, 5)),
+		'POSITIVE CONTROL: Safe Harbor is live and adds the space 51 away.')
+	await Fixture.press_ritual(game, six_sky)
+	var pickers := teleport_pickers()
+	assert_eq(pickers.size(), 1, 'The Ritual offers a teleport.')
+	if pickers.is_empty(): return
+	var pathfinder:Pathfinder = pickers.front().pathfinder
+	assert_true(pathfinder.is_movable(Vector2i(51, 5)), 'A space 49 away is still offered...')
+	assert_false(pathfinder.is_movable(Vector2i(53, 5)), 'RULED: ...and the one Safe Harbor adds, 51 away, is not.')
+	assert_false(pathfinder.is_reachable(Vector2i(53, 5)), '...nor reachable, which is what the picker accepts.')
+
 func test_a_cancelled_teleport_attacks_from_where_the_six_sky_stands():
 	var near := Fixture.create_dummy(game, NEAR)
 	await Fixture.press_ritual(game, six_sky, dice([HIT_PASSING]))

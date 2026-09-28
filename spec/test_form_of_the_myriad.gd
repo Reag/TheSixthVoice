@@ -199,6 +199,22 @@ func test_declining_the_confirm_costs_nothing() -> void:
 	await press([14], [plan_unit(contact)])
 	assert_false(knot.core.has_core_power, 'CONTROL: confirmed, it is spent.')
 
+# Pass E item 3 as the author settled it (T6, 2026-09-27): the press already writes the engine's own
+# "used" line (spend_actions -> unit_action.gd:231-234 -> action.gd:132-137), so this PINS that line
+# rather than adding text. Read off the bus, test_thermal_death_axe.gd's pattern.
+func test_a_press_writes_the_used_line_to_the_battle_log() -> void:
+	var action_name := X.tr('gear.cp_integrated_redirection_aggregate.action_form_of_the_myriad.name')
+	assert_eq(action_name, 'Form of the Myriad', 'Fixture: the name resolves.')
+	var lines:Array[String] = []
+	var collect := func(text:String) -> void: lines.append(text)
+	Action.battle_log.on_log_text.connect(collect)
+	await press([14], [plan_unit(contact)])
+	# UNCONDITIONAL, and before the assertions: the bus is an autoload that outlives this test.
+	if Action.battle_log.on_log_text.is_connected(collect): Action.battle_log.on_log_text.disconnect(collect)
+	assert_false(knot.core.has_core_power, 'Guard: the press went through.')
+	assert_true(lines.any(func(text:String) -> bool: return text.contains(' used ') and text.contains(action_name)),
+		'The press announced itself in the battle log: %s' % [lines])
+
 func test_the_chooser_offers_every_mounted_weapon_attack_and_honours_the_pick() -> void:
 	Fixture.equip(knot, Fixture.RANGED_2)
 	Fixture.equip(knot, Fixture.LINE)
@@ -357,6 +373,25 @@ func test_two_crits_in_one_myriad_attack_clear_two_heat_and_the_gate_returns_aft
 	assert_gt(contact.current_damage(), before, 'Guard: the second shot landed.')
 	assert_eq(Fixture.heat(knot), 2, 'Without the chip, the second crit this round clears nothing.')
 
+# Pass E (Lovers Knot item 1, AUTHOR: FIX): a vent under the chip does not count toward Precision
+# Venting's 1/round, so a crit later the SAME round - a reaction shot after the chip has gone - still
+# vents. The later shot is a freebie with no new turn: the Knot's round resets only at its own turn start.
+func test_a_vent_under_the_chip_leaves_the_round_for_a_later_crit_that_round() -> void:
+	Fixture.set_heat(knot, 3)
+	await press([20], [plan_unit(contact)])
+	assert_eq(Fixture.heat(knot), 2, 'Guard: the Myriad crit vented 1.')
+	assert_eq(Fixture.precision_venting_uses(knot), 0, 'A vent under the chip spends nothing of the round.')
+
+	await SpecFactory.end_turn(game, knot)
+	assert_false(chip_held(), 'Fixture: the chip ended with the Knot\'s turn.')
+	responder.chosen_yesnos = false # no redirect: one plain shot
+	var before := contact.current_damage()
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	Dice.cheat_attack([20], SIXES)
+	await SpecFactory.use_solo(game, knot, Fixture.RANGED, [contact], [Action.FLAG.AS_FREEBIE])
+	assert_gt(contact.current_damage(), before, 'Guard: the later shot landed.')
+	assert_eq(Fixture.heat(knot), 1, 'Its crit still vents: the round was never spent.')
+
 
 # ============ A SPENT GEMINI ROUND (ruling 19) ============
 
@@ -369,6 +404,77 @@ func test_a_spent_gemini_round_is_restored() -> void:
 	await press([14], [plan_unit(contact), plan_unit(c), CompconPlan.create_aborted()])
 	assert_eq(c.current_damage(), 3, 'The Myriad attack redirects all the same.')
 	assert_eq(Fixture.gemini_uses(knot), 1, 'And the round is spent again.')
+	await SpecFactory.end_turn(game, knot)
+	assert_false(chip_held(), 'Fixture: the chip is gone.')
+	assert_eq(Fixture.gemini_uses(knot), 1, 'Spent by the Myriad attack, so the chip\'s expiry does not stamp it twice.')
+
+# Ruling 19 as Pass E fixed it (Lovers Knot item 4, AUTHOR): the Myriad's turn keeps its two Geminis,
+# but a round the Myriad restored and then left unused is spent again when the chip expires - no extra
+# reaction Gemini later that round.
+func test_a_restored_gemini_round_is_spent_again_when_the_chip_expires() -> void:
+	Fixture.equip(knot, Fixture.RANGED_2) # two weapons, so the chooser is offered and can be cancelled
+	var b := dummy(NEAR_B)
+	await fire(contact, [14], [plan_unit(b)])
+	assert_eq(b.current_damage(), 3, 'Fixture: an earlier shot redirected.')
+	assert_eq(Fixture.gemini_uses(knot), 1, 'Fixture: Gemini\'s round is spent.')
+	await press([14], [], [null])
+	assert_true(chip_held(), 'Fixture: the chip is up, the Myriad attack cancelled.')
+	assert_eq(Fixture.gemini_uses(knot), 0, 'The Myriad restored the spent round for its turn.')
+	await SpecFactory.end_turn(game, knot)
+	assert_false(chip_held(), 'Fixture: the chip ended with the Knot\'s turn.')
+	assert_eq(Fixture.gemini_uses(knot), 1, 'The chip\'s expiry spends the restored round again.')
+
+# Pass F final review (vanilla bug, reports/2026-09-27-map-state-source-lookup.md): on_clear used to
+# find the core gear through MapState.get_gear_by_id, which returns null the moment ANY unit earlier
+# in the map's unit list than the Knot carries a buff with situational gear - the search stops at
+# that unit's buff loop and never reaches the Knot's own loadout. A decoy dummy is given a throwaway
+# situational-gear buff and pushed ahead of the Knot in the tree's unit list (the same technique
+# test_makibishi_magnets.gd's simulate_load_with_victim_first uses), with the source cache cleared as
+# it is after every load (map_state.gd:102). Fixed by reading the chip holder's own loadout directly
+# (buff_form_of_the_myriad.gd's on_clear), since the chip's holder IS the owner here.
+func test_the_chip_still_restamps_when_a_situational_gear_buff_precedes_the_knot_in_the_unit_list() -> void:
+	Fixture.equip(knot, Fixture.RANGED_2) # two weapons, so the chooser is offered and can be cancelled
+	var b := dummy(NEAR_B)
+	var decoy := dummy(NEAR_C)
+	# ANY buff with valid situational_gear trips the bug; its own compcon_id and semantics are unused -
+	# but it must be MANUAL (not END_OF_THIS_TURN, which the Knot's own turn end would clear it as too,
+	# hiding the trap before the chip's own on_clear ever runs). buff_makibishi_attached is MANUAL.
+	var decoy_buff:Buff = ContentLibrary.get_buff(&'buff_makibishi_attached')
+	var decoy_core := BuffCore.create(decoy_buff, &'')
+	decoy_core.situational_gear = GearCore.create_from_id(Fixture.RANGED)
+	decoy.state.buffs.append(decoy_core)
+
+	await fire(contact, [14], [plan_unit(b)])
+	assert_eq(b.current_damage(), 3, 'Fixture: an earlier shot redirected.')
+	assert_eq(Fixture.gemini_uses(knot), 1, 'Fixture: Gemini\'s round is spent.')
+	await press([14], [], [null])
+	assert_true(chip_held(), 'Fixture: the chip is up, the Myriad attack cancelled.')
+	assert_eq(Fixture.gemini_uses(knot), 0, 'Fixture: the Myriad restored the spent round for its turn.')
+
+	# Push the decoy ahead of the Knot in the tree's own unit list, and clear the source cache the
+	# way a load leaves it (map_state.gd:102) - the same reordering test_makibishi_magnets.gd uses.
+	var tree_units = game.map_node.units
+	tree_units.erase(knot)
+	tree_units.append(knot)
+	game.map.update_unit_tile_tracking(game.map_node.get_all_units_in_tree())
+	game.map.cached_source_to_unit.clear()
+	var order:Array = game.map.all_units.keys()
+	assert_lt(order.find(decoy.core.persistent_id), order.find(knot.core.persistent_id), 'fixture: the decoy is listed first.')
+	assert_null(game.map.get_gear_by_id(Fixture.core_gear(knot).persistent_id),
+		'Guard: this alone reproduces the vanilla bug - the engine\'s own lookup finds nothing.')
+
+	await SpecFactory.end_turn(game, knot)
+	assert_false(chip_held(), 'Fixture: the chip ended with the Knot\'s turn.')
+	assert_eq(Fixture.gemini_uses(knot), 1, 'The chip\'s expiry still re-stamps the round, despite the decoy.')
+
+func test_a_myriad_turn_with_no_earlier_gemini_leaves_the_round_open() -> void:
+	Fixture.equip(knot, Fixture.RANGED_2)
+	await press([14], [], [null])
+	assert_true(chip_held(), 'Fixture: the chip is up.')
+	assert_eq(Fixture.gemini_uses(knot), 0, 'Fixture: no Gemini this round.')
+	await SpecFactory.end_turn(game, knot)
+	assert_false(chip_held(), 'Fixture: the chip ended with the Knot\'s turn.')
+	assert_eq(Fixture.gemini_uses(knot), 0, 'CONTROL: nothing was restored, so nothing is spent at expiry.')
 
 
 # ============ EFFICIENT (ruling 17) ============

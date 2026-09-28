@@ -1,0 +1,15 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_grit_latch_magnets/action_reinforcement_blast_age.gd" id="1_age"]
+
+; Pass F T11b: ages the Reinforcement Blast pair on drones no unit owns, at the Fitzgerald's turn
+; start, so the engine's END_OF_OWNERS_NEXT_TURN clear reaches them (the script's header has why).
+; new_turn / PRE (trigger_timing 0 is ReactionBus.TIMING.PRE), point-free, hidden via the script's
+; show_in_tooltip. Its own usage_group, so it never shares a tally with the blast (it spends nothing
+; anyway: no spend_actions call).
+[resource]
+script = ExtResource("1_age")
+triggers_on = Array[StringName]([&"new_turn"])
+trigger_timing = 0
+consumes_rxn = false
+usage_group = &"reinforcement_blast_age"

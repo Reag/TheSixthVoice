@@ -140,14 +140,25 @@ func test_it_cannot_be_pressed_twice_in_a_scene() -> void:
 	assert_false(Fixture.is_doomed(second), 'The spent core power refuses the second press.')
 
 func test_it_targets_a_hostile_character_within_sensors_and_line_of_sight_only() -> void:
+	# A drone IS a character (Pass A) and the author ruled it takes Fell the Mighty (Pass F T14): the
+	# shared CharacterTarget helper lifts vanilla's is_actor() refusal (action_system_apply_buff.gd:64)
+	# for drones only. "Hostile" still binds a drone: an allied one is refused.
 	var drone := Fixture.create_drone(game, HOSTILE_B_TILE, Faction.AI_ENEMY)
+	var friendly_drone := Fixture.create_drone(game, BM_B_TILE, Faction.PLAYER)
 	var far := Fixture.create_hostile(game, FAR_HOSTILE_TILE)
 	var tiles := targetable()
 	assert_has(tiles, hostile.tile(), 'A hostile character within Sensors and LOS.')
 	assert_does_not_have(tiles, ally.tile(), 'Not an ally.')
 	assert_does_not_have(tiles, black_mountain.tile(), 'Not itself.')
-	assert_does_not_have(tiles, drone.tile(), 'Not a drone.')
+	assert_has(tiles, drone.tile(), 'A hostile drone: a drone is a character (T14).')
+	assert_does_not_have(tiles, friendly_drone.tile(), 'Not an allied drone: still "hostile".')
 	assert_does_not_have(tiles, far.tile(), 'Not beyond Sensors.')
+
+func test_it_dooms_a_hostile_drone() -> void:
+	var drone := Fixture.create_drone(game, HOSTILE_B_TILE, Faction.AI_ENEMY)
+	await doom(drone)
+	assert_true(Fixture.is_doomed(drone), 'The drone is DOOMED (T14).')
+	assert_false(Fixture.has_core_power(black_mountain), 'And the core power is spent on it.')
 
 func test_it_cannot_target_a_hostile_out_of_line_of_sight() -> void:
 	Fixture.raise_wall(game, WALL)

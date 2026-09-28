@@ -1,0 +1,10 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/onhit_gemini_one_attack.gd" id="1_onhit"]
+
+; The Knot's one-time roll buffs, set aside per target and consumed once after the attack (task 11c).
+; apply_on is ON_RESOLUTION (4) so the base class never applies statuses or buffs of its own: the work
+; is all in the script's on_attack and on_resolution overrides.
+[resource]
+script = ExtResource("1_onhit")
+apply_on = 4

@@ -33,7 +33,7 @@ const OUR_INDEXES:Array[StringName] = [&'frames', &'kits', &'buffs', &'licenses'
 ## every commit. The number itself is not decided here: specs/2026-09-13-sixth-voice-roadmap.md §2
 ## is the source of truth for which release is current, and this const is just that number copied
 ## into a place a spec can see it.
-const EXPECTED_VERSION := '1.2.0'
+const EXPECTED_VERSION := '1.3.0'
 
 func test_the_mod_is_actually_loaded():
 	# Everything below passes vacuously if the mod did not install, so this is the gate.
@@ -383,7 +383,7 @@ const REND_AXE_LOCALIZATION_ROWS:Array[String] = [
 	# (translate.gd:73-76), which is right for the ordinary swing - one card, one name - and wrong the
 	# moment there are two buttons, because both would then read "Rend Axe". Vanilla-adjacent
 	# precedent in this same file: gear.mw_bizarre_cannon.action_more_black_powder.name is
-	# "Bizarre Cannon (More Black Powder)" for exactly this reason.
+	# "BIZARRE CANNON (More Black Powder)" for exactly this reason.
 	'gear.mw_rend_axe.action_rend_axe_free.name',
 	'gear.mw_rend_axe.action_rend_axe_free.effect',
 ]
@@ -435,7 +435,7 @@ const ICON_TARGETS := {
 	# Kit's glyph directly (a KIT row below) rather than sharing a named family.
 	&'cp_broadside': {&'action_more_black_powder_protocol': &'action_more_black_powder'},
 	# The two CANNON PROFILES moved to their own Kit at the frame close, so the character sheet
-	# titles the integrated-weapon box "Bizarre Cannon" instead of "Broadside"
+	# titles the integrated-weapon box "BIZARRE CANNON" instead of "Broadside"
 	# (weapon_mount_item.gd:101 reads the KIT's name). See test_integrated_weapon_names.gd.
 	# action_bizarre_cannon is the Kit's own base profile and wore action_bizarre_cannon.svg a
 	# second time via its own icon_override - one texture written twice under a family name equal
@@ -1498,6 +1498,11 @@ const VISIBLE_BUFFS:Array[StringName] = [
 	# rows. The helper's buff_overshield_granted_by and the +3 bonus buff are hidden and correctly absent.
 	&'buff_dread_harbinger_mark',
 	&'buff_doomed', # SP2 (Black Mountain): Fell the Mighty's mark, the Fell the Mighty family.
+	# Pass F Task 15 (Leoleth), ruling 2026-09-27 "Bulwark penalty visibility": VISIBLE on the
+	# hostile now - a player should see the penalty before attacking, not only in the roll
+	# breakdown. Moved out of HIDDEN_BUFFS_NEEDING_ICONS below; it already has an icon (shares
+	# buff_rage_bulwark's tint).
+	&'buff_bulwark_penalty',
 ]
 
 func test_every_player_facing_kit_and_action_has_a_real_icon():
@@ -1886,11 +1891,6 @@ const HIDDEN_BUFFS_NEEDING_ICONS:Array[StringName] = [
 	# BuffBonus's difficulty-svg fallback never runs there and a null leaves a blank beside the -2.
 	# Its icon is SP5's, so this row is what makes this test deliberately red until then.
 	&'buff_aaaa_difficulty',
-	# SP1 Task 11 (Leoleth). Bulwark's penalty is hidden on each hostile, but attack_roll.gd:189 draws
-	# it in the roll breakdown regardless, from buff_core.base.icon RAW rather than through
-	# Buff.get_icon() - so BuffBonus's difficulty-svg fallback never runs there and a null leaves a
-	# blank beside the -1. Its icon is SP5's.
-	&'buff_bulwark_penalty',
 	# SP2 Task 2 (Purple Thorn). Trajectory Arc Mapper's +1 accuracy is hidden - the system card says
 	# it - but attack_roll.gd:189 draws it in the roll breakdown from buff_core.base.icon RAW, the 43
 	# As' case with the sign flipped. Its icon is SP5's.
@@ -1932,6 +1932,50 @@ func test_the_mod_reports_what_it_contributed():
 		var count:int = ModResources.our_paths_in(MOD_ID, index_name).size()
 		gut.p('  %-10s %d' % [index_name, count])
 		assert_gt(count, 0, '%s has at least one of ours in the %s index.' % [MOD_ID, index_name])
+
+const ARMOR_STATBLOCK_SCRIPT := 'res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/armor/buff_armor_statblock.gd'
+const ARMOR_REDUCTION_SCRIPT := 'res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/armor/buff_armor_reduction.gd'
+## The damage types real armour reduces - never HEAT or BURN (buff_armor_reduction.gd's header, "WHY
+## damage_types IS SPELLED OUT").
+const ARMOR_DAMAGE_TYPES:Array[int] = [Lancer.DAMAGE_TYPE.KINETIC, Lancer.DAMAGE_TYPE.ENERGY, Lancer.DAMAGE_TYPE.EXPLOSIVE]
+## Pairs this mod ships today. A floor, not an exact count: a new armour grant raises it deliberately,
+## and a sweep that silently found nothing (a moved script, a renamed folder) fails here instead.
+const ARMOR_PAIRS_AT_LEAST := 4
+
+func test_every_armor_grant_is_a_matching_statblock_and_reduction_pair():
+	# Close-out Pass F Task 21. An armour grant is TWO buffs (the shared armor/ folder's headers): a
+	# visible STATBLOCK half that reduces nothing, and a hidden RESIST_DAMAGE half that does the work.
+	# The two must carry the same `until` and the same amount, or the mechanic tears in half - a chip
+	# with no reduction behind it, or damage quietly going missing with no chip. Each consumer pairs
+	# them by NAME: <buff>.tres and <buff>_reduction.tres beside it (buff_rapid_rushdown_armor /
+	# buff_rapid_rushdown_armor_reduction, buff_reinforcement_blast / buff_reinforcement_blast_reduction).
+	var statblocks := {}
+	var reductions := {}
+	for buff:Buff in ModResources.load_ours(MOD_ID, &'buffs'):
+		var script:Script = buff.get_script()
+		if script == null: continue
+		if script.resource_path == ARMOR_STATBLOCK_SCRIPT: statblocks[buff.resource_path] = buff
+		elif script.resource_path == ARMOR_REDUCTION_SCRIPT: reductions[buff.resource_path] = buff
+
+	for path:String in reductions:
+		var display_path := path.trim_suffix('_reduction.tres') + '.tres'
+		assert_true(statblocks.has(display_path), '%s has its display half %s.' % [path, display_path])
+
+	var pairs := 0
+	for path:String in statblocks:
+		var reduction_path := path.get_basename() + '_reduction.tres'
+		assert_true(reductions.has(reduction_path), '%s has its reduction half %s.' % [path, reduction_path])
+		if not reductions.has(reduction_path): continue
+		pairs += 1
+		var display:Buff = statblocks[path]
+		var reduction:Buff = reductions[reduction_path]
+		assert_eq(reduction.until, display.until, '%s: both halves share one `until`.' % path.get_file())
+		assert_eq(int(reduction.reduction_amount), display.armor_amount,
+			'%s: the reduction is the armour number the chip shows.' % path.get_file())
+		var types:Array = Array(reduction.damage_types)
+		types.sort()
+		assert_eq(types, Array(ARMOR_DAMAGE_TYPES), '%s: the reduction covers exactly the damage types armour reduces.' % path.get_file())
+	assert_gte(pairs, ARMOR_PAIRS_AT_LEAST, 'The sweep found every armour pair this mod ships (%d).' % pairs)
 
 ## An icon has to exist AND not be a stand-in. Shared by the kit, action and buff guards.
 func _assert_real_icon(icon:Texture2D, label:String) -> void:

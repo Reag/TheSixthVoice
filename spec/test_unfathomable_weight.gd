@@ -19,6 +19,7 @@ extends GutTest
 
 const Fixture := preload('res://unpacked/Reag-TheSixthVoice/spec/shackleton_fixture.gd')
 const PromptWatcher := preload('res://testkit/prompt_watcher.gd')
+const UnfathomableWeight := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/cp_force_distribution_programs/action_unfathomable_weight.gd')
 
 const SHACKLETON_TILE := Vector2i(5, 5)
 const TARGET_TILE := Vector2i(7, 5)
@@ -97,23 +98,24 @@ func test_a_hostile_outside_the_burst_is_untouched() -> void:
 	await press()
 	assert_eq(far.tile(), Vector2i(8, 5), 'Burst 1 from the footprint stops at x = 7.')
 
-## A FLIER IS NOT EXEMPTED - IT IS OUT OF THE AREA. SP2 ruling, 2026-09-24, departing from the design's
-## test list ("a flying hostile pushed"): the engine's BURST is three-dimensional. UnitTile.get_aoe_tiles
-## drops every tile whose occupant the origin cannot touch elevationwise within the burst's value
-## (unit_tile.gd:368-372 -> can_unit_touch_tile_elevationwise, which reads the TARGET UNIT's floor and
-## height at :281-284), and a Flying unit hovers above a Burst 1's reach. Every vanilla burst measures
-## the same way, so the card's "Burst 1 area" is the engine's. The code carries no flying clause either
-## way; this pins what the geometry does, and the tile test is the discriminator - the flier is
-## untouched BECAUSE its tile is not in the area, not because anything skipped it.
-func test_a_flier_above_the_bursts_reach_is_not_in_the_area() -> void:
+## THE BURST IS FLAT: A FLIER ABOVE IT IS IN THE AREA. Pass E ruling, 2026-09-27 (the author, settling
+## the SP2 row that pinned the opposite): the card has no flying clause and "a Burst 1 area around you"
+## reads flat. The engine's UnitTile.get_aoe_tiles is three-dimensional - it drops every tile whose
+## occupant the origin cannot touch elevationwise within the burst's value (unit_tile.gd:367-372), and
+## a Flying unit's +3 hovers above a Burst 1 - so the action measures with flat_burst (RangePattern's
+## 2-D footprint) instead. The tile test is the discriminator: the flier is pushed BECAUSE its tile is
+## in the area, and the engine's own 3-D burst is asserted to exclude it, so the test fails if the
+## action ever goes back to that.
+func test_a_flier_above_the_burst_is_in_the_area_and_pushed() -> void:
 	var flier := Fixture.create_dummy(game, TARGET_TILE)
 	await make_flying(flier)
 	assert_true(flier.has_status(Lancer.STATUS.FLYING), 'precondition: it flies.')
-	var tiles := UnitTile.get_aoe_tiles(shackleton, Lancer.AOE_TYPE.BURST, 1)
-	assert_false(tiles.has(TARGET_TILE), "the engine's Burst 1 does not reach it.")
+	assert_false(UnitTile.get_aoe_tiles(shackleton, Lancer.AOE_TYPE.BURST, 1).has(TARGET_TILE),
+		"precondition: the engine's 3-D Burst 1 does not reach it.")
+	assert_true(UnfathomableWeight.flat_burst(shackleton, 1).has(TARGET_TILE), 'the flat Burst 1 does.')
 	var from := await press([true], [PUSHED_TILE])
-	assert_eq(Fixture.offered_pools(watcher, from).size(), 0, 'so no push is offered.')
-	assert_eq(flier.tile(), TARGET_TILE)
+	assert_eq(Fixture.offered_pools(watcher, from).size(), 1, 'so its push is offered.')
+	assert_eq(flier.tile(), PUSHED_TILE, 'and taken.')
 
 func test_a_knockback_immune_hostile_is_untouched() -> void:
 	var target := Fixture.create_dummy(game, TARGET_TILE)
@@ -173,10 +175,9 @@ func test_every_collision_in_one_shockwave_is_offered() -> void:
 	Fixture.create_dummy(game, Vector2i(2, 6))
 	Dice.CHEAT_ROLL_QUEUE.assign([FAIL, FAIL])
 	# The answers follow the action's own order, read from its own statics.
-	var weight_script = load('res://unpacked/Reag-TheSixthVoice/res/content/frames/ipsn/mf_shackleton/cp_force_distribution_programs/action_unfathomable_weight.gd')
-	var targets:Array[Unit] = weight_script.hostile_characters_in(shackleton,
-		UnitTile.get_aoe_tiles(shackleton, Lancer.AOE_TYPE.BURST, 1))
-	weight_script.farthest_first(shackleton, targets)
+	var targets:Array[Unit] = UnfathomableWeight.hostile_characters_in(shackleton,
+		UnfathomableWeight.flat_burst(shackleton, 1))
+	UnfathomableWeight.farthest_first(shackleton, targets)
 	assert_eq(targets.size(), 2, 'fixture: both hostiles are in the burst, the blockers are not.')
 	var moves:Array[Vector2i] = []
 	for target:Unit in targets: moves.append(SHORT_TILE if target == east else Vector2i(3, 6))

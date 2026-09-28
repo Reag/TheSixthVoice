@@ -2,7 +2,8 @@
 #
 # Roadmap 4: a shared helper is born with its first consumer, in its own sub-folder, with its own
 # specs, and its interface is frozen the moment that sub-project ships. Design ruling 20 names the
-# five functions; the Black Mountain is the consumer-to-come. test_the_frozen_interface_pins_these_five_signatures
+# five functions; the Black Mountain and the Koremasa's Slash have since consumed them.
+# test_the_frozen_interface_pins_these_five_signatures
 # is the guard, and pins the whole signature - names, argument names and types, return types, static.
 #
 # The two measured facts the helper's header records (probe spec/test_spike_naga_sp1_seams.gd) are
@@ -245,6 +246,34 @@ func test_apply_refuses_invalid_arguments():
 	assert_false(Lockon.apply(dummy(), other, null), 'A null gear is refused.')
 	assert_false(other.has_status(Lancer.STATUS.LOCKON), 'And nothing was applied.')
 	assert_false(Lockon.apply(dummy(), null, lock_gear()), 'A null target is refused.')
+	assert_false(other.has_status(Lancer.STATUS.LOCKON), 'And still nothing was applied.')
+
+func test_apply_with_a_null_event_locks_on_a_stand_in_carrier():
+	# Close-out Pass F Task 21: a NULL EVENT is not refused - with a level live it applies on a
+	# stand-in carrier (the dummy-event shape) and queues no statuses_changed reactions; it does NOT
+	# run on the level's block as Overshield._fire, Teleport._run and Terrain.lay do. Before the guard
+	# apply_status reached on_status_application's event.queue_reaction_events on a null event.
+	# (Split out of the refusals test above in Pass F task 23: this is the success case.)
+	var other := NagaFixture.create_hostile(game, OTHER_TILE)
+	assert_not_null(X.current_level(), 'fixture: a level is live.')
+	assert_true(Lockon.apply(null, other, lock_gear()), 'A null event with a live level locks.')
+	assert_eq(Lockon.source_of(other), lock_gear().persistent_id, 'Sourced to the gear as usual.')
+
+func test_apply_with_a_null_event_and_no_level_is_refused():
+	# The other half of the null-event branch (lockon.gd: `if X.current_level() == null: return false`).
+	# X.current_level() is the last node in the 'Level' group, so taking every one out of the group for
+	# the length of the call is exactly "no level" - and they go straight back, so the reused
+	# gamemaster is untouched for the next test.
+	var other := NagaFixture.create_hostile(game, OTHER_TILE)
+	var levels:Array[Node] = get_tree().get_nodes_in_group(&'Level')
+	for level:Node in levels: level.remove_from_group(&'Level')
+	var no_level := X.current_level() == null
+	var applied := Lockon.apply(null, other, lock_gear())
+	for level:Node in levels: level.add_to_group(&'Level')
+	assert_true(no_level, 'fixture: with the group emptied, there is no current level.')
+	assert_false(applied, 'A null event with no level is refused.')
+	assert_false(other.has_status(Lancer.STATUS.LOCKON), 'And nothing was applied.')
+	assert_not_null(X.current_level(), 'fixture: the level is back for the next test.')
 
 func test_source_of_follows_a_real_lock_and_its_consume():
 	assert_eq(Lockon.source_of(hostile), &'', 'Unlocked reads empty.')

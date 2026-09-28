@@ -149,6 +149,32 @@ func test_every_alt_frame_reaches_its_licence():
 		assert_has(granted, entry.frame,
 			'%s grants %s at rank %d.' % [license_id, entry.frame, entry.rank])
 
+## THE REVERSE GUARD (Pass F task 20). The test above proves every ALT_FRAMES licence is declared;
+## nothing proved every .tres_ext.gd ON DISK is. One that is not declared is never applied by
+## apply_resource_extensions_directly() and never erased from the shared queue, so it falls back to
+## the engine's queue and loses the merge coin toss (mod_main.gd:98-109) - and is not retained.
+const MOD_RES := 'res://unpacked/Reag-TheSixthVoice/res'
+
+func test_every_resource_extension_on_disk_is_declared():
+	var declared:Array[String] = []
+	for path:String in load(OUR_MOD_MAIN).get_script_constant_map().get('EXTENDED_RESOURCES', []):
+		declared.append(load(OUR_MOD_MAIN).extension_script_path_for(path))
+	var on_disk := _files_ending_with(MOD_RES, '.tres_ext.gd')
+	assert_gt(on_disk.size(), 0, 'The walk found extensions, so an empty loop is not a pass.')
+	for extension:String in on_disk:
+		assert_has(declared, extension, '%s is keyed in mod_main.EXTENDED_RESOURCES.' % extension)
+	for extension:String in declared:
+		assert_has(on_disk, extension, 'EXTENDED_RESOURCES names %s, and it exists.' % extension)
+
+func _files_ending_with(dir_path:String, suffix:String) -> Array[String]:
+	var found:Array[String] = []
+	var dir := DirAccess.open(dir_path)
+	if dir == null: return found
+	for sub:String in dir.get_directories(): found.append_array(_files_ending_with(dir_path.path_join(sub), suffix))
+	for file:String in dir.get_files():
+		if file.ends_with(suffix): found.append(dir_path.path_join(file))
+	return found
+
 func test_no_licence_is_renamed_by_what_we_add_to_it():
 	# UnlockTree.license_name reads rank_2.granted_frames.FRONT(), so whichever frame sits first
 	# names the licence everywhere the UI shows it. Appending an alt is safe; inserting at the front

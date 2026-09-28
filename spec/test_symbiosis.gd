@@ -21,7 +21,7 @@
 #     buff_symbiosis            POST   unit_action -> stamp extra_spent when the SECOND point goes
 #                                      new_turn    -> cap back to max-1 while the stamp is set
 #                                      new_round   -> clear the stamp
-#     buff_symbiosis_exclusion  PRE    unit_action -> abort an excluded reaction taken as the second
+#     buff_symbiosis_exclusion  -      ACTION_FORBIDDEN -> hide an excluded reaction as the second
 #     buff_symbiosis_extra_use  -      +1 to a reaction's per-round hard limit while the stamp is unset
 #
 # THE THIRD ONE IS SP2.5 TASK 1, AND IT IS A DIFFERENT KIND OF BUFF. The first two live entirely in
@@ -110,6 +110,21 @@ const FREE_PLAIN := &'symbiosis_spec_free_plain'  # a naturally FREE ordinary ac
 class SpecReaction extends ActionReaction:
 	var armed := false
 	var fired := 0
+	## How many times the bus turned this reaction into an event_gear_activate - the block that raises
+	## the player's prompt. ReactionBus.trigger_occurred reads get_priority() at exactly one place,
+	## the EventBlock.create for a reaction that passed does_reaction_trigger (reaction_bus.gd:54-59),
+	## and does_reaction_trigger asks UnitAction.can_activate_gear first (:121). So an armed reaction
+	## that reached 0 here was never offered at all, which is what a hidden offer means end to end.
+	##
+	## NOT COUNTED IN triggers_on_event: with X.DEBUG_REACTION at its default &'' (global.gd:239) and
+	## this reaction's id also empty, the bus's debug branch (reaction_bus.gd:106-115) calls
+	## triggers_on_event at every timing of every trigger, gate or no gate. Measured: 3 calls with the
+	## offer made, 2 with it hidden - a count that says nothing.
+	var offered := 0
+
+	func get_priority() -> int:
+		if armed: offered += 1
+		return super()
 
 	func get_required_triggering_context() -> Array[Context.PROP]:
 		return []
@@ -170,23 +185,15 @@ var quick:SpecQuick
 var rxn_nonconsuming:SpecReaction
 var free_action:SpecFreeAction
 
-var log_lines:PackedStringArray = []
-var battle_log:BattleLogBus = load('res://ui/component/battle_log/battle_log_bus.tres')
-
 func before_each() -> void:
 	game = MyconidFixture.create_game(self)
 	myconid = MyconidFixture.create_myconid(game, MYCONID_TILE)
 	dummy = MyconidFixture.create_dummy(game, DUMMY_TILE, 10)
 	install_spec_gear()
 	UnitAction.every_new_turn_refresh(myconid)
-	log_lines = []
-	battle_log.on_log_text.connect(_record_log)
 
 func after_each() -> void:
-	if battle_log.on_log_text.is_connected(_record_log): battle_log.on_log_text.disconnect(_record_log)
 	Dice.CHEAT_ROLL_QUEUE.clear()
-
-func _record_log(line:String) -> void: log_lines.append(line)
 
 # ---------------------------------------------------------------- fixture helpers
 
@@ -597,10 +604,10 @@ func test_a_one_per_scene_reaction_is_refused_as_the_second_reaction():
 	assert_eq(rxn_scene.fired, 0, 'The 1/scene reaction did not happen.')
 
 func test_the_refused_reaction_spends_no_usage_and_no_reaction_point():
-	# The refusal has to be an ABORT, not a no-op body: event_gear_activate.gd:100-104 gates the POST
-	# on the usage having moved, and a refusal that still billed the point would be strictly worse for
-	# the player than not having the trait. The ROUND counter is what that gate reads, so it is the
-	# one asserted here.
+	# The refusal must not be a no-op body: a refusal that still billed the point would be strictly
+	# worse for the player than not having the trait. Since Pass F (T21) the reaction is never offered
+	# at all (test_a_spent_scene_reaction_is_not_offered), and this pins the ruling's "the player
+	# loses nothing: point and usage are not spent". The ROUND counter is the usage asserted here.
 	await react_with(rxn_a)
 	var points_before:int = reactions_left()
 	await react_with(rxn_scene)
@@ -642,18 +649,14 @@ func test_after_the_cap_the_ordinary_reaction_may_still_be_one_per_scene():
 	assert_true(extra_spent(), 'fixture: the round extra has gone.')
 	await SpecFactory.start_turn(game, dummy)
 	assert_eq(reactions_left(), 1, 'fixture: the cap left one point, and none of it is spent yet.')
-	log_lines = []
 	await react_with(rxn_scene)
+	assert_eq(rxn_scene.offered, 1, 'The 1/scene reaction was offered: nothing hid it.')
 	assert_eq(rxn_scene.fired, 1, 'The turn first reaction is the ordinary allowance, 1/scene or not.')
 	assert_eq(uses_this_round(RXN_SCENE), 1, 'And its usage counter moved, so it really activated.')
-	var refused := false
-	for line:String in log_lines:
-		if line.contains('Symbiosis'): refused = true
-	assert_false(refused, 'And nothing was refused in the battle log: %s' % [log_lines])
 
 func test_a_non_consuming_reaction_is_neither_refused_nor_stamped():
-	# The gate's FIRST clause is action.consumes_reaction() (buff_symbiosis_exclusion.gd:101) - the
-	# action here is present and real, its consumes_reaction() just returns false, so this is a real
+	# The gate's FIRST clause is action.consumes_reaction()
+	# (buff_symbiosis_exclusion.gd, check_if_passive_applies) - the action here is present and real, its consumes_reaction() just returns false, so this is a real
 	# clause doing real work, not a vacuous one. Everything else about this reaction is built to fail
 	# the OTHER clauses the ordinary way: uses_per_scene = 1 makes is_excluded() true, and it fires as
 	# the Myconid's SECOND reaction of the turn (current.reactions == max - 1, the round's extra still
@@ -671,13 +674,8 @@ func test_a_non_consuming_reaction_is_neither_refused_nor_stamped():
 	await react_with(rxn_a)
 	assert_eq(reactions_left(), reactions_max() - 1,
 		'fixture: the ordinary reaction has been taken, one point short of the max.')
-	log_lines = []
 	await react_with(rxn_nonconsuming)
 	assert_eq(rxn_nonconsuming.fired, 1, 'The non-consuming reaction fired normally, not refused.')
-	var refused := false
-	for line:String in log_lines:
-		if line.contains('Symbiosis'): refused = true
-	assert_false(refused, 'And no Symbiosis refusal reached the battle log: %s' % [log_lines])
 	assert_false(extra_spent(), 'Not stamped as the extra: a non-consuming reaction spends no point.')
 	assert_eq(reactions_left(), reactions_max() - 1,
 		'And the reaction point count is unchanged from before this reaction.')
@@ -902,16 +900,18 @@ func test_the_extra_use_is_gone_on_the_next_round():
 	await gyre_at(second)
 	assert_eq(gyre_uses_this_round(), 2, 'And the extra is available again in the new round.')
 
-func test_the_refusal_writes_a_battle_log_line_naming_symbiosis():
-	# Without this the refusal reads as the activation simply not happening, which in play is
-	# indistinguishable from a bug. Asserted on the rendered line rather than on the key, so it also
-	# pins that the CSV row exists and reached the compiled artifact. The veto itself is asserted
-	# alongside, so the line can never be pinned by a run in which the reaction went through anyway.
+func test_a_spent_scene_reaction_is_not_offered():
+	# T21 (Pass F): the excluded reaction is HIDDEN, not offered and then refused. The ruling: "the
+	# player loses nothing: point and usage are not spent" - so there is nothing to explain in the
+	# battle log either, and the old refusal row is gone. Asserted at both ends: the engine's own
+	# availability gate, and the reaction bus never asking the reaction at all.
+	var gear:GearCore = myconid.get_gear(RXN_SCENE)
+	var specific := SpecificAction.create(myconid, gear, rxn_scene)
+	assert_true(UnitAction.can_activate_gear(specific), 'fixture: offered as the FIRST reaction.')
 	await react_with(rxn_a)
-	log_lines = []
+	assert_false(UnitAction.can_activate_gear(specific), 'As the extra, the gear is unavailable.')
+	assert_eq(UnitAction.get_gear_unavailable_reason(specific), UnitAction.REASON.FORBIDDEN,
+		'Refused by the ACTION_FORBIDDEN buff, not by some other gate.')
 	await react_with(rxn_scene)
+	assert_eq(rxn_scene.offered, 0, 'The bus never offered the 1/scene reaction.')
 	assert_eq(rxn_scene.fired, 0, 'The 1/scene reaction did not happen.')
-	var named := false
-	for line:String in log_lines:
-		if line.contains('Symbiosis'): named = true
-	assert_true(named, 'The battle log says why the reaction was refused: %s' % [log_lines])

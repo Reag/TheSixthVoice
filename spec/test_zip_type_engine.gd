@@ -389,6 +389,120 @@ func test_a_real_system_movement_action_teleports_and_heats():
 	assert_eq(leoleth.tile(), TWO_EAST, 'The dash landed where the responder chose.')
 	assert_eq(leoleth.core.current.heat, heat + 1, 'THE SEAM END TO END: one heat for the tagged teleport.')
 
+# ---------------------------------------------------------------- compat: the Trueblack Aegis (Pass F Task 15)
+
+## Ruling 2026-09-27 "ZIP disengage and a forced deactivate": a Napoleon's Trueblack Aegis
+## (content/frames/ha/mf_napoleon/cp_trueblack_aegis/, base game, read-only) switches ZIP off.
+## Equipped here for the seam only - the Leoleth is not a Napoleon, but nothing in
+## action_activate_aegis.gd cares who is holding the core power.
+##
+## CORRECTED 2026-09-28 (review fix #1): the paragraph this replaced claimed the blanket clear at
+## action_activate_aegis.gd:44-50 was what dropped the chip "metatag or not", and called the
+## metatag-only restriction test "no metatag involved". Both were wrong about WHICH loop actually
+## runs. action_activate_aegis.gd:13-29 runs FIRST, not the blanket clear: it collects every gear
+## whose buff is_buff_prohibited (:55-79, true for the ZIP chip - see below) into
+## discovered_activated_gear, then for each of ITS actions carrying METATAG.deactivate, fires a REAL
+## event_gear_activate(AS_FREEBIE) (:22-28). Before this task, action_zip_disengage.tres carried no
+## such metatag, so that loop skipped it and the LATER blanket clear (:44-50) was genuinely what
+## dropped the chip, silently. Now that the metatag exists, the FIRST loop finds it and fires the
+## real disengage action - the blanket clear at :44-50 never gets a chance to run against the zip
+## chip at all, because it is already gone. is_buff_prohibited itself is unchanged by any of this:
+## the zip system is not a shield, its chip is not applied by a PassiveBuffApplicator/PassiveWeaponMod,
+## UnitAction.is_tech(zip) is false and the zip kit is not a trait, so the "anything else" branch at
+## :77 fires either way - which is why _held() still reads false either way, but THROUGH A DIFFERENT
+## MECHANISM now.
+##
+## CORRECTED 2026-09-28 (review fix #2, author ruling "match vanilla"): fix #1 measured that firing
+## disengage via the :13-29 loop raised an EXTRA yes/no prompt beyond the Aegis' own (2 total against
+## a 1-prompt baseline), because action_zip_disengage.gd extends ActionSystemClearBuff, whose
+## activate() (action_system_clear_buff.gd:70-71) unconditionally awaits
+## CommonActionUtil.confirm_use - and AS_FREEBIE alone does not suppress that (confirm_use_alt only
+## skips for Action.FLAG.SKIP_PLAYER_DECISIONS, common_action_util.gd:330, which the Aegis loop never
+## passes). The author ruled: match vanilla - no prompt when the Aegis forces it, keep the prompt
+## when the player presses disengage themselves. Fixed in action_zip_disengage.gd's own activate()
+## override: when context.flags carries AS_FREEBIE (the Aegis loop's own marker, :27 -
+## `flags = [Action.FLAG.AS_FREEBIE]` - and the discriminator a player's own press never carries;
+## engine convention pairs AS_FREEBIE with SKIP_PLAYER_DECISIONS for a fully-silent forced action,
+## e.g. action_reaction_break_connection.gd:75, and the Aegis loop simply omits the second flag) it
+## adds SKIP_PLAYER_DECISIONS itself before delegating to super.activate(), so
+## ActionSystemClearBuff's confirm_use is skipped for exactly the forced case and untouched otherwise.
+## Measured side by side, same fixture, same Aegis, isolating the Aegis' OWN one confirm as the
+## baseline:
+##   Aegis alone (nothing engaged):                1 yesno prompt, actions -1, heat +0.
+##   Aegis + ZIP engaged (THIS TEST):               1 yesno prompt (+0), actions -1 (+0), heat +0.
+##   Aegis + siege stabilizers engaged (VANILLA):   1 yesno prompt (+0), actions -1 (+0), heat +0.
+## ZIP now matches vanilla exactly. The player's own disengage press (no AS_FREEBIE) is pinned
+## separately below to confirm it still confirms.
+const AEGIS_ID := &'cp_trueblack_aegis'
+const AEGIS_ACTION_ID := &'action_activate_aegis'
+const AEGIS_RESTRICTION_BUFF := &'buff_trueblack_aegis_restrictions'
+
+func test_a_trueblack_aegis_fires_the_tagged_disengage_with_no_extra_confirm_prompt():
+	LeolethFixture.equip(leoleth, AEGIS_ID)
+	await LeolethFixture.open_turn(game, leoleth)
+	await LeolethFixture.engage_zip(game, leoleth)
+	assert_true(_held(), 'fixture: engaged before the Aegis fires.')
+	var watcher = add_child_autoqfree(load('res://testkit/prompt_watcher.gd').new())
+	var actions_before:int = leoleth.state.actions
+	var heat_before:int = leoleth.core.current.heat
+	await SpecFactory.use(game, leoleth, AEGIS_ID, AEGIS_ACTION_ID)
+	assert_false(_held(), 'The chip is still cleared either way - now through the tagged disengage action.')
+	assert_eq(watcher.kinds(&'yesno').size(), 1,
+		'THE FIX (author ruling "match vanilla"): ZERO extra confirm prompts beyond the Aegis\' own '
+		+ 'measured baseline of 1 - equal to the Siege Stabilizers reference below.')
+	assert_eq(leoleth.state.actions, actions_before - 1,
+		'No extra ACTION cost beyond the Aegis\' own (AS_FREEBIE) - unchanged by this fix.')
+	assert_eq(leoleth.core.current.heat, heat_before, 'And no extra heat either.')
+
+## THE OTHER HALF OF THE RULING: the player's OWN disengage (no AS_FREEBIE in context.flags) must
+## still raise its confirm - the fix in action_zip_disengage.gd's activate() only adds
+## SKIP_PLAYER_DECISIONS when AS_FREEBIE is present, so a normal press is untouched.
+func test_the_players_own_disengage_still_confirms():
+	await LeolethFixture.open_turn(game, leoleth)
+	await LeolethFixture.engage_zip(game, leoleth)
+	assert_true(_held(), 'fixture: engaged.')
+	var watcher = add_child_autoqfree(load('res://testkit/prompt_watcher.gd').new())
+	await LeolethFixture.disengage_zip(game, leoleth)
+	assert_false(_held(), 'Cleared.')
+	assert_eq(watcher.kinds(&'yesno').size(), 1,
+		'The player\'s own disengage still raises its own confirm prompt - only the FORCED case '
+		+ '(AS_FREEBIE) skips it.')
+
+## THE REFERENCE, side by side with the test above. ms_siege_stabilizers is base-game content
+## (content/gear/ha/systems/ms_siege_stabilizers/, read-only), equipped here purely to measure the
+## seam vanilla itself already exercises - the Leoleth is not licensed for it either.
+func test_a_vanilla_deactivate_tagged_action_fires_with_no_extra_prompt_or_cost():
+	var stab:GearCore = LeolethFixture.equip(leoleth, &'ms_siege_stabilizers')
+	LeolethFixture.equip(leoleth, AEGIS_ID)
+	await LeolethFixture.open_turn(game, leoleth)
+	await SpecFactory.use(game, leoleth, &'ms_siege_stabilizers', &'action_siege_stabilizers')
+	assert_true(UnitCondition.has_buff(leoleth, &'buff_siege_stabilizers', stab.persistent_id),
+		'fixture: engaged before the Aegis fires.')
+	var watcher = add_child_autoqfree(load('res://testkit/prompt_watcher.gd').new())
+	var actions_before:int = leoleth.state.actions
+	var heat_before:int = leoleth.core.current.heat
+	await SpecFactory.use(game, leoleth, AEGIS_ID, AEGIS_ACTION_ID)
+	assert_false(UnitCondition.has_buff(leoleth, &'buff_siege_stabilizers', stab.persistent_id),
+		'Cleared, the same as ZIP.')
+	assert_eq(watcher.kinds(&'yesno').size(), 1,
+		'THE REFERENCE: vanilla\'s own deactivate-tagged action (plain ActionSystem, no confirm_use '
+		+ 'call in its activate()) raises ONLY the Aegis\' own prompt - none of its own.')
+	assert_eq(leoleth.state.actions, actions_before - 1, 'Same action cost as the Aegis alone.')
+	assert_eq(leoleth.core.current.heat, heat_before, 'No heat.')
+
+## THE FIX, RED before action_zip_disengage.tres gains metatags = [deactivate]: the restriction buff
+## forbids disengage while it is up, because neither of its two exemptions (id contains 'deactivate',
+## or the metatag) match today.
+func test_the_disengage_metatag_exempts_it_from_the_aegis_restriction():
+	assert_true(_disengage().metatags.has(Action.METATAG.deactivate),
+		'THE FIX: disengage carries the deactivate metatag, the sanctioned channel '
+		+ '(action.gd METATAG comment: "napoleon CP activates this").')
+	SpecFactory.apply_buff(leoleth, AEGIS_RESTRICTION_BUFF, zip)
+	var buff_context:Context = SpecificAction.create(leoleth, zip, _disengage()).to_context()
+	assert_false(UnitCondition.has_buff_to(leoleth, Buff.TO.ACTION_FORBIDDEN, buff_context),
+		'And the restriction no longer forbids it - check_if_passive_applies\' metatag exemption '
+		+ '(buff_trueblack_aegis_restrictions.gd:19) now matches.')
+
 # ---------------------------------------------------------------- the licence
 
 func test_the_licence_grants_the_zip_at_rank_two():

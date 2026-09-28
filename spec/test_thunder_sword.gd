@@ -88,6 +88,10 @@ func test_the_card_text_renders_rather_than_a_raw_key():
 		X.tr('gear.buff_thunder_sword.effect'), 'per space',
 		'The chip carries its OWN effect row - a weapon Kit has no .effect row to fall back on, so a '
 		+ 'row-less chip would render the raw key (house rule, Sluagh frame close).')
+	assert_string_contains(
+		X.tr('gear.buff_thunder_sword.effect'), 'then this ends',
+		'Pass F Task 15, ruling 2026-09-27 "Thunder Sword\'s chip at the cap": the row gains a clause '
+		+ 'saying it ends at the 5-point cap (behaviour unchanged, row 324).')
 
 # ---------------------------------------------------------------- the chip lands
 

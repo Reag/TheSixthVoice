@@ -295,7 +295,7 @@ func test_the_instance_content_library_serves_is_the_one_mod_main_retains():
 	# asks it of li_mourning_cloak. _ModLoaderResourceExtension._save_resource no longer retains an
 	# extended resource, so the extension evaporates the moment nothing holds the instance and the next
 	# load() reads the unextended file off disk. Deleting mod_main.gd's
-	# _retained_resources.append(extended) reddens NOTHING else: test_alt_frames.gd only checks the
+	# :169's retained.append(extended) reddens NOTHING else: test_alt_frames.gd only checks the
 	# path is DECLARED in EXTENDED_RESOURCES, and every other test in this file compares compcon_id
 	# strings, which a freshly loaded vanilla licence would still answer for the Mourning Cloak.
 	var embassy:Node = get_tree().root.find_child(MOD_ID, true, false)
@@ -313,7 +313,7 @@ func test_the_instance_content_library_serves_is_the_one_mod_main_retains():
 
 func test_the_other_extenders_of_li_mourning_cloak_also_land():
 	# LICENCE GUARD 3 of 3 - BUT READ THIS BEFORE TRUSTING WHAT IT DEFENDS (corrected at the frame
-	# close, 2026-09-17; the previous wording claimed this test defends mod_main.gd:111's
+	# close, 2026-09-17; the previous wording claimed this test defends mod_main.gd:134's
 	# `queued_resource_modifications.erase(vanilla_path)`, and it does not).
 	#
 	# WHAT IT ACTUALLY COVERS: with OTHER_EXTENDERS empty (see its own comment above: all 24 installed
@@ -322,7 +322,7 @@ func test_the_other_extenders_of_li_mourning_cloak_also_land():
 	# test_the_mourning_cloak_licence_grants_the_maidens_blush_at_rank_two already makes at :217. This
 	# test proves nothing that test does not already prove.
 	#
-	# WHAT IT DOES NOT COVER, AND WHY: deleting mod_main.gd:111's erase reddens no test in any run this
+	# WHAT IT DOES NOT COVER, AND WHY: deleting mod_main.gd:134's erase reddens no test in any run this
 	# suite can produce. The only sibling guard-3 row anywhere in the mod that ever actually fires is
 	# test_mk2_frame.gd's, for Reag-CrisisCoreCatalogEvolved (resident) - and CCC is a fellow
 	# DIRECT-APPLIER that erases its own key from its own queue entry, so that row proves two direct

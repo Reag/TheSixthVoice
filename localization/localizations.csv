@@ -20,14 +20,14 @@ gear.mt_weak_computer.name,Weak Computer
 gear.mt_weak_computer.effect,The Fitzgerald receives |+1 Difficulty| on all SYSTEMS saves and checks.
 ,
 gear.cp_broadside.name,Broadside
-gear.mw_bizarre_cannon.name,Bizarre Cannon
+gear.mw_bizarre_cannon.name,BIZARRE CANNON
 gear.cp_broadside.flavor,Give 'em hell.
 gear.cp_broadside.effect,"The BIZARRE CANNON is built through the Fitzgerald's chassis rather than mounted on it: it occupies no weapon mount and cannot take a weapon mod. Its active MORE BLACK POWDER protocol grants the cannon a second profile."
-gear.mw_bizarre_cannon.action_bizarre_cannon.name,Bizarre Cannon
+gear.mw_bizarre_cannon.action_bizarre_cannon.name,BIZARRE CANNON
 gear.mw_bizarre_cannon.action_bizarre_cannon.effect,"On attack: you take 2 |AP| kinetic damage and are knocked back 2 spaces, away from the direction of fire."
 gear.cp_broadside.action_more_black_powder_protocol.name,MORE BLACK POWDER
 gear.cp_broadside.action_more_black_powder_protocol.effect,"For the rest of this scene, the BIZARRE CANNON gains the following profile: Heavy Cannon, |AP|, |Reliable 3|, |Heat 1| (Self) [|Line 15|] [2d6 kinetic + 1d6 explosive damage]"
-gear.mw_bizarre_cannon.action_more_black_powder.name,Bizarre Cannon (More Black Powder)
+gear.mw_bizarre_cannon.action_more_black_powder.name,BIZARRE CANNON (More Black Powder)
 gear.mw_bizarre_cannon.action_more_black_powder.effect,"On attack: you take 3 |AP| kinetic damage and are knocked back 3 spaces, in any direction. On hit: targets must succeed on a |hull save| or become |prone|."
 gear.buff_more_black_powder.name,More Black Powder
 gear.buff_more_black_powder.effect,"The BIZARRE CANNON has a second, heavier profile for the rest of this scene."
@@ -126,7 +126,6 @@ frame.mf_myconid.flavor,"Horus pattern groups have always been a contentious sub
 ,
 gear.mt_symbiosis.name,Symbiosis
 gear.mt_symbiosis.effect,"1/round, the Myconid may use a |reaction| an additional time. This cannot be used on |reactions| that are 1/scene or 1/mission."
-gear.mt_symbiosis.refused.log,{unit} cannot spend the Symbiosis reaction on a 1/scene or 1/mission reaction.
 ,
 gear.mt_halo.name,Halo
 gear.mt_halo.effect,"1/round, when the Myconid takes damage, an allied character within |Sensors| gains |OVERSHIELD| equal to |GRIT|."
@@ -444,6 +443,7 @@ gear.buff_rage_combust.name,Combust
 gear.buff_rage_combust.effect,"Choose a |blast| 1 area within |line of sight| and |SENSORS|. All |characters| at least partially within the area must succeed a |Hull save| or take 2d6 |Kinetic| damage and be knocked |Prone|."
 ,
 gear.buff_bulwark_penalty.name,Bulwark
+gear.buff_bulwark_penalty.effect,All hostile |characters| within |line of sight| have +1 |Difficulty| on attacks against characters other than you.
 gear.buff_rage_bulwark.name,Bulwark
 gear.buff_rage_bulwark.effect,All hostile |characters| within |line of sight| have +1 |Difficulty| on attacks against characters other than you.
 ,
@@ -454,7 +454,7 @@ gear.mw_thunder_sword.name,Thunder Sword
 gear.mw_thunder_sword.flavor,"The Thunder Sword is a strange weapon. It is powered by a massive battery on the hilt which runs a powerful electric current along the blade. When it hits, the electrical shock impairs movement systems causing significant damage if they are used."
 gear.mw_thunder_sword.on_hit,"Until the end of your next turn, if the damaged character voluntarily moves, they take 1 |AP| |Energy| damage per space, up to a maximum of 5."
 gear.buff_thunder_sword.name,Thunder Sword
-gear.buff_thunder_sword.effect,"If you voluntarily move, you take 1 |AP| |energy| damage per space, up to a maximum of 5."
+gear.buff_thunder_sword.effect,"If you voluntarily move, you take 1 |AP| |energy| damage per space, up to a maximum of 5, then this ends."
 ,
 gear.ms_wing.name,W.I.N.G
 gear.ms_wing.flavor,"The W.I.N.G movement suite was developed to counteract the various battlefield hazards particularly movement dependent mechs faced. The systems consist of many micro-boosters attached the legs and feet of the mech, allowing for rapid repositioning in treacherous terrain."
@@ -645,10 +645,11 @@ gear.buff_hyperfocus.name,Hyperfocus
 gear.buff_hyperfocus.effect,You have an additional +1 to attack rolls against them and they always count as within range of your ranged weapons. This effect ends if you take any actions that affect a different hostile character.
 gear.buff_hyperfocused.name,Hyperfocus
 gear.buff_hyperfocused.effect,You have an additional +1 to attack rolls against them and they always count as within range of your ranged weapons.
-gear.ms_hyper_engineered_munitions.name,Hyper Engineered Munitions
+gear.ms_hyper_engineered_munitions.name,HYPER ENGINEERED MUNITIONS
 gear.ms_hyper_engineered_munitions.flavor,"SSC has created the ultimate luxury: hand-made artisan munitions. Each craftsman trained their whole life to carve each armament by hand, microscopically folding and twisting metal into intricate fractals of impossibly powerful implements of war. Every piece a unique piece of art bent to the singular purpose of unmitigated violence."
 gear.ms_hyper_engineered_munitions.action_load_munitions.name,Load Munitions
 gear.ms_hyper_engineered_munitions.action_load_munitions.effect,"Choose a mount that contains only ranged weapons: until the start of your next turn, whenever you hit a hostile |character| with a weapon on this mount, the target takes 1 |AP| |Kinetic| damage and must succeed on a |Hull save| or become |Impaired| until the end of their next turn."
+gear.ms_hyper_engineered_munitions.action_load_munitions.prompt,Choose a mount that contains only ranged weapons
 gear.buff_loaded_munitions.name,Load Munitions
 gear.buff_loaded_munitions.effect,"Until the start of your next turn, whenever you hit a hostile |character| with a weapon on this mount, the target takes 1 |AP| |Kinetic| damage and must succeed on a |Hull save| or become |Impaired| until the end of their next turn."
 gear.ms_superpositional_profile.name,Superpositional Profile

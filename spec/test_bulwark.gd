@@ -129,9 +129,9 @@ func test_the_penalty_buff_is_wired():
 		+ 'nor the attacker.')
 	assert_eq(buff.bonus_subtype, Buff.BONUS_SUBTYPE.ACCURACY, 'An accuracy subtype...')
 	assert_eq(buff.bonus_value, PENALTY, '...of -1, which is +1 difficulty.')
-	assert_true(buff.hide_from_player,
-		'HIDDEN on the hostile (plan J, flagged for the author): the Leoleth\'s own chip is the '
-		+ 'signal, and the Mark\'s soft cover is the precedent - plumbing beside a visible chip.')
+	assert_false(buff.hide_from_player,
+		'VISIBLE on the hostile (ruling 2026-09-27, Pass E: "Bulwark penalty visibility" - settles '
+		+ 'plan J): a player should see the penalty before attacking, not only in the roll breakdown.')
 
 func test_the_rows_resolve():
 	var translation:Translation = load(OUR_TRANSLATION)

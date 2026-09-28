@@ -47,7 +47,8 @@ const MOD_LIBRARY := 'res://engine/mod/mod_library.gd'
 ## Note that not every autoload can be extended: unit_action.gd logs the install and then never
 ## invokes an override, for reasons nobody has found. Prove any new seam with a spec that only the
 ## override can pass before building content on it - spec/test_unit_relation_extension.gd is that
-## spec for the first entry, spec/test_spike_unit_printer_seam.gd for the second.
+## spec for the first entry, spec/test_spike_unit_printer_seam.gd for the second, and
+## spec/test_spike_shackleton_sp1_seam.gd (its tests at :54-64) for the third.
 const EXTENDED_AUTOLOADS := {
 	&'UnitRelation': 'res://engine/character/unit/service/unit_relation.gd', # Primrose: Superheavy Overwatch under Wormhole Grasp
 	&'UnitPrinter': 'res://engine/character/unit/service/unit_printer.gd', # Leoleth: the Thermal Death Axe is destructible at zero charges
@@ -98,12 +99,14 @@ func _init() -> void:
 ##    folds every installed mod's queued_resource_modifications into ONE Dictionary keyed by target
 ##    resource path, with Dictionary.merge - which keeps the first value per key and throws the rest
 ##    away. So when two mods extend the same .tres through the queue, only the FIRST-INSTALLED mod's
-##    callable ever runs: no warning, no log line. Every licence this mod's alt frames extend is
-##    contended in the real game - li_gms by gavstarb-gms_1st_party, fateofman-imi_alt_frames and
-##    our own Crisis Core Catalog; li_barbarossa and li_goblin by fateofman-imi_alt_frames - and a
-##    lost coin toss ships an alt frame that is registered, has a name and a sprite, and cannot be
-##    picked. Measured 2026-09-14: with a stock queue-path competitor installed one slot before us,
-##    the M/K2 was dropped from li_gms while the frame itself loaded fine.
+##    callable ever runs: no warning, no log line. Swept against the live zips 2026-09-28, only
+##    li_gms is contended through the queue - by gavstarb-gms_1st_party and our own Crisis Core
+##    Catalog. fateofman-imi_alt_frames also appends to li_gms, li_barbarossa and li_goblin, but
+##    from its own mod_main._init, NOT the queue, so it composes with us in any order; every other
+##    licence here is uncontended today. A lost coin toss ships an alt frame that is registered, has
+##    a name and a sprite, and cannot be picked. Measured 2026-09-14: with a stock queue-path
+##    competitor installed one slot before us, the M/K2 was dropped from li_gms while the frame
+##    itself loaded fine.
 ##
 ##    THE FIX: erase our key from our own queue, so the contended dictionary sees only the other
 ##    mod's entry and applies it normally, and edit the resource here instead. Order stops

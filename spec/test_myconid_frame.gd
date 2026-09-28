@@ -41,10 +41,10 @@ const GORGON_RANK_2_GEAR:Array[StringName] = [&'ms_monitor_module', &'ms_scorpio
 ## THAT TEST IS INERT AS A CO-EXISTENCE GUARD FOR THIS LICENCE - it reduces to a duplicate of
 ## test_the_gorgon_licence_grants_the_myconid_at_rank_two and cannot redden on a broken queue-erase.
 ##
-## AND THE QUEUE-ERASE AT mod_main.gd:110 IS NOT OBSERVABLE FROM ANY SPEC AT ALL - measured at the
+## AND THE QUEUE-ERASE AT mod_main.gd:134 IS NOT OBSERVABLE FROM ANY SPEC AT ALL - measured at the
 ## frame close, 2026-09-16, DO NOT RE-PROPOSE THE OBVIOUS TEST. The whole-branch review's fix was to
 ## read `ModLibrary.get_installed_mod(MOD_ID).queued_resource_modifications` directly and assert our
-## key is gone. That test was written, run, and MEASURED VACUOUS: deleting mod_main.gd:110 left the
+## key is gone. That test was written, run, and MEASURED VACUOUS: deleting mod_main.gd:134 left the
 ## file 21/21 green. The reason is six lines past the fold the review stopped at -
 ## ModApplier.apply_installed_queued_extensions merges every mod's dictionary at mod_applier.gd:220
 ## and then calls mod.clear_installation_queues() on EVERY installed mod at :227, which empties
@@ -265,9 +265,9 @@ func test_the_gorgons_own_gear_is_untouched():
 func test_the_instance_content_library_serves_is_the_one_mod_main_retains():
 	# LICENCE GUARD 1 of 3 - upstream bug 7 in one assertion, and the only thing on the branch that
 	# asks it of li_gorgon. _ModLoaderResourceExtension._save_resource no longer retains an extended
-	# resource (mod_main.gd:88-93), so the extension evaporates the moment nothing holds the instance
+	# resource (mod_main.gd:117-122), so the extension evaporates the moment nothing holds the instance
 	# and the next load() reads the unextended file off disk. Deleting
-	# mod_main.gd's _retained_resources.append(extended) reddens NOTHING else: test_alt_frames.gd
+	# mod_main.gd:169's retained.append(extended) reddens NOTHING else: test_alt_frames.gd
 	# only checks the path is DECLARED in EXTENDED_RESOURCES (its own header says so), and every
 	# other test in this file compares compcon_id strings, which a freshly loaded vanilla licence
 	# would still answer for the Gorgon.
@@ -287,7 +287,7 @@ func test_the_instance_content_library_serves_is_the_one_mod_main_retains():
 func test_the_other_extenders_of_li_gorgon_also_land():
 	# LICENCE GUARD 3 of 3. Whoever else touched li_gorgon in this run must still have their frame in
 	# it - the queue collision (mod_main.gd's header) drops a queue-path extender silently, and
-	# apply_resource_extensions_directly erases OUR key from the shared dictionary at :110 precisely
+	# apply_resource_extensions_directly erases OUR key from the shared dictionary at :134 precisely
 	# so that theirs survives.
 	#
 	# OTHER_EXTENDERS is empty today (see its own comment: no parked mod extends this licence), so

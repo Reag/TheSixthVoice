@@ -184,6 +184,43 @@ func test_the_focus_dying_ends_it_and_frees_the_pick():
 	assert_false(UnitCondition.has_buff(thorn, RANGE), '...and the waiver...')
 	assert_true(action().is_available_to_activate(thorn, gear), '...and a new target may be chosen.')
 
+# --------------------------------------------------------- the scene end (Pass F task 14, test debt)
+
+## Pass F task 14 (open-items H): "or the scene ends" - both buffs re-derive the stored focus every
+## check (buff_hyperfocus.gd's check_if_passive_applies, buff_hyperfocus_range.gd's), and the stored
+## id is gear STATE (hyperfocus.gd's header), which GearCore.short_repair wipes but does not itself
+## touch the buff objects. So a short repair silently ends the mechanical effect - the lock, the +1,
+## the waiver - without clearing the visible chip/marker buffs the way end_focus does. Pinned here so
+## a future change to either buff's applies-check can't quietly stop re-deriving the focus.
+func test_a_gear_short_repair_ends_the_lock_the_bonus_and_the_waiver():
+	await hyperfocus(focus)
+	Fixture.step(focus, FAR_TILE)
+	# LIVENESS GUARD, before the repair: prove the focus actually took, so the asserts below cannot
+	# pass vacuously against a hyperfocus() that silently failed to set anything.
+	assert_eq(focused_on(), focus, 'fixture: the focus is live before the repair.')
+	assert_gt(flat_bonus(Fixture.MAIN_RIFLE, focus), 0, 'fixture: the +1 is live before the repair.')
+	assert_has(targetable(Fixture.MAIN_RIFLE), FAR_TILE, 'fixture: the waiver is live before the repair.')
+	gear.short_repair()
+	assert_null(focused_on(), 'The stored id is gear state, wiped by a short repair.')
+	assert_true(action().is_available_to_activate(thorn, gear), 'A new Hyperfocus may be chosen.')
+	assert_eq(flat_bonus(Fixture.MAIN_RIFLE, focus), 0, 'The +1 re-derives the focus every check; gone with the state.')
+	assert_does_not_have(targetable(Fixture.MAIN_RIFLE), FAR_TILE, 'The waiver re-derives too: 20 away is out of Range 10 again.')
+
+## The whole-unit form (UnitPrinter.short_repair, called by every equipped gear's own short_repair) -
+## the actual scene-end call, not just Pinpoint Mark's own kit.
+func test_a_unit_wide_short_repair_ends_it_the_same_way():
+	await hyperfocus(focus)
+	Fixture.step(focus, FAR_TILE)
+	# LIVENESS GUARD, before the repair - see the sibling test above.
+	assert_eq(focused_on(), focus, 'fixture: the focus is live before the repair.')
+	assert_gt(flat_bonus(Fixture.MAIN_RIFLE, focus), 0, 'fixture: the +1 is live before the repair.')
+	assert_has(targetable(Fixture.MAIN_RIFLE), FAR_TILE, 'fixture: the waiver is live before the repair.')
+	thorn.core.short_repair()
+	assert_null(focused_on(), 'UnitPrinter.short_repair runs every equipped gear\'s short_repair, Pinpoint Mark included.')
+	assert_true(action().is_available_to_activate(thorn, gear), 'A new Hyperfocus may be chosen.')
+	assert_eq(flat_bonus(Fixture.MAIN_RIFLE, focus), 0, 'The +1 is gone.')
+	assert_does_not_have(targetable(Fixture.MAIN_RIFLE), FAR_TILE, 'The waiver is gone.')
+
 # ---------------------------------------------------------------- the +1
 
 func test_attacks_on_the_focus_gain_flat_plus_one_and_others_do_not():

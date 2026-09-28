@@ -20,13 +20,13 @@ script = ExtResource("3_statincrease")
 stat = SubResource("Resource_statblock")
 
 ; THREE HIDDEN BUFFS, ONE APPLICATOR, AND THE COUNT IS NOT ARBITRARY. Buff.trigger_timing is a single
-; @export that ReactionBus.does_buff_trigger compares directly (reaction_bus.gd:135), so a Buff
-; subscribes at ONE timing for every trigger it names - which is why the bookkeeping (POST) and the
-; exclusion (PRE) cannot be one resource. The third is a different kind again: it names no trigger at
-; all, because Buff.TO.ACTION_PER_ROUND is a channel the engine QUERIES rather than one the bus fires.
+; @export that ReactionBus.does_buff_trigger compares directly (reaction_bus.gd:135), so the
+; bookkeeping subscribes at POST. The other two are a different kind: they name no trigger at all,
+; because Buff.TO.ACTION_FORBIDDEN and Buff.TO.ACTION_PER_ROUND are channels the engine QUERIES rather
+; than ones the bus fires, and each buff has exactly one `to`.
 ;
 ;   buff_symbiosis            POST  stamps the round's extra as spent, caps the refill, clears on new round
-;   buff_symbiosis_exclusion  PRE   aborts a 1/scene or 1/mission reaction taken as the extra
+;   buff_symbiosis_exclusion  -     hides (ACTION_FORBIDDEN) a 1/scene or 1/mission reaction as the extra
 ;   buff_symbiosis_extra_use  -     +1 to a reaction's per-round hard limit while the extra is unspent
 ;
 ; THE THIRD IS SP2.5 TASK 1, and it exists because the first two only ever reached ONE of the two

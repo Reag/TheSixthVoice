@@ -21,7 +21,11 @@
 #
 # DICE per rifle hit on a character: the d20, then the Hull save's d20 (on-hit effects run before
 # damage is rolled, event_unit_attack.gd:85-88 against event_unit_attack_declared.gd:74), then the
-# d6. The rifle's RELIABLE 2 floors a hit, so the d6 is never below 3 here.
+# d6 - and one more d6 draw for the crit damage, which the queue's tail absorbs unseen, so FOUR
+# draws, not three (measured, Pass F task 14). A target already Impaired takes a Difficulty die on
+# its Hull save (vanilla's Impaired rule), a FIFTH draw between the save and the d6 - which is why
+# the repeat-hit test queues [D20_HITS, SAVE_FAILS, 1, RIFLE_D6]. The rifle's RELIABLE 2 floors a
+# hit, so the d6 is never below 3 here.
 #
 #   godot --resolution 800x600 --position -2400,-2400 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_hyper_engineered_munitions.gd
 extends GutTest
@@ -111,6 +115,8 @@ func test_only_mounts_of_nothing_but_ranged_weapons_are_offered():
 	if responder.gear_prompts.is_empty(): return
 	assert_eq(responder.gear_prompts[0].array, [mount(1), mount(2)],
 		'The picker offers exactly the eligible mounts, in loadout order.')
+	assert_eq(responder.gear_prompts[0].title, 'Choose a mount that contains only ranged weapons',
+		"The picker's own title, not vanilla's generic \"Select an option:\".")
 
 func test_an_empty_mount_is_not_offered():
 	var bare := Fixture.create_thorn(game, Vector2i(4, 9))
@@ -221,6 +227,29 @@ func test_a_hit_on_an_object_does_nothing():
 	await Fixture.shoot_again(game, thorn, object, Fixture.MAIN_RIFLE)
 	assert_eq(before - hp(object), RIFLE_D6, 'An object takes only the rifle - no AP point, no save die spent.')
 
+## Pass F task 14 (open-items H, test debt): the chip is a Buff.TO.ONHIT_EFFECT carrier and NOT
+## is_onetime (buff_loaded_munitions.gd's header) - it stands for every hit from the loaded mount
+## until the Thorn's own next turn, not just the first. Two hits, two AP points, two forced saves;
+## a save value the second effect never consumed would misalign the queued dice under it, so a
+## regression here reads as the WRONG damage total, not a silent no-op.
+func test_a_second_hit_from_the_loaded_mount_repeats_the_point_and_the_save():
+	await load_munitions(1)
+	var before := hp(target)
+	await rifle_hit(target, SAVE_FAILS)
+	assert_eq(before - hp(target), RIFLE_D6 + 1, 'The first hit: the rifle, then the munitions\' AP point.')
+	assert_not_null(chip(), 'Not onetime: the chip still stands after one hit.')
+	# The target is now Impaired from the first save, which adds a Difficulty die to its SECOND
+	# Hull save (vanilla's own Impaired rule, nothing to do with this system) - one extra draw to
+	# skip before the rifle's own damage die, or it lands there instead and gets floored to
+	# Reliable 2. Measured, not assumed: rifle_hit's plain 3-value shape does not hold once the
+	# target is already Impaired.
+	before = hp(target)
+	Fixture.queue([D20_HITS, SAVE_FAILS, 1, RIFLE_D6])
+	await Fixture.shoot_again(game, thorn, target, Fixture.MAIN_RIFLE)
+	assert_eq(before - hp(target), RIFLE_D6 + 1, 'The second hit from the same mount deals the same extra point again.')
+	assert_true(UnitCondition.has_status(target, &'impaired'), 'The second forced Hull save failed too.')
+	assert_not_null(chip(), 'The chip survives a second hit; only the turn start ends it.')
+
 func test_a_hit_on_a_drone_deals_the_ap_point_and_forces_a_save():
 	# A drone is a character (ruling 2026-09-27): it now qualifies for "a hostile character".
 	var drone := Fixture.create_drone(game, Vector2i(8, 8))
@@ -253,7 +282,7 @@ func test_the_kit_is_the_cards_profile():
 	assert_eq(load_action.action_type, Lancer.ACTION.PROTOCOL, 'A Protocol.')
 
 func test_the_rows_resolve():
-	assert_eq(tr('gear.ms_hyper_engineered_munitions.name'), 'Hyper Engineered Munitions', 'The name row.')
+	assert_eq(tr('gear.ms_hyper_engineered_munitions.name'), 'HYPER ENGINEERED MUNITIONS', 'The name row.')
 	assert_eq(tr('gear.ms_hyper_engineered_munitions.action_load_munitions.name'), 'Load Munitions', 'The action row.')
 	assert_eq(tr('gear.buff_loaded_munitions.name'), 'Load Munitions', 'The chip names itself.')
 	assert_string_contains(tr('gear.buff_loaded_munitions.effect'), 'Hull save', 'The chip carries the card text.')

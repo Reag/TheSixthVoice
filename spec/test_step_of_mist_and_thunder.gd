@@ -437,7 +437,7 @@ func test_the_chip_dies_with_the_blush_that_placed_it():
 
 func test_step_offers_the_space_the_blush_already_occupies():
 	# RULING D (reach design 4, 2026-09-17), asked of the RETICLE Step actually opened rather than of
-	# the helper: Teleport.candidate_tiles drops the caller's own tiles at teleport.gd:249 and is
+	# the helper: Teleport.candidate_tiles drops the caller's own tiles (its `occupied` filter) and is
 	# FROZEN with five consumer frames, so the action re-adds its own tile after calling it.
 	await MaidensBlushFixture.open_turn(game, blush)
 	await press([3, 4], LANDING)

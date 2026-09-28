@@ -17,12 +17,11 @@
 # event_unit_attack_declared.gd:94), which the AUTHOR ruled Blessed Bolt is not offered on either -
 # and the re-entrancy guard is not needed (no follow-up shot is fired from here).
 #
-# THE BUFF IS SPECIFIC, NOT PLAIN BONUS DAMAGE: to = bonus_damage_specific is rolled per target
-# with the roll in context.object (:269-296) and is never halved, where plain BONUS_DAMAGE is
-# halved when more than one character is hit. buff_blessed_bolt.gd gates itself on the target
-# this reaction was offered on (the victim's persistent id, stamped in the buff core's state), so
-# on a Blast the +3 lands on the one victim whose roll offered it and nowhere else. It is onetime
-# and until FINISH_DAMAGE, so it cannot leak into the next attack.
+# THE BUFF IS PLAIN BONUS DAMAGE (rulings.md Pass E, close-out Pass F Task 13): to = bonus_damage is
+# read once for the whole declared attack (:95), halved when more than one character is attacked, and
+# added to every victim's damage - so on a Blast every victim takes the halved +3, as Lancer does.
+# (Until Pass F it was bonus_damage_specific, gated on the one victim whose hit was offered.) It is
+# onetime and until FINISH_DAMAGE, so it cannot leak into the next attack.
 #
 # 1/ROUND: consumes_rxn is false (a trait, not the reaction point), so the archetype's default
 # limit would be 99; get_per_round_hard_limit returns 1 and counts gear.uses_this_round, whose only
@@ -57,11 +56,6 @@ func activate(context:Context, activation:EventCore) -> void:
 	if activation.abort_when(not confirmed): return
 	if activation.abort_without_units([unit, defender]): return
 
-	# 2. THE SPEND, then the buff - gated on THIS roll's target.
+	# 2. THE SPEND, then the buff - read by this attack's general bonus-damage roll.
 	spend_actions(activation)
-	var core:BuffCore = apply_buff(activation, unit, damage_buff)
-	if BuffCore.is_valid(core):
-		core.set_state(BlessedBoltBuff.TARGET_KEY, String(defender.core.persistent_id))
-
-## Typed access to the buff script's key without a class_name (res/content/gear/shared/README.md).
-const BlessedBoltBuff := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_purple_thorn/mt_blessed_bolt_system/buff_blessed_bolt.gd')
+	apply_buff(activation, unit, damage_buff)

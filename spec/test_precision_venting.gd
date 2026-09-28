@@ -124,3 +124,20 @@ func test_another_units_ranged_crit_clears_nothing_from_the_knot():
 	assert_gt(target.current_damage(), 0, 'Fixture: the ally\'s rifle landed.')
 	assert_eq(Fixture.heat(knot), 2, 'Somebody else\'s crit clears nothing from the Knot.')
 	assert_eq(Fixture.precision_venting_uses(knot), 0, 'And the round is untouched.')
+
+func test_a_drones_crit_does_not_vent_the_owning_knot():
+	# get_attacker resolves the drone's attack to the Knot for buff COLLECTION (event_unit_attack.gd:38,
+	# 47), so Precision Venting IS asked on the drone's crit - only buff_precision_venting.gd:33's
+	# `context.unit != holder` refuses it (context.unit is the drone itself, never rewritten to the
+	# owner). Heat 2 on BOTH: proves the guard, not merely that nothing on the Knot moved - a version
+	# that let the buff through would read `activation.context.unit` as "the Knot" too and vent the
+	# DRONE's heat instead, since onhit_precision_venting.gd never re-resolves through get_attacker.
+	var drone:Unit = Fixture.create_owned_drone(game, Vector2i(6, 4), knot)
+	Fixture.set_heat(knot, 2)
+	Fixture.set_heat(drone, 2)
+	await Fixture.open_turn(game, drone)
+	await Fixture.attack(game, drone, Fixture.RANGED, target, [CRIT])
+	assert_gt(target.current_damage(), 0, 'Fixture: the drone\'s rifle landed.')
+	assert_eq(Fixture.heat(knot), 2, 'The owning Knot\'s heat is untouched by its drone\'s crit.')
+	assert_eq(Fixture.heat(drone), 2, 'And the drone\'s own heat is untouched too.')
+	assert_eq(Fixture.precision_venting_uses(knot), 0, 'The round on the Knot\'s own trait gear is not spent either.')

@@ -450,6 +450,22 @@ func test_an_involuntary_teleport_forced_by_an_ally_is_not_offered():
 	assert_true(would_offer(voluntary_teleport_data()), 'CONTROL: a teleport IS offered.')
 	assert_false(would_offer(friendly), 'An ally moving us is not a thing to fade out of.')
 
+func test_a_prospector_tunnel_is_not_offered():
+	# A Prospector tunnel is not a teleport (close-out Pass F Task 4, 2026-09-27): the talents mod's
+	# Prospector hands the move a runtime MovementType subclass carrying
+	# `func is_tunneling() -> bool: return true`, VOLUNTARY like any ordinary player-side teleport - so
+	# without Teleport.is_tunnel this reads exactly like Abjuration's own teleport and the field would
+	# offer to fade instead of tunnelling.
+	var s := GDScript.new()
+	s.source_code = "extends MovementType\nfunc is_tunneling() -> bool: return true\n"
+	s.reload()
+	var type:MovementType = s.new()
+	type.teleport = true
+	type.voluntary = true
+	assert_true(would_offer(voluntary_teleport_data()), 'CONTROL: an ordinary teleport IS offered.')
+	assert_false(would_offer({unit = blush, target_tiles = [DESTINATION], resource = type}),
+		'But a tunnel is not - is_tunnel excludes it even though it is voluntary and reads as a teleport.')
+
 func test_a_second_offer_in_the_same_round_is_refused():
 	# The engine's per-round hard limit, consulted inside does_reaction_trigger via can_activate_gear -
 	# so the second teleport is never OFFERED rather than offered and refused.

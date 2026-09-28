@@ -1,5 +1,13 @@
-# NATIVE RELIABLE - the shared carrier for "increase Reliable" effects (Hazard: Weight of Fire, and
-# the Statistical Compensator). Replaced reliable_topup.gd on 2026-09-24, on the approach the
+# NATIVE RELIABLE - the shared carrier for "increase Reliable" effects. Consumers: the Hazard's
+# Weight of Fire (buff_weight_of_fire.gd), the Statistical Compensator
+# (action_statistical_compensator.gd) and the Grutte Pier's Zwarte Hoop (action_zwarte_hoop_spend.gd,
+# which also reuses SENTINEL_PRIORITY and CARRIER_EVENT for its own sentinel).
+#
+# FROZEN INTERFACE (close-out Pass F Task 21): raise, is_raised, STATE_META, SENTINEL_PRIORITY,
+# CARRIER_EVENT. spec/test_native_reliable.gd pins the two signatures and the three constants'
+# values, and fails on a third public function; an addition updates that pin in the same commit.
+#
+# Replaced reliable_topup.gd on 2026-09-24, on the approach the
 # Clark's author (fateofman-ipsn_clark, Redundant Scattering Module) recommended: raise the number
 # the engine reads instead of paying a second damage event after the fact.
 #

@@ -384,7 +384,7 @@ func test_a_gated_zone_projects_its_burst_once_its_state_is_set():
 func test_lay_spawns_an_owned_marker_whose_burst_is_difficult_ground():
 	# ACTIVATION IS NULL HERE, so lay() takes its X.current_level() fallback rather than its
 	# activation branch. Both branches are two lines lifted verbatim from Teleport._run
-	# (teleport.gd:383-390), whose activation branch test_uncertainty_field.gd drives end to end on
+	# (teleport.gd _run), whose activation branch test_uncertainty_field.gd drives end to end on
 	# every run; SP2's test_mastication_of_the_maar.gd is what drives THIS helper's activation branch,
 	# because the Maar calls lay() from a real activate(). Written down so the gap is a known one.
 	var layer := VaubanFixture.create_dummy(game, LAYER_TILE)

@@ -4,11 +4,11 @@
 #    save or only be able to draw line of sight to adjacent spaces. Targets affected this way always
 #    consider you within range, threat, and line of sight."
 #
-# A FREE ActionSystemApplyBuff on the core Kit, available only while the Entrap chip is held (still
-# never a drone: the vanilla archetype's own can_target_unit refuses any non-actor outright,
-# action_system_apply_buff.gd:64 - unrelated to what "character" means on this card since the
-# 2026-09-27 reversal, see test_any_character_may_be_chosen_but_not_a_drone). A failed Systems save
-# leaves two buffs on the target, both until the Rakshasa's next turn start:
+# A FREE ActionSystemApplyBuff on the core Kit, available only while the Entrap chip is held. Any
+# character, a drone included (Pass F T14: the shared CharacterTarget helper lifts the vanilla
+# archetype's is_actor() refusal, action_system_apply_buff.gd:64, for drones only - see
+# test_any_character_may_be_chosen_including_a_drone). A failed Systems save leaves two buffs on the
+# target, both until the Rakshasa's next turn start:
 #  - buff_entrap_rakshasa, visible, carrying vanilla BLINDED (ruling 24);
 #  - buff_entrap_rakshasa_reach, hidden, ACTION_TILES adding the Rakshasa's tiles to the target's
 #    attacks and tech attacks, with no line-of-sight intersection (ruling 25).
@@ -95,20 +95,18 @@ func test_entrap_can_be_pressed_only_in_entrap_mode():
 	await Fixture.choose_mode(game, rakshasa, responder, MODE.ENTRAP)
 	assert_true(UnitAction.can_activate_gear(specific), 'Holding Entrap, it can.')
 
-func test_any_character_may_be_chosen_but_not_a_drone():
-	# STILL GREEN AFTER THE 2026-09-27 REVERSAL, AND NOT BECAUSE OF THE "CHARACTER" WORD: a drone IS a
-	# character now, but this action never overrides can_target_unit, so it is refused by the vanilla
-	# ActionSystemApplyBuff archetype's own gate instead - "if not potential_target.is_actor(): return
-	# false # cannot apply buffs to drones / objects" (action_system_apply_buff.gd:64). That gate is
-	# about applying BUFFS, not about the card's wording, so it is orthogonal to the ruling reversal.
+func test_any_character_may_be_chosen_including_a_drone():
+	# A drone IS a character (Pass A), and the author ruled it takes Entrap (Pass F T14). Vanilla's
+	# archetype refuses every non-actor outright (action_system_apply_buff.gd:64, "cannot apply buffs
+	# to drones / objects"); this action's can_target_unit sends a drone through the shared
+	# CharacterTarget helper instead, which is that function minus that one line.
 	var ally := Fixture.create_ally(game, BYSTANDER_TILE)
 	var drone := Fixture.create_hostile_drone(game, MID_HOSTILE_TILE)
 	await Fixture.choose_mode(game, rakshasa, responder, MODE.ENTRAP)
 	var tiles := UnitTargeting.get_tiles_targetable(Fixture.entrap_specific(rakshasa))
 	assert_has(tiles, hostile.tile(), 'A hostile at 15, inside Sensors.')
 	assert_has(tiles, ally.tile(), 'An ally: the card says "a character".')
-	assert_does_not_have(tiles, drone.tile(),
-		'Still refused - by the engine\'s own is_actor() gate on applying buffs, not by this card\'s "character".')
+	assert_has(tiles, drone.tile(), 'A drone: a drone is a character (T14).')
 
 func test_a_blinded_rakshasa_can_only_entrap_an_adjacent_character():
 	var near := Fixture.create_hostile(game, NEAR_HOSTILE_TILE)
@@ -261,3 +259,19 @@ func test_it_clears_at_the_rakshasas_next_turn_start():
 	await Fixture.choose_mode(game, rakshasa, responder, MODE.DRAIN)
 	assert_false(blinded(hostile), 'No longer Blinded.')
 	assert_false(entrapped(hostile), 'Both buffs gone (ruling 15).')
+
+# ---------------------------------------------------------------- a drone (Pass F T14)
+
+func test_a_drone_that_fails_the_save_is_entrapped_until_the_rakshasas_next_turn_start():
+	# PROBE, Pass F T11, pinned. Entrap's two buffs clear at the Rakshasa's START_OF_OWNERS_TURN, which
+	# clear_owners_turn_statuses applies to every unit on the map with no turn_count gate - so an unowned
+	# drone is cleared like anyone else. Measured: a drone is NOT immune to BLINDED.
+	var drone := Fixture.create_hostile_drone(game, MID_HOSTILE_TILE)
+	await Fixture.choose_mode(game, rakshasa, responder, MODE.ENTRAP)
+	await Fixture.entrap(game, rakshasa, drone, SAVE_FAILS)
+	assert_true(UnitCondition.has_buff(drone, Fixture.ENTRAP_BUFF), 'The visible Entrap buff landed on the drone.')
+	assert_true(UnitCondition.has_buff(drone, Fixture.ENTRAP_REACH_BUFF), 'And the reach buff.')
+	assert_true(blinded(drone), 'And the drone is BLINDED.')
+	await Fixture.choose_mode(game, rakshasa, responder, MODE.DRAIN)
+	assert_false(entrapped(drone), "Both buffs gone at the Rakshasa's next turn start, drone or not.")
+	assert_false(blinded(drone), 'And the Blinded with them.')

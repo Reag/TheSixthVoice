@@ -9,10 +9,14 @@
 ## so the "if this would knock them into..." half can only be a reaction to that event, keyed to the
 ## move this action caused. Ferrous Lash is the same split (action_ferrous_lash_collide.gd).
 ##
-## BURST 1 FROM THE FOOTPRINT (ruling 8). UnitTile.get_aoe_tiles(unit, BURST, 1) is AoeCalculator.burst
-## over the whole 2x2 (range_pattern.gd:45-46): the 4x4 ring around the Shackleton. It never asks
-## UnitRelation.adjacent_characters, so House Guard's widening cannot reach it -
-## spec/test_compat.gd pins that (the design's Contested seams line).
+## BURST 1 FROM THE FOOTPRINT (ruling 8), AND FLAT. flat_burst is RangePattern.get_aoe_tiles(BURST, 1)
+## - AoeCalculator.burst over the whole 2x2 (range_pattern.gd:45-46): the 4x4 ring around the
+## Shackleton. It never asks UnitRelation.adjacent_characters, so House Guard's widening cannot reach
+## it - spec/test_compat.gd pins that (the design's Contested seams line). It is NOT
+## UnitTile.get_aoe_tiles, which then drops every tile whose occupant is out of the burst's vertical
+## reach (unit_tile.gd:367-372, the radius doubling as height) and so left a Flying hostile beside the
+## Shackleton out of the area. Pass E ruling, 2026-09-27 (the author): the burst is flat, height is
+## ignored. Target lookup by tile (get_all_units_at_tiles) is 2-D already.
 ##
 ## "HOSTILE CHARACTERS", AND NO FLYING EXEMPTION. The Barricade's Seismic Repulsor skips fliers; that
 ## is its card's reading, and this card has no such clause, so a flier is pushed like anyone else.
@@ -40,7 +44,7 @@ func activate(context:Context, activation:EventCore) -> void:
 	var unit:Unit = context.unit
 	var specific := SpecificAction.from_context(context)
 
-	var tiles := UnitTile.get_aoe_tiles(unit, Lancer.AOE_TYPE.BURST, BURST)
+	var tiles := flat_burst(unit, BURST)
 	var targets := hostile_characters_in(unit, tiles)
 
 	# The shockwave preview. Declining spends nothing.
@@ -62,6 +66,13 @@ func activate(context:Context, activation:EventCore) -> void:
 		if events.is_empty(): continue # immune
 		await activation.execute_events(events)
 		if activation.abort_without_unit(unit): return
+
+## The FLAT Burst `radius` around the unit's footprint: RangePattern's 2-D pattern, with none of the
+## elevation filter UnitTile.get_aoe_tiles applies after it (unit_tile.gd:367-372). Calamitous Impact
+## measures its Burst 2 with this too.
+static func flat_burst(unit:Unit, radius:int) -> Array[Vector2i]:
+	return RangePattern.get_aoe_tiles(Lancer.AOE_TYPE.BURST, radius, unit.map.shape,
+		unit.state.occupying_size, unit.occupied_tiles())
 
 ## Every hostile CHARACTER standing in `tiles`, the Shackleton excluded. Re-read per call: the burst
 ## is measured from wherever the unit stands now.

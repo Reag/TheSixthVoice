@@ -7,10 +7,11 @@
 ; THROW MAGNETS (Quick): the Hornet's Lock/Hold Javelins (action_lock_hold_javelins_hornet.tres) - a
 ; buff applied at Range 5 on a failed save, here AGILITY (save_type 1, Lancer.HASE.AGI). NOT its
 ; clear_all_previous_buffs: magnets can be on several characters at once (the mine's too); a second
-; magnet on the SAME character replaces the first by the engine's same-source rule (ruling 22).
+; magnet on the SAME character replaces the first, from any Koremasa (ruling 22; Pass E - the buff's
+; on_application, since the engine's same-source rule only covers one Koremasa).
 ; can_target_unit refuses non-actors, so no drones (ruling 25, recorded). GRENADE is a metatag, as
 ; on vanilla's smoke grenade. The Kit's FIRST action, because ClearBuff.get_applier_specific reads
-; get_solo_action for the detach's save (action_system_clear_buff.gd:92).
+; get_solo_action for the detach's save (action_system_clear_buff.gd:99).
 [resource]
 script = ExtResource("2_applybuff")
 buffs = Array[ExtResource("1_buff")]([ExtResource("3_attached")])

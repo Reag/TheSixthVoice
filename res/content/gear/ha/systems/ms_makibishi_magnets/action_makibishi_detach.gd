@@ -12,8 +12,25 @@
 ##
 ## The save is the archetype's: against the magnets' owner (the Koremasa) through the Kit's solo
 ## action, or a DC 10 check when the Koremasa is gone (action_system_clear_buff.gd:78-82).
+##
+## THE OWNER COMES FROM THE MAGNET'S STORED ID (Pass F 7b), not from the archetype's
+## get_applier_specific, whose core.get_owner_unit() goes through vanilla's source lookup - which can
+## answer "the victim" (map_state.gd:290-293; buff_makibishi_attached.gd's header has the whole
+## story) and turn the save into the DC 10 fallback while the Koremasa is alive. The magnet's own
+## owner_of reads the stored id; the cache entry is seeded as well, for the engine's reads that follow.
+## A magnet without the helper (none today) falls back to the archetype.
 extends ActionSystemClearBuff
 
 func can_be_used_situationally_by(unit:Unit, situational_unit:Unit, situational_gear:GearCore) -> bool:
 	if unit != situational_unit: return false
 	return super(unit, situational_unit, situational_gear)
+
+func get_applier_specific(core:BuffCore) -> SpecificAction:
+	if not core.base.has_method(&'owner_of'): return super(core)
+	var map:MapState = X.map()
+	core.base.seed_owner_cache(core, map)
+	var owner:Unit = core.base.owner_of(core, map)
+	if not Unit.is_valid(owner): return null
+	var gear:GearCore = owner.core.loadout.get_by_persistent_id(core.from_gear)
+	if not GearCore.is_valid(gear): return null
+	return SpecificAction.create(owner, gear, gear.get_solo_action()) # the archetype's own choice of action (:99)

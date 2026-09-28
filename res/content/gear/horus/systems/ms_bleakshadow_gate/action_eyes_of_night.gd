@@ -6,7 +6,14 @@
 ##
 ## ATTACK / POST, require_hit. The archetype applies the hit, the defender relation (ENEMIES of the
 ## Sluagh), the character test and the weapon/tech branch (action_reaction_attacked.gd:64-128).
-## THREE CLAUSES ARE THIS SCRIPT'S, because the archetype cannot express them:
+## FOUR CLAUSES ARE THIS SCRIPT'S, because the archetype cannot express them:
+##  - the attack is NOT Action.FLAG.NO_BONUS_DAMAGE (close review, §6.1 #1). Every mounted aux
+##    follow-up sets this flag (action_attack_weapon.gd:69-73), and on one,
+##    event_unit_attack_declared.gd takes the get_no_bonus_damage_summary() branch and never calls
+##    roll_specific_bonus_damage - the ONLY consumer of BONUS_DAMAGE_SPECIFIC. Without this clause the
+##    offered, paid-for bonus buff (MANUAL lifetime, is_onetime) is never rolled and never consumed,
+##    so it silently rides onto the Sluagh's next qualifying hit instead. An End to All Things'
+##    identical fix and comment (action_an_end_to_all_things.gd:73) is the precedent.
 ##  - the ATTACKER is the Sluagh itself, OR an allied CHARACTER (is_character(): a mech, a pilot or a
 ##    drone - unit.gd:116) within the Sluagh's LIVE Sensors (unit.get_sensor_range(): frame +
 ##    stat_bonus, so Inexorable Formation counts).
@@ -103,6 +110,7 @@ func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> 
 	if not super(unit, gear, triggering_event): return false
 	if not Unit.is_valid(unit): return false
 	var triggering_context:Context = triggering_event.context
+	if triggering_context.flags.has(Action.FLAG.NO_BONUS_DAMAGE): return false
 	var attacker:Unit = triggering_context.unit.get_attacker(triggering_context)
 	if not Unit.is_valid(attacker): return false
 	# "You or an allied character within Sensors".

@@ -3,7 +3,9 @@
 ## DeclaredAttackSummary is rolled against in the same declared attack, because execute() only copies
 ## all_attacked_units after the PRE block (event_unit_attack_declared.gd:21-23, :54). One declared
 ## attack, one ATTACK_DECLARED PRE/POST, one IS_FIRST_ROLL_IN_ATTACK - "this counts as one attack" is
-## inherent (ruling 15).
+## inherent (ruling 15) - except for the Knot's ONE-TIME roll buffs, which the engine consumes per target
+## roll: onhit_gemini_one_attack makes every target read them and consumes them once, after the attack
+## (Pass F task 11c, the author's report 2026-09-28 - Core Siphon's +1 had reached only the contact).
 ##
 ## IN ORDER:
 ##   1. The gates (triggers_on_event): the Knot itself (not a drone it owns, whose get_attacker() is the

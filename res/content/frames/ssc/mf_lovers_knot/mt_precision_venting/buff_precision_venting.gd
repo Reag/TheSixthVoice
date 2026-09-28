@@ -20,8 +20,8 @@
 ## happens to look.
 ##
 ## THE MYRIAD HOOK (ruling 20). While Form of the Myriad's chip is held, the round gate stands down and
-## every qualifying crit clears. SP3 creates the chip; until then has_buff on an id nobody applies is
-## simply false.
+## every qualifying crit clears. onhit_precision_venting.gd is the other half: under the chip it still
+## clears heat, but skips the increment, so the round is never spent while the chip is up either.
 extends BuffWeaponTypeOnHit
 
 const USAGE_KEY:StringName = &'precision_venting'

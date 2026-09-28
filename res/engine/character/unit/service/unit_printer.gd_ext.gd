@@ -8,7 +8,8 @@
 # deferred reload the live node keeps its pre-extension script (upstream bug 5, unfixed in 1.4.3).
 # gavstarb-ssc_emperor (resident) extends this same file for full_repair and calls super; so does
 # Thy Hubris for this very function. All three compose in any install order because each calls
-# super first - spec/test_compat.gd pins ours against the resident.
+# super first - spec/test_compat.gd pins ours against the resident, but a run installs the mods in
+# ONE order, so it measures that order only; the others are argued from super-first.
 #
 # ============================================================================================
 # THERMAL DEATH AXE (Leoleth, mw_thermal_death_axe) - "this weapon can be destroyed even if it has

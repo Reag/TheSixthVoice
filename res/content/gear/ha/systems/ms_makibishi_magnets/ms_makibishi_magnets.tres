@@ -9,7 +9,7 @@
 
 ; MAKIBISHI MAGNETS, the Koremasa's rank-I system (design 3.1): LIMITED 2, GRENADE (the throw's
 ; metatag), not UNIQUE. A grenade-plus-mine Kit, the Havok Charges' shape (ms_havok_charges.tres).
-; THROW FIRST: get_solo_action is the applier the detach's save reads (action_system_clear_buff.gd:92).
+; THROW FIRST: get_solo_action is the applier the detach's save reads (action_system_clear_buff.gd:99).
 ; SP6 draws the glyph (throw, mine, attached buff, detach: one family).
 [resource]
 script = ExtResource("2_kit")

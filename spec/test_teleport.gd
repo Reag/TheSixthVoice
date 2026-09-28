@@ -14,6 +14,11 @@
 # - is this a teleport, where is it going, who forced it, and can I stop it - were each re-derived in
 # the spike probe and would have been re-derived per frame. They are written once here.
 #
+# A FOURTEENTH FUNCTION, is_tunnel, landed at close-out Pass F Task 4 (2026-09-27): the talents mod's
+# Prospector hands its move a runtime MovementType subclass that answers is_teleport() true but is
+# digging through solid rock, not teleporting, and two of our own frames (Six Sky, Maiden's Blush) gate
+# on is_teleport and need to exclude it too.
+#
 # THIS FILE ASSERTS AGAINST VANILLA UNITS ONLY. The Maiden's Blush does not exist yet at this task,
 # and the helper is frame-agnostic by construction; test_uncertainty_field.gd is what exercises it
 # from inside a real reaction.
@@ -50,6 +55,11 @@ const ELSEWHERE := Vector2i(7, 2)
 # this file can read back without a live run.
 const FROZEN_SIGNATURES := {
 	is_teleport = {
+		args = [['context', TYPE_OBJECT, &'Context']],
+		defaults = 0, return_type = TYPE_BOOL, return_class = &'',
+	},
+	# ---- THE FOURTEENTH, added close-out Pass F Task 4 (2026-09-27) ----
+	is_tunnel = {
 		args = [['context', TYPE_OBJECT, &'Context']],
 		defaults = 0, return_type = TYPE_BOOL, return_class = &'',
 	},
@@ -258,10 +268,11 @@ func apply_a_movement_type_buff_carrying_our_tag() -> void:
 
 # ---------------------------------------------------------------- the interface itself
 
-func test_the_frozen_interface_pins_these_thirteen_signatures():
-	# Roadmap §4 freezes the first six when SP1 ships, the next five when SP2 does, and the last two
-	# when the SLUAGH's SP2 does (design ruling 18: forced_movement_type + shove). This pins the FULL
-	# signature of each of the thirteen -
+func test_the_frozen_interface_pins_these_fourteen_signatures():
+	# Roadmap §4 freezes the first six when SP1 ships, the next five when SP2 does, the next two when
+	# the SLUAGH's SP2 does (design ruling 18: forced_movement_type + shove), and the last one
+	# (is_tunnel) at close-out Pass F Task 4 (2026-09-27). This pins the FULL signature of each of the
+	# fourteen -
 	# argument count, each argument's name and order, each argument's type, the default-argument
 	# count, and the return type - not only that the name survives. A rename, a reordered parameter,
 	# a changed type or a silently-grown default is five later frames' worth of churn, and nothing
@@ -348,6 +359,46 @@ func test_is_teleport_is_false_when_the_context_carries_no_movement_type():
 	assert_false(Teleport.is_teleport(Context.create({unit = unit, target_tiles = [DESTINATION]})),
 		'No movement type is not a teleport.')
 	assert_false(Teleport.is_teleport(null), 'And a null context is not a teleport either.')
+
+# ---------------------------------------------------------------- is_tunnel
+
+## Builds the exact shape the talents mod's Prospector hands the move event
+## (action_create_entrance.gd:153-185): a runtime GDScript subclass of MovementType carrying
+## `func is_tunneling() -> bool: return true`, with teleport = true and voluntary = true like any
+## ordinary player-side teleport. Built in-test rather than by loading the talents mod's own script,
+## because is_tunnel's whole contract is "answers has_method(&'is_tunneling')", not "is this exact
+## class" - a hand-built duplicate of the shape is what proves the READ, not a dependency on the
+## resident mod's file surviving unchanged.
+func tunnel_movement_type() -> MovementType:
+	var s := GDScript.new()
+	s.source_code = "extends MovementType\nfunc is_tunneling() -> bool: return true\n"
+	s.reload()
+	var type:MovementType = s.new()
+	type.teleport = true
+	type.voluntary = true
+	return type
+
+func test_is_tunnel_is_true_for_a_prospector_shaped_movement_type():
+	assert_true(Teleport.is_tunnel(tile_context(tunnel_movement_type())),
+		'A MovementType answering has_method(&"is_tunneling") reads as a tunnel.')
+
+func test_is_tunnel_is_false_for_an_ordinary_teleport():
+	# THE DISCRIMINATING HALF. Teleport.is_teleport answers true for both shapes - MovementType.teleport
+	# is set on the Prospector's type like any other - so is_tunnel is the only thing that tells them
+	# apart, and every caller gating on is_teleport alone would treat a dig through solid rock as a
+	# teleport without it.
+	var ordinary := Teleport.movement_type(unit)
+	assert_true(Teleport.is_teleport(tile_context(ordinary)), 'CONTROL: it reads as a teleport...')
+	assert_false(Teleport.is_tunnel(tile_context(ordinary)), '...but not as a tunnel.')
+
+func test_is_tunnel_is_false_for_a_walk():
+	assert_false(Teleport.is_tunnel(tile_context(MovementType.create(unit))),
+		'An ordinary move has no is_tunneling method either.')
+
+func test_is_tunnel_is_false_when_the_context_carries_no_movement_type():
+	assert_false(Teleport.is_tunnel(Context.create({unit = unit, target_tiles = [DESTINATION]})),
+		'No movement type is not a tunnel.')
+	assert_false(Teleport.is_tunnel(null), 'And a null context is not a tunnel either.')
 
 # ---------------------------------------------------------------- destination
 
@@ -584,6 +635,14 @@ func test_pathfinder_is_empty_for_an_immobilized_unit():
 
 # ---------------------------------------------------------------- move
 
+func test_pick_tile_is_invalid_without_a_context_or_an_action():
+	# Close-out Pass F Task 21: pick_tile dereferenced context.unit and context.action unguarded, so a
+	# null context (or one with no action to proxy) threw instead of returning the failure value.
+	var tiles:Array[Vector2i] = [DESTINATION]
+	assert_eq(await Teleport.pick_tile(null, null, tiles), Tile.INVALID, 'A null context picks nothing.')
+	var no_action := Context.create({unit = unit})
+	assert_eq(await Teleport.pick_tile(no_action, null, tiles), Tile.INVALID, 'A context with no action picks nothing.')
+
 func test_move_lands_by_tile_and_returns_a_completed_core():
 	var core:EventCore = await Teleport.move(sourced_activation(), unit, DESTINATION)
 	assert_not_null(core, 'It handed the move core back.')
@@ -682,7 +741,7 @@ func test_move_beats_a_movement_restriction_ban_while_the_pathfinder_route_loses
 func test_forced_movement_type_is_an_involuntary_untagged_teleport_that_ignores_engagement():
 	# The third shape, and every clause of it is load-bearing somewhere:
 	#  - teleport, or Teleport.is_teleport answers false and no listener - Uncertainty Field included -
-	#    ever sees the move (teleport.gd:53-56; :48-51 is its docstring);
+	#    ever sees the move (Teleport.is_teleport);
 	#  - NOT voluntary, which is what clears the Immobilized gate (event_unit_move.gd:451 is
 	#    `if movement_type.voluntary and UnitCondition.is_immobilized(unit): return false`);
 	#  - ignore_engagement, matching our own involuntary shape and vanilla's
@@ -697,7 +756,7 @@ func test_forced_movement_type_is_an_involuntary_untagged_teleport_that_ignores_
 	assert_false(Teleport.is_own(type),
 		'THE DISTINCTION: it is NOT tagged as ours. A hostile shove is exactly the case is_own exists'
 		+ ' to answer false for, and move(unit, tile) would have tagged it - own_involuntary defaults'
-		+ ' to true there (teleport.gd:339).')
+		+ ' to true there (the signature of Teleport.move).')
 	assert_false(type.ignore_rxns,
 		'And it does NOT set NO_RXNS, so a Maiden\'s Blush is free to veto it - design ruling 18 says'
 		+ ' it can, and vanilla create_for_involuntary (movement_type.gd:65) would have set it.')
@@ -800,7 +859,7 @@ func test_shove_hangs_the_shovers_specific_on_the_event_so_forcer_names_them():
 	# THE ASYMMETRY WITH move(), AND THE WHOLE REASON THE SHOVE PASSES AN `object`. move() is called
 	# by the unit that is moving, so forcer(context) returns that same mech and
 	# UnitRelation.are_enemies(unit, unit) is false - which is what makes Step of Mist and Thunder
-	# exempt from its own frame\'s Uncertainty Field (teleport.gd:84-95). A SHOVE is called by somebody
+	# exempt from its own frame\'s Uncertainty Field (Teleport.forcer's docstring). A SHOVE is called by somebody
 	# ELSE, so the same read returns the SHOVER, are_enemies is TRUE, and the field correctly offers.
 	# Without this assertion the two cases are indistinguishable in this file.
 	var core:EventCore = await Teleport.shove(forcing_activation(), unit, DESTINATION)

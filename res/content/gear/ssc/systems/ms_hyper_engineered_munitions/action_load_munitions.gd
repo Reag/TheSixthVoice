@@ -59,7 +59,7 @@ func activate(context:Context, activation:EventCore) -> void:
 	if unit.is_player_controlled():
 		chosen = await choice_bus.choose_from_gear_for({
 			array = mounts,
-			title = X.tr('battle.select_option'),
+			title = Translate.action(context.gear.kit, self, 'prompt'),
 			can_voluntarily_cancel = true,
 			whois = unit,
 		})

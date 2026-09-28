@@ -6,8 +6,10 @@
 ; nothing. NO `until` - is_onetime alone, consumed by the roll that read it
 ; (event_unit_attack_declared.gd:296); FINISH_DAMAGE is the one value that must not be set (Eyes of
 ; Night's measurement). HIDDEN, and named in the battle log through gear.buff_an_end_to_all_things_bonus.name.
-; In NEITHER icon table: it lives for the width of one damage roll. inherit_type_from_attack and
-; require_hit as the Heavenly Weaver chip spells them.
+; In NEITHER icon table: it lives for the width of one damage roll. inherit_type_from_attack as the
+; Heavenly Weaver chip spells it. require_hit is ours alone now (the chip dropped it in Pass E: on
+; the general bonus_damage read it hides the buff); on bonus_damage_specific the context carries the
+; AttackRoll, so here it gates as meant (buff_damage.gd:12, :19, :24).
 ;
 ; multiple_copies_can_stack = true (frame close finding I-1, Important): without it,
 ; apply_buff_alt's same-source replacement (unit_condition.gd:741-747) matches on compcon_id +

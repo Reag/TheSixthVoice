@@ -196,7 +196,7 @@ func activate(context:Context, activation:EventCore) -> void:
 	# EXECUTED INLINE rather than queued, so the two halves of the card land in the card's order and
 	# so the abort guard below can actually see a kill. queue_event would run the damage after this
 	# function returns, at which point the Impaired would already be on a corpse. Teleport.move does
-	# the same thing from inside an activate() (Teleport._run, teleport.gd:478-485).
+	# the same thing from inside an activate() (Teleport._run).
 	#
 	# ONE SPEC PINS THIS, AND IT HAD TO BE BUILT ON PURPOSE. Swapping this line for queue_event left all
 	# 18 tests of the first draft green (measured 2026-09-18): every spec there awaited the whole event

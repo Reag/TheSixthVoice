@@ -375,7 +375,7 @@ func test_a_vetoed_teleport_forfeits_the_skirmish():
 	# veto means it did not. The negative twin of the test above - same weapon, same landing, same roll,
 	# one different answer - so the absence of the shot is the fade's doing and nothing else's.
 	#
-	# The field aborts the move core at ENTIRE_MOVEMENT / PRE (teleport.gd:180-192), which is what
+	# The field aborts the move core at ENTIRE_MOVEMENT / PRE (Teleport.veto), which is what
 	# action_abjuration_of_metal.gd:123's `move.aborted` reads.
 	#
 	# AND THAT GUARD IS OVER-DETERMINED, WHICH IS WORTH KNOWING RATHER THAN DISCOVERING TWICE: a veto

@@ -17,6 +17,9 @@
 #      answered by responder.chosen_move_tile; Tile.INVALID cancels;
 #   3. the target - the helper's reticle (Teleport.pick_tile), answered from
 #      responder.chosen_plan_queue; CompconPlan.create_aborted() cancels.
+# THE MENU OFFERS ONLY WHAT CAN HAPPEN (Pass F section 6.1 #2): an option whose teleport the engine
+# would refuse (Immobilized, a ban, no free space) is dropped, and with nothing left no menu is raised -
+# so the indices above hold only when both options survive.
 # The Six Sky's own Starsickness offers a yes/no whenever it teleports a hostile; declined by default
 # (chosen_yesnos = false) and queued explicitly where a test wants it.
 #
@@ -25,6 +28,7 @@ extends GutTest
 
 const Fixture := preload('res://unpacked/Reag-TheSixthVoice/spec/six_sky_fixture.gd')
 const PromptWatcher := preload('res://testkit/prompt_watcher.gd')
+const Teleport := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/teleport/teleport.gd')
 
 const SIX_SKY_TILE := Vector2i(4, 4)
 const AT_FIVE := Vector2i(9, 4)
@@ -88,6 +92,41 @@ func accuracy_against(target:Unit) -> int:
 	}))
 	return pre.accuracy_mods_total()
 
+## The same pass as the HIT-CHANCE PREVIEW builds it with the Six Sky PLANNING to shoot from `planned`:
+## attack_preview.gd:40-46 verbatim - a virtual DeclaredAttackSummary whose origin voxels are
+## get_origin_voxels(specific, [target tile], from_tile).
+func accuracy_from_plan(target:Unit, planned:Vector2i) -> int:
+	var specific := bow()
+	var target_tiles:Array[Vector2i] = [target.tile()]
+	var virtual_declared := DeclaredAttackSummary.create(
+		[target],
+		target.occupied_tiles(),
+		target.occupied_tiles(),
+		specific.action.get_origin_voxels(specific, target_tiles, planned)
+	)
+	var pre := AttackRoll.PreAttack.create(Context.create({
+		unit = six_sky.get_attacker(specific), target_unit = target, gear = specific.gear,
+		action = specific.action, resource = virtual_declared, flags = [],
+	}))
+	return pre.accuracy_mods_total()
+
+## The same pass as a REAL ROLL builds it: the summary action_attack.gd:253-258 declares, with origin
+## voxels from `shooter` (the Six Sky, or a relay standing in for it) where it stands, and the roll's
+## context.unit that same shooter (event_unit_attack_declared.gd:57-65).
+func accuracy_as_declared(target:Unit, shooter:Unit) -> int:
+	var specific := bow()
+	var declaring := SpecificAction.create(shooter, specific.gear, specific.action)
+	var target_tiles:Array[Vector2i] = [target.tile()]
+	var declared := DeclaredAttackSummary.create(
+		[target], target_tiles, target.occupied_tiles(),
+		specific.action.get_origin_voxels(declaring, target_tiles, shooter.tile())
+	)
+	var pre := AttackRoll.PreAttack.create(Context.create({
+		unit = shooter, target_unit = target, gear = specific.gear, action = specific.action,
+		resource = declared, flags = [],
+	}))
+	return pre.accuracy_mods_total()
+
 ## The helper's reticle prompts, i.e. the target option's picks.
 func pick_prompts() -> Array:
 	return responder.plan_prompts.filter(func(info:Dictionary) -> bool:
@@ -147,6 +186,43 @@ func test_plus_one_accuracy_against_a_target_five_away():
 func test_no_accuracy_against_a_target_six_away():
 	UnitTile.move_to(hostile, AT_SIX)
 	assert_eq(accuracy_against(hostile), 0, 'Nothing at 6.')
+
+# Pass F section 6.1 #3: the hit-chance preview hands the roll the PLANNED tile's voxels
+# (attack_preview.gd:40-46), so the +1 is measured from there when the Six Sky has not moved yet.
+
+func test_the_preview_measures_from_the_planned_space_when_it_is_closer():
+	assert_eq(accuracy_against(hostile), 0, 'PRECONDITION: from where it stands the target is 7 away.')
+	assert_eq(accuracy_from_plan(hostile, Vector2i(6, 4)), 1,
+		'Planning to shoot from 5 away: the preview shows the +1.')
+
+func test_the_preview_measures_from_the_planned_space_when_it_is_farther():
+	UnitTile.move_to(hostile, AT_FIVE)
+	assert_eq(accuracy_against(hostile), 1, 'PRECONDITION: from where it stands the target is 5 away.')
+	assert_eq(accuracy_from_plan(hostile, Vector2i(3, 4)), 0,
+		'Planning to shoot from 6 away: the preview shows no +1.')
+
+func test_the_preview_from_the_current_space_matches_the_roll():
+	UnitTile.move_to(hostile, AT_FIVE)
+	assert_eq(accuracy_from_plan(hostile, SIX_SKY_TILE), 1, 'No move planned: 5 away, the +1.')
+	UnitTile.move_to(hostile, AT_SIX)
+	assert_eq(accuracy_from_plan(hostile, SIX_SKY_TILE), 0, 'No move planned: 6 away, nothing.')
+
+func test_a_real_roll_declared_from_where_it_stands_reads_as_before():
+	UnitTile.move_to(hostile, AT_FIVE)
+	assert_eq(accuracy_as_declared(hostile, six_sky), 1, 'Declared at 5: the +1.')
+	UnitTile.move_to(hostile, AT_SIX)
+	assert_eq(accuracy_as_declared(hostile, six_sky), 0, 'Declared at 6: nothing.')
+
+func test_a_relayed_roll_still_measures_from_the_six_sky():
+	# A relay (Buff.TO.SET_ATTACK_RELAY, action_attack.gd:120-127, :233) declares from ITS space, and
+	# the roll's context.unit is the relay; get_attacker is still the Six Sky, its owner. The +1 has
+	# always been measured from the attacker, and the planned-space reading must not change that.
+	var relay := Fixture.create_ally(game, Vector2i(6, 4)) # 5 from the target at AT_SEVEN
+	relay.state.set_owner(six_sky)
+	assert_eq(relay.get_attacker(), six_sky, 'PRECONDITION: the relay blames the Six Sky.')
+	assert_eq(UnitRelation.distance_between(relay, hostile), 5, 'PRECONDITION: the relay is 5 away...')
+	assert_eq(UnitRelation.distance_between(six_sky, hostile), 7, '...and the Six Sky 7.')
+	assert_eq(accuracy_as_declared(hostile, relay), 0, 'Relayed: measured from the Six Sky, 7 away, no +1.')
 
 func test_the_accuracy_turns_a_bare_miss_into_a_hit_at_five():
 	UnitTile.move_to(hostile, AT_FIVE)
@@ -214,6 +290,63 @@ func test_choosing_yourself_teleports_the_six_sky_to_the_space_picked():
 	assert_eq(six_sky.tile(), SELF_LANDING, 'The Six Sky is teleported there.')
 	assert_eq(hostile.tile(), AT_SEVEN, 'The target stays put.')
 
+
+# ---------------------------------------------------------------- Safe Harbor (Sunzi, resident; open item A)
+## The gavstarb-ha_sunzi Safe Harbor buff is an ADDITIVE Buff.TO.MOVEMENT_RESTRICTION: while a teleporter is
+## within 50 of the Sunzi it merges the spaces beside the Sunzi into what Pathfinder.create may offer
+## (buff_safe_harbor.gd; pathfinder.gd:345-356). THE RULING PINNED HERE: it does not widen the crit's
+## self-teleport past 2, because the helper's pathfinder is built over an EXPLICIT tile set and generate_for_given_tiles filters
+## the result back down to it (pathfinder.gd:303-313), adds and all.
+##
+## DEAD IN THE SHIPPED SUNZI - mt_safe_harbor_sunzi.tres carries no actions - so the buff is hung by hand
+## from the Sunzi's own gear, which is what makes get_owner_unit resolve to the Sunzi. The positive
+## control proves the add is live for this very movement type before the ruling is asserted.
+##
+## WHAT IS ASSERTED IS THE OFFER - movable AND reachable, the latter being what the real move picker
+## accepts a click on (tilepicker_movement.gd:72, :101) - and NOT where a forced answer lands. The spec
+## responder hands back any tile it is told to, and the pathfinder's A* graph was built BEFORE the given-tile
+## filter, adds included, so a responder answering the added tile does land there (measured on this pin's
+## first run). No player can: the picker never offers it.
+const SAFE_HARBOR_BUFF_PATH := 'res://unpacked/gavstarb-ha_sunzi/res/content/frames/ha/mf_sunzi/mt_safe_harbor/buff_safe_harbor.tres'
+const SAFE_HARBOR_KIT := &'mt_safe_harbor_sunzi'
+
+func skipped_without_safe_harbor() -> bool:
+	if ResourceLoader.exists(SAFE_HARBOR_BUFF_PATH) and Kit.is_valid(ContentLibrary.get_kit(SAFE_HARBOR_KIT)): return false
+	var message := 'SKIPPED: %s is not resident, so there is no Safe Harbor to widen anything. Restore the residency set with restore-links.ps1.' % Fixture.SUNZI_MOD
+	gut.p(message)
+	pass_test(message)
+	return true
+
+## Hang Safe Harbor on `unit` from a Sunzi standing at `sunzi_tile`, as the Sunzi's own gear would.
+func give_safe_harbor(unit:Unit, sunzi_tile:Vector2i) -> void:
+	var sunzi := Fixture.create_ally(game, sunzi_tile)
+	var harbor := Fixture.equip(sunzi, SAFE_HARBOR_KIT)
+	UnitCondition.apply_buff(SpecFactory.dummy_event(), unit, load(SAFE_HARBOR_BUFF_PATH), harbor)
+
+## True when a MOVEMENT_RESTRICTION buff on `unit` ADDS `tile` for the helper's teleport type - the read
+## Pathfinder.create makes, with the same context shape (pathfinder.gd:347).
+func movement_restriction_adds(unit:Unit, tile:Vector2i) -> bool:
+	var context := Context.create({unit = unit, resource = Fixture.Teleport.movement_type(unit)})
+	for core:BuffCore in UnitCondition.get_buffs_to(unit, Buff.TO.MOVEMENT_RESTRICTION, context):
+		var values := core.get_values(context)
+		if values.boolean and values.object is PackedInt64Array and Tile.in_bitwise_array(values.object, tile): return true
+	return false
+
+func test_safe_harbor_does_not_widen_the_self_teleport_past_two():
+	if skipped_without_safe_harbor(): return
+	give_safe_harbor(six_sky, Vector2i(4, 8)) # SELF_TOO_FAR (4, 7) is beside it, 3 from the Six Sky
+	assert_true(movement_restriction_adds(six_sky, SELF_TOO_FAR),
+		'POSITIVE CONTROL: Safe Harbor is live and adds the space 3 away.')
+	responder.multiple_choice_queue.assign([0])
+	await crit()
+	var pickers := move_pathfinders()
+	assert_eq(pickers.size(), 1, 'The self option opens a move picker.')
+	if pickers.is_empty(): return
+	var pathfinder:Pathfinder = pickers.front().pathfinder
+	assert_true(pathfinder.is_movable(SELF_LANDING), 'A free space 2 away is offered...')
+	assert_false(pathfinder.is_movable(SELF_TOO_FAR), 'RULED: ...and the one Safe Harbor adds, 3 away, is not.')
+	assert_false(pathfinder.is_reachable(SELF_TOO_FAR), '...nor reachable, which is what the picker accepts.')
+
 func test_a_dead_target_leaves_only_yourself_on_the_menu():
 	# A crit OUTSIDE the Ritual cannot outlive its target (on_crit runs before damage), so the dead
 	# case is the Ritual's deferred one; the shared resolver is driven directly here.
@@ -227,12 +360,31 @@ func test_a_dead_target_leaves_only_yourself_on_the_menu():
 		'Only yourself is offered.')
 
 func test_immobilized_stops_the_self_teleport():
+	# Pass F section 6.1 #2: the menu offers only what can happen, so "Yourself" is not on it at all.
 	UnitCondition.apply_status(SpecFactory.dummy_event(), six_sky, Lancer.STATUS.IMMOBILIZED, Lancer.UNTIL.MANUAL)
-	responder.multiple_choice_queue.assign([0])
+	responder.multiple_choice_queue.assign([-1])
 	responder.chosen_move_tile = SELF_LANDING
 	await crit()
 	assert_eq(responder.multiple_choice_prompts.size(), 1, 'fixture: the menu was raised.')
+	assert_eq(menu_labels(), PackedStringArray([tr('gear.mw_daykeeper_cycler_bow.crit_target')]),
+		'Immobilized: "Yourself" is not offered, only the target.')
+	assert_eq(move_pathfinders().size(), 0, 'No move picker opens.')
 	assert_eq(six_sky.tile(), SIX_SKY_TILE, 'Immobilized: the preventable self teleport does not happen.')
+
+func test_picking_the_only_entry_of_a_target_only_menu_teleports_the_target():
+	# The menu's index is remapped through resolve_crit_teleport's `choices`: with "Yourself" dropped,
+	# entry 0 IS "The target", and must not be read as CHOICE_SELF (0).
+	UnitCondition.apply_status(SpecFactory.dummy_event(), six_sky, Lancer.STATUS.IMMOBILIZED, Lancer.UNTIL.MANUAL)
+	responder.multiple_choice_queue.assign([0])
+	responder.chosen_plan_queue.append(landing_plan(TARGET_LANDING))
+	responder.chosen_move_tile = SELF_LANDING
+	await crit()
+	assert_eq(menu_labels(), PackedStringArray([tr('gear.mw_daykeeper_cycler_bow.crit_target')]),
+		'fixture: the menu offers only the target.')
+	assert_eq(pick_prompts().size(), 1, 'Entry 0 opens the target reticle...')
+	assert_eq(move_pathfinders().size(), 0, '...and no move picker.')
+	assert_eq(hostile.tile(), TARGET_LANDING, 'The target is teleported.')
+	assert_eq(six_sky.tile(), SIX_SKY_TILE, 'The Six Sky is not.')
 
 func test_immobilized_does_not_stop_the_target_teleport():
 	UnitCondition.apply_status(SpecFactory.dummy_event(), hostile, Lancer.STATUS.IMMOBILIZED, Lancer.UNTIL.MANUAL)
@@ -248,21 +400,56 @@ func test_an_enemy_interdiction_field_stops_the_self_teleport():
 	# d20 20 into a non-crit.
 	var warden := Fixture.create_dummy(game, Vector2i(6, 6))
 	UnitCondition.apply_buff_id(SpecFactory.dummy_event(), warden, INTERDICTION_FIELD)
-	responder.multiple_choice_queue.assign([0])
+	responder.multiple_choice_queue.assign([-1])
 	responder.chosen_move_tile = SELF_LANDING
 	await crit()
 	assert_eq(responder.multiple_choice_prompts.size(), 1, 'fixture: the menu was raised.')
+	assert_eq(menu_labels(), PackedStringArray([tr('gear.mw_daykeeper_cycler_bow.crit_target')]),
+		'A ban on the Six Sky: "Yourself" is not offered, only the target.')
+	assert_eq(move_pathfinders().size(), 0, 'No move picker opens.')
 	assert_eq(six_sky.tile(), SIX_SKY_TILE, 'A ban stops the self teleport.')
 
 func test_an_allied_interdiction_field_stops_the_target_teleport():
-	# An ALLY of the Six Sky holding the field 1 from the target bans the target, its enemy.
+	# An ALLY of the Six Sky holding the field 1 from the target bans the target, its enemy. The shove is
+	# target-tile, so the ban would refuse it (event_unit_move.gd:139-146): the author's ruling
+	# (2026-09-27, Pass F T2) is that "The target" is then not offered at all.
 	var warden := Fixture.create_ally(game, Vector2i(12, 5))
 	UnitCondition.apply_buff_id(SpecFactory.dummy_event(), warden, INTERDICTION_FIELD)
-	responder.multiple_choice_queue.assign([1])
+	responder.multiple_choice_queue.assign([-1])
 	responder.chosen_plan_queue.append(landing_plan(TARGET_LANDING))
 	await crit()
-	assert_eq(pick_prompts().size(), 1, 'fixture: the reticle opened.')
+	assert_eq(responder.multiple_choice_prompts.size(), 1, 'fixture: the menu was raised.')
+	assert_eq(menu_labels(), PackedStringArray([tr('gear.mw_daykeeper_cycler_bow.crit_self')]),
+		'A ban on the target: "The target" is not offered, only yourself.')
+	assert_eq(pick_prompts().size(), 0, 'No reticle opens.')
 	assert_eq(hostile.tile(), AT_SEVEN, 'A ban stops the target teleport (Teleport.shove is target-tile).')
+
+func test_a_boxed_in_target_is_not_offered():
+	# Every free space within 2 of the target filled: the shove would have nowhere to go.
+	var corner := Vector2i(15, 0)
+	UnitTile.move_to(hostile, corner)
+	UnitTile.update_tracking_and_statuses(game.map)
+	var around := Teleport.candidate_tiles(hostile, 2, false)
+	assert_false(around.is_empty(), 'PRECONDITION: the corner has free spaces within 2 before boxing.')
+	for tile:Vector2i in around: Fixture.create_dummy(game, tile)
+	assert_true(Teleport.candidate_tiles(hostile, 2, false).is_empty(), 'fixture: the target is boxed in.')
+	var specific := bow()
+	responder.multiple_choice_queue.assign([-1])
+	var activation := SpecFactory.dummy_event({unit = six_sky, gear = specific.gear, action = specific.action})
+	await load(Fixture.BOW_SCRIPT).resolve_crit_teleport(activation, six_sky, hostile)
+	assert_eq(responder.multiple_choice_prompts.size(), 1, 'fixture: the menu was raised.')
+	assert_eq(menu_labels(), PackedStringArray([tr('gear.mw_daykeeper_cycler_bow.crit_self')]),
+		'Boxed in: "The target" is not offered, only yourself.')
+
+func test_nothing_possible_raises_no_menu():
+	# An Immobilized Six Sky crits terrain: "Yourself" cannot happen and a ground proxy is no target.
+	UnitCondition.apply_status(SpecFactory.dummy_event(), six_sky, Lancer.STATUS.IMMOBILIZED, Lancer.UNTIL.MANUAL)
+	var proxy := TargetActionUtil.create_targeting_proxy(Vector2i(4, 1), null, 1, &'dep_attack_ground_proxy')
+	assert_true(Unit.is_valid(proxy), 'PRECONDITION: the proxy is a valid unit, as the engine makes it.')
+	responder.multiple_choice_queue.assign([-1])
+	await load(Fixture.BOW_SCRIPT).resolve_crit_teleport(SpecFactory.dummy_event(), six_sky, proxy)
+	assert_eq(responder.multiple_choice_prompts.size(), 0, 'Nothing can happen, so no menu is raised.')
+	assert_eq(six_sky.tile(), SIX_SKY_TILE)
 
 func test_a_cancelled_target_pick_teleports_nobody():
 	responder.multiple_choice_queue.assign([1])

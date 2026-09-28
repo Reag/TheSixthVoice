@@ -173,11 +173,11 @@ func test_the_buff_does_not_leak_into_the_next_attack():
 
 # ---------------------------------------------------------------- a Blast
 
-func test_on_a_blast_the_bonus_lands_on_the_one_victim_whose_hit_was_offered():
-	# RECORDED FOR THE AUTHOR (ledger J-1). Ruling 4 chose bonus_damage_specific - per target, never
-	# halved - and 1/round makes the offer fire on the FIRST hit's roll alone. The buff is gated on
-	# that roll's target, so one victim takes +3 and the others take the die. Lancer's own rule for
-	# bonus damage against several targets is to halve it; this ships the full 3 on one of them.
+func test_on_a_blast_the_bonus_is_halved_across_every_victim():
+	# Rulings.md Pass E (reversing ledger J-1): bonus damage against several characters is halved, as
+	# Lancer does. The +3 is plain Buff.TO.BONUS_DAMAGE, halved by the engine when more than one
+	# character is attacked (declared_attack_summary.gd:44-45, attack_util.gd:309-312: ceil(3/2) = 2)
+	# and added to every victim's damage. One offer for the whole Blast still.
 	Fixture.mount_pair(thorn, 0, AUX_BLAST)
 	var side:Unit = Fixture.create_hostile(game, Vector2i(9, 6))
 	var below:Unit = Fixture.create_hostile(game, Vector2i(8, 7))
@@ -187,7 +187,7 @@ func test_on_a_blast_the_bonus_lands_on_the_one_victim_whose_hit_was_offered():
 	assert_eq(offers().size(), 1, 'One offer for the whole Blast.')
 	var damages := [hostile.current_damage(), side.current_damage(), below.current_damage()]
 	damages.sort()
-	assert_eq(damages, [3, 3, 6], 'Two victims took the 1d3+1 (3); ONE took 3 + 3.')
+	assert_eq(damages, [5, 5, 5], 'Every victim took the 1d3+1 (3) plus the halved bonus (2).')
 	assert_eq(uses(), 1, 'One use.')
 
 # ---------------------------------------------------------------- wiring and card text
@@ -215,10 +215,10 @@ func test_the_wiring_and_the_card_text():
 	assert_not_null(buff, 'It carries the buff.')
 	if buff == null: return
 	assert_true(buff is BuffDamage, 'A BuffDamage...')
-	assert_eq(buff.to, Buff.TO.BONUS_DAMAGE_SPECIFIC, '...to bonus_damage_specific (never halved).')
+	assert_eq(buff.to, Buff.TO.BONUS_DAMAGE, '...to plain bonus_damage (halved across several characters).')
 	assert_eq(buff.damage_dice, '3', 'Three, flat.')
 	assert_true(buff.inherit_type_from_attack, 'Of the weapon\'s type.')
-	assert_true(buff.require_hit, 'On a hit.')
+	assert_false(buff.require_hit, 'No require_hit: it would hide the buff from the general read (buff_damage.gd:20); the reaction is the hit gate.')
 	assert_true(buff.is_onetime, 'One roll.')
 	assert_eq(buff.until, Lancer.UNTIL.FINISH_DAMAGE, 'Cleared after the damage regardless.')
 	assert_true(buff.hide_from_player, 'Hidden - the yes/no is the surface.')

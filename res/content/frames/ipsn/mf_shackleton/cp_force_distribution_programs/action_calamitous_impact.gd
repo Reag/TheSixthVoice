@@ -19,7 +19,9 @@
 ## Teleport helper's move_along un-spends nothing of its own, so there is nothing to refund.
 ##
 ## THE BURST (ruling 12) is measured from the NEW footprint, and "All characters" means all of them:
-## allies and fliers included, only the Shackleton excepted. Each target is pushed 3 (the Shackleton's
+## allies and fliers included, only the Shackleton excepted. It is FLAT (Pass E ruling, 2026-09-27):
+## UnfathomableWeight.flat_burst, not UnitTile.get_aoe_tiles, whose vertical-reach filter
+## (unit_tile.gd:367-372) left a flier on higher ground out of the area. Each target is pushed 3 (the Shackleton's
 ## controller picks the direction per target - Spatial Rerouting, ruling 4; an AI Shackleton picks the
 ## best tile for an ally) and THEN saves, as the card orders it. Pushes run inline, farthest first
 ## (action_unfathomable_weight.gd's header gives the reason). Unfathomable Weight's collision reaction
@@ -88,7 +90,7 @@ func activate(context:Context, activation:EventCore) -> void:
 	if activation.abort_without_unit(unit): return
 
 	# 5. THE BURST, from where we landed.
-	var area := UnitTile.get_aoe_tiles(unit, Lancer.AOE_TYPE.BURST, BURST)
+	var area := UnfathomableWeight.flat_burst(unit, BURST)
 	await run_system_fxgs(unit, [], area)
 	if activation.abort_without_unit(unit): return
 

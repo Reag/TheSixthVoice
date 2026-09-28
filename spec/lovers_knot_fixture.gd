@@ -46,6 +46,8 @@ const GEMINI_BUFF := &'buff_gemini_charge'
 const GEMINI_SHARED_ROLL := &'buff_gemini_shared_roll'
 const GEMINI_IGNORE_COVER := &'buff_gemini_ignore_cover'
 const GEMINI_LEG_TILES := &'buff_gemini_leg_tiles'
+## Pass F task 11c: the one-attack carrier - one-time roll buffs read by every target, consumed once.
+const GEMINI_ONE_ATTACK := &'buff_gemini_one_attack'
 const GEMINI_USAGE := &'gemini_charge'
 ## SSC main Line 10, 1d6+1, no Reliable: the Line vehicle.
 const LINE := &'mw_rail_rifle'
@@ -101,6 +103,18 @@ static func create_hostile_drone(game:Gamemaster, tile:Vector2i) -> Unit:
 	var drone := create_hostile(game, tile)
 	drone.core.frame.is_drone = true
 	drone.core.full_repair()
+	return drone
+
+## A drone OWNED by `owner`, holding the rifle - Unit.get_owner_unit reads state.deployable_owner_id,
+## so get_attacker resolves this drone's attacks to `owner` (unit.gd:276-282), owner's buffs and all.
+## Delegates to the same create_dummy/equip primitives create_hostile_drone uses, the way
+## six_sky_fixture.gd:116 builds its own owned drone.
+static func create_owned_drone(game:Gamemaster, tile:Vector2i, owner:Unit) -> Unit:
+	var drone := create_dummy(game, tile, 10, owner.get_faction())
+	drone.core.frame.is_drone = true
+	drone.core.full_repair()
+	drone.state.deployable_owner_id = owner.core.persistent_id
+	equip(drone, RANGED)
 	return drone
 
 ## Put a Kit on a unit as a SYSTEM (which keeps a weapon out of loadout.basic - BuffWeaponType refuses

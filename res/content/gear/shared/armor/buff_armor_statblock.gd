@@ -25,6 +25,7 @@
 ##   - Myconid, FUNGAL NETWORK: buff_fungal_network_armor.tres, amount 1, held by the aura (MANUAL).
 ##   - Myconid, UFFISH GYRE: buff_uffish_gyre_armor.tres, amount 2, until the struck ALLY's own next
 ##     turn start (START_OF_TURN).
+##   - Gloire, RAPID RUSHDOWN: buff_rapid_rushdown_armor.tres, amount 1, until START_OF_TURN.
 ##
 ## EACH USER MUST ALSO APPLY ITS buff_armor_reduction.tres SIBLING, WITH THE SAME `until`. This buff
 ## alone is an armor number on the readout that blunts nothing; that buff alone is damage quietly

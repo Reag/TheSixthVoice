@@ -19,9 +19,11 @@
 ##    (ruling 20); neither needs anything else from here.
 ## 3. A SPENT GEMINI ROUND IS RESTORED (ruling 19) by clearing the stamp on this same core gear - Gemini's
 ##    applicator lives on this Kit, so its round and this action share one GearCore. Gemini's 1/round is
-##    not otherwise lifted: the chain commits one use and stamps it again. Recorded, not fought: a round
-##    restored here and then left unused by the Myriad attack stays open until the Knot's next turn start,
-##    reachable only by a reaction attack later the same round.
+##    not otherwise lifted: the chain commits one use and stamps it again. THE RESTORE LASTS THE CHIP
+##    (Pass E, Lovers Knot item 4, AUTHOR): the count cleared here is written onto the chip, and
+##    buff_form_of_the_myriad.gd's on_clear stamps the round again when the chip expires unless the
+##    Myriad's turn already spent it - so the turn keeps its two Geminis and no reaction Gemini opens
+##    later that round.
 ## 4. THE ATTACK. CommonActionUtil.choose_and_use over every attack of every mounted weapon (ruling 21):
 ##    the Purple Thorn's Rend without its QUICK-only filter, so a Superheavy's Full attack is offered too.
 ##    choose_and_use_no_spend (the shot costs the action economy nothing - choose_and_use adds AS_FREEBIE,
@@ -35,6 +37,7 @@ extends ActionSystem
 
 const Efficient := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/efficient/efficient.gd')
 const Record := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/gemini_record.gd')
+const MyriadChip := preload('res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/buff_form_of_the_myriad.gd')
 
 ## The visible chip - buff_form_of_the_myriad.tres.
 @export var chip:Buff
@@ -52,10 +55,12 @@ func activate(context:Context, activation:EventCore) -> void:
 	Efficient.mark_used(gear)
 
 	# 2. THE CHIP.
-	apply_buff(activation, unit, chip)
+	var chip_core:BuffCore = apply_buff(activation, unit, chip)
 
-	# 3. A SPENT GEMINI ROUND IS RESTORED.
+	# 3. A SPENT GEMINI ROUND IS RESTORED, for as long as the chip stands.
+	var spent := gear.get_uses_this_round_alt(Record.USAGE_KEY)
 	gear.uses_this_round.erase(Record.USAGE_KEY)
+	if spent > 0 and BuffCore.is_valid(chip_core): chip_core.set_state(MyriadChip.RESTORED_KEY, spent)
 
 	# 4. THE ATTACK.
 	var weapons := myriad_weapons(unit)

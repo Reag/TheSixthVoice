@@ -2,8 +2,9 @@
 # Uncertainty Field (SP1 Task 1).
 #
 # FROZEN INTERFACE, OBSERVE/INTERCEPT HALF (roadmap §4, design §1.4). Six functions, exactly these
-# names and signatures. Five later frames consume them - Purple Thorn, Leoleth (ZIP), Sluagh (Hunt),
-# Koremasa (Vanish), Six Sky - so a rename is five frames' worth of churn.
+# names and signatures. Five later frames consume them - Purple Thorn, Sluagh (Hunt), Koremasa
+# (Vanish), Six Sky, Shackleton (Calamitous Impact) - so a rename is five frames' worth of churn. (The
+# Leoleth's ZIP was once listed here; nothing of the Leoleth's preloads this file.)
 #
 # THE PERFORM HALF IS NOW IN THIS SAME FILE and frozen with it (SP2, design §2.4: candidate_tiles,
 # pathfinder, pick_tile, move, move_along) - eleven functions in total, with every SP1 spec still
@@ -15,6 +16,13 @@
 # design ruling 18): forced_movement_type() and shove(), the "somebody else's shove" half of is_own's
 # question, which nothing built until a card needed to move a unit that is not the caller. THIRTEEN
 # functions now, and not one of the eleven moved. See each one's own header.
+#
+# A FOURTEENTH FUNCTION LANDED AT CLOSE-OUT PASS F TASK 4 (2026-09-27, §6.1 #4): is_tunnel(context), so
+# a caller can tell a Prospector tunnel apart from an ordinary teleport - a runtime-built MovementType
+# subclass answering has_method(&'is_tunneling') true (the talents mod's Prospector,
+# action_create_entrance.gd:153-185, returns one as the move event's context.resource). Precedent: the
+# Sunzi's own guard against the same shape, action_redirect_teleport.gd:32. FOURTEEN functions now, and
+# not one of the thirteen above moved.
 #
 # No class_name (res/content/gear/shared/README.md): global class names are registered from
 # project.godot's class list, which is built at startup, so one declared in a script a mod loads at
@@ -54,6 +62,31 @@ static func is_teleport(context:Context) -> bool:
 	if context == null: return false
 	if not MovementType.is_valid(context.resource): return false
 	return context.resource.teleport
+
+
+## Is this move context a TUNNEL, not a teleport - the talents mod's Prospector, whose
+## action_create_entrance.gd:153-185 builds a runtime GDScript subclass of MovementType carrying
+## `func is_tunneling() -> bool: return true` and hands it back as the move event's context.resource
+## (pathfinder.gd:331, :908-916 is where a pathfinder-planned move's context.resource is set).
+##
+## READ BY has_method, NOT is (Task 4 close review): the Prospector's type is built with
+## GDScript.new().reload() at runtime and is never declared with `extends` against anything this mod
+## can reference by class, so `context.resource is ProspectorTunnelType` cannot be written here at all -
+## has_method is the only thing a caller CAN test. Precedent: the Sunzi's own guard against the exact
+## same shape, action_redirect_teleport.gd:32 (`movement_type.has_method("is_tunneling")`).
+##
+## WHY THIS EXISTS: is_teleport(context) answers true for a tunnel too - MovementType.teleport is set on
+## the Prospector's type like any other - so a listener that only asks is_teleport treats a dig through
+## solid rock as a teleport. Six Sky's Heavenly Weaver and Starsickness (six_sky_agent.gd's
+## is_teleport_by) and the Maiden's Blush's Uncertainty Field both gate on is_teleport and both need this
+## second check alongside it; see each call site's own header for why a tunnel is not what either card
+## means by "teleports".
+##
+## GUARDED AGAINST A NULL CONTEXT AND AN ABSENT RESOURCE, same as is_teleport immediately above - the
+## bus offers this context to every listener on every move, so a throw here is an error storm.
+static func is_tunnel(context:Context) -> bool:
+	return context != null and MovementType.is_valid(context.resource) \
+		and context.resource.has_method(&'is_tunneling')
 
 
 ## Where the move is going. A move arrives in exactly TWO shapes and a listener has to read both: a
@@ -299,6 +332,9 @@ static func pathfinder(unit:Unit, tiles:Array[Vector2i]) -> Pathfinder:
 ## returns when set (:207-208), so no subclass hook is needed to install it.
 static func pick_tile(context:Context, activation:EventCore, tiles:Array[Vector2i]) -> Vector2i:
 	if tiles.is_empty(): return Tile.INVALID
+	# A null context, or one with no action to proxy, is refused like an invalid unit (close-out
+	# Pass F Task 21): both were dereferenced unguarded below.
+	if context == null or context.action == null: return Tile.INVALID
 	if not Unit.is_valid(context.unit): return Tile.INVALID
 
 	var reqs := TargetRequirements.create(1, RangePattern.create(Lancer.AOE_TYPE.NONE, 0))
@@ -471,7 +507,7 @@ static func _source(activation:EventCore) -> SpecificAction:
 
 
 ## Run one event on the caller's own block when there is one, and through the level when there is not
-## - the Overshield helper's idiom (overshield.gd:46-53), for the same two reasons: a caller inside a
+## - the Overshield helper's idiom (overshield.gd _fire), for the same two reasons: a caller inside a
 ## live activation wants its move ordered inside that activation, and a caller holding a spec's dummy
 ## event has no block to queue onto. Hands the core back either way, which is the whole point of this
 ## half of the helper.

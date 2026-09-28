@@ -14,6 +14,9 @@
 # MUTATION, done by hand 2026-09-24: comment out raise()'s `declared.block.queue_block(...)` line and
 # every "printed after" test goes red.
 #
+# THE INTERFACE IS FROZEN (close-out Pass F Task 21): raise and is_raised, plus the three constants,
+# are pinned in section 0 below the test_lockon.gd way, and a third public function fails it.
+#
 #   powershell -ExecutionPolicy Bypass -File D:/DEV/lancer-tactics-claude/tools/run-hidden.ps1 -Log C:/Users/User/AppData/Local/Temp/x.log --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_native_reliable.gd
 extends GutTest
 
@@ -105,6 +108,71 @@ func resist_everything(unit:Unit) -> void:
 func assert_rifle_printed(why:String) -> void:
 	assert_eq(rifle_action().reliable_damage, '2', 'The shared rifle reads its printed Reliable 2 %s.' % why)
 	assert_false(NativeReliable.is_raised(rifle_action()), 'No raise is left on the shared rifle %s.' % why)
+
+# ---------------------------------------------------------------- 0. the frozen interface
+#
+# Close-out Pass F Task 21: the idiom of test_lockon.gd / test_overshield.gd FROZEN_SIGNATURES. Three
+# consumers (Weight of Fire, the Statistical Compensator, Zwarte Hoop) spell NativeReliable.raise on
+# the preloaded constant, and Zwarte Hoop also reuses SENTINEL_PRIORITY and CARRIER_EVENT for its own
+# sentinel - so those two constants are part of the contract and pinned by value.
+# Variant.Type: TYPE_NIL=0 (a void return), TYPE_BOOL=1, TYPE_INT=2, TYPE_STRING_NAME=21,
+# TYPE_OBJECT=24; class_name is set only for TYPE_OBJECT. Underscore-prefixed (_lower) is private.
+const FROZEN_SIGNATURES := {
+	raise = {
+		args = [
+			['declared', TYPE_OBJECT, &'EventCore'],
+			['amount', TYPE_INT, &''],
+			['source', TYPE_STRING_NAME, &''],
+		],
+		return_type = TYPE_NIL, return_class = &'',
+	},
+	is_raised = {
+		args = [['action', TYPE_OBJECT, &'Action']],
+		return_type = TYPE_BOOL, return_class = &'',
+	},
+}
+const FROZEN_CONSTANTS := {
+	STATE_META = &'reag_native_reliable',
+	SENTINEL_PRIORITY = -1000,
+	CARRIER_EVENT = &'event_delay',
+}
+
+func test_the_frozen_interface_pins_these_two_signatures_and_three_constants():
+	# Through a Script-typed local: a preloaded constant in call position is read as a class and the
+	# call refused at parse time (test_overshield.gd records the error).
+	var script:Script = NativeReliable
+	var by_name:Dictionary = {}
+	for entry:Dictionary in script.get_script_method_list(): by_name[entry.name] = entry
+
+	var public:Array = by_name.keys().filter(func(name:String) -> bool: return not name.begins_with('_'))
+	assert_eq(public.size(), FROZEN_SIGNATURES.size(),
+		'Exactly %d public functions - a third is a new contract and belongs in this table: %s' % [FROZEN_SIGNATURES.size(), public])
+
+	for required:String in FROZEN_SIGNATURES:
+		assert_true(by_name.has(required), 'NativeReliable.%s survives.' % required)
+		if not by_name.has(required): continue
+		var entry:Dictionary = by_name[required]
+		var expected:Dictionary = FROZEN_SIGNATURES[required]
+		var expected_args:Array = expected.args
+		assert_eq(entry.args.size(), expected_args.size(),
+			'%s takes exactly %d argument(s).' % [required, expected_args.size()])
+		for i:int in range(min(entry.args.size(), expected_args.size())):
+			var actual_arg:Dictionary = entry.args[i]
+			var expected_arg:Array = expected_args[i]
+			assert_eq(actual_arg.name, expected_arg[0], '%s arg %d is named "%s".' % [required, i, expected_arg[0]])
+			assert_eq(actual_arg.type, expected_arg[1], '%s arg %d has the frozen Variant.Type.' % [required, i])
+			assert_eq(actual_arg.class_name, expected_arg[2], '%s arg %d has the frozen class_name.' % [required, i])
+		# The bit, not a guessed flags total (test_overshield.gd's finding 4).
+		assert_true((entry.flags & METHOD_FLAG_STATIC) != 0, '%s is static.' % required)
+		assert_eq(entry.default_args.size(), 0, '%s takes no default arguments.' % required)
+		assert_eq(entry.return.type, expected.return_type, '%s has the frozen return Variant.Type.' % required)
+		assert_eq(entry.return.class_name, expected.return_class, '%s has the frozen return class_name.' % required)
+
+	var constants:Dictionary = script.get_script_constant_map()
+	for name:String in FROZEN_CONSTANTS:
+		assert_true(constants.has(name), 'NativeReliable.%s survives.' % name)
+		if not constants.has(name): continue
+		assert_eq(constants[name], FROZEN_CONSTANTS[name], 'NativeReliable.%s keeps its frozen value.' % name)
 
 # ---------------------------------------------------------------- 1. what native buys
 

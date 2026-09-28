@@ -10,12 +10,22 @@ The CSV is an *imported* asset (`importer="csv_translation"`) that generates
 directory for `*.translation` and loads those — the csv path it is handed only locates the folder.
 
 So **a spec asserting on `tr()` reads the compiled artifact, and will happily pass against text you
-just deleted.** After every CSV edit, run `filesystem_manage(op="scan")` in the running editor and
-confirm the artifact's mtime and size actually moved. `op="reimport"` does **not** do this: it
-reports success and refreshes the filesystem entry without running the import.
+just deleted.** After every CSV edit, run `filesystem_manage(op="scan")` in the running editor (or,
+with no editor open, `Godot_v4.7.2-stable_win64_console.exe --headless --path <modkit> --import`).
+`op="reimport"` does **not** do this: it reports success and refreshes the filesystem entry without
+running the import.
+
+**Confirm the import by the md5 record, not by mtime.** Godot keeps
+`res://.godot/imported/localizations.csv-<hash>.md5`, where `<hash>` is the md5 of the CSV's own
+res path (`res://unpacked/Reag-TheSixthVoice/localization/localizations.csv` ->
+`7603cd8a53df1b993395ffdf7ae70e1e`), and its `source_md5` is the md5 of the CSV it last compiled.
+Compare it with `md5sum` of the CSV (with CRLF normalised to LF, as the CSV is LF in git; git's
+autocrlf rewrites line endings on checkout, so mtime lies in both directions). Equal means the
+artifact is current. `testkit/build_mod_zip_scene.gd` refuses to build a zip when they differ
+(2026-09-28).
 
 The artifact is an `OptimizedTranslation`, so multi-word strings are invisible to `grep` — a zero
-hit is not evidence of anything. Use mtime and size, or a spec.
+hit is not evidence of anything. Use the md5 record, or a spec.
 
 ## Key shapes
 

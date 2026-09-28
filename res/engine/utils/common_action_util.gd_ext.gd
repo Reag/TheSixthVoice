@@ -27,6 +27,24 @@
 # The deciding party is vanilla's too: the Shackleton's controller picks, and an AI picks the worst
 # tile for an enemy (target_action_util.gd:38-39, :60-66).
 #
+# AUTOMATIC (AUTO_FURTHEST) PUSHES - Siege Specialist, Repulser Field, Stormbending, Agni - resolve
+# with no picker (event_unit_pick_move.gd:118-135). Pass E ruling, 2026-09-27 (the author): a
+# PLAYER-controlled Shackleton chooses their direction too, so for its pushes AUTO_FURTHEST is erased,
+# MANDATORY is added (the automatic push was never cancellable, and ask_for_movement_alt's
+# can_voluntarily_cancel is `not MANDATORY`, target_action_util.gd:86) and the origin emptied as
+# above: the reticle opens, one prompt per target, a cost the author accepted - except when a target's
+# reachable tiles number exactly one: MANDATORY with a single reachable tile resolves with no prompt
+# at all (event_unit_pick_move.gd ~:138, `elif is_mandatory and pathfinder.reachable_tiles.size() == 1`),
+# the same "don't gotta have them pick if the choice is compulsory & clear" branch AUTO_FURTHEST would
+# have skipped via its own path. An AI Shackleton keeps
+# the event untouched - vanilla's deterministic "away", because emptying the origin of a push nobody
+# picks makes every tile at the distance tie and Tile.get_furthest_pair_between shuffle them.
+# A BOXED-IN target needs no fallback (Pass F task 10's probe, test_spatial_rerouting.gd): stripped of
+# AUTO_FURTHEST it skips vanilla's :119 "nothing reachable" abort and opens an uncancellable reticle
+# over an empty pathfinder, but the movement tilepicker accepts a knockback with nothing reachable
+# (tilepicker_movement.gd:12-19) and any aiming tile along the straight line (:95-102), so the player
+# picks a direction and the target collides where it stands - no soft-lock.
+#
 # Keyed on specific.unit, which is who the helper itself credits with the push (the event's `unit`),
 # so it covers the Shackleton's weapons, the Ram, Mobilized Hydraulics' extra knockback and any
 # knockback its systems cause - and nothing that merely HITS the Shackleton.
@@ -45,13 +63,13 @@ static func generate_knockback_events(
 	var events:Array[EventCore] = super(target_unit, knockback_amount, specific, origin_tiles, additional_flags)
 	if specific == null or not Unit.is_valid(specific.unit): return events
 	if not GearCore.is_valid(specific.unit.get_gear(SPATIAL_REROUTING)): return events
+	var player_picks := specific.unit.is_player_controlled()
 	for event:EventCore in events:
 		var flags:Array = event.context.flags
-		# An AUTO_FURTHEST push is resolved with no picker (event_unit_pick_move.gd:118-123): with its
-		# origin emptied the source becomes the mover's own tile, every tile at the distance ties, and
-		# Tile.get_furthest_pair_between shuffles the ties - a random direction nobody chose. Those
-		# (Siege Specialist, Repulser Field, Stormbringer, Agni) keep vanilla's deterministic "away",
-		# which is one of the directions the trait allows. Frame-close review, 2026-09-24.
-		if flags.has(EventUnitPickMove.FLAG.KNOCKBACK) and not flags.has(EventUnitPickMove.FLAG.AUTO_FURTHEST):
-			event.context.array = []
+		if not flags.has(EventUnitPickMove.FLAG.KNOCKBACK): continue
+		if flags.has(EventUnitPickMove.FLAG.AUTO_FURTHEST):
+			if not player_picks: continue
+			flags.erase(EventUnitPickMove.FLAG.AUTO_FURTHEST)
+			if not flags.has(EventUnitPickMove.FLAG.MANDATORY): flags.append(EventUnitPickMove.FLAG.MANDATORY)
+		event.context.array = []
 	return events

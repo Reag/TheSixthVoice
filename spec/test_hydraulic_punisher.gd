@@ -71,6 +71,22 @@ func test_a_prone_the_gloire_applies_to_an_ally_does_not_fire() -> void:
 	assert_false(Fixture.is_punished(ally), 'RULED: "a hostile character" - an ally is not punished.')
 	assert_false(is_impaired(ally), 'not Impaired.')
 
+# ------------------------------------------------------- copy-count probe
+
+## PROBE (kept): confirms the mapping note before trusting prone_copies() below - apply_status has
+## no dedupe (unit_condition.gd:105), so two real knockdowns leave TWO PRONE entries in
+## hostile.state.statuses, and the STATUSES_CHANGED PRE gate sees the second one already appended
+## (has_status is true for both). This is why the gate has to count copies rather than ask has_status.
+func test_probe_two_real_knockdowns_leave_two_undeduped_prone_entries() -> void:
+	var hostile := Fixture.create_dummy(game, FIRST_TILE)
+	await Fixture.ram(game, gloire, hostile)
+	assert_eq(hostile.state.statuses.filter(func(s): return s.type == Lancer.STATUS.PRONE).size(), 1,
+		'PROBE: one PRONE entry after the first knockdown.')
+	await Fixture.cycle_turn(game, gloire)
+	await Fixture.ram(game, gloire, hostile)
+	assert_eq(hostile.state.statuses.filter(func(s): return s.type == Lancer.STATUS.PRONE).size(), 2,
+		'PROBE: no dedupe - a second real knockdown while still Prone leaves TWO entries.')
+
 # ---------------------------------------------------------------- "1/round"
 
 func test_a_second_hostile_floored_in_the_same_round_gets_nothing_and_a_new_round_re_arms() -> void:
@@ -85,8 +101,24 @@ func test_a_second_hostile_floored_in_the_same_round_gets_nothing_and_a_new_roun
 	await Fixture.cycle_turn(game, gloire)
 	assert_eq(Fixture.punisher_uses(gloire), 0, 'a new round re-arms the trait.')
 	await Fixture.ram(game, gloire, second)
-	assert_true(Fixture.is_punished(second), 'a Prone landing on an already-Prone hostile still counts, once the round is fresh.')
-	assert_true(is_impaired(second), 'Impaired now.')
+	assert_false(Fixture.is_punished(second), 'RULED (reverses row 494): still Prone from the earlier knockdown, so this is not "knocking Prone" - no Impaired even in a fresh round.')
+	assert_false(is_impaired(second), 'not Impaired.')
+	assert_eq(Fixture.punisher_uses(gloire), 0, 'and the no-op does not spend the fresh round either.')
+
+## Standing up first (SpecFactory.start_turn + STAND_UP) genuinely clears Prone, so the NEXT
+## knockdown is a real change of state again - unlike the still-Prone re-Ram directly above.
+func test_a_fresh_knockdown_after_standing_up_punishes_again() -> void:
+	var hostile := Fixture.create_dummy(game, FIRST_TILE)
+	await Fixture.ram(game, gloire, hostile)
+	assert_true(Fixture.is_punished(hostile), 'fixture: the first knockdown is punished.')
+	await SpecFactory.start_turn(game, hostile)
+	await SpecFactory.use_solo(game, hostile, Fixture.STAND_UP)
+	assert_false(hostile.has_status(Lancer.STATUS.PRONE), 'fixture: it stood up, dropping the buff with it.')
+	await Fixture.cycle_turn(game, gloire)
+	await Fixture.ram(game, gloire, hostile)
+	assert_true(hostile.has_status(Lancer.STATUS.PRONE), 'Ram floored it again.')
+	assert_true(Fixture.is_punished(hostile), 'a genuinely fresh knockdown - it cleared Prone in between - punishes again.')
+	assert_true(is_impaired(hostile), 'Impaired now.')
 
 func test_flooring_an_already_punished_hostile_again_neither_stacks_nor_spends_the_round() -> void:
 	var first := Fixture.create_dummy(game, FIRST_TILE)

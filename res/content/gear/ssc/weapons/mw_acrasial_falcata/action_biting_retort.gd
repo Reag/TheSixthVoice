@@ -120,6 +120,18 @@ const RIPOSTE_BUFF:StringName = &'buff_biting_retort_riposte'
 ## that depends on a gate two files away is exactly the kind of thing that fails silently later.
 func triggers_on_event(unit:Unit, gear:GearCore, triggering_event:EventCore) -> bool:
 	if not super.triggers_on_event(unit, gear, triggering_event): return false
+	# T22 (author decision, Pass F close-out): gate on the RAW ATTACKING UNIT -
+	# triggering_event.context.unit - never on get_attacker(). ActionReactionAttacked already gates the
+	# DEFENDER on is_character (require_defender_to_be_character, action_reaction_attacked.gd:95) and
+	# never the attacker, so before this line a hostile deployable or turret - owned or not - could
+	# still be offered against, and get_attacker() would have resolved an OWNED one straight back to a
+	# character, which is exactly the reading T22 rejects. A drone answers is_character() true
+	# (Frame.ENTITY.CHARACTER covers "mechs, pilots, drones", frame.gd:58-60), so a drone attacker is
+	# still offered here. spec/test_biting_retort.gd's test_a_noncharacter_attacker_is_never_offered_
+	# the_reaction, ..._an_owned_hostile_deployable_is_never_offered_the_reaction and
+	# ..._an_owned_hostile_character_attacker_is_still_offered_the_reaction are the pins.
+	if not Unit.is_valid(triggering_event.context.unit) or not triggering_event.context.unit.is_character():
+		return false
 	var action:Action = triggering_event.context.action
 	if action is not ActionAttackWeapon: return false
 	return action.threat > 0 # ruling 8: a throw is threat 0 and is not a melee attack

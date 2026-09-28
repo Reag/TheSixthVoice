@@ -117,6 +117,9 @@
 extends GutTest
 
 const PrimroseFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/primrose_fixture.gd')
+## Only for create_deployable, which PrimroseFixture has no reason to re-expose - test_eternity_hammer.gd
+## and test_draw_fire.gd reach for it the same way, for the same reason.
+const FitzgeraldFixture := preload('res://unpacked/Reag-TheSixthVoice/spec/fitzgerald_fixture.gd')
 
 const FALCATA := &'mw_acrasial_falcata'
 const ATTACK := &'action_acrasial_falcata'
@@ -671,6 +674,83 @@ func test_an_attack_on_somebody_else_offers_nothing() -> void:
 	assert_eq(offers(), 0,
 		'require_unit_to_be = DEFENDER: the card says "attempts to hit YOU".')
 
+# ---------------------------------------------------------------- T22: the RAW attacker, not get_attacker()
+#
+# Pass F close-out, author decision T22. ActionReactionAttacked gates the DEFENDER on is_character
+# (require_defender_to_be_character, action_reaction_attacked.gd:95) and never the ATTACKER - so before
+# this task a hostile deployable or turret, owned or not, could still swing and be offered against. The
+# three tests below are the RED/GREEN pair T22 asks for, plus the control that proves the gate reads
+# is_character() and not ownership.
+
+func test_a_noncharacter_attacker_is_never_offered_the_reaction() -> void:
+	# THE UNOWNED CASE. Built the same way test_the_engine_auto_fails_a_noncharacters_hull_save builds a
+	# non-character attacker (:977 below): flip entity_type on a live character so everything else about
+	# it - actions, gear, turn economy - stays real, and the swing is a genuine one rather than a staged
+	# event. A fresh unit, not `brawler`, so this test cannot collide with anything else in the file that
+	# reads brawler's own state.
+	var object_attacker := PrimroseFixture.create_hostile(game, Vector2i(3, 4))
+	object_attacker.core.frame.entity_type = Frame.ENTITY.OBJECT
+	PrimroseFixture.equip_heavy_melee(object_attacker)
+	assert_false(object_attacker.is_character(), 'fixture: the attacker is not a character.')
+
+	await PrimroseFixture.open_turn(game, object_attacker)
+	pin_dice(MISS_D20)
+	await SpecFactory.use_solo(game, object_attacker, PrimroseFixture.HEAVY_MELEE, primrose)
+
+	assert_not_null(recorder.last_roll, 'VACUITY GUARD: the object really swung and really rolled.')
+	assert_eq(offers(), 0,
+		'T22: the RAW attacker fails is_character(), so Biting Retort is never offered - whatever '
+		+ 'get_attacker() would have said about it.')
+	assert_eq(object_attacker.current_damage(), 0,
+		'And with no offer there is no riposte: the reaction never armed, so the miss costs the object '
+		+ 'nothing.')
+
+func test_an_owned_hostile_deployable_is_never_offered_the_reaction() -> void:
+	# THE OWNED CASE, and the one T22 is actually written against: get_attacker() resolves an OWNED
+	# deployable straight back to a character (unit.gd:276-282), which is precisely the reading T22
+	# rejects. A real dep_jericho_cover-frame OBJECT rather than an entity_type flip, owned by `brawler`,
+	# proves the gate reads the raw event unit and not the resolved attacker.
+	var turret := FitzgeraldFixture.create_deployable(game, Vector2i(3, 4), 20, 0, 10)
+	turret.state.set_owner(brawler)
+	assert_false(turret.is_character(), 'fixture: the deployable itself is not a character.')
+	assert_eq(turret.get_attacker(), brawler,
+		'fixture: but get_attacker() resolves it to its owner, a character - the reading T22 rejects.')
+	var weapon := PrimroseFixture.equip_heavy_melee(turret)
+
+	pin_dice(MISS_D20)
+	var queued:int = Dice.CHEAT_ROLL_QUEUE.size()
+	var core := EventCore.create(&'event_gear_activate', {
+		action = weapon.get_solo_action(), gear = weapon, unit = turret, target_unit = primrose,
+	})
+	var cores:Array[EventCore] = [core]
+	await game.execute_event_block(EventBlock.create_multiple(cores))
+	assert_lt(Dice.CHEAT_ROLL_QUEUE.size(), queued, 'fixture: the turret really swung and really rolled.')
+
+	assert_not_null(recorder.last_roll, 'VACUITY GUARD: the attack itself resolved.')
+	assert_eq(offers(), 0,
+		'T22: the RAW attacking unit is the turret, not its owner - never offered even though it is '
+		+ 'OWNED by a character.')
+
+func test_an_owned_hostile_character_attacker_is_still_offered_the_reaction() -> void:
+	# THE CONTROL. "A drone IS a character" (T22's own wording): Frame.is_character() answers true for
+	# ENTITY.CHARACTER, and frame.gd:59 spells "mechs, pilots, drones" into that branch by name - a drone
+	# is not a distinct entity_type in this engine, just a character-type frame. So the gate above must
+	# key on is_character() alone, never on whether the unit has an owner; this is the case that would
+	# false-positive if it read ownership instead.
+	var owner := PrimroseFixture.create_hostile(game, Vector2i(2, 4))
+	var drone := PrimroseFixture.create_hostile(game, Vector2i(3, 4))
+	drone.state.set_owner(owner)
+	assert_true(drone.is_character(), 'fixture: the drone is a character - ENTITY.CHARACTER, same as a mech or a pilot.')
+	PrimroseFixture.equip_heavy_melee(drone)
+
+	await PrimroseFixture.open_turn(game, drone)
+	pin_dice(MISS_D20)
+	await SpecFactory.use_solo(game, drone, PrimroseFixture.HEAVY_MELEE, primrose)
+
+	assert_not_null(recorder.last_roll, 'VACUITY GUARD: the drone really swung and really rolled.')
+	assert_eq(offers(), 1,
+		'T22: the RAW attacker passes is_character() - owned or not - so the reaction is still offered.')
+
 func test_a_blinded_primrose_does_not_riposte_an_attacker_it_cannot_see() -> void:
 	# THE ONE CONSTRUCTIBLE NEGATIVE for require_attacker_to_be_in_los. UnitRelation.can_see carries the
 	# Blinded rule (unit_relation.gd:206-216): a BLINDED unit sees only what it could ENGAGE, i.e. what
@@ -968,10 +1048,19 @@ func test_the_engine_auto_fails_a_noncharacters_hull_save() -> void:
 	# a non-character to FALSE - "noncharacters always fail; doesn't even count as a force" - WITHOUT
 	# rolling anything, and false is the failure branch. So a riposte that forced the save
 	# unconditionally would silently knock every hostile deployable, drone-object or turret Prone the
-	# instant it swung and missed. ActionReactionAttacked gates the DEFENDER on is_character
-	# (require_defender_to_be_character, action_reaction_attacked.gd:95) and never the ATTACKER, so
-	# that state is reachable in play; it is not reachable from this fixture, which is exactly why this
-	# test calls the engine directly instead of pretending to stage it.
+	# instant it swung and missed.
+	#
+	# STALE AS OF T22 (Pass F close-out), CORRECTED HERE: this used to record that state as reachable
+	# in play, because ActionReactionAttacked gates the DEFENDER on is_character
+	# (require_defender_to_be_character, action_reaction_attacked.gd:95) and never the ATTACKER. That is
+	# no longer the whole story - action_biting_retort.gd's triggers_on_event now gates the OFFER itself
+	# on the raw attacking unit's is_character(), so a hostile deployable, owned or not, is never even
+	# offered the reaction any more (spec/test_biting_retort.gd's test_a_noncharacter_attacker_is_never_
+	# offered_the_reaction and ..._an_owned_hostile_deployable_is_never_offered_the_reaction are the
+	# pins for that). The save-side guard this test characterises therefore has NO path through real
+	# play left that reaches it - it is a second line of defence now, not the only one - which is
+	# exactly why this test still calls the engine directly instead of pretending to stage it: there is
+	# nothing left to stage.
 	#
 	# The dummy event is never touched: the short-circuit is the first line of the function.
 	brawler.core.frame.entity_type = Frame.ENTITY.OBJECT

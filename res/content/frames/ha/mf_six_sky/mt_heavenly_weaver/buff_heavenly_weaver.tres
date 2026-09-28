@@ -3,7 +3,9 @@
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_six_sky/mt_heavenly_weaver/buff_heavenly_weaver.gd" id="1_buff"]
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_heavenly_weaver.svg" id="2_icon"]
 
-; HEAVENLY WEAVER's chip (rulings 8-10; the script's header has the seam). until 0 is Lancer.UNTIL.MANUAL
+; HEAVENLY WEAVER's chip (rulings 8-10; the script's header has the seam). to = bonus_damage, halved
+; across a multi-target attack (rulings.md Pass E); no require_hit - the script gates on the hit, because
+; require_hit hides the buff from the general read. until 0 is Lancer.UNTIL.MANUAL
 ; - "the next successful attack" may be rounds away, and FINISH_DAMAGE would clear it after the first
 ; attack either way. VISIBLE, with its own name row: the only on-token sign the charge is live. Wears
 ; the Heavenly Weaver family's texture, same file as the trait Kit.
@@ -11,8 +13,7 @@
 script = ExtResource("1_buff")
 damage_dice = "1d6"
 inherit_type_from_attack = true
-require_hit = true
 until = 0
-to = &"bonus_damage_specific"
+to = &"bonus_damage"
 is_onetime = true
 icon = ExtResource("2_icon")

@@ -81,6 +81,38 @@ func test_the_late_call_extends_an_unextended_licence_once_and_retains_it():
 	MainScript.extend_late(carrier, [Fixture.LICENSE_PATH] as Array[String], retained)
 	assert_eq(six_skies(), 1, 'A second call does not append it again.')
 
+## THE ENGINE'S OWN CALL (Pass F task 20). The tests above call extend_late directly and count what
+## lands in an untyped {}; neither is what the engine does. mod_applier.gd:212-220 folds every mod's
+## queue into a TYPED Dictionary[String, Array] and _ModLoaderResourceExtension.apply_extension
+## (resource_extension.gd:20-32) load()s the KEY and calls the queued callable with it, fatal on a
+## falsy return. So: a typed queue, the real queue_late_extensions, and the bound callable driven
+## through the real apply_extension - the Sixth-Voice-first order no test run can reproduce.
+## Loaded by path, not by class_name, so an addon rename fails this test rather than the file's parse.
+const RESOURCE_EXTENSION := 'res://addons/mod_loader/internal/resource_extension.gd'
+
+func test_the_engine_applies_the_queued_late_extension():
+	# The Sixth-Voice-first state, built the way the tests above build it: li_sunzi un-extended, and the
+	# path handed in as deferred (in a test run it is mounted, so deferred() itself returns nothing).
+	license.rank_2.granted_frames.erase(frame)
+	license.remove_meta(MainScript.APPLIED_META)
+	assert_eq(six_skies(), 0, 'fixture: un-extended.')
+	var queue:Dictionary[String, Array] = {}
+	var retained:Array = []
+	MainScript.queue_late_extensions(queue, [Fixture.LICENSE_PATH] as Array[String], retained)
+	assert_eq(queue.keys(), [MainScript.LATE_EXTENSION_CARRIER] as Array[String], 'Queued on the carrier, in a typed queue.')
+	var callables:Array = queue.get(MainScript.LATE_EXTENSION_CARRIER, [])
+	assert_eq(callables.size(), 1, 'One callable.')
+	if callables.size() != 1: return
+	assert_true(callables[0] is Callable, 'What is queued is a Callable, as apply_extension types it.')
+	var carrier:Resource = load(MainScript.LATE_EXTENSION_CARRIER)
+	load(RESOURCE_EXTENSION).apply_extension(MainScript.LATE_EXTENSION_CARRIER, callables[0])
+	assert_eq(six_skies(), 1, 'The engine\'s call granted the Six Sky.')
+	assert_true(license.has_meta(MainScript.APPLIED_META), 'Stamped.')
+	assert_true(retained.has(license), 'Retained, in the very array the bind captured.')
+	assert_eq(load(MainScript.LATE_EXTENSION_CARRIER), carrier, 'The carrier is still the cached instance after take_over_path.')
+	load(RESOURCE_EXTENSION).apply_extension(MainScript.LATE_EXTENSION_CARRIER, callables[0])
+	assert_eq(six_skies(), 1, 'Run again, it does not append the Six Sky twice.')
+
 func test_the_late_call_without_the_sunzi_does_nothing():
 	var retained:Array = []
 	var carrier:Resource = load(MainScript.LATE_EXTENSION_CARRIER)

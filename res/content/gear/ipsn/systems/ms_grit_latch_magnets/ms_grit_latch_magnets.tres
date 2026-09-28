@@ -4,11 +4,14 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="2_kit"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_grit_latch_magnets/action_reinforcement_blast.tres" id="3_blast"]
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/ms_grit_latch_magnets.svg" id="4_icon"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/ipsn/systems/ms_grit_latch_magnets/action_reinforcement_blast_age.tres" id="5_age"]
 
 [resource]
 script = ExtResource("2_kit")
 icon_override = ExtResource("4_icon")
-actions = Array[ExtResource("1_action")]([ExtResource("3_blast")])
+; The blast FIRST (get_solo_action is actions.front()). The ageing reaction is hidden bookkeeping for
+; the pair on unowned drones (Pass F T11b; action_reinforcement_blast_age.gd).
+actions = Array[ExtResource("1_action")]([ExtResource("3_blast"), ExtResource("5_age")])
 sp_cost = 2
 ; system_tags is an export_flags field (kit.gd:31): bit 0 is Unique, so 1 is UNIQUE alone.
 system_tags = 1

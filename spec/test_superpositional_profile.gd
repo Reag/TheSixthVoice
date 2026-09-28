@@ -153,6 +153,20 @@ func test_a_melee_attack_does_not_offer():
 	await Fixture.shoot(game, hostile, thorn, MELEE)
 	assert_eq(shimmer_offers(), 0, 'A melee attack is not a ranged attack.')
 
+## Pass F task 14 (open-items H, test debt): action_shimmer.tres forbids weapon_type MELEE and
+## allow_basic true (the .tres's own comment). mw_improvised_attack is BASIC gear (every unit's own
+## unarmed strike, ruling in maidens_blush_fixture.gd) but weapon_type = 2 = MELEE all the same
+## (action_improvised_attack.tres), so weapon_types_forbidden wins over allow_basic rather than the
+## other way round. Damage asserted as liveness: a bare 0-offers count does not by itself prove the
+## attack even happened.
+func test_an_improvised_melee_attack_does_not_offer():
+	Fixture.step(hostile, ADJACENT_TILE)
+	responder.yesno_queue.assign([true])
+	Fixture.queue([D20_HITS, RIFLE_D6])
+	await Fixture.shoot(game, hostile, thorn, &'mw_improvised_attack')
+	assert_eq(shimmer_offers(), 0, 'BASIC, but still MELEE: weapon_types_forbidden wins over allow_basic.')
+	assert_gt(thorn.current_damage(), 0, 'fixture: the attack landed.')
+
 func test_a_tech_attack_does_not_offer():
 	responder.yesno_queue.assign([true])
 	Fixture.queue([D20_HITS])

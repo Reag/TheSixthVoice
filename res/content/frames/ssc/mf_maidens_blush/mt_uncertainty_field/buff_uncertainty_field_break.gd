@@ -35,7 +35,7 @@
 extends Buff
 
 ## The battle-log row, as a LITERAL KEY: battle_log.log_unit takes a translation key and calls tr()
-## on it itself (battle_log_bus.gd:24-33), the way buff_symbiosis_exclusion.gd:118 passes one. A
+## on it itself (battle_log_bus.gd:24-33). A
 ## const rather than a lookup off the owner gear, so the row key stays stable even when the gear
 ## lookup fails.
 const BROKEN_LOG := &'gear.mt_uncertainty_field.broken.log'

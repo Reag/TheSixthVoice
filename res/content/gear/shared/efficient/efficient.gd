@@ -1,6 +1,6 @@
 # EFFICIENT: a core power that hands its Core Point back at the end of a scene it was used in. Born
-# with the Maiden's Blush's Step of Mist and Thunder (SP2); consumers to come are the Lovers Knot and
-# Black Mountain.
+# with the Maiden's Blush's Step of Mist and Thunder (SP2); since consumed by the Lovers Knot (Form of
+# the Myriad) and the Black Mountain (Fell the Mighty).
 #
 # FROZEN INTERFACE (roadmap §4, design §2.5): mark_used, is_marked, refund, and the USED_KEY they
 # share. A consumer does two things - call Efficient.mark_used(gear) where it spends, and put an
