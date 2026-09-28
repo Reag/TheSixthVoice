@@ -44,7 +44,8 @@
 ##
 ## NOTHING IS SPENT UNTIL AN ALLY IS CHOSEN. spend_actions runs after the prompt returns, so
 ## cancelling declines at no cost - which is the reading of "an allied character gains" that lets a
-## player hold the round's Halo for a better moment.
+## player hold the round's Halo for a better moment. An AI-controlled Myconid (Cascades) skips the
+## prompt and always shields - see activate().
 extends ActionReaction
 
 const Overshield := preload('res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/overshield/overshield.gd')
@@ -92,6 +93,16 @@ func eligible_allies(unit:Unit) -> Array[Unit]:
 		allies.append(other)
 	return allies
 
+## The AI's pick: the candidate with the least current HP; ties resolve to the earlier entry, so the
+## result is deterministic for a given list. Null for an empty list.
+func ai_choice(candidates:Array[Unit]) -> Unit:
+	var best:Unit = null
+	for candidate:Unit in candidates:
+		if not Unit.is_valid(candidate): continue
+		if best == null or candidate.core.current.health < best.core.current.health:
+			best = candidate
+	return best
+
 func triggers_on_event(unit:Unit, _gear:GearCore, triggering_event:EventCore) -> bool:
 	if not Unit.is_valid(unit): return false
 	var context:Context = triggering_event.context
@@ -122,9 +133,19 @@ func activate(context:Context, activation:EventCore) -> void:
 	var amount:int = Overshield.grit(unit)
 	if activation.abort_when(amount <= 0): return
 
-	var chosen:Unit = await choice_bus.choose_unit(
-		candidates, true, SpecificAction.from_context(context)
-	)
+	# AI-CONTROLLED, NO PROMPT. fateofman's Cascades hands a cascading player mech to the AI; its
+	# Cascade Personalities' safety scan never reads a REACTION (the fallback skips every
+	# ActionReaction), and the engine's reaction bus fires for any faction, so this picker would open
+	# on an AI turn with nobody to answer it. The AI shields the most damaged eligible ally and never
+	# declines - "gains" is free, and a mech nobody is steering has no reason to hold the round's
+	# Halo. Kill Host's shape (Thy Hubris action_kill_host.gd:135). test_halo.gd pins it. 2026-09-28.
+	var chosen:Unit
+	if unit.is_player_controlled():
+		chosen = await choice_bus.choose_unit(
+			candidates, true, SpecificAction.from_context(context)
+		)
+	else:
+		chosen = ai_choice(candidates)
 	# Cancelled. Return BEFORE spend_actions, which is what makes declining free - and the 1/round
 	# still available for a later hit in the same round.
 	if not Unit.is_valid(chosen): return
