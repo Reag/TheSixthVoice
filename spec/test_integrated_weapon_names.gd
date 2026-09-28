@@ -102,7 +102,7 @@ func test_the_fitzgeralds_integrated_weapon_is_called_the_bizarre_cannon() -> vo
 	assert_eq(shown.size(), 1, 'The Fitzgerald draws exactly one integrated weapon box.')
 	if shown.is_empty(): return
 
-	assert_eq(names_of(shown)[0], 'Bizarre Cannon',
+	assert_eq(names_of(shown)[0], 'BIZARRE CANNON',
 		'The integrated weapon box is titled with the WEAPON, as Bel names it on the card.')
 	assert_does_not_have(names_of(shown), 'Broadside',
 		'and never with the core SYSTEM.')

@@ -383,7 +383,7 @@ const REND_AXE_LOCALIZATION_ROWS:Array[String] = [
 	# (translate.gd:73-76), which is right for the ordinary swing - one card, one name - and wrong the
 	# moment there are two buttons, because both would then read "Rend Axe". Vanilla-adjacent
 	# precedent in this same file: gear.mw_bizarre_cannon.action_more_black_powder.name is
-	# "Bizarre Cannon (More Black Powder)" for exactly this reason.
+	# "BIZARRE CANNON (More Black Powder)" for exactly this reason.
 	'gear.mw_rend_axe.action_rend_axe_free.name',
 	'gear.mw_rend_axe.action_rend_axe_free.effect',
 ]
@@ -435,7 +435,7 @@ const ICON_TARGETS := {
 	# Kit's glyph directly (a KIT row below) rather than sharing a named family.
 	&'cp_broadside': {&'action_more_black_powder_protocol': &'action_more_black_powder'},
 	# The two CANNON PROFILES moved to their own Kit at the frame close, so the character sheet
-	# titles the integrated-weapon box "Bizarre Cannon" instead of "Broadside"
+	# titles the integrated-weapon box "BIZARRE CANNON" instead of "Broadside"
 	# (weapon_mount_item.gd:101 reads the KIT's name). See test_integrated_weapon_names.gd.
 	# action_bizarre_cannon is the Kit's own base profile and wore action_bizarre_cannon.svg a
 	# second time via its own icon_override - one texture written twice under a family name equal

@@ -111,6 +111,8 @@ func test_only_mounts_of_nothing_but_ranged_weapons_are_offered():
 	if responder.gear_prompts.is_empty(): return
 	assert_eq(responder.gear_prompts[0].array, [mount(1), mount(2)],
 		'The picker offers exactly the eligible mounts, in loadout order.')
+	assert_eq(responder.gear_prompts[0].title, 'Choose a mount that contains only ranged weapons',
+		"The picker's own title, not vanilla's generic \"Select an option:\".")
 
 func test_an_empty_mount_is_not_offered():
 	var bare := Fixture.create_thorn(game, Vector2i(4, 9))
@@ -253,7 +255,7 @@ func test_the_kit_is_the_cards_profile():
 	assert_eq(load_action.action_type, Lancer.ACTION.PROTOCOL, 'A Protocol.')
 
 func test_the_rows_resolve():
-	assert_eq(tr('gear.ms_hyper_engineered_munitions.name'), 'Hyper Engineered Munitions', 'The name row.')
+	assert_eq(tr('gear.ms_hyper_engineered_munitions.name'), 'HYPER ENGINEERED MUNITIONS', 'The name row.')
 	assert_eq(tr('gear.ms_hyper_engineered_munitions.action_load_munitions.name'), 'Load Munitions', 'The action row.')
 	assert_eq(tr('gear.buff_loaded_munitions.name'), 'Load Munitions', 'The chip names itself.')
 	assert_string_contains(tr('gear.buff_loaded_munitions.effect'), 'Hull save', 'The chip carries the card text.')
