@@ -396,7 +396,7 @@ func test_a_real_system_movement_action_teleports_and_heats():
 ## Equipped here for the seam only - the Leoleth is not a Napoleon, but nothing in
 ## action_activate_aegis.gd cares who is holding the core power.
 ##
-## CORRECTED 2026-09-28 (review fix): the paragraph this replaced claimed the blanket clear at
+## CORRECTED 2026-09-28 (review fix #1): the paragraph this replaced claimed the blanket clear at
 ## action_activate_aegis.gd:44-50 was what dropped the chip "metatag or not", and called the
 ## metatag-only restriction test "no metatag involved". Both were wrong about WHICH loop actually
 ## runs. action_activate_aegis.gd:13-29 runs FIRST, not the blanket clear: it collects every gear
@@ -410,34 +410,34 @@ func test_a_real_system_movement_action_teleports_and_heats():
 ## the zip system is not a shield, its chip is not applied by a PassiveBuffApplicator/PassiveWeaponMod,
 ## UnitAction.is_tech(zip) is false and the zip kit is not a trait, so the "anything else" branch at
 ## :77 fires either way - which is why _held() still reads false either way, but THROUGH A DIFFERENT
-## MECHANISM now, and that mechanism has a real player-visible side effect (below).
+## MECHANISM now.
 ##
-## MEASURED (review fix, 2026-09-28): because action_zip_disengage.gd extends
-## ActionSystemClearBuff, whose activate() (action_system_clear_buff.gd:70-71) unconditionally
-## awaits CommonActionUtil.confirm_use before spend_actions/clearing, firing it via the :13-29 loop
-## raises a REAL YES/NO PROMPT to the player, on top of the Aegis' own confirm. AS_FREEBIE alone
-## does not suppress it - confirm_use_alt only skips for Action.FLAG.SKIP_PLAYER_DECISIONS
-## (common_action_util.gd:330), which the Aegis loop never passes. Measured side by side, same
-## fixture, same Aegis, isolating the Aegis' OWN one confirm as the baseline:
+## CORRECTED 2026-09-28 (review fix #2, author ruling "match vanilla"): fix #1 measured that firing
+## disengage via the :13-29 loop raised an EXTRA yes/no prompt beyond the Aegis' own (2 total against
+## a 1-prompt baseline), because action_zip_disengage.gd extends ActionSystemClearBuff, whose
+## activate() (action_system_clear_buff.gd:70-71) unconditionally awaits
+## CommonActionUtil.confirm_use - and AS_FREEBIE alone does not suppress that (confirm_use_alt only
+## skips for Action.FLAG.SKIP_PLAYER_DECISIONS, common_action_util.gd:330, which the Aegis loop never
+## passes). The author ruled: match vanilla - no prompt when the Aegis forces it, keep the prompt
+## when the player presses disengage themselves. Fixed in action_zip_disengage.gd's own activate()
+## override: when context.flags carries AS_FREEBIE (the Aegis loop's own marker, :27 -
+## `flags = [Action.FLAG.AS_FREEBIE]` - and the discriminator a player's own press never carries;
+## engine convention pairs AS_FREEBIE with SKIP_PLAYER_DECISIONS for a fully-silent forced action,
+## e.g. action_reaction_break_connection.gd:75, and the Aegis loop simply omits the second flag) it
+## adds SKIP_PLAYER_DECISIONS itself before delegating to super.activate(), so
+## ActionSystemClearBuff's confirm_use is skipped for exactly the forced case and untouched otherwise.
+## Measured side by side, same fixture, same Aegis, isolating the Aegis' OWN one confirm as the
+## baseline:
 ##   Aegis alone (nothing engaged):                1 yesno prompt, actions -1, heat +0.
-##   Aegis + ZIP engaged (THIS TEST):               2 yesno prompts (+1), actions -1 (+0), heat +0.
+##   Aegis + ZIP engaged (THIS TEST):               1 yesno prompt (+0), actions -1 (+0), heat +0.
 ##   Aegis + siege stabilizers engaged (VANILLA):   1 yesno prompt (+0), actions -1 (+0), heat +0.
-## So the metatag does its two intended jobs - the restriction buff no longer forbids disengage
-## (test below), and the chip is cleared through a real activation rather than a silent direct clear
-## - but at the cost of ONE EXTRA PLAYER-FACING CONFIRMATION PROMPT that vanilla's own reference
-## case (ms_siege_stabilizers, whose action_siege_stabilizers_deactivate.gd ALSO carries
-## METATAG.deactivate but extends bare ActionSystem with a hand-written activate() that calls
-## spend_actions() directly and never calls confirm_use) never raises for the identical forced
-## path. THIS DOES NOT MATCH VANILLA, and per review instruction it is reported here rather than
-## silently patched (a fix would mean overriding confirm_use/activate in action_zip_disengage.gd to
-## skip confirmation under AS_FREEBIE, a behaviour change beyond this ruling's ask, and one the
-## author has not signed off on). Pinned as today's ACTUAL behaviour, extra prompt and all, so a
-## future change to either side of this seam is deliberate rather than silent.
+## ZIP now matches vanilla exactly. The player's own disengage press (no AS_FREEBIE) is pinned
+## separately below to confirm it still confirms.
 const AEGIS_ID := &'cp_trueblack_aegis'
 const AEGIS_ACTION_ID := &'action_activate_aegis'
 const AEGIS_RESTRICTION_BUFF := &'buff_trueblack_aegis_restrictions'
 
-func test_a_trueblack_aegis_fires_the_tagged_disengage_with_one_extra_confirm_prompt():
+func test_a_trueblack_aegis_fires_the_tagged_disengage_with_no_extra_confirm_prompt():
 	LeolethFixture.equip(leoleth, AEGIS_ID)
 	await LeolethFixture.open_turn(game, leoleth)
 	await LeolethFixture.engage_zip(game, leoleth)
@@ -447,12 +447,26 @@ func test_a_trueblack_aegis_fires_the_tagged_disengage_with_one_extra_confirm_pr
 	var heat_before:int = leoleth.core.current.heat
 	await SpecFactory.use(game, leoleth, AEGIS_ID, AEGIS_ACTION_ID)
 	assert_false(_held(), 'The chip is still cleared either way - now through the tagged disengage action.')
-	assert_eq(watcher.kinds(&'yesno').size(), 2,
-		'KNOWN GAP (flagged for the author, not fixed here): ONE EXTRA confirm prompt beyond the '
-		+ 'Aegis\' own measured baseline of 1 - see the vanilla reference test below.')
+	assert_eq(watcher.kinds(&'yesno').size(), 1,
+		'THE FIX (author ruling "match vanilla"): ZERO extra confirm prompts beyond the Aegis\' own '
+		+ 'measured baseline of 1 - equal to the Siege Stabilizers reference below.')
 	assert_eq(leoleth.state.actions, actions_before - 1,
-		'No extra ACTION cost beyond the Aegis\' own (AS_FREEBIE) - this half DOES match vanilla.')
+		'No extra ACTION cost beyond the Aegis\' own (AS_FREEBIE) - unchanged by this fix.')
 	assert_eq(leoleth.core.current.heat, heat_before, 'And no extra heat either.')
+
+## THE OTHER HALF OF THE RULING: the player's OWN disengage (no AS_FREEBIE in context.flags) must
+## still raise its confirm - the fix in action_zip_disengage.gd's activate() only adds
+## SKIP_PLAYER_DECISIONS when AS_FREEBIE is present, so a normal press is untouched.
+func test_the_players_own_disengage_still_confirms():
+	await LeolethFixture.open_turn(game, leoleth)
+	await LeolethFixture.engage_zip(game, leoleth)
+	assert_true(_held(), 'fixture: engaged.')
+	var watcher = add_child_autoqfree(load('res://testkit/prompt_watcher.gd').new())
+	await LeolethFixture.disengage_zip(game, leoleth)
+	assert_false(_held(), 'Cleared.')
+	assert_eq(watcher.kinds(&'yesno').size(), 1,
+		'The player\'s own disengage still raises its own confirm prompt - only the FORCED case '
+		+ '(AS_FREEBIE) skips it.')
 
 ## THE REFERENCE, side by side with the test above. ms_siege_stabilizers is base-game content
 ## (content/gear/ha/systems/ms_siege_stabilizers/, read-only), equipped here purely to measure the

@@ -19,3 +19,24 @@ func is_available_to_activate(unit:Unit, gear:GearCore) -> bool:
 
 func get_per_round_hard_limit(_specific:SpecificAction) -> int:
 	return 99
+
+## MATCH VANILLA (Pass F Task 15 review fix #2, author ruling "match vanilla"): a Napoleon's
+## Trueblack Aegis force-fires any deactivate-tagged action it finds via
+## action_activate_aegis.gd:13-29, as event_gear_activate(AS_FREEBIE) - :27's own
+## `flags = [Action.FLAG.AS_FREEBIE]`. That flag alone does not skip ActionSystemClearBuff's
+## confirm_use (action_system_clear_buff.gd:70-71), so without this override the Aegis would raise
+## an extra yes/no prompt the player never asked for - measured, and NOT what vanilla's own
+## deactivate-tagged reference does (action_siege_stabilizers_deactivate.gd is a plain ActionSystem
+## with a hand-written activate() that never calls confirm_use at all).
+##
+## AS_FREEBIE is the cleanest discriminator: it is the engine's own marker for an automatic/forced
+## firing (reactions, forced chains, this Aegis sweep - see action.gd's FLAG comments), and a
+## player's own button press never carries it. The engine's usual shape for a fully-silent forced
+## action pairs AS_FREEBIE with SKIP_PLAYER_DECISIONS together (action_reaction_break_connection.gd:75);
+## the Aegis loop passes only the first, so this action supplies the second itself, but ONLY when
+## AS_FREEBIE is already present - the player's own disengage (no AS_FREEBIE) is untouched and still
+## confirms.
+func activate(context:Context, activation:EventCore) -> void:
+	if context.flags.has(Action.FLAG.AS_FREEBIE) and not context.flags.has(Action.FLAG.SKIP_PLAYER_DECISIONS):
+		context.flags.append(Action.FLAG.SKIP_PLAYER_DECISIONS)
+	await super.activate(context, activation)
