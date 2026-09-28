@@ -195,6 +195,11 @@ func test_the_focus_dying_ends_it_and_frees_the_pick():
 func test_a_gear_short_repair_ends_the_lock_the_bonus_and_the_waiver():
 	await hyperfocus(focus)
 	Fixture.step(focus, FAR_TILE)
+	# LIVENESS GUARD, before the repair: prove the focus actually took, so the asserts below cannot
+	# pass vacuously against a hyperfocus() that silently failed to set anything.
+	assert_eq(focused_on(), focus, 'fixture: the focus is live before the repair.')
+	assert_gt(flat_bonus(Fixture.MAIN_RIFLE, focus), 0, 'fixture: the +1 is live before the repair.')
+	assert_has(targetable(Fixture.MAIN_RIFLE), FAR_TILE, 'fixture: the waiver is live before the repair.')
 	gear.short_repair()
 	assert_null(focused_on(), 'The stored id is gear state, wiped by a short repair.')
 	assert_true(action().is_available_to_activate(thorn, gear), 'A new Hyperfocus may be chosen.')
@@ -206,6 +211,10 @@ func test_a_gear_short_repair_ends_the_lock_the_bonus_and_the_waiver():
 func test_a_unit_wide_short_repair_ends_it_the_same_way():
 	await hyperfocus(focus)
 	Fixture.step(focus, FAR_TILE)
+	# LIVENESS GUARD, before the repair - see the sibling test above.
+	assert_eq(focused_on(), focus, 'fixture: the focus is live before the repair.')
+	assert_gt(flat_bonus(Fixture.MAIN_RIFLE, focus), 0, 'fixture: the +1 is live before the repair.')
+	assert_has(targetable(Fixture.MAIN_RIFLE), FAR_TILE, 'fixture: the waiver is live before the repair.')
 	thorn.core.short_repair()
 	assert_null(focused_on(), 'UnitPrinter.short_repair runs every equipped gear\'s short_repair, Pinpoint Mark included.')
 	assert_true(action().is_available_to_activate(thorn, gear), 'A new Hyperfocus may be chosen.')
