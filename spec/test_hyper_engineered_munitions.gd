@@ -223,6 +223,29 @@ func test_a_hit_on_an_object_does_nothing():
 	await Fixture.shoot_again(game, thorn, object, Fixture.MAIN_RIFLE)
 	assert_eq(before - hp(object), RIFLE_D6, 'An object takes only the rifle - no AP point, no save die spent.')
 
+## Pass F task 14 (open-items H, test debt): the chip is a Buff.TO.ONHIT_EFFECT carrier and NOT
+## is_onetime (buff_loaded_munitions.gd's header) - it stands for every hit from the loaded mount
+## until the Thorn's own next turn, not just the first. Two hits, two AP points, two forced saves;
+## a save value the second effect never consumed would misalign the queued dice under it, so a
+## regression here reads as the WRONG damage total, not a silent no-op.
+func test_a_second_hit_from_the_loaded_mount_repeats_the_point_and_the_save():
+	await load_munitions(1)
+	var before := hp(target)
+	await rifle_hit(target, SAVE_FAILS)
+	assert_eq(before - hp(target), RIFLE_D6 + 1, 'The first hit: the rifle, then the munitions\' AP point.')
+	assert_not_null(chip(), 'Not onetime: the chip still stands after one hit.')
+	# The target is now Impaired from the first save, which adds a Difficulty die to its SECOND
+	# Hull save (vanilla's own Impaired rule, nothing to do with this system) - one extra draw to
+	# skip before the rifle's own damage die, or it lands there instead and gets floored to
+	# Reliable 2. Measured, not assumed: rifle_hit's plain 3-value shape does not hold once the
+	# target is already Impaired.
+	before = hp(target)
+	Fixture.queue([D20_HITS, SAVE_FAILS, 1, RIFLE_D6])
+	await Fixture.shoot_again(game, thorn, target, Fixture.MAIN_RIFLE)
+	assert_eq(before - hp(target), RIFLE_D6 + 1, 'The second hit from the same mount deals the same extra point again.')
+	assert_true(UnitCondition.has_status(target, &'impaired'), 'The second forced Hull save failed too.')
+	assert_not_null(chip(), 'The chip survives a second hit; only the turn start ends it.')
+
 func test_a_hit_on_a_drone_deals_the_ap_point_and_forces_a_save():
 	# A drone is a character (ruling 2026-09-27): it now qualifies for "a hostile character".
 	var drone := Fixture.create_drone(game, Vector2i(8, 8))
