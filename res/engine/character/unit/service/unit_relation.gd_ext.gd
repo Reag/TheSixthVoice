@@ -81,10 +81,15 @@ static func can_weapon_hit_target_as_rxn(specific:SpecificAction, target_unit:Un
 ## super builds the vanilla list; then, for a marked unit only, vanilla's own loop
 ## (unit_relation.gd:235-251, whose :233 and :250-251 this body replicates too) is run once more
 ## for the SUPERHEAVY weapons it skipped, gate for gate,
-## with can_weapon_hit_target_as_rxn resolving to the override above. Vanilla never lists a
-## Superheavy weapon, so nothing appended here can already be in the list. The Ordnance filter, the
-## Earthstep suppression and the AI's threat model all sit above this function and see the appended
-## weapons exactly as they see vanilla's.
+## with can_weapon_hit_target_as_rxn resolving to the override above. REACHED FROM A NODE CALL
+## (Monitor Module, Scylla) super keeps the instance for its own one level down (this file's
+## header), so vanilla's OWN loop, running inside super, dispatches its unqualified
+## can_weapon_hit_target_as_rxn into the override above too and already lists the Superheavy weapon
+## - only from get_weapons_that_can_overwatch, one level further down with no instance, does
+## vanilla's re-run bind to itself and skip it. So this loop can find one already listed and must
+## not re-append it; the _lists guard below is what keeps the count at exactly one either way. The
+## Ordnance filter, the Earthstep suppression and the AI's threat model all sit above this function
+## and see the appended weapons exactly as they see vanilla's.
 static func get_weapons_that_can_react_against(
 	from_unit:Unit,
 	target_unit:Unit,
@@ -126,6 +131,7 @@ static func _append_superheavy_reactions(
 
 			if not can_weapon_hit_target_as_rxn(specific, target_unit, attack_range, closest_pair): continue
 			if specific.action.requires_line_of_sight(specific) and not UnitRelation.can_see(from_unit, target_unit): continue
+			if _lists(reaction_weapons, specific): continue
 			reaction_weapons.append(specific)
 
 

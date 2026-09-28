@@ -83,6 +83,14 @@ func offers(weapons:Array[SpecificAction], weapon_id:StringName) -> bool:
 		if specific.gear.kit.compcon_id == weapon_id: return true
 	return false
 
+## How many entries in the list share weapon_id's compcon_id - the count assertion `offers` cannot
+## make, needed because a duplicate weapon in the reaction list is a distinct bug from an absent one.
+func count(weapons:Array[SpecificAction], weapon_id:StringName) -> int:
+	var n := 0
+	for specific:SpecificAction in weapons:
+		if specific.gear.kit.compcon_id == weapon_id: n += 1
+	return n
+
 
 # ============================== the reload entry is OURS ==============================
 
@@ -145,6 +153,19 @@ func test_level_2_the_reaction_list_offers_the_superheavy_weapon_only_under_the_
 	assert_true(offers(UnitRelation.get_weapons_that_can_react_against(watcher, mover), SUPERHEAVY_MELEE),
 		'With the marker, the list built two unqualified static calls above the override offers it.')
 
+## review slice 2, I-1: at this depth `super.get_weapons_that_can_react_against` keeps the instance
+## (a `super.` call keeps it for its own one level down - the file's header), so vanilla's OWN loop,
+## running inside super, reaches our `can_weapon_hit_target_as_rxn` override and already appends the
+## Superheavy weapon. `_append_superheavy_reactions` then appended it a second time. `offers` (a
+## `has`-shaped check) could not see this - only a count can.
+func test_level_2_the_reaction_list_offers_the_superheavy_weapon_exactly_once() -> void:
+	arm(SUPERHEAVY_MELEE)
+	mark()
+	var weapons := UnitRelation.get_weapons_that_can_react_against(watcher, mover)
+	assert_eq(count(weapons, SUPERHEAVY_MELEE), 1,
+		'THE BUG: reached from a node call, vanilla\'s own loop (dispatching into our waiver one '
+		+ 'level down) already lists it once, before _append_superheavy_reactions appends it again.')
+
 
 # ============================== level 3: what ms_overwatch asks ==============================
 
@@ -155,6 +176,15 @@ func test_level_3_the_overwatch_list_offers_the_superheavy_weapon_only_under_the
 	mark()
 	assert_true(offers(UnitRelation.get_weapons_that_can_overwatch(watcher, mover), SUPERHEAVY_MELEE),
 		'With the marker, the exact call action_overwatch.gd:21 makes offers it.')
+
+## Reached one level down from get_weapons_that_can_overwatch's node call (through Thy Hubris'
+## override when installed), so vanilla's re-run body here has no instance and cannot bind into our
+## waiver - the count-19 dedupe fix must not have introduced a MISS at this depth.
+func test_level_3_the_overwatch_list_offers_the_superheavy_weapon_exactly_once() -> void:
+	arm(SUPERHEAVY_MELEE)
+	mark()
+	var weapons := UnitRelation.get_weapons_that_can_overwatch(watcher, mover)
+	assert_eq(count(weapons, SUPERHEAVY_MELEE), 1, 'Exactly one entry, not zero and not two.')
 
 
 # ============================== the real thing ==============================
