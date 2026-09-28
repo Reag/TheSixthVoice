@@ -17,7 +17,9 @@
 ; a zero-heat-cap actor (event_unit_damage's heat()->damage() branch) and the Pegasus Omnigun's direct
 ; EventUnitDamage.damage() both spend Overshield with no LOSE_OVERSHIELD clear, so this mark can go
 ; stale. Overshield.is_granted_by() guards the read side (false whenever the unit holds no Overshield
-; right now, mark or no mark) - see overshield.gd's "granted by" section header.
+; right now, mark or no mark), and every grant onto an EMPTY shield clears this mark before the event
+; (close-out Pass F Task 21), so a stale one is never re-credited - see overshield.gd's "granted by"
+; section header.
 ;
 ; HIDDEN: the Overshield number on the token is the player-facing surface; a second chip saying "and
 ; the Black Mountain gave it to you" would be noise. No rows, no icon (design ruling 15).

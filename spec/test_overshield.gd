@@ -1,9 +1,9 @@
 # The OVERSHIELD helper (SP1 Task 4), born with the Myconid's Halo and frozen when SP1 ships.
 #
 # Roadmap 4: a shared helper is born with its first consumer, in its own sub-folder, with its own
-# specs, and its interface is frozen the moment that sub-project ships. Five later frames consume
-# this one - Sluagh, Hazard, Naga, Primrose, Black Mountain - so a rename here is five frames' worth
-# of churn. test_the_frozen_interface_pins_these_five_signatures is the guard, and it pins the whole
+# specs, and its interface is frozen the moment that sub-project ships. Six later frames consume
+# this one - Sluagh, Hazard, Naga, Primrose, Black Mountain, Grutte Pier - so a rename here is six
+# frames' worth of churn. test_the_frozen_interface_pins_these_five_signatures is the guard, and it pins the whole
 # signature - argument order, names, types, and return type - not only that a name survives.
 #
 # THE BLACK MOUNTAIN (SP1, 2026-09-27) ADDED THREE PUBLIC FUNCTIONS - grant_by, increase_by,
@@ -470,6 +470,26 @@ func test_a_larger_grant_from_somebody_else_leaves_the_mark():
 	await Overshield.grant(dummy(), unit, 9)
 	assert_eq(Overshield.current(unit), 9, 'fixture: the foreign grant won the number.')
 	assert_true(Overshield.is_granted_by(unit, granter), 'The mark stays.')
+
+func test_a_stale_mark_is_not_re_credited_by_a_foreign_grant_onto_an_empty_shield():
+	# Close-out Pass F Task 21, the "remaining gap" the section header used to record: a shield
+	# zeroed WITHOUT the damage event's LOSE_OVERSHIELD clear (the Pegasus Omnigun, heat on a
+	# zero-heat-cap actor - simulated here by writing state.overshield directly) leaves the mark
+	# behind, and a plain grant from somebody else then made is_granted_by() true again for a shield
+	# the Black Mountain never granted. _fire now clears the marks when the shield it is about to fill
+	# is empty. Production shape: the Black Mountain's CORE gear is the granter.
+	var bm_game := BlackMountainFixture.create_game(self)
+	var black_mountain := BlackMountainFixture.create_black_mountain(bm_game, Vector2i(4, 4))
+	var ally := BlackMountainFixture.create_ally(bm_game, Vector2i(6, 4))
+	await BlackMountainFixture.grant_overshield_by(black_mountain, ally, 3)
+	assert_true(Overshield.is_granted_by(ally, black_mountain), 'fixture: marked.')
+	ally.state.overshield = 0 # the Omnigun's shape: no event, no LOSE_OVERSHIELD clear
+	assert_eq(UnitCondition.get_buffs(ally, MARK).size(), 1, 'fixture: the stale mark is still there.')
+	await Overshield.grant(SpecFactory.dummy_event({unit = ally}), ally, 2)
+	assert_eq(Overshield.current(ally), 2, 'fixture: the foreign grant landed.')
+	assert_eq(UnitCondition.get_buffs(ally, MARK).size(), 0, 'The stale mark was cleared before the grant.')
+	assert_false(Overshield.is_granted_by(ally, black_mountain),
+		'The Black Mountain did not grant this shield, so it is not "granted by" it.')
 
 func test_the_same_granter_granting_again_refreshes_rather_than_stacks():
 	var granter := MyconidFixture.create_ally(game, Vector2i(6, 4))

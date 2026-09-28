@@ -1,8 +1,9 @@
 # OVERSHIELD: the mod's shared reader and granter. Born with the Myconid's Halo (SP1 Task 4).
 #
 # FROZEN INTERFACE (roadmap 4, and design 1.3 of the Myconid). Five functions, exactly these names
-# and signatures. Five later frames consume them - Sluagh, Hazard, Naga, Primrose, Black Mountain -
-# so a rename is five frames' worth of churn. A later frame that needs MORE extends this file in its
+# and signatures. Six later frames consume them - Sluagh, Hazard, Naga, Primrose, Black Mountain,
+# and the Grutte Pier (Zwarte Hoop's increase, onhit_zwarte_hoop.gd) - so a rename is six frames'
+# worth of churn. A later frame that needs MORE extends this file in its
 # own sub-project, with every earlier spec still green; "granted by" tracking is explicitly not born
 # here, and is assigned to Black Mountain's SP1.
 #
@@ -143,8 +144,11 @@ static func grit(unit:Unit) -> int:
 #       clear) entirely.
 # Either can zero a marked unit's shield and leave the mark stale. is_granted_by() closes the READ
 # side (it checks has(unit) first, so a unit with no Overshield never reads as "granted by" anyone
-# regardless of a stale mark); a foreign grant landing on a still-stale mark could still re-credit it
-# to the wrong granter, which is recorded as a remaining gap rather than fixed here.
+# regardless of a stale mark). _fire() closes the WRITE side (close-out Pass F Task 21): a grant onto
+# a shield that is EMPTY before the event clears every mark on the target first, because a mark on an
+# empty shield is stale by definition - so a foreign grant can no longer re-credit it to the old
+# granter. spec/test_overshield.gd test_a_stale_mark_is_not_re_credited_by_a_foreign_grant_onto_an_empty_shield
+# pins it.
 #
 # THE MARK IS APPLIED ONLY WHEN THE GRANT TOOK: after the event, the target holds Overshield, and
 # either it holds MORE than before or the amount asked was at least what it held (a grant equal to
@@ -193,10 +197,18 @@ static func is_granted_by(unit:Unit, granter:Unit) -> bool:
 
 # ---------------------------------------------------------------- private
 
-## The one path every grant takes - grant()'s body before the Black Mountain split it, unchanged
-## except for the `additive` flag that becomes `boolean = true` on the event (see increase()).
+## The one path every grant takes - grant()'s body before the Black Mountain split it, plus the
+## `additive` flag that becomes `boolean = true` on the event (see increase()) and the stale-mark clear.
+##
+## A SHIELD THAT IS EMPTY BEFORE THE EVENT CARRIES NO LIVE MARK (close-out Pass F Task 21). Two
+## vanilla paths zero state.overshield without the LOSE_OVERSHIELD clear (the "granted by" section
+## header), and a mark left on an empty shield would be re-credited by the NEXT grant, whoever made
+## it. So the marks go first, on the same carrier _mark_if_took uses; a grant_by that follows puts its
+## own fresh mark back after the event.
 static func _fire(event:EventCore, target:Unit, amount:int, additive:bool) -> void:
 	if amount <= 0 or not Unit.is_valid(target): return
+	if current(target) == 0 and not UnitCondition.get_buffs(target, GRANTED_BY_MARK).is_empty():
+		UnitCondition.clear_buff_id(_carrier(event, target), target, GRANTED_BY_MARK)
 	var data := {unit = target, number = amount}
 	if additive: data.boolean = true
 	if event != null and event.is_block_valid():
@@ -217,7 +229,11 @@ static func _mark_if_took(event:EventCore, target:Unit, before:int, asked:int, g
 	var mark_base:Buff = ContentLibrary.get_buff(GRANTED_BY_MARK)
 	if mark_base == null: return
 	var mark := BuffCore.create(mark_base, granter_gear.persistent_id)
-	# apply_buff_alt reads event.context; a caller with no event gets the same stand-in a spec's
-	# dummy event is (SpecFactory.dummy_event is EventCore.create(&'event_delay', ...)).
-	var carrier:EventCore = event if (event != null and event.context != null) else EventCore.create(&'event_delay', {unit = target})
-	UnitCondition.apply_buff_alt(carrier, target, mark)
+	UnitCondition.apply_buff_alt(_carrier(event, target), target, mark)
+
+## The event a buff apply or clear reads its context from. apply_buff_alt and clear_buffs both read
+## event.context; a caller with no event gets the same stand-in a spec's dummy event is
+## (SpecFactory.dummy_event is EventCore.create(&'event_delay', ...)).
+static func _carrier(event:EventCore, target:Unit) -> EventCore:
+	if event != null and event.context != null: return event
+	return EventCore.create(&'event_delay', {unit = target})
