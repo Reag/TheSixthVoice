@@ -193,8 +193,8 @@ func fade(activation:EventCore, unit:Unit, gear:GearCore, triggering:EventCore, 
 	)
 
 	# THE LITERAL KEY, not Translate.action(): battle_log.log_unit takes a translation KEY and calls
-	# tr() on it itself (battle_log_bus.gd:24-33), which is how buff_symbiosis_exclusion.gd:118 passes
-	# one. Handing it translated text only works because a missed lookup returns its input unchanged.
+	# tr() on it itself (battle_log_bus.gd:24-33), which is how buff_uncertainty_field_break.gd passes
+	# BROKEN_LOG. Handing it translated text only works because a missed lookup returns its input unchanged.
 	# The popcorn below is different: effect_bus.play_text takes TEXT, so Translate.action is right
 	# there - and it is the SAME popcorn on both paths, because a fade is a fade whichever door it came
 	# through.

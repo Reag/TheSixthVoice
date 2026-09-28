@@ -71,11 +71,9 @@
 ## only way to move the budget is to write core.current.reactions, which is what
 ## common_action_util.gd:734 does to stop Flank and Overwatch double-billing.
 ##
-## WHY THIS IS NOT THE SAME FILE AS buff_symbiosis_exclusion.gd. Buff.trigger_timing is a single
-## @export (buff.gd:139) that ReactionBus.does_buff_trigger compares directly (reaction_bus.gd:135);
-## a Buff subscribes at ONE timing for every trigger it names. The exclusion has to abort from
-## UNIT_ACTION PRE, before event_gear_activate.gd:56 reads virtual_core.aborted. Two timings, two
-## resources.
+## WHY THIS IS NOT THE SAME FILE AS buff_symbiosis_exclusion.gd. This half subscribes to bus
+## triggers at POST; the exclusion (since Pass F, T21) names no trigger at all - it is a
+## Buff.TO.ACTION_FORBIDDEN query that hides an excluded reaction's offer. Two jobs, two resources.
 ##
 ## THIS FILE OWNS THE STAMP, AND THE EXCLUSION READS IT. Two buffs mean two BuffCores and two separate
 ## `state` dictionaries, so the gate cannot see SPENT_KEY on its own core; it fetches this one's

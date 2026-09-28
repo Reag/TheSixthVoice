@@ -5,5 +5,4 @@
 [resource]
 script = ExtResource("1_buff")
 hide_from_player = true
-triggers_on = Array[StringName]([&"unit_action"])
-trigger_timing = 0
+to = &"action_forbidden"
