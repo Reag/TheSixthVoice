@@ -32,7 +32,11 @@
 # PLAYER-controlled Shackleton chooses their direction too, so for its pushes AUTO_FURTHEST is erased,
 # MANDATORY is added (the automatic push was never cancellable, and ask_for_movement_alt's
 # can_voluntarily_cancel is `not MANDATORY`, target_action_util.gd:86) and the origin emptied as
-# above: the reticle opens, one prompt per target, a cost the author accepted. An AI Shackleton keeps
+# above: the reticle opens, one prompt per target, a cost the author accepted - except when a target's
+# reachable tiles number exactly one: MANDATORY with a single reachable tile resolves with no prompt
+# at all (event_unit_pick_move.gd ~:138, `elif is_mandatory and pathfinder.reachable_tiles.size() == 1`),
+# the same "don't gotta have them pick if the choice is compulsory & clear" branch AUTO_FURTHEST would
+# have skipped via its own path. An AI Shackleton keeps
 # the event untouched - vanilla's deterministic "away", because emptying the origin of a push nobody
 # picks makes every tile at the distance tie and Tile.get_furthest_pair_between shuffle them.
 # A BOXED-IN target needs no fallback (Pass F task 10's probe, test_spatial_rerouting.gd): stripped of
