@@ -381,3 +381,76 @@ func test_the_prone_is_not_a_timed_status() -> void:
 	await game.execute_event(&'event_turn_start', {unit = victim})
 	await game.execute_event(&'event_turn_end', {unit = victim})
 	assert_true(victim.has_status(Lancer.STATUS.PRONE), 'and still prone a full turn later.')
+
+# ================================================================ the captured gear id (Pass F, T-K)
+
+## A DEFENSIVE FIX, NOT A BEHAVIOUR PIN - nothing in this fixture can make context.gear go invalid
+## across the save's await (the gamemaster is single-threaded and nothing here strips the Falcata
+## mid-leap), so there is no RED/GREEN pair to write against real play. What CAN be pinned is the
+## source shape itself: action_spin.gd:193 captures `gear.persistent_id` into a local once, before any
+## await, for exactly this reason - a String is a value, and copying it out while the validity check
+## still guarantees it is real means no later await (a reaction window) can turn the apply_status call
+## into a dangling deref on context.gear. action_leap.gd now does the same, and this test reads the
+## source the way test_spin.gd:638-659's test_activate_actually_calls_run_system_fxgs does, for the
+## identical reason: a source-level claim about which line feeds apply_status is not observable through
+## behaviour, so it has to be read off the text.
+func test_activate_reads_the_captured_gear_id_not_context_gear() -> void:
+	# THE UNPACKED PATH, not the mirror path - test_spin.gd's own comment records why: the overlay maps
+	# res/ onto res:// via take_over_path for RESOURCES, and raw FileAccess on the mirror path comes
+	# back empty (test_draw_fire.gd:1138-1141's measurement).
+	const SOURCE := 'res://unpacked/Reag-TheSixthVoice/res/content/gear/ssc/systems/ms_dazzling_wind/action_leap.gd'
+	var src := FileAccess.get_file_as_string(SOURCE)
+	assert_false(src.is_empty(), 'The action\'s source reads back.')
+	if src.is_empty(): return
+
+	# SCOPED TO activate'S BODY AND TO NON-COMMENT LINES: the capture is named repeatedly in this
+	# file's own comment above it, so a bare src.contains() would stay green with the capture deleted
+	# and every use of context.gear.persistent_id inlined back in.
+	#
+	# ORDERED BY LINE INDEX AGAINST THE SAVE'S OWN AWAIT SPECIFICALLY - not against "any await in the
+	# function". activate() already awaits super.activate() near the top (before the end-of-movement
+	# pick even begins), so a flag that latches on the FIRST await in the whole body would find that one
+	# and never clear, which would fail this test against the fix it is meant to pin. The save's await
+	# is the one that matters: UnitHasecheck.make_hull_save is the ONLY await between the capture and
+	# the apply_status call.
+	var body:String = src.substr(src.find('func activate('))
+	assert_gt(body.length(), 0, 'func activate is in the file.')
+	var lines:Array = []
+	for line:String in body.split('\n'):
+		var code:String = line.strip_edges()
+		if code.begins_with('#') or code.is_empty(): continue
+		lines.append(code)
+
+	var capture_index := -1
+	var save_await_index := -1
+	var apply_status_index := -1
+	for i:int in lines.size():
+		var code:String = lines[i]
+		if capture_index == -1 and code.contains('var source_id:StringName = context.gear.persistent_id'):
+			capture_index = i
+		if save_await_index == -1 and code.contains('await UnitHasecheck.make_hull_save('):
+			save_await_index = i
+		if apply_status_index == -1 and code.contains('UnitCondition.apply_status('):
+			apply_status_index = i
+
+	assert_ne(capture_index, -1, 'source_id is captured off context.gear.persistent_id somewhere in activate().')
+	assert_ne(save_await_index, -1, 'fixture: the save\'s await is still in activate().')
+	assert_ne(apply_status_index, -1, 'fixture: the Prone is still applied in activate().')
+	if capture_index == -1 or save_await_index == -1 or apply_status_index == -1: return
+
+	assert_lt(capture_index, save_await_index,
+		'source_id is captured BEFORE the save\'s await, while context.gear is still guaranteed valid.')
+
+	# THE ONE LINE THIS FIX EXISTS TO REMOVE: apply_status's last argument must be the captured local,
+	# not a fresh context.gear.persistent_id read AFTER the await has come back.
+	var apply_status_line:String = lines[apply_status_index]
+	var full_call := apply_status_line
+	var j := apply_status_index + 1
+	while not full_call.contains(')') and j < lines.size():
+		full_call += ' ' + lines[j]
+		j += 1
+	assert_true(full_call.contains('source_id'),
+		'and the Prone\'s source id is the captured local, not a fresh read of context.gear.')
+	assert_false(full_call.contains('context.gear.persistent_id'),
+		'REGRESSION GUARD: apply_status does not read context.gear.persistent_id directly after the '
+		+ 'await - that is the exact dangling-deref shape this fix removed.')

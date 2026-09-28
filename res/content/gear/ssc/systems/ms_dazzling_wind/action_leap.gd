@@ -71,6 +71,13 @@ func activate(context:Context, activation:EventCore) -> void:
 	# context, so this is consistency rather than a reachable crash - but the persistent_id read
 	# below is the one deref in this file that would take the whole activation down with it.
 	if not GearCore.is_valid(context.gear): return
+	# Captured HERE, once, as a plain StringName rather than read back off context.gear after the await
+	# below - action_spin.gd:193's shape, for the identical reason: a String is a value, not a
+	# reference, so copying it out now, while the check above still guarantees context.gear is real,
+	# means the save's await (a reaction window into which the Falcata's own gear state could change)
+	# cannot turn the apply_status call at the bottom into a dangling deref. test_leap.gd's
+	# test_activate_reads_the_captured_gear_id_not_context_gear is the source-text pin.
+	var source_id:StringName = context.gear.persistent_id
 
 	var passed:bool = await UnitHasecheck.make_hull_save(
 		activation, chosen, specific, [Lancer.STATUS.PRONE]
@@ -78,5 +85,5 @@ func activate(context:Context, activation:EventCore) -> void:
 	if not Unit.is_valid(chosen): return
 	if passed: return
 	UnitCondition.apply_status(
-		activation, chosen, Lancer.STATUS.PRONE, Lancer.UNTIL.MANUAL, context.gear.persistent_id
+		activation, chosen, Lancer.STATUS.PRONE, Lancer.UNTIL.MANUAL, source_id
 	)
