@@ -1,0 +1,46 @@
+{
+	"personalities": {
+		"ms_brigid_class_nhp": {
+			"trait_weights": {
+				"aggression": -0.6,
+				"self_preservation": 0.3,
+				"range_preference": 0.5,
+				"restraint": 0.2,
+				"misanthropy": -1.0,
+				"logical_emotional": 0.4,
+				"subtlety": 0.0,
+				"esotericism": 0.1,
+				"relationship_with_pilot": 1.0
+			},
+			"tag_affinity": { "buff": 1.5, "shield": 1.0, "nhp": 1.0, "reaction": 0.5 }
+		},
+		"ms_jormungandr_class_nhp": {
+			"trait_weights": {
+				"aggression": 1.0,
+				"self_preservation": -1.0,
+				"range_preference": 0.0,
+				"restraint": -1.0,
+				"misanthropy": 1.0,
+				"logical_emotional": 1.0,
+				"subtlety": -1.0,
+				"esotericism": 0.2,
+				"relationship_with_pilot": -1.0
+			},
+			"tag_affinity": { "melee": 2.5, "reaction": 1.5, "nhp": 1.0, "knockback": 0.5 }
+		},
+		"ms_the_morrigan_class_nhp": {
+			"trait_weights": {
+				"aggression": 0.2,
+				"self_preservation": 0.2,
+				"range_preference": 0.6,
+				"restraint": 0.3,
+				"misanthropy": -0.4,
+				"logical_emotional": 0.5,
+				"subtlety": 0.4,
+				"esotericism": 0.9,
+				"relationship_with_pilot": 1.0
+			},
+			"tag_affinity": { "tech": 1.5, "nhp": 1.5, "debuff": 0.5 }
+		}
+	}
+}
