@@ -11,7 +11,7 @@
 ; on_application, since the engine's same-source rule only covers one Koremasa).
 ; can_target_unit refuses non-actors, so no drones (ruling 25, recorded). GRENADE is a metatag, as
 ; on vanilla's smoke grenade. The Kit's FIRST action, because ClearBuff.get_applier_specific reads
-; get_solo_action for the detach's save (action_system_clear_buff.gd:92).
+; get_solo_action for the detach's save (action_system_clear_buff.gd:99).
 [resource]
 script = ExtResource("2_applybuff")
 buffs = Array[ExtResource("1_buff")]([ExtResource("3_attached")])

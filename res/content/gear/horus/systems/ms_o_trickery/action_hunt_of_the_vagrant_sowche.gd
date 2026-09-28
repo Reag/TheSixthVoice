@@ -36,7 +36,7 @@
 # (target_requirements.gd:74-84). candidate_tiles uses UnitTile.is_tile_standable with
 # Katamari.create_solipsistic(mover) - the engine's real free-space test, which reaches Occupation's
 # bigunit_invalid_endpoint (pathfinder.gd:805-812) and is therefore size-aware - and already drops the
-# mover's own tiles, because a teleport to where you stand is not a move (teleport.gd:254). The `keep`
+# mover's own tiles, because a teleport to where you stand is not a move (Teleport.candidate_tiles' docstring). The `keep`
 # hook exists for exactly this kind of caller-side filter.
 #
 # THE TILE PICK BELONGS TO THE SLUAGH'S PLAYER (ruling 5), and the helper delivers that without an

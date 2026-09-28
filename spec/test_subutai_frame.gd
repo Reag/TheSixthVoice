@@ -231,8 +231,8 @@ func test_the_barbarossas_own_gear_is_untouched():
 func test_the_instance_content_library_serves_is_the_one_mod_main_retains():
 	# Upstream bug 7 in one assertion, and the ONLY thing on the branch that asks it of li_barbarossa.
 	# _ModLoaderResourceExtension._save_resource no longer retains an extended resource (mod_main.gd:
-	# 88-93), so the extension evaporates the moment nothing holds the instance and the next load()
-	# reads the unextended file off disk. Deleting mod_main.gd:134's _retained_resources.append(extended)
+	# 117-122), so the extension evaporates the moment nothing holds the instance and the next load()
+	# reads the unextended file off disk. Deleting mod_main.gd:169's retained.append(extended)
 	# reddens NOTHING else: test_alt_frames.gd only checks the path is DECLARED in EXTENDED_RESOURCES
 	# (its own header says so), and every other test in this file compares compcon_id strings, which a
 	# freshly loaded vanilla licence would still answer for the Barbarossa.

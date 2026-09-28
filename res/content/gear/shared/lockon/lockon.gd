@@ -78,9 +78,11 @@ static func is_lost(triggering:EventCore) -> bool:
 ## would leave a stale source behind the first clear. Returns false when the target is immune, which
 ## apply_status reports by returning null.
 ##
-## A NULL EVENT FALLS BACK TO THE LEVEL, like its siblings (Overshield._fire, Teleport._run,
-## Terrain.lay; close-out Pass F Task 21): false when there is no level, otherwise the lock lands on
-## the stand-in a spec's dummy event is (SpecFactory.dummy_event, EventCore.create(&'event_delay', ...)).
+## A NULL EVENT IS NOT REFUSED (close-out Pass F Task 21) - but this is NOT the siblings' fallback.
+## Overshield._fire, Teleport._run and Terrain.lay run their event on the live LEVEL's block; this
+## cannot (it is synchronous). It returns false when there is no level, and otherwise applies the lock
+## on a stand-in carrier, the shape of a spec's dummy event (SpecFactory.dummy_event,
+## EventCore.create(&'event_delay', ...)), which queues NO statuses_changed reactions.
 ## apply_status dereferences the event unguarded (on_status_application queues the statuses_changed
 ## virtual event on it), so without this a null event threw. This stays synchronous - the frozen
 ## signature returns bool - so the stand-in has no block and the apply's statuses_changed PRE

@@ -75,7 +75,7 @@ func test_the_frozen_interface_pins_this_one_signature():
 func test_only_the_is_actor_line_differs_from_vanilla():
 	# The same action, the same drone: vanilla's function refuses it on is_actor() alone, the helper
 	# does not. And the helper keeps vanilla's other gates: a Hidden drone is refused by the helper through
-	# the copied is_hidden_from line. (Vanilla refuses any drone at :64 first, so only the helper's answer
+	# the copied is_hidden_from line. (Vanilla refuses any drone at :64, so only the helper's answer
 	# can show that gate.)
 	var drone := FitzgeraldFixture.create_drone(game, DRONE_TILE, Faction.AI_ENEMY)
 	var specific := _specific()

@@ -58,8 +58,11 @@
 # unit_action.gd is the known-dead seam that logs identically). spec/test_range_display_extension.gd
 # is the evidence: it renders the real widget and asserts the string a player would read off
 # TagIcon's Number label. Unlike an autoload, this needs no entry in mod_main.gd's EXTENDED_AUTOLOADS
-# and no deferred reload - the widget is instantiated fresh from range_display.tscn each time the
-# character sheet draws a mount, so it picks up the extended script with no help.
+# and no deferred reload. The widget is not fresh per draw - it lives inside weapon_mount_item /
+# kit_entry rows that TrekBox POOLS (Util.pull_next_available_item_from_placeholder re-shows a hidden
+# row before it instances a new one) - but every instance comes from range_display.tscn after the
+# mod installed, and each draw calls rerender_specific again, so it picks up the extended script
+# with no help. (This mod is requires_restart, so no row can predate the install.)
 extends "res://ui/page/character_sheet/widgets/range_display.gd"
 
 func rerender_specific(dummy_specific:SpecificAction) -> void:
@@ -110,9 +113,12 @@ func collect_static_threat_bonus(specific:SpecificAction, attack:ActionAttackWea
 		var weapon_buff:BuffWeaponTypeBonus = buff
 		if weapon_buff.bonus_subtype != Buff.BONUS_SUBTYPE.THREAT_RANGE: continue
 		if not applies_to_weapon(weapon_buff, specific, attack): continue
-		# BuffBonus.get_bonus_for_subtype takes the max against the running total for an overriding
-		# bonus and adds otherwise (buff_bonus.gd:27-29). Same rule, on the bonus rather than the
-		# total, because the printed threat is added back by the caller.
+		# NOT QUITE VANILLA'S RULE. BuffBonus.get_bonus_for_subtype (buff_bonus.gd:27-29) adds a
+		# stacking bonus, but on the FIRST overriding one it RETURNS maxi(value, running total) and
+		# never looks at a later buff, so its answer depends on buff order. This keeps walking and
+		# takes the max against the bonus so far (the printed threat is added back by the caller).
+		# The two agree for stacking bonuses; they can differ only once an override is in play, and
+		# no threat_range bonus in this mod sets overrides.
 		if weapon_buff.overrides: bonus = maxi(bonus, weapon_buff.bonus_value - attack.threat)
 		else: bonus += weapon_buff.bonus_value
 	return bonus

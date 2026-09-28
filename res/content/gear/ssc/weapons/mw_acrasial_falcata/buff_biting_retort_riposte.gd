@@ -122,9 +122,11 @@
 ## fail; doesn't even count as a force") - and false is the FAILURE branch, so an ungated riposte would
 ## automatically Prone any hostile deployable, object or turret that swung and missed.
 ## ActionReactionAttacked gates the DEFENDER on is_character (require_defender_to_be_character,
-## action_reaction_attacked.gd:95) and never the ATTACKER, so that state is reachable in play. The
-## damage stays unconditional, because the card says the attacker takes it and a deployable taking a
-## hit needs no save rules to work.
+## action_reaction_attacked.gd:95) and never the ATTACKER - but since Pass F task 17 (author decision
+## T22) action_biting_retort.gd's triggers_on_event refuses the offer unless the RAW attacking unit
+## is_character(), so a non-character attacker never reaches this buff and the save guard below is
+## defence in depth, kept in case that gate moves. The damage stays unconditional, because the card
+## says the attacker takes it and a deployable taking a hit needs no save rules to work.
 ##
 ## ========================= HIDDEN, AND WHY THAT NEEDS NO ICON ROW =========================
 ##

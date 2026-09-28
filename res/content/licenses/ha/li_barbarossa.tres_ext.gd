@@ -15,9 +15,12 @@ extends RefCounted
 #
 # This script is queued by LancerTacticsMod.add_overwrite_extend_mod_resources like any other
 # .tres_ext.gd, and then mod_main.gd takes it straight back out of the engine's queue and calls it
-# itself - see apply_resource_extensions_directly() there. That matters MORE here than for li_gms:
-# fateofman-imi_alt_frames extends li_barbarossa through the queue, and the engine's merge keeps
-# only the first-installed mod's callable per path, silently.
+# itself - see apply_resource_extensions_directly() there. fateofman-imi_alt_frames also appends a
+# frame (the Tritton) to this rank, but its live zip (swept 2026-09-28) does it from its own
+# mod_main._init, NOT through the queue - only the stale .bk copy used a .tres_ext.gd. Both append
+# to the same cached UnlockTree, so both frames survive whatever the install order. The direct-apply
+# route is kept regardless: it carries the RETENTION half of the fix, which bug 7 makes load-bearing
+# for every extended resource, and it would still protect us from a future queue-path extender.
 
 ## The frame's path is a hardcoded string, so it does NOT follow a move of mf_subutai.tres. Moving
 ## the frame breaks this silently; spec/test_alt_frames.gd is what notices.

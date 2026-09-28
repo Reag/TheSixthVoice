@@ -16,7 +16,7 @@
 #      (CompconPlan.create_aborted()) is the "cancelled pick" case.
 #   3. If that shot hits a hostile character while the chip is held (it is - the chip lands before
 #      the shot), the SAVE pops a d20, and on a FAIL Rend's PICK opens - a compcon_plan request in
-#      Rend's own name (Teleport.pick_tile, teleport.gd:300-324); responder.chosen_plan_queue,
+#      Rend's own name (Teleport.pick_tile); responder.chosen_plan_queue,
 #      CompconPlan.create([landing], [], []). The offered tiles are read back the way test_hunt.gd
 #      reads them: UnitTargeting.get_tiles_targetable on the prompt's `using`.
 #

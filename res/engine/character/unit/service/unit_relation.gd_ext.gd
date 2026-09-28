@@ -5,7 +5,9 @@
 # has to live in this one file, each under its own banner. Keep them fenced; anything added later
 # gets its own banner too. Thy Hubris' file of the same name is the precedent (three rules, three
 # banners), and gavstarb-talents_1st_party's is a third extender of the same vanilla file. All three
-# call super, so they compose in any install order; spec/test_compat.gd asserts that both ways.
+# call super, so they compose in any install order. spec/test_compat.gd asserts the chain is whole in
+# both DIRECTIONS (their widening under ours, our waiver under theirs) - but in the ONE install order
+# a testkit run produces; the other order is argued from super-first, not measured.
 #
 # The install log is NOT evidence that any override here runs: ModLoader logs the install for a
 # dead seam exactly as for a live one, and unit_action.gd is known-dead (memory
@@ -147,9 +149,10 @@ static func _append_superheavy_reactions(
 # reading &'adjacency_range') and Thy Hubris' compose in either install order - spec/test_compat.gd
 # pins both. Unit.is_valid on everything; append-if-absent (the Kraken's shape).
 #
-# REACHED FROM: a node call (UnitRelation.adjacent_characters - 28 direct content readers, 32
-# counting is_adjacent's four; re-counted at the close, where the spike doc's "37" was found to be
-# 28 + 4 + the four get_engaging_units sites, which the next paragraph explains are NOT readers the
+# REACHED FROM: a node call (UnitRelation.adjacent_characters - re-counted 2026-09-28 against 1.4.3:
+# 30 direct readers outside unit_relation.gd, 28 in content/ plus the two in the engine archetype
+# action_system_clear_buff.gd:25/:45, and is_adjacent's four callers on top; the spike doc's "37"
+# also counted get_engaging_units' callers, which the next paragraph explains are NOT readers the
 # widening reaches. Stabilize is the measured witness) and from is_adjacent, an unqualified static
 # call ONE level down
 # (unit_relation.gd:7-8) - the depth an override is still dispatched at (this file's header).

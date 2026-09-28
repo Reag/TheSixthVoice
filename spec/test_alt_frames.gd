@@ -152,7 +152,7 @@ func test_every_alt_frame_reaches_its_licence():
 ## THE REVERSE GUARD (Pass F task 20). The test above proves every ALT_FRAMES licence is declared;
 ## nothing proved every .tres_ext.gd ON DISK is. One that is not declared is never applied by
 ## apply_resource_extensions_directly() and never erased from the shared queue, so it falls back to
-## the engine's queue and loses the merge coin toss (mod_main.gd:97-106) - and is not retained.
+## the engine's queue and loses the merge coin toss (mod_main.gd:98-109) - and is not retained.
 const MOD_RES := 'res://unpacked/Reag-TheSixthVoice/res'
 
 func test_every_resource_extension_on_disk_is_declared():

@@ -21,7 +21,11 @@
 #
 # DICE per rifle hit on a character: the d20, then the Hull save's d20 (on-hit effects run before
 # damage is rolled, event_unit_attack.gd:85-88 against event_unit_attack_declared.gd:74), then the
-# d6. The rifle's RELIABLE 2 floors a hit, so the d6 is never below 3 here.
+# d6 - and one more d6 draw for the crit damage, which the queue's tail absorbs unseen, so FOUR
+# draws, not three (measured, Pass F task 14). A target already Impaired takes a Difficulty die on
+# its Hull save (vanilla's Impaired rule), a FIFTH draw between the save and the d6 - which is why
+# the repeat-hit test queues [D20_HITS, SAVE_FAILS, 1, RIFLE_D6]. The rifle's RELIABLE 2 floors a
+# hit, so the d6 is never below 3 here.
 #
 #   godot --resolution 800x600 --position -2400,-2400 --path . res://testkit/run_mod_tests_scene.tscn -- --gut-script=res://unpacked/Reag-TheSixthVoice/spec/test_hyper_engineered_munitions.gd
 extends GutTest

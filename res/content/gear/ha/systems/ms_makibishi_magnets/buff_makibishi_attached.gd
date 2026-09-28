@@ -118,7 +118,8 @@ func busiest(cores:Array[BuffCore], unit:Unit) -> BuffCore:
 # ---------------------------------------------------------------- the owner (Pass F 7b)
 
 ## Store the Kit holder's unit id, and put right the tier and faction apply_buff_alt stamped
-## (unit_condition.gd:750-754) from the engine's lookup - possibly from the victim.
+## (unit_condition.gd:750-754) from the engine's lookup - possibly from the victim. The tier/faction
+## rewrite is inert today: nothing reads TIER_KEY or FACTION_KEY off this buff.
 func record_owner(core:BuffCore, map:MapState) -> void:
 	var owner := find_kit_holder(core.from_gear, map)
 	core.set_state(OWNER_KEY, String(owner.core.persistent_id) if Unit.is_valid(owner) else '')

@@ -16,9 +16,10 @@ extends RefCounted
 # This script is queued by LancerTacticsMod.add_overwrite_extend_mod_resources like any other
 # .tres_ext.gd, and then mod_main.gd takes it straight back out of the engine's queue and calls it
 # itself - see apply_resource_extensions_directly() there. No third-party mod is known to contend
-# for THIS licence (the six parked in lancer-tactics-claude/.bk were checked on 2026-09-15 and none
-# ships a li_gorgon.tres_ext.gd), but the direct-apply route is also what carries the RETENTION half
-# of the fix, which bug 7 makes load-bearing for every extended resource regardless of contention.
+# for THIS licence: swept against the LIVE zips in %APPDATA%/LancerTactics/mods on 2026-09-28 (not
+# the stale .bk copies), none ships a li_gorgon.tres_ext.gd or touches li_gorgon from its mod_main.
+# The direct-apply route is still what carries the RETENTION half of the fix, which bug 7 makes
+# load-bearing for every extended resource regardless of contention.
 
 ## The frame's path is a hardcoded string, so it does NOT follow a move of mf_myconid.tres. Moving
 ## the frame breaks this silently; spec/test_alt_frames.gd is what notices.

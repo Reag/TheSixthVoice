@@ -19,7 +19,8 @@
 ## and the charge waits for a successful attack.
 ##
 ## ONLY THE SIX SKY'S OWN WEAPON ATTACKS (ruling 9). An owned drone attacks with its OWNER's buffs -
-## roll_specific_bonus_damage reads get_buffs_to(context.unit.get_attacker(context)), and get_attacker
+## the general bonus-damage read is get_buffs_to(owner, BONUS_DAMAGE) (event_unit_attack_declared.gd:95)
+## with owner = context.unit.get_attacker(context) (:29), and get_attacker
 ## is get_owner_unit_or_self (unit.gd:276-282) - so without the holder check below a drone's hit would
 ## spend the Six Sky's charge. Tech attacks are refused by BuffDamage's own can_apply_to_tech_attacks.
 ##

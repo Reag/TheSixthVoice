@@ -741,7 +741,7 @@ func test_move_beats_a_movement_restriction_ban_while_the_pathfinder_route_loses
 func test_forced_movement_type_is_an_involuntary_untagged_teleport_that_ignores_engagement():
 	# The third shape, and every clause of it is load-bearing somewhere:
 	#  - teleport, or Teleport.is_teleport answers false and no listener - Uncertainty Field included -
-	#    ever sees the move (teleport.gd:53-56; :48-51 is its docstring);
+	#    ever sees the move (Teleport.is_teleport);
 	#  - NOT voluntary, which is what clears the Immobilized gate (event_unit_move.gd:451 is
 	#    `if movement_type.voluntary and UnitCondition.is_immobilized(unit): return false`);
 	#  - ignore_engagement, matching our own involuntary shape and vanilla's
@@ -859,7 +859,7 @@ func test_shove_hangs_the_shovers_specific_on_the_event_so_forcer_names_them():
 	# THE ASYMMETRY WITH move(), AND THE WHOLE REASON THE SHOVE PASSES AN `object`. move() is called
 	# by the unit that is moving, so forcer(context) returns that same mech and
 	# UnitRelation.are_enemies(unit, unit) is false - which is what makes Step of Mist and Thunder
-	# exempt from its own frame\'s Uncertainty Field (teleport.gd:84-95). A SHOVE is called by somebody
+	# exempt from its own frame\'s Uncertainty Field (Teleport.forcer's docstring). A SHOVE is called by somebody
 	# ELSE, so the same read returns the SHOVER, are_enemies is TRUE, and the field correctly offers.
 	# Without this assertion the two cases are indistinguishable in this file.
 	var core:EventCore = await Teleport.shove(forcing_activation(), unit, DESTINATION)

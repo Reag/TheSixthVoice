@@ -246,8 +246,9 @@ func test_apply_refuses_invalid_arguments():
 	assert_false(Lockon.apply(dummy(), other, null), 'A null gear is refused.')
 	assert_false(other.has_status(Lancer.STATUS.LOCKON), 'And nothing was applied.')
 	assert_false(Lockon.apply(dummy(), null, lock_gear()), 'A null target is refused.')
-	# Close-out Pass F Task 21: a NULL EVENT is not refused - it falls back to the level the way
-	# Overshield._fire, Teleport._run and Terrain.lay do, on the dummy-event carrier. Before the guard
+	# Close-out Pass F Task 21: a NULL EVENT is not refused - with a level live it applies on a
+	# stand-in carrier (the dummy-event shape) and queues no statuses_changed reactions; it does NOT
+	# run on the level's block as Overshield._fire, Teleport._run and Terrain.lay do. Before the guard
 	# apply_status reached on_status_application's event.queue_reaction_events on a null event.
 	assert_true(Lockon.apply(null, other, lock_gear()), 'A null event falls back to the level and locks.')
 	assert_eq(Lockon.source_of(other), lock_gear().persistent_id, 'Sourced to the gear as usual.')

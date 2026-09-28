@@ -329,7 +329,7 @@ func test_the_instance_content_library_serves_is_the_one_mod_main_retains():
 	# LICENCE GUARD 1 of 3 - upstream bug 7 in one assertion, and the only thing on the branch that
 	# asks it of li_iskander. _ModLoaderResourceExtension._save_resource no longer retains an extended
 	# resource, so the extension evaporates the moment nothing holds the instance and the next load()
-	# reads the unextended file off disk. Deleting mod_main.gd's _retained_resources.append(extended)
+	# reads the unextended file off disk. Deleting mod_main.gd:169's retained.append(extended)
 	# reddens NOTHING else: test_alt_frames.gd only checks the path is DECLARED in EXTENDED_RESOURCES,
 	# and every other test in this file compares compcon_id strings, which a freshly loaded vanilla
 	# licence would still answer for the Iskander.
@@ -349,7 +349,7 @@ func test_the_instance_content_library_serves_is_the_one_mod_main_retains():
 func test_the_other_extenders_of_li_iskander_also_land():
 	# LICENCE GUARD 3 of 3. Whoever else touched li_iskander in this run must still have their frame
 	# in it - the queue collision (mod_main.gd's header) drops a queue-path extender silently, and
-	# apply_resource_extensions_directly erases OUR key from the shared dictionary at :112 precisely
+	# apply_resource_extensions_directly erases OUR key from the shared dictionary at :134 precisely
 	# so that theirs survives.
 	#
 	# OTHER_EXTENDERS is empty today (see its own comment: no installed mod names this licence at

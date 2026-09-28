@@ -108,7 +108,7 @@ func test_the_frozen_interface_pins_these_three_signatures():
 			assert_eq(actual_arg.class_name, expected_arg[2],
 				'%s arg %d ("%s") has the frozen class_name.' % [required, i, expected_arg[0]])
 
-		# PINS `static`, NOT ONLY THE NAME - same reasoning as test_teleport.gd:241-251. Every caller
+		# PINS `static`, NOT ONLY THE NAME - same reasoning as test_teleport.gd's frozen-interface test (:313-323). Every caller
 		# spells Efficient.<fn>(...) on the preloaded script CONSTANT, never on an instance, and
 		# GDScript refuses that at PARSE time if `static` is dropped, which would take this whole file
 		# down as unparsable rather than failing a single assertion.
