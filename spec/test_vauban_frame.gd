@@ -209,6 +209,12 @@ func test_the_colour_scheme_is_derived_from_the_frames_own_art():
 	if ours.palette_2 == null: return
 	assert_eq(ours.palette_2.resource_path, 'res://assets/palettes/toneramps/tone_highcontrast.png',
 		'And it is still tone_highcontrast - the ramp is the one thing kept from the base frame.')
+	# THE OTHER THREE SLOTS (Pass F task 23, open-items I): the .tres writes none of them, so each is
+	# ColorScheme's own export default (color_scheme.gd:59-62). Pinned so all eight fields are, and a
+	# stray palette written into the block says so here.
+	assert_eq(ours.palette_0, ColorScheme.DEFAULT_TONERAMP, 'palette_0 is the engine default toneramp.')
+	assert_eq(ours.palette_1, ColorScheme.DEFAULT_TONERAMP, 'palette_1 is the engine default toneramp.')
+	assert_eq(ours.palette_3, ColorScheme.DEFAULT_TONERAMP, 'palette_3 is the engine default toneramp.')
 
 	# AND IT IS DELIBERATELY NOT THE ISKANDER'S ANY MORE. Read off the live frame rather than
 	# transcribed, so this stays honest if a modkit update repaints HA: whatever the Iskander wears,
@@ -219,6 +225,20 @@ func test_the_colour_scheme_is_derived_from_the_frames_own_art():
 	var theirs:ColorScheme = iskander.default_color_scheme
 	assert_true(ours.base_0 != theirs.base_0 or ours.base_1 != theirs.base_1 or ours.base_2 != theirs.base_2,
 		'The Vauban is distinguishable from the Iskander in data, not a clone of its scheme.')
+
+## THE PROVENANCE COMMENT IS PART OF THE PIN (Pass F task 23, open-items I). The literals above say
+## WHAT the scheme is; only the .tres comment block says WHERE it came from (a colour census of
+## mf_vauban.png, ruling R4) and how to re-derive it. An editor save of the frame strips `;` comments
+## (memory editor-tres-cache-clobber, headless-import-strips-mod-comments), leaving the values intact
+## and every other test green - so the text itself is asserted. Raw source, the test_spin.gd /
+## test_draw_fire.gd idiom: the UNPACKED path, because FileAccess on the mirror path comes back empty.
+func test_the_colour_scheme_keeps_its_derivation_note():
+	const SOURCE := 'res://unpacked/Reag-TheSixthVoice/res/content/frames/ha/mf_vauban/mf_vauban.tres'
+	var src := FileAccess.get_file_as_string(SOURCE)
+	assert_false(src.is_empty(), 'mf_vauban.tres reads back.')
+	if src.is_empty(): return
+	assert_true(src.contains('DERIVED FROM THE SPRITE ART'),
+		'The colour scheme block still carries its derivation note (ruling R4).')
 
 func test_the_name_and_flavour_resolve():
 	# tr() falling through to the raw key is the signature of a missing CSV row OR of a stale compiled

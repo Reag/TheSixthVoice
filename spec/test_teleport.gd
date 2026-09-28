@@ -756,7 +756,7 @@ func test_forced_movement_type_is_an_involuntary_untagged_teleport_that_ignores_
 	assert_false(Teleport.is_own(type),
 		'THE DISTINCTION: it is NOT tagged as ours. A hostile shove is exactly the case is_own exists'
 		+ ' to answer false for, and move(unit, tile) would have tagged it - own_involuntary defaults'
-		+ ' to true there (teleport.gd:339).')
+		+ ' to true there (the signature of Teleport.move).')
 	assert_false(type.ignore_rxns,
 		'And it does NOT set NO_RXNS, so a Maiden\'s Blush is free to veto it - design ruling 18 says'
 		+ ' it can, and vanilla create_for_involuntary (movement_type.gd:65) would have set it.')

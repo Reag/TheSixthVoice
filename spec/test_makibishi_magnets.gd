@@ -176,7 +176,7 @@ func test_the_kit_is_limited_2_with_a_throw_a_mine_and_a_hidden_second_mine():
 	assert_true(mine is ActionSystemDeploy, 'The mine is a deploy.')
 	assert_true(second is ActionReactionSelf, 'The second mine is a self-reaction.')
 	if not throw is ActionSystemApplyBuff or not mine is ActionSystemDeploy or not second is ActionReactionSelf: return
-	assert_eq(kit.actions.front(), throw, 'Throw Magnets FIRST: get_solo_action is the detach save\'s applier (action_system_clear_buff.gd:92).')
+	assert_eq(kit.actions.front(), throw, 'Throw Magnets FIRST: get_solo_action is the detach save\'s applier (action_system_clear_buff.gd:99).')
 	assert_eq(throw.action_type, Lancer.ACTION.QUICK, 'Throw: Quick.')
 	assert_eq(throw.apply_range, 5, 'Range 5.')
 	assert_true(throw.save_to_avoid, 'Save to avoid...')
