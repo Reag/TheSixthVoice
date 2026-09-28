@@ -79,9 +79,10 @@ static func is_excluded(kit:Kit) -> bool:
 	if kit == null: return false
 	return kit.uses_per_scene == 1 or kit.charges_max == 1
 
-## ACTION_FORBIDDEN is also asked with contexts that name no action - the boost check
-## (unit_action.gd:504) and the end-turn button (non_gear.gd:120) - so only a full unit/gear/action
-## context is considered, the way the Trueblack Aegis restrictions do it.
+## ACTION_FORBIDDEN is also asked outside gear availability. The boost check (unit_action.gd:504)
+## carries the ms_boost action, which consumes_reaction() below rejects; the end-turn button
+## (non_gear.gd:120) carries no action at all. So only a full unit/gear/action context is
+## considered, the way the Trueblack Aegis restrictions do it.
 func is_buff_context_valid_for_passive(_core:BuffCore, context:Context) -> bool:
 	return SpecificAction.is_valid(SpecificAction.from_context(context))
 

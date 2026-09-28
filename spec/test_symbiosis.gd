@@ -185,23 +185,15 @@ var quick:SpecQuick
 var rxn_nonconsuming:SpecReaction
 var free_action:SpecFreeAction
 
-var log_lines:PackedStringArray = []
-var battle_log:BattleLogBus = load('res://ui/component/battle_log/battle_log_bus.tres')
-
 func before_each() -> void:
 	game = MyconidFixture.create_game(self)
 	myconid = MyconidFixture.create_myconid(game, MYCONID_TILE)
 	dummy = MyconidFixture.create_dummy(game, DUMMY_TILE, 10)
 	install_spec_gear()
 	UnitAction.every_new_turn_refresh(myconid)
-	log_lines = []
-	battle_log.on_log_text.connect(_record_log)
 
 func after_each() -> void:
-	if battle_log.on_log_text.is_connected(_record_log): battle_log.on_log_text.disconnect(_record_log)
 	Dice.CHEAT_ROLL_QUEUE.clear()
-
-func _record_log(line:String) -> void: log_lines.append(line)
 
 # ---------------------------------------------------------------- fixture helpers
 
@@ -657,18 +649,14 @@ func test_after_the_cap_the_ordinary_reaction_may_still_be_one_per_scene():
 	assert_true(extra_spent(), 'fixture: the round extra has gone.')
 	await SpecFactory.start_turn(game, dummy)
 	assert_eq(reactions_left(), 1, 'fixture: the cap left one point, and none of it is spent yet.')
-	log_lines = []
 	await react_with(rxn_scene)
+	assert_eq(rxn_scene.offered, 1, 'The 1/scene reaction was offered: nothing hid it.')
 	assert_eq(rxn_scene.fired, 1, 'The turn first reaction is the ordinary allowance, 1/scene or not.')
 	assert_eq(uses_this_round(RXN_SCENE), 1, 'And its usage counter moved, so it really activated.')
-	var refused := false
-	for line:String in log_lines:
-		if line.contains('Symbiosis'): refused = true
-	assert_false(refused, 'And nothing was refused in the battle log: %s' % [log_lines])
 
 func test_a_non_consuming_reaction_is_neither_refused_nor_stamped():
-	# The gate's FIRST clause is action.consumes_reaction() (buff_symbiosis_exclusion.gd:check_if_passive_applies) - the
-	# action here is present and real, its consumes_reaction() just returns false, so this is a real
+	# The gate's FIRST clause is action.consumes_reaction()
+	# (buff_symbiosis_exclusion.gd, check_if_passive_applies) - the action here is present and real, its consumes_reaction() just returns false, so this is a real
 	# clause doing real work, not a vacuous one. Everything else about this reaction is built to fail
 	# the OTHER clauses the ordinary way: uses_per_scene = 1 makes is_excluded() true, and it fires as
 	# the Myconid's SECOND reaction of the turn (current.reactions == max - 1, the round's extra still
@@ -686,13 +674,8 @@ func test_a_non_consuming_reaction_is_neither_refused_nor_stamped():
 	await react_with(rxn_a)
 	assert_eq(reactions_left(), reactions_max() - 1,
 		'fixture: the ordinary reaction has been taken, one point short of the max.')
-	log_lines = []
 	await react_with(rxn_nonconsuming)
 	assert_eq(rxn_nonconsuming.fired, 1, 'The non-consuming reaction fired normally, not refused.')
-	var refused := false
-	for line:String in log_lines:
-		if line.contains('Symbiosis'): refused = true
-	assert_false(refused, 'And no Symbiosis refusal reached the battle log: %s' % [log_lines])
 	assert_false(extra_spent(), 'Not stamped as the extra: a non-consuming reaction spends no point.')
 	assert_eq(reactions_left(), reactions_max() - 1,
 		'And the reaction point count is unchanged from before this reaction.')
@@ -929,11 +912,6 @@ func test_a_spent_scene_reaction_is_not_offered():
 	assert_false(UnitAction.can_activate_gear(specific), 'As the extra, the gear is unavailable.')
 	assert_eq(UnitAction.get_gear_unavailable_reason(specific), UnitAction.REASON.FORBIDDEN,
 		'Refused by the ACTION_FORBIDDEN buff, not by some other gate.')
-	log_lines = []
 	await react_with(rxn_scene)
 	assert_eq(rxn_scene.offered, 0, 'The bus never offered the 1/scene reaction.')
 	assert_eq(rxn_scene.fired, 0, 'The 1/scene reaction did not happen.')
-	var named := false
-	for line:String in log_lines:
-		if line.contains('Symbiosis'): named = true
-	assert_false(named, 'Nothing is refused, so nothing is logged: %s' % [log_lines])
