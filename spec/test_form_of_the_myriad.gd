@@ -351,6 +351,34 @@ func test_a_line_chain_bends_at_each_leg() -> void:
 	for unit:Unit in [contact, b, c, y]:
 		assert_eq(unit.current_damage(), 4, '%s: 1d6+1 = 7, halved up to 4 (every character up to a bend is hit).' % unit.tile())
 
+## The author's 1.3.0 playtest report: every Line leg lets the player pick the character the next leg
+## starts from, not only the first. Here leg 2 starts from X, the FARTHER character on leg 1.
+const LINE_Z := Vector2i(9, 11) # due east of X
+const LINE_LEG_2_FROM_X_AIM := Vector2i(14, 11)
+
+func test_a_line_chain_leg_may_continue_from_any_character_on_it() -> void:
+	Fixture.equip(knot, Fixture.LINE)
+	var knot_gears := MyriadAction.myriad_weapons(knot)
+	var rail_index := gear_ids(knot_gears).find(String(Fixture.LINE))
+	var b := dummy(LINE_B)
+	var x := dummy(LINE_X)
+	var z := dummy(LINE_Z)
+	var c := dummy(LINE_C)
+	responder.unit_queue.assign([x])
+	await press([14], [plan_tile(LINE_AIM), plan_tile(LINE_LEG_1_AIM), plan_tile(LINE_LEG_2_FROM_X_AIM), CompconPlan.create_aborted()], [rail_index])
+	assert_eq(responder.unit_prompts.size(), 1, 'Only leg 1 carried two characters that could continue.')
+	if not responder.unit_prompts.is_empty():
+		assert_eq(responder.unit_prompts[0].units, [b, x] as Array[Unit], 'Both, nearest first.')
+	var found := legs()
+	if found.size() >= 2:
+		assert_eq(found[0].origin, CONTACT_TILE, 'Leg 1 from the only character on the first line.')
+		assert_eq(found[1].origin, LINE_X, 'Leg 2 from the character picked.')
+	else:
+		fail_test('two legs must have been asked')
+	for unit:Unit in [contact, b, x, z]:
+		assert_eq(unit.current_damage(), 4, '%s: hit, halved.' % unit.tile())
+	assert_eq(c.current_damage(), 0, 'Off every leg.')
+
 
 # ============ PRECISION VENTING (ruling 20) ============
 

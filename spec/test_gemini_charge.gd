@@ -419,6 +419,63 @@ func test_a_line_with_no_character_on_any_leg_is_not_offered() -> void:
 	await fire_again(Fixture.LINE, LINE_AIM, [14], [plan_tile(LINE_SECOND_AIM)])
 	assert_eq(yesnos(), 1, 'CONTROL: with one within reach, it is.')
 	assert_gt(second.current_damage(), 0, 'And hit.')
+	assert_eq(responder.unit_prompts.size(), 0, 'One character on the line: nothing to choose, no character pick.')
+
+## THE AUTHOR'S 1.3.0 PLAYTEST REPORT (2026-09-28): a Line through several characters always bent at the
+## first. Every character on it is a contact ("upon contact with a character"), so the player picks the
+## one the shot redirects from; everything up to it is hit, everything past it is cut (ruling 13).
+const BEND_THIRD_TILE := Vector2i(6, 8) # 4 south of PAST_TILE
+const BEND_AIM := Vector2i(6, 9) # due south from PAST_TILE, the remaining 5
+
+func test_a_line_through_two_characters_asks_which_one_the_shot_redirects_from() -> void:
+	var past := second_at(PAST_TILE)
+	var third := second_at(BEND_THIRD_TILE)
+	Fixture.equip(knot, Fixture.LINE)
+	responder.unit_queue.assign([past])
+	await fire(Fixture.LINE, LINE_AIM, [14, 14], [plan_tile(BEND_AIM)]) # the contact's d20, then past's own
+	assert_eq(responder.unit_prompts.size(), 1, 'Two characters could each redirect: one pick.')
+	if not responder.unit_prompts.is_empty():
+		assert_eq(responder.unit_prompts[0].units, [contact, past] as Array[Unit], 'Both, nearest first.')
+	assert_ne(tr('gear.buff_gemini_charge.prompt'), 'gear.buff_gemini_charge.prompt', 'The pick\'s prompt resolves.')
+	assert_eq(captures.size(), 1, 'Then one aim picker.')
+	if not captures.is_empty():
+		assert_eq(captures[0].origin, PAST_TILE, 'From the character picked, not the first one hit.')
+		assert_eq(captures[0].reach, 5, 'Line 10, 5 used to reach it.')
+	var summary := last_summary()
+	if summary == null:
+		fail_test('the attack must have been declared')
+		return
+	assert_eq(summary.all_attacked_units, [contact, past, third] as Array[Unit], 'Everything up to the bend, then the leg.')
+	assert_true(summary.all_attacked_tiles.has(Vector2i(5, 4)), 'The line runs on to the bend.')
+	assert_false(summary.all_attacked_tiles.has(Vector2i(7, 4)), 'And is cut past it.')
+	for unit:Unit in [contact, past, third]:
+		assert_eq(unit.current_damage(), 4, '%s: 1d6+1 = 7, halved up to 4.' % unit.tile())
+	assert_eq(Fixture.gemini_uses(knot), 1, 'The round is spent.')
+
+func test_cancelling_the_character_pick_costs_nothing() -> void:
+	var past := second_at(PAST_TILE)
+	var third := second_at(BEND_THIRD_TILE)
+	Fixture.equip(knot, Fixture.LINE)
+	responder.unit_queue.assign([null])
+	await fire(Fixture.LINE, LINE_AIM, [14, 14], [plan_tile(BEND_AIM)]) # the contact's d20, then past's own
+	assert_eq(responder.unit_prompts.size(), 1, 'Guard: the pick was raised.')
+	assert_eq(picks(), 0, 'Cancelled: no aim picker.')
+	assert_eq(Fixture.gemini_uses(knot), 0, 'The round is not spent.')
+	assert_eq(contact.current_damage(), 7, 'The ordinary line: full damage.')
+	assert_eq(past.current_damage(), 7, 'Nothing bent it.')
+	assert_eq(third.current_damage(), 0, 'Nothing redirected.')
+
+func test_a_character_with_nowhere_to_redirect_is_not_offered() -> void:
+	# 9 along the line, the rail has 1 left, and nobody new stands within 1: only the contact can
+	# redirect, so no pick is raised.
+	var past := second_at(Vector2i(10, 4))
+	var second := second_at()
+	Fixture.equip(knot, Fixture.LINE)
+	await fire(Fixture.LINE, LINE_AIM, [14], [plan_tile(LINE_SECOND_AIM)])
+	assert_eq(yesnos(), 1, 'Guard: offered.')
+	assert_eq(responder.unit_prompts.size(), 0, 'One viable character: no pick.')
+	assert_gt(second.current_damage(), 0, 'Redirected from the contact.')
+	assert_eq(past.current_damage(), 0, 'And the line is cut at it.')
 
 
 # ============ ONE D20 FACE, EACH TARGET'S OWN DICE (rulings 9-11) ============
