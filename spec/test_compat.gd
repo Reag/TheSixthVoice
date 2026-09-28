@@ -1282,8 +1282,14 @@ func test_the_gloires_ram_keeps_vanillas_knockback_cone_with_the_rerouting_exten
 ## House Guard's would-have-hit arithmetic - is unchanged by a spend. RULED: composes.
 ##
 ## Two halves: the talents mod still computes other_bonus that way (reddened by a talents update that
-## changes the formula), and our lowering leaves it where it was (reddened by lowering one without the
+## changes the formula), and a REAL spend leaves it where it was (reddened by lowering one without the
 ## other).
+##
+## THE SPEND IS THE REAL ROUTE (Pass F task 18, open item F): the hostile's own buff_patience_reduce core,
+## hung by the Pier's aura, is polled with confirm_modification exactly as event_unit_attack polls a
+## BuffModifyAttackRoll - menu, charge spend, mark and all - on a roll something else has ALREADY
+## modified. Calling lower() directly, as this test used to, would stay green with confirm_modification
+## lowering the total alone.
 const HOUSE_GUARD_MISS_PATH := 'res://unpacked/gavstarb-talents_1st_party/res/content/talents/support/t_house_guard/rank_3/action_shield_of_the_legion_miss.gd'
 const HOUSE_GUARD_OTHER_BONUS := 'attack_roll.total_roll - (attack_roll.base_roll + attack_roll.accuracy_roll + attack_roll.pre.flat_bonus)'
 
@@ -1293,16 +1299,39 @@ func test_patience_leaves_house_guards_other_bonus_where_it_was() -> void:
 		return
 	var source:String = load(HOUSE_GUARD_MISS_PATH).source_code
 	assert_string_contains(source, HOUSE_GUARD_OTHER_BONUS, 'House Guard still reads a modified total this way.')
-	var roll := AttackRoll.create(myconid, AttackRoll.PreAttack.new())
+
+	silence_stock_responder()
+	var made:Array = GruttePierFixture.create_game_with_prompts(self)
+	var pgame:Gamemaster = made[0]
+	var responder = made[1]
+	var pier := GruttePierFixture.create_pier(pgame, Vector2i(2, 5))
+	var ally := GruttePierFixture.create_dummy(pgame, Vector2i(5, 5), 10, Faction.PLAYER)
+	var hostile := GruttePierFixture.create_dummy(pgame, Vector2i(9, 5))
+	GruttePierFixture.set_charges(pier, 3)
+	GruttePierFixture.give_patience(pier)
+	var cores := UnitCondition.get_buffs(hostile, GruttePierFixture.PATIENCE_REDUCE)
+	assert_eq(cores.size(), 1, 'fixture: the aura hung the reduction on the hostile.')
+	if cores.is_empty(): return
+	var core:BuffCore = cores.front()
+
+	var roll := AttackRoll.create(ally, AttackRoll.PreAttack.new())
+	roll.hit = true
+	roll.pre.target_defense = 14 # a spend of 3 (16 -> 13) is the least that makes it miss
 	roll.base_roll = 11
 	roll.accuracy_roll = 1
 	roll.pre.flat_bonus = 2
 	roll.total_roll = 16 # 2 more than base + accuracy + flat: something else already modified it
 	var other_bonus := roll.total_roll - (roll.base_roll + roll.accuracy_roll + roll.pre.flat_bonus)
-	PatienceReduce.lower(roll, 3)
-	assert_eq(roll.total_roll, 13, 'fixture: the number rolled is 3 lower.')
+	responder.multiple_choice_queue.assign([0]) # "Spend 3: 13, Miss"
+	var missed:bool = await core.base.confirm_modification(core, roll, SpecFactory.dummy_event({unit = hostile}))
+
+	assert_eq(responder.multiple_choice_prompts.size(), 1, 'VACUITY: the Pier was asked.')
+	assert_true(missed, 'fixture: the spend turned the hit into a miss.')
+	assert_true(roll.roll_modifications.has(PatienceReduce.MARK), 'fixture: the roll carries the Patience mark.')
+	assert_eq(GruttePierFixture.charges(pier), 0, 'The three charges were spent.')
+	assert_eq(roll.total_roll, 13, 'The number rolled is 3 lower.')
 	assert_eq(roll.total_roll - (roll.base_roll + roll.accuracy_roll + roll.pre.flat_bonus), other_bonus,
-		'RULED: House Guard sees the same other_bonus after a Patience spend.')
+		'RULED: House Guard sees the same other_bonus after a real Patience spend.')
 
 ## Zwarte Hoop's +Reliable goes through native_reliable.raise, the same carrier as Weight of Fire, so
 ## it and the Clark's Redundant Scattering Module (resident since 2026-09-24) add and both come off
@@ -1554,6 +1583,176 @@ func test_a_sunzi_blink_anchor_redirects_the_rituals_teleport_and_the_ritual_fol
 	assert_eq(six_sky.tile(), ANCHOR_SPOT, 'The anchor pulled the Six Sky to its side.')
 	assert_eq(SixSkyFixture.weaver_chips(six_sky), 0, 'RULED: the Weaver armed, and the first hit spent it...')
 	assert_eq(200 - SixSkyFixture.health(hostile), 15, '...on the hostile beside the ANCHOR: 9 + the Weaver 6.')
+
+
+# ===================== THE SUNZI REDIRECTS EVERY ROUTE OF OURS (author decision "Sunzi", Pass F) =====================
+# THE RULING (author, 2026-09-27): the Sunzi's Blink Anchor redirect of our teleports is ALLOWED - "cannot
+# be prevented" is not "cannot be redirected". Its two listeners live on the Sunzi's frame but REACH every
+# teleporter: the ally variant any allied one, the enemy variant any hostile the Sunzi can see while it holds
+# an unstacked anchor and a charge (action_redirect_teleport.gd:30-61). Both rewrite the move event's
+# context.array at ENTIRE_MOVEMENT PRE (:130-131), turning a target-tile shove into a path first (:77-80).
+# The Ritual pin above is the allied, move_along case; these are the ENEMY variant on each of the helper's
+# three routes - move() (Step of Mist and Thunder), shove() (the Daykeeper crit's "the target") and
+# move_along() (Abjuration of Metal) - and each asserts that the unit lands where the anchor put it AND
+# that the consumer's follow-up reads the space it LANDED on, not the one it asked for.
+#
+# THE ANCHOR SITS IN A CORNER BOXED TO ONE FREE SPACE. An AI Sunzi does not ask where: ask_for_movement_alt
+# picks a supplied tile at random when the deciding unit is not player-controlled
+# (target_action_util.gd:47-57). Anchor (0,0), Sunzi (1,1), a blocker (1,0): (0,1) is the only free space
+# beside the anchor whichever neighbour rule the engine uses, so the random pick is not random.
+#
+# Reddened by: the Sunzi's redirect moving off ENTIRE_MOVEMENT PRE or dropping the array rewrite; our helper
+# tagging its moves so the Sunzi skips them (SKIP_TELEPORT_FX, :33) or making them unreachable by a
+# reaction; a consumer measuring its follow-up from the space it asked for.
+
+const REDIRECT_MAP := Vector2i(16, 10)
+const ANCHOR_CORNER := Vector2i(0, 0)
+const SUNZI_BY_CORNER := Vector2i(1, 1)
+const CORNER_BLOCKER := Vector2i(1, 0)
+## The one free space beside the corner anchor.
+const CORNER_LANDING := Vector2i(0, 1)
+const BLINK_ANCHOR_ACTION := &'action_deploy_blink_anchor'
+const BLINK_ANCHOR_FRAME := &'dep_blink_anchor_sunzi'
+
+## Answers every yes/no like the queued responder, except that it DECLINES the Maiden's Blush's
+## Uncertainty Field. Abjuration's teleport is voluntary, so the field offers on it
+## (action_uncertainty_field.gd:92) at the same ENTIRE_MOVEMENT PRE as the Sunzi's own "use it?", and the
+## order between two PRE listeners on different units is not this file's to pin - answering by title makes
+## the test indifferent to it. Title match as test_abjuration_of_metal.gd's field_offers() does.
+class FieldDecliningResponder extends 'res://testkit/mod_choice_responder.gd':
+	func choose_yesno(request:ChoiceRequest, tile:Vector2i = Vector2i.ZERO, title:String = '', desc:String = '', encourage_yes:bool = true):
+		var asked := str(request.get('params').title) if request != null and request.get('params') != null else title
+		if asked.contains('Uncertainty Field'): yesno_queue.push_front(false)
+		await super(request, tile, title, desc, encourage_yes)
+
+## Before_each's stock responder would answer every prompt a second time; silence it rather than free it
+## (its guard clauses return before they count a choice), as the Step and Ritual pins do.
+func silence_stock_responder() -> void:
+	if not is_instance_valid(SpecFactory.current_responder): return
+	SpecFactory.current_responder.choose_yesnos = false
+	SpecFactory.current_responder.choose_plans = false
+	SpecFactory.current_responder.choose_moves = false
+	SpecFactory.current_responder.choose_multiple_choices = false
+
+## Put the Sunzi's core power on `sunzi` and lay a Blink Anchor at `tile` with the Sunzi's OWN deploy action,
+## so the gear's deployed-ids state and the anchor's owner are the resident's, not ours. Returns the anchor,
+## or null when none was laid.
+func deploy_blink_anchor(g:Gamemaster, sunzi:Unit, tile:Vector2i) -> Unit:
+	sunzi.core.loadout.equipped_kits.append(ContentLibrary.get_kit(SUNZI_REDIRECT_KIT))
+	sunzi.core.full_repair()
+	UnitTile.update_tracking_and_statuses(g.map)
+	await SpecFactory.use(g, sunzi, SUNZI_REDIRECT_KIT, BLINK_ANCHOR_ACTION, [tile])
+	var gear:GearCore = sunzi.get_gear(SUNZI_REDIRECT_KIT)
+	if not GearCore.is_valid(gear): return null
+	var anchors := UnitAction.get_deployables_from(sunzi, gear, BLINK_ANCHOR_FRAME)
+	return anchors.front() if not anchors.is_empty() else null
+
+# ---- move(): Step of Mist and Thunder. "Cannot be prevented" - and still redirected.
+const STEP_REDIRECT_BLUSH := Vector2i(8, 4)
+const STEP_ASKED := Vector2i(8, 8)
+## One from the space Step asked for, eight from the corner: asked to save only if Step measured from the ask.
+const BESIDE_STEP_ASKED := Vector2i(9, 8)
+
+func test_a_sunzi_blink_anchor_redirects_step_of_mist_and_thunder_and_the_saves_follow() -> void:
+	if skipped_without_the_sunzi(): return
+	silence_stock_responder()
+	var pair := MaidensBlushFixture.create_game_with_prompt_queues(self, REDIRECT_MAP)
+	var g:Gamemaster = pair[0]
+	var responder = pair[1]
+	var blush := MaidensBlushFixture.create_maidens_blush(g, STEP_REDIRECT_BLUSH)
+	var sunzi := MaidensBlushFixture.create_dummy(g, SUNZI_BY_CORNER)
+	var blocker := MaidensBlushFixture.create_dummy(g, CORNER_BLOCKER)
+	var control := MaidensBlushFixture.create_ally(g, BESIDE_STEP_ASKED)
+	var anchor := await deploy_blink_anchor(g, sunzi, ANCHOR_CORNER)
+	assert_not_null(anchor, 'fixture: the hostile Sunzi laid its Blink Anchor in the corner.')
+	if anchor == null: return
+	await MaidensBlushFixture.open_turn(g, blush)
+
+	responder.yesno_queue.assign([true, true]) # Step's confirm, then the anchor's "use it?"
+	responder.chosen_plan_queue.append(CompconPlan.create([STEP_ASKED], [], []))
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	# The 2d6 (7), then a failing d20 for every save - a spare for the control, should Step ever ask it.
+	Dice.CHEAT_ROLL_QUEUE.append_array([3, 4, 1, 1, 1, 1, 1, 1])
+	await SpecFactory.use(g, blush, MaidensBlushFixture.CORE_ID, &'action_step_of_mist_and_thunder')
+
+	assert_eq(responder.yesno_prompts.size(), 2, 'VACUITY: the Sunzi offered its redirect on the Step.')
+	assert_eq(blush.tile(), CORNER_LANDING, 'RULED: the anchor pulled the unpreventable Step to its side.')
+	assert_true(UnitCondition.has_buff(blocker, STEP_CHIP),
+		'Step asked the character beside where the Blush LANDED to save (and it failed)...')
+	assert_false(UnitCondition.has_buff(control, STEP_CHIP),
+		'...and never the one beside the space it asked for.')
+
+# ---- shove(): the Daykeeper crit's "the target". A PLAYER Sunzi, because the shoved unit is the hostile.
+const CRIT_REDIRECT_SIX_SKY := Vector2i(4, 4)
+const CRIT_REDIRECT_TARGET := Vector2i(11, 4)
+const CRIT_ASKED := Vector2i(13, 4)
+const CRIT_SUNZI := Vector2i(11, 8)
+const CRIT_ANCHOR := Vector2i(12, 8)
+## Beside the anchor, 4 from the target's space: the crit's own reach is 2, so only the anchor puts it here.
+const CRIT_ANCHOR_SPOT := Vector2i(13, 8)
+const CRIT_SAVE_FAILS := 10
+
+func test_a_sunzi_blink_anchor_redirects_the_daykeeper_crits_shove_and_starsickness_follows() -> void:
+	if skipped_without_the_sunzi(): return
+	silence_stock_responder()
+	var made:Array = SixSkyFixture.create_game_with_prompts(self, REDIRECT_MAP)
+	var g:Gamemaster = made[0]
+	var responder = made[1]
+	var six_sky := SixSkyFixture.create_six_sky(g, CRIT_REDIRECT_SIX_SKY)
+	var target := SixSkyFixture.create_dummy(g, CRIT_REDIRECT_TARGET)
+	var sunzi := SixSkyFixture.create_ally(g, CRIT_SUNZI)
+	var anchor := await deploy_blink_anchor(g, sunzi, CRIT_ANCHOR)
+	assert_not_null(anchor, 'fixture: the allied Sunzi laid its Blink Anchor.')
+	if anchor == null: return
+	assert_eq(anchor.tile(), CRIT_ANCHOR, 'fixture: where it was asked to.')
+
+	var asked_before:int = responder.yesno_prompts.size()
+	responder.chosen_yesnos = false
+	responder.multiple_choice_queue.assign([1]) # "The target"
+	responder.chosen_plan_queue.append(CompconPlan.create([CRIT_ASKED], [], []))
+	responder.yesno_queue.assign([true, true]) # the anchor's "use it?" (PRE), then Starsickness (POST)
+	responder.chosen_move_tile = CRIT_ANCHOR_SPOT # the anchor's own picker: a player Sunzi decides
+	await SixSkyFixture.fire_bow(g, six_sky, target, [SixSkyFixture.CRIT_ROLL, CRIT_SAVE_FAILS])
+	responder.chosen_move_tile = Tile.INVALID
+
+	assert_eq(responder.yesno_prompts.size() - asked_before, 2, 'VACUITY: the anchor asked, then Starsickness.')
+	assert_eq(target.tile(), CRIT_ANCHOR_SPOT, 'RULED: the anchor pulled the shoved target to its side.')
+	assert_true(SixSkyFixture.is_impaired(target),
+		'Starsickness still reads the redirected shove as the Six Sky\'s: offered, and the save failed.')
+	assert_eq(SixSkyFixture.weaver_chips(six_sky), 1, 'And Heavenly Weaver armed off it.')
+
+# ---- move_along(): Abjuration of Metal. The attacker IS the Sunzi, so "beside the anchor" is inside threat.
+const ABJ_REDIRECT_BLUSH := Vector2i(10, 1) # 9 from the Sunzi: inside Sensors 10
+## Six toward the Sunzi on a d6 of 6, and 3 from it - outside mw_variable_sword's threat of 2.
+const ABJ_ASKED := Vector2i(4, 1)
+
+func test_a_sunzi_blink_anchor_redirects_abjuration_and_the_skirmish_reads_the_landing() -> void:
+	if skipped_without_the_sunzi(): return
+	silence_stock_responder()
+	var g := SpecFactory.setup_gamemaster(self, false,
+		SpecFactory.create_combat(Landscape.create_default(REDIRECT_MAP)), {}, false)
+	g.map.shape.forbidden_interiors_enabled = true
+	var responder = add_child_autoqfree(FieldDecliningResponder.new())
+	var blush := MaidensBlushFixture.create_maidens_blush(g, ABJ_REDIRECT_BLUSH)
+	MaidensBlushFixture.equip_melee(blush)
+	var sunzi := MaidensBlushFixture.create_hostile(g, SUNZI_BY_CORNER)
+	MaidensBlushFixture.create_dummy(g, CORNER_BLOCKER)
+	var anchor := await deploy_blink_anchor(g, sunzi, ANCHOR_CORNER)
+	assert_not_null(anchor, 'fixture: the hostile Sunzi laid its Blink Anchor in the corner.')
+	if anchor == null: return
+
+	responder.chosen_move_tile = ABJ_ASKED # Abjuration's own picker; the AI Sunzi's pick asks nobody
+	Dice.CHEAT_ROLL_QUEUE.clear()
+	# The Sunzi's d20 misses; every die after it is a 6 - Abjuration's d6, then the Skirmish's d20 and
+	# accuracy (6 + 6 hits evasion 10) - padded, as test_abjuration_of_metal.gd's arm() explains.
+	Dice.CHEAT_ROLL_QUEUE.append(MaidensBlushFixture.MISS_ROLL)
+	for _die in 12: Dice.CHEAT_ROLL_QUEUE.append(6)
+	await SpecFactory.use_solo(g, sunzi, MaidensBlushFixture.RANGED_ID, [blush])
+	responder.chosen_move_tile = Tile.INVALID
+
+	assert_eq(blush.tile(), CORNER_LANDING, 'RULED: the anchor pulled Abjuration\'s teleport to its side.')
+	assert_gt(sunzi.current_damage(), 0,
+		'Abjuration compared the LANDED space with the origin and measured threat from it: the Skirmish went off.')
 
 
 # ===================== THE OVERSHIELD SEAM, SECOND ROW (Black Mountain, rulings 5-6) =====================
