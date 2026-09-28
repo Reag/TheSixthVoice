@@ -136,9 +136,10 @@ func activate(context:Context, activation:EventCore) -> void:
 	# AI-CONTROLLED, NO PROMPT. fateofman's Cascades hands a cascading player mech to the AI; its
 	# Cascade Personalities' safety scan never reads a REACTION (the fallback skips every
 	# ActionReaction), and the engine's reaction bus fires for any faction, so this picker would open
-	# on an AI turn with nobody to answer it. The AI shields the most damaged eligible ally and never
-	# declines - "gains" is free, and a mech nobody is steering has no reason to hold the round's
-	# Halo. Kill Host's shape (Thy Hubris action_kill_host.gd:135). test_halo.gd pins it. 2026-09-28.
+	# on an AI turn with nobody to answer it. The AI shields the eligible ally with the lowest current
+	# HP and never declines - "gains" is free, and a mech nobody is steering has no reason to hold the
+	# round's Halo. Kill Host's shape (Thy Hubris action_kill_host.gd:135). test_halo.gd pins it.
+	# 2026-09-28.
 	var chosen:Unit
 	if unit.is_player_controlled():
 		chosen = await choice_bus.choose_unit(

@@ -247,3 +247,22 @@ func test_activate_actually_calls_run_system_fxgs():
 		if code.contains('await run_system_fxgs('): called = true
 	assert_true(called,
 		'activate() really calls run_system_fxgs - without it fxg_super_activation.tscn never plays, however wired.')
+
+# ---------------------------------------------------------------- AI-controlled Primrose (Cascades / Hand Over Control)
+
+## fateofman's Cascades hands a cascading player mech to the AI (faction AI_ALLY); vanilla's Hand Over
+## Control does the same through buff_hand_over_control. A core-power protocol is never run through
+## Cascade Personalities' safety scan (plan_core_power gathers consumes_cp actions unscanned), so this
+## menu would open on an AI turn with nobody to answer it. Author's ruling 2026-09-28: the AI takes
+## Wormhole Grasp. Same shape as Thy Hubris' spec/test_ai_safe_prompts.gd.
+func test_an_ai_controlled_primrose_takes_wormhole_grasp_without_a_prompt():
+	primrose.set_faction(Faction.AI_ALLY)
+	assert_false(primrose.is_player_controlled(), 'Fixture: the AI holds the Primrose.')
+	# The queued answer must go UNUSED: if the menu opens, the responder consumes it and the prompt
+	# count below goes red.
+	await PrimroseFixture.press_protocol(game, primrose, responder, PrimroseFixture.SHIELD_INDEX)
+
+	assert_true(responder.multiple_choice_prompts.is_empty(), 'No menu was opened on an AI turn.')
+	assert_false(primrose.core.has_core_power, 'The core power is spent - the AI never declines.')
+	assert_true(holds(WORMHOLE), 'Wormhole Grasp is the AI default (author\'s ruling)...')
+	assert_false(holds(SHIELD), '...not the Shield the queue would have picked.')

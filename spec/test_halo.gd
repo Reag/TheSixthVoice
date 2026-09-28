@@ -447,19 +447,19 @@ func test_an_ally_out_of_line_of_sight_but_within_sensors_is_a_candidate():
 ## Personalities runs the mech's turns. Its safety scan never reads REACTIONS - the fallback skips
 ## every ActionReaction - and the engine's reaction bus fires for any faction, so Halo reaches
 ## activate() on an AI-held Myconid. A unit picker opened there has nobody to answer it. The default
-## is the most damaged eligible ally, ties to eligible_allies() order. Same shape as Thy Hubris'
-## spec/test_ai_safe_prompts.gd (Face Thy Judgement). 2026-09-28.
-func test_an_ai_controlled_myconid_shields_the_most_damaged_ally_without_a_prompt():
+## is the eligible ally with the lowest current HP, ties to eligible_allies() order. Same shape as
+## Thy Hubris' spec/test_ai_safe_prompts.gd (Face Thy Judgement). 2026-09-28.
+func test_an_ai_controlled_myconid_shields_the_lowest_hp_ally_without_a_prompt():
 	myconid.set_faction(Faction.AI_ALLY) # what Cascades sets on a cascading player mech
 	assert_false(myconid.is_player_controlled(), 'Fixture: the AI holds the Myconid.')
 	var hurt := MyconidFixture.create_ally(game, SECOND_ALLY_TILE)
 	hurt.core.current.health = hurt.core.current.health / 2
-	assert_lt(hurt.core.current.health, ally.core.current.health, 'Fixture: the second ally is the more damaged.')
+	assert_lt(hurt.core.current.health, ally.core.current.health, 'Fixture: the second ally has the lower current HP.')
 
 	var prompts := await take_damage(BITING_DAMAGE, Lancer.DAMAGE_TYPE.KINETIC)
 
 	assert_eq(prompts.size(), 0, 'No unit picker was opened on an AI turn.')
-	assert_eq(Overshield.current(hurt), TEST_GRIT, 'The most damaged ally was shielded.')
+	assert_eq(Overshield.current(hurt), TEST_GRIT, 'The lowest-HP ally was shielded.')
 	assert_eq(Overshield.current(ally), 0, 'And the healthy one was not.')
 	assert_eq(uses_this_round(), 1, 'The 1/round is spent - the AI never declines a free shield.')
 

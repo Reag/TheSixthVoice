@@ -69,10 +69,21 @@ func activate(context:Context, activation:EventCore) -> void:
 	# player cancels (choice_bus.gd:131-141). BrochureCore.create normalises plain Strings into its
 	# {text, disabled_reason} dictionaries (brochure_core.gd:26-28), which is the shape vanilla's own
 	# callers pass.
-	var chosen:int = await choice_bus.choose_from_multiple_choice(specific, [
-		Translate.gear('buff_wormhole_grasp', 'name'),
-		Translate.gear('buff_shimmering_shield', 'name'),
-	], true)
+	#
+	# AI-CONTROLLED, NO PROMPT. fateofman's Cascades hands a cascading player mech to the AI, and
+	# vanilla's Hand Over Control does the same (buff_hand_over_control, unit.gd:252). A core-power
+	# protocol is never run through Cascade Personalities' safety scan - plan_core_power gathers
+	# consumes_cp actions unscanned (cascade_system_action_ai.gd:48-64) - so this menu would open on an
+	# AI turn with nobody to answer it. Author's ruling 2026-09-28: the AI takes Wormhole Grasp, and
+	# never declines. Kill Host's shape (Thy Hubris action_kill_host.gd:135).
+	var chosen:int
+	if unit.is_player_controlled():
+		chosen = await choice_bus.choose_from_multiple_choice(specific, [
+			Translate.gear('buff_wormhole_grasp', 'name'),
+			Translate.gear('buff_shimmering_shield', 'name'),
+		], true)
+	else:
+		chosen = 0 # Wormhole Grasp
 	# Cancelled, or the unit died mid-prompt. Return BEFORE spend_actions, which is what makes
 	# declining free (ruling 1).
 	if chosen < 0: return

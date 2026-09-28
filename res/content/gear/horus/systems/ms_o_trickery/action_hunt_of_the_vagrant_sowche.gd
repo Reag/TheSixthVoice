@@ -127,9 +127,14 @@ func pick_closest_character(context:Context, target:Unit) -> Unit:
 			tied.append(other)
 	if tied.is_empty(): return null
 	if tied.size() == 1: return tied[0]
-	# Halo's prompt, on this mod's own precedent (action_halo.gd:125-127). can_voluntarily_cancel is
-	# TRUE: declining leaves the target where it is, which is strictly better than forcing a choice
-	# the player does not want - and the save was forced either way.
+	# AI-CONTROLLED, NO PROMPT. A tech attack is never gathered by Cascade Personalities' fallback,
+	# so it is never scanned; vanilla's AI runs it (Cascades, or Hand Over Control's
+	# buff_hand_over_control, unit.gd:252) and this picker would open with nobody to answer it.
+	# Author's ruling 2026-09-28: the first tied character, in map order. Kill Host's shape.
+	if not context.unit.is_player_controlled(): return tied[0]
+	# Halo's prompt, on this mod's own precedent (action_halo.gd). can_voluntarily_cancel is TRUE:
+	# declining leaves the target where it is, which is strictly better than forcing a choice the
+	# player does not want - and the save was forced either way.
 	return await choice_bus.choose_unit(tied, true, SpecificAction.from_context(context))
 
 ## Every unit holding `target` where it stands: engaging it, or in a grapple with it either way round.

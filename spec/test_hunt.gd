@@ -458,3 +458,25 @@ func test_the_hunt_rows_resolve():
 		'And the effect row is the LCP\'s sentence, with |Systems save| piped and "teleported" bare.')
 	assert_true(X.tr('gear.ms_o_trickery.action_hunt_of_the_vagrant_sowche.effect')
 		.ends_with('1/scene on each character.'), 'Entire, to the last clause.')
+
+# ---------------------------------------------------------------- AI-controlled Sluagh (Cascades / Hand Over Control)
+
+## A tech ATTACK is never gathered by Cascade Personalities' fallback (gather_specifics skips every
+## ActionAttack) and so never scanned; vanilla's AI runs it with the default tech behaviour, and the
+## tie-break below would open a unit picker on an AI turn with nobody to answer it. Author's ruling
+## 2026-09-28: the AI takes the first tied character. Driven through pick_closest_character directly,
+## the way test_ai_safe_prompts.gd drives choose_effect, so the assertion is the prompt count alone.
+func test_an_ai_controlled_sluagh_breaks_a_tie_without_a_prompt():
+	sluagh.set_faction(Faction.AI_ALLY)
+	assert_false(sluagh.is_player_controlled(), 'Fixture: the AI holds the Sluagh.')
+	var rival:Unit = SluaghFixture.create_hostile(game, RIVAL_TILE)
+	responder.unit_queue.append(rival) # must go UNUSED
+	var specific := hunt_specific()
+	var context := Context.create({unit = sluagh, gear = specific.gear, action = specific.action})
+
+	var picked:Unit = await specific.action.pick_closest_character(context, target)
+
+	assert_true(responder.unit_prompts.is_empty(), 'No unit picker was opened on an AI turn.')
+	assert_true(Unit.is_valid(picked), 'A character was still picked.')
+	assert_true(picked == anchor or picked == rival, 'And it is one of the two tied for closest.')
+	assert_ne(picked, rival if responder.unit_queue.is_empty() else null, 'The queued answer was not what decided it.')
