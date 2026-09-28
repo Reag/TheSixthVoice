@@ -479,4 +479,4 @@ func test_an_ai_controlled_sluagh_breaks_a_tie_without_a_prompt():
 	assert_true(responder.unit_prompts.is_empty(), 'No unit picker was opened on an AI turn.')
 	assert_true(Unit.is_valid(picked), 'A character was still picked.')
 	assert_true(picked == anchor or picked == rival, 'And it is one of the two tied for closest.')
-	assert_ne(picked, rival if responder.unit_queue.is_empty() else null, 'The queued answer was not what decided it.')
+	assert_eq(responder.unit_queue.size(), 1, 'The queued answer went unused - nothing consumed it.')
