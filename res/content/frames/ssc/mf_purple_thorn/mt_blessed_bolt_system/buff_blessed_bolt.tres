@@ -2,15 +2,16 @@
 
 [ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_purple_thorn/mt_blessed_bolt_system/buff_blessed_bolt.gd" id="1_buff"]
 
-; BLESSED BOLT's +3 (ruling 4; the script's header has the seam). to = bonus_damage_specific: per
-; target, never halved. until 9 is Lancer.UNTIL.FINISH_DAMAGE; onetime; hidden - the yes/no IS the
-; player-facing surface, the buff lives for one damage roll. damage_dice "3" is flat.
+; BLESSED BOLT's +3 (ruling 4; the script's header has the seam). to = bonus_damage: the general
+; channel, halved across a multi-target attack (rulings.md Pass E). No require_hit - it would hide the
+; buff from that read; the reaction is the hit gate. until 9 is Lancer.UNTIL.FINISH_DAMAGE; onetime;
+; hidden - the yes/no IS the player-facing surface, the buff lives for one damage roll. damage_dice
+; "3" is flat.
 [resource]
 script = ExtResource("1_buff")
 damage_dice = "3"
 inherit_type_from_attack = true
-require_hit = true
 until = 9
-to = &"bonus_damage_specific"
+to = &"bonus_damage"
 is_onetime = true
 hide_from_player = true

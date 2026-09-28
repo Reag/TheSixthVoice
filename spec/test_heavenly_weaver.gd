@@ -24,6 +24,11 @@ const OTHER_DEST := Vector2i(2, 7)
 ## The rifle's 1d6 on a 6, and the chip's 1d6 on a 6.
 const RIFLE_DAMAGE := 6
 const CHIP_DAMAGE := 6
+## A vanilla Missile Rack (Aux, BLAST 1, 1d3+1): 7 on a 6.
+const AUX_BLAST := &'mw_missile_rack'
+const BLAST_DAMAGE := 7
+## The chip's 6, halved across two characters: ceil(6 / 2).
+const CHIP_HALVED := 3
 
 ## Vetoes every teleport of its holder at ENTIRE_MOVEMENT PRE through the frozen helper - the
 ## Uncertainty Field / Flash Anchor shape, test_teleport.gd's VetoListener re-pointed.
@@ -229,13 +234,30 @@ func test_a_miss_keeps_the_chip_for_the_next_hit():
 	await Fixture.open_turn(game, six_sky)
 	await Fixture.teleport_self(six_sky, AWAY)
 	await Fixture.attack(game, six_sky, Fixture.RANGED, target, [Fixture.MISS_ROLL])
-	assert_true(armed(), '"The next SUCCESSFUL attack": a miss does not spend it (require_hit).')
+	assert_true(armed(), '"The next SUCCESSFUL attack": a miss does not spend it (the chip has its own hit gate).')
 	# A turn boundary, because the engine's per-turn soft limit silently refuses the same gun twice.
 	await Fixture.cycle_turn(game, six_sky)
 	var before := Fixture.health(target)
 	await Fixture.attack(game, six_sky, Fixture.RANGED, target, [Fixture.HIT_ROLL])
 	assert_eq(before - Fixture.health(target), RIFLE_DAMAGE + CHIP_DAMAGE, 'The hit after the miss carries it.')
 	assert_false(armed(), 'And spends it.')
+
+func test_on_a_blast_the_chip_is_halved_across_every_victim():
+	# Rulings.md Pass E (reversing ruling 10): bonus damage against several characters is halved, as
+	# Lancer does. A Missile Rack (BLAST 1, 1d3+1) catching two dummies: every die a 6, so each takes 7
+	# plus half the chip's 6 (attack_util.gd:309-312) - where the specific channel gave one 13 and the
+	# other 7.
+	var target:Unit = Fixture.create_dummy(game, TARGET_TILE)
+	var beside:Unit = Fixture.create_dummy(game, TARGET_TILE + Vector2i(1, 0))
+	Fixture.equip(six_sky, AUX_BLAST)
+	await Fixture.open_turn(game, six_sky)
+	await Fixture.teleport_self(six_sky, AWAY)
+	assert_true(armed(), 'PRECONDITION: armed.')
+	var hp := [Fixture.health(target), Fixture.health(beside)]
+	await Fixture.attack(game, six_sky, AUX_BLAST, target, [Fixture.HIT_ROLL, Fixture.HIT_ROLL])
+	assert_eq([hp[0] - Fixture.health(target), hp[1] - Fixture.health(beside)],
+		[BLAST_DAMAGE + CHIP_HALVED, BLAST_DAMAGE + CHIP_HALVED], 'Each victim: the 7 plus half the 1d6.')
+	assert_false(armed(), 'The chip is spent.')
 
 func test_the_chip_waits_across_rounds_until_used():
 	# Ruling 8, the author's call: it lasts until used.

@@ -103,10 +103,19 @@ func make_bonus() -> Buff:
 	buff.hide_from_player = true
 	return buff
 
-func install_watcher() -> void:
+## Close-out Pass F Task 13's variant: the GENERAL, halving channel (Buff.TO.BONUS_DAMAGE), with no
+## require_hit - BuffDamage.is_buff_context_valid_for_passive (buff_damage.gd:20) hides a require_hit
+## buff from the general read, which carries no AttackRoll in context.object.
+func make_general_bonus() -> Buff:
+	var buff := make_bonus()
+	buff.compcon_id = &'general_bonus_probe_buff'
+	buff.to = Buff.TO.BONUS_DAMAGE
+	return buff
+
+func install_watcher(bonus:Buff = null) -> void:
 	reaction = BonusOnHit.new(TRIGGER)
 	reaction.victim = victim
-	reaction.bonus = make_bonus()
+	reaction.bonus = bonus if bonus != null else make_bonus()
 	kit = Kit.new()
 	kit.compcon_id = &'specific_bonus_probe_kit'
 	kit.is_trait = true
@@ -160,3 +169,33 @@ func test_the_one_time_bonus_is_consumed_by_that_roll_and_a_miss_applies_nothing
 	assert_eq(reaction.fired, 1, 'A miss does not fire it.')
 	assert_eq(victim.core.current.health, DUMMY_HP - RIFLE_DAMAGE - BONUS - RIFLE_RELIABLE,
 		'The miss landed only Reliable 2 - no bonus from a stale buff.')
+
+
+# ---------------------------------------------------------------- Pass F Task 13: the GENERAL channel
+#
+# Rulings.md Pass E, "Blessed Bolt and Heavenly Weaver on a multi-target attack": both move to the
+# halving Buff.TO.BONUS_DAMAGE, read at event_unit_attack_declared.gd:95 - after the declared event has
+# awaited every per-target attack (:69), and so after every ATTACK / POST reaction. These two measure
+# that a buff hung at POST is still read by that same damage roll, and that the general read consumes
+# a one-time buff on a MISS too (:124) - which is why the Heavenly Weaver's chip needs a hit gate of
+# its own.
+
+func attacker_holds_the_general_bonus() -> bool:
+	return enemy.state.buffs.any(func(core:BuffCore) -> bool:
+		return core.base.compcon_id == &'general_bonus_probe_buff')
+
+func test_a_general_bonus_applied_at_attack_post_is_rolled_into_the_same_hit() -> void:
+	install_watcher(make_general_bonus())
+	await fire(HITTING_D20)
+	assert_eq(reaction.fired, 1, 'LIVENESS: the reaction fired exactly once for the one hit.')
+	assert_eq(victim.core.current.health, DUMMY_HP - RIFLE_DAMAGE - BONUS,
+		'THE PROBE: the general channel was read after the POST reaction - 6 plus 3, unhalved on one target.')
+	assert_false(attacker_holds_the_general_bonus(), 'And consumed by that roll.')
+
+func test_a_general_one_time_bonus_is_consumed_by_a_miss() -> void:
+	UnitCondition.apply_buff_alt(SpecFactory.dummy_event(), enemy, BuffCore.create(make_general_bonus(), &''))
+	assert_true(attacker_holds_the_general_bonus(), 'PRECONDITION: the attacker holds it before the shot.')
+	await fire(MISSING_D20)
+	assert_eq(victim.core.current.health, DUMMY_HP - RIFLE_RELIABLE, 'CONTROL: a miss - Reliable 2 alone.')
+	assert_false(attacker_holds_the_general_bonus(),
+		'The general read consumes a one-time bonus on a miss (event_unit_attack_declared.gd:124).')
