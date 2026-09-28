@@ -200,8 +200,8 @@ func test_the_core_system_carries_gemini_charge() -> void:
 	var ids:Array[String] = []
 	for buff:Buff in applicator.applied_buffs: ids.append(String(buff.compcon_id))
 	ids.sort()
-	assert_eq(ids, ['buff_gemini_charge', 'buff_gemini_ignore_cover', 'buff_gemini_leg_tiles', 'buff_gemini_shared_roll'],
-		'Four hidden buffs: the trigger, the shared roll, the scoped cover, the scoped picker.')
+	assert_eq(ids, ['buff_gemini_charge', 'buff_gemini_ignore_cover', 'buff_gemini_leg_tiles', 'buff_gemini_one_attack', 'buff_gemini_shared_roll'],
+		'Five hidden buffs: the trigger, the shared roll, the scoped cover, the scoped picker, the one-attack carrier.')
 
 	var trigger:Buff = ContentLibrary.get_buff(Fixture.GEMINI_BUFF)
 	assert_not_null(trigger, 'buff_gemini_charge is in the buffs index.')
@@ -217,11 +217,13 @@ func test_the_core_system_carries_gemini_charge() -> void:
 	assert_true(cover != null and cover.to == Buff.TO.IGNORE_COVER, 'The scoped cover buff is an IGNORE_COVER.')
 	var tiles:Buff = ContentLibrary.get_buff(Fixture.GEMINI_LEG_TILES)
 	assert_true(tiles != null and tiles.to == Buff.TO.ACTION_TILES, 'The scoped picker buff is an ACTION_TILES.')
-	for buff:Buff in [trigger, shared, cover, tiles]:
+	var one_attack:Buff = ContentLibrary.get_buff(Fixture.GEMINI_ONE_ATTACK)
+	assert_true(one_attack != null and one_attack.to == Buff.TO.ONHIT_EFFECT, 'The one-attack carrier is an ONHIT_EFFECT (task 11c).')
+	for buff:Buff in [trigger, shared, cover, tiles, one_attack]:
 		if buff: assert_true(buff.hide_from_player, '%s is plumbing, never a chip.' % buff.compcon_id)
 
-func test_the_knot_holds_the_four_buffs() -> void:
-	for id:StringName in [Fixture.GEMINI_BUFF, Fixture.GEMINI_SHARED_ROLL, Fixture.GEMINI_IGNORE_COVER, Fixture.GEMINI_LEG_TILES]:
+func test_the_knot_holds_the_five_buffs() -> void:
+	for id:StringName in [Fixture.GEMINI_BUFF, Fixture.GEMINI_SHARED_ROLL, Fixture.GEMINI_IGNORE_COVER, Fixture.GEMINI_LEG_TILES, Fixture.GEMINI_ONE_ATTACK]:
 		assert_true(UnitCondition.has_buff(knot, id), 'The Knot holds %s from the start.' % id)
 
 

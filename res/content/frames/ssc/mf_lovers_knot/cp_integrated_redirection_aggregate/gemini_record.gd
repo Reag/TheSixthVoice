@@ -10,6 +10,8 @@
 ##           cannot move the cover.
 ##   ASKED   set on the first look, whether or not anything was appended, so nothing re-asks the same
 ##           declared attack.
+##   DEFERRED_BUFFS  the Knot's one-time roll buffs every target read, consumed once after the whole
+##           attack by onhit_gemini_one_attack (task 11c: "this counts as one attack").
 ## LEG_TILES sits on a throwaway duplicate of the weapon action instead - the leg the picker is asked
 ## about - so buff_gemini_leg_tiles narrows that picker and nothing else.
 ##
@@ -20,6 +22,9 @@ const USAGE_KEY:StringName = &'gemini_charge'
 const RECORD:StringName = &'reag_gemini_charge'
 const ASKED:StringName = &'reag_gemini_asked'
 const LEG_TILES:StringName = &'reag_gemini_leg_tiles'
+## The Knot's one-time roll buffs set aside by onhit_gemini_one_attack, consumed once after the attack
+## (task 11c). Also on the summary, so it dies with the attack.
+const DEFERRED_BUFFS:StringName = &'reag_gemini_deferred_buffs'
 ## buff_gemini_ignore_cover.tres: the leg's cover skips it when asking whether the Knot ignores cover.
 const GEMINI_IGNORE_COVER:StringName = &'buff_gemini_ignore_cover'
 ## Form of the Myriad's chip (SP3, buff_form_of_the_myriad.gd). While it is held, one Gemini use chains

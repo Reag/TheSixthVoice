@@ -46,6 +46,8 @@ const GEMINI_BUFF := &'buff_gemini_charge'
 const GEMINI_SHARED_ROLL := &'buff_gemini_shared_roll'
 const GEMINI_IGNORE_COVER := &'buff_gemini_ignore_cover'
 const GEMINI_LEG_TILES := &'buff_gemini_leg_tiles'
+## Pass F task 11c: the one-attack carrier - one-time roll buffs read by every target, consumed once.
+const GEMINI_ONE_ATTACK := &'buff_gemini_one_attack'
 const GEMINI_USAGE := &'gemini_charge'
 ## SSC main Line 10, 1d6+1, no Reliable: the Line vehicle.
 const LINE := &'mw_rail_rifle'

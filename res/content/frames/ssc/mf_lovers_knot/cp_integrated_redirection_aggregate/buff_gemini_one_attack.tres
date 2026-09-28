@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BuffWeaponTypeOnHit" format=3]
+
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/buff_gemini_one_attack.gd" id="1_buff"]
+[ext_resource type="Script" uid="uid://d2nldg6e3doqd" path="res://engine/character/gear_action/resources/on_hit_effect.gd" id="2_onhit"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_lovers_knot/cp_integrated_redirection_aggregate/onhit_gemini_one_attack.tres" id="3_one_attack"]
+
+; "This counts as one attack" for the Knot's one-time roll buffs (task 11c). Hidden plumbing, keyed by
+; the script to attacks Gemini recorded.
+[resource]
+script = ExtResource("1_buff")
+effects = Array[ExtResource("2_onhit")]([ExtResource("3_one_attack")])
+to = &"onhit_effect"
+hide_from_player = true
