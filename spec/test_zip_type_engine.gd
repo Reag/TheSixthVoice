@@ -396,38 +396,85 @@ func test_a_real_system_movement_action_teleports_and_heats():
 ## Equipped here for the seam only - the Leoleth is not a Napoleon, but nothing in
 ## action_activate_aegis.gd cares who is holding the core power.
 ##
-## PROBE, CONFIRMED (mapping's suspicion): action_activate_aegis.gd:44-50 blanket-clears every
-## "prohibited" buff DIRECTLY via UnitCondition.clear_buff - it never goes through the disengage
-## action at all. is_buff_prohibited (:55-79) returns true for the ZIP chip on its own holder: the
-## zip system is not a shield, its chip is not applied by a PassiveBuffApplicator/PassiveWeaponMod,
+## CORRECTED 2026-09-28 (review fix): the paragraph this replaced claimed the blanket clear at
+## action_activate_aegis.gd:44-50 was what dropped the chip "metatag or not", and called the
+## metatag-only restriction test "no metatag involved". Both were wrong about WHICH loop actually
+## runs. action_activate_aegis.gd:13-29 runs FIRST, not the blanket clear: it collects every gear
+## whose buff is_buff_prohibited (:55-79, true for the ZIP chip - see below) into
+## discovered_activated_gear, then for each of ITS actions carrying METATAG.deactivate, fires a REAL
+## event_gear_activate(AS_FREEBIE) (:22-28). Before this task, action_zip_disengage.tres carried no
+## such metatag, so that loop skipped it and the LATER blanket clear (:44-50) was genuinely what
+## dropped the chip, silently. Now that the metatag exists, the FIRST loop finds it and fires the
+## real disengage action - the blanket clear at :44-50 never gets a chance to run against the zip
+## chip at all, because it is already gone. is_buff_prohibited itself is unchanged by any of this:
+## the zip system is not a shield, its chip is not applied by a PassiveBuffApplicator/PassiveWeaponMod,
 ## UnitAction.is_tech(zip) is false and the zip kit is not a trait, so the "anything else" branch at
-## :77 fires. So _held() already reads false the instant the Aegis resolves, metatag or not - this
-## is PINNED, not RED, and stays true both before and after Task 15's edit.
+## :77 fires either way - which is why _held() still reads false either way, but THROUGH A DIFFERENT
+## MECHANISM now, and that mechanism has a real player-visible side effect (below).
 ##
-## What the metatag actually changes is the RESTRICTION buff the same action applies
-## (buff_trueblack_aegis_restrictions.gd, to = action_forbidden): its check_if_passive_applies
-## exempts only an action whose id contains 'deactivate' or carries Action.METATAG.deactivate
-## (:18-19) - neither of which action_zip_disengage.tres had. So today disengage is FORBIDDEN under
-## the restriction for as long as it is up, even though (per the probe above) there is usually no
-## chip left to clear. Tested here independent of chip state - via has_buff_to directly - because
-## _available() can't isolate it: ActionSystemClearBuff has no availability gate of its own, and
-## action_zip_disengage.gd's own is_available_to_activate override checks ONLY whether the chip is
-## held, which the blanket clear will have already stripped by the time a real Aegis run gets this
-## far (get_gear_unavailable_reason checks the action's own availability at :156, before
-## FORBIDDEN at :157 - so REASON.SPECIFIC always wins first once the chip is gone).
+## MEASURED (review fix, 2026-09-28): because action_zip_disengage.gd extends
+## ActionSystemClearBuff, whose activate() (action_system_clear_buff.gd:70-71) unconditionally
+## awaits CommonActionUtil.confirm_use before spend_actions/clearing, firing it via the :13-29 loop
+## raises a REAL YES/NO PROMPT to the player, on top of the Aegis' own confirm. AS_FREEBIE alone
+## does not suppress it - confirm_use_alt only skips for Action.FLAG.SKIP_PLAYER_DECISIONS
+## (common_action_util.gd:330), which the Aegis loop never passes. Measured side by side, same
+## fixture, same Aegis, isolating the Aegis' OWN one confirm as the baseline:
+##   Aegis alone (nothing engaged):                1 yesno prompt, actions -1, heat +0.
+##   Aegis + ZIP engaged (THIS TEST):               2 yesno prompts (+1), actions -1 (+0), heat +0.
+##   Aegis + siege stabilizers engaged (VANILLA):   1 yesno prompt (+0), actions -1 (+0), heat +0.
+## So the metatag does its two intended jobs - the restriction buff no longer forbids disengage
+## (test below), and the chip is cleared through a real activation rather than a silent direct clear
+## - but at the cost of ONE EXTRA PLAYER-FACING CONFIRMATION PROMPT that vanilla's own reference
+## case (ms_siege_stabilizers, whose action_siege_stabilizers_deactivate.gd ALSO carries
+## METATAG.deactivate but extends bare ActionSystem with a hand-written activate() that calls
+## spend_actions() directly and never calls confirm_use) never raises for the identical forced
+## path. THIS DOES NOT MATCH VANILLA, and per review instruction it is reported here rather than
+## silently patched (a fix would mean overriding confirm_use/activate in action_zip_disengage.gd to
+## skip confirmation under AS_FREEBIE, a behaviour change beyond this ruling's ask, and one the
+## author has not signed off on). Pinned as today's ACTUAL behaviour, extra prompt and all, so a
+## future change to either side of this seam is deliberate rather than silent.
 const AEGIS_ID := &'cp_trueblack_aegis'
 const AEGIS_ACTION_ID := &'action_activate_aegis'
 const AEGIS_RESTRICTION_BUFF := &'buff_trueblack_aegis_restrictions'
 
-func test_a_trueblack_aegis_clears_the_chip_directly_with_no_metatag_involved():
+func test_a_trueblack_aegis_fires_the_tagged_disengage_with_one_extra_confirm_prompt():
 	LeolethFixture.equip(leoleth, AEGIS_ID)
 	await LeolethFixture.open_turn(game, leoleth)
 	await LeolethFixture.engage_zip(game, leoleth)
 	assert_true(_held(), 'fixture: engaged before the Aegis fires.')
+	var watcher = add_child_autoqfree(load('res://testkit/prompt_watcher.gd').new())
+	var actions_before:int = leoleth.state.actions
+	var heat_before:int = leoleth.core.current.heat
 	await SpecFactory.use(game, leoleth, AEGIS_ID, AEGIS_ACTION_ID)
-	assert_false(_held(),
-		'PROBE, CONFIRMED: the blanket clear (action_activate_aegis.gd:44-50) drops the chip on its '
-		+ 'own, with or without a metatag on disengage.')
+	assert_false(_held(), 'The chip is still cleared either way - now through the tagged disengage action.')
+	assert_eq(watcher.kinds(&'yesno').size(), 2,
+		'KNOWN GAP (flagged for the author, not fixed here): ONE EXTRA confirm prompt beyond the '
+		+ 'Aegis\' own measured baseline of 1 - see the vanilla reference test below.')
+	assert_eq(leoleth.state.actions, actions_before - 1,
+		'No extra ACTION cost beyond the Aegis\' own (AS_FREEBIE) - this half DOES match vanilla.')
+	assert_eq(leoleth.core.current.heat, heat_before, 'And no extra heat either.')
+
+## THE REFERENCE, side by side with the test above. ms_siege_stabilizers is base-game content
+## (content/gear/ha/systems/ms_siege_stabilizers/, read-only), equipped here purely to measure the
+## seam vanilla itself already exercises - the Leoleth is not licensed for it either.
+func test_a_vanilla_deactivate_tagged_action_fires_with_no_extra_prompt_or_cost():
+	var stab:GearCore = LeolethFixture.equip(leoleth, &'ms_siege_stabilizers')
+	LeolethFixture.equip(leoleth, AEGIS_ID)
+	await LeolethFixture.open_turn(game, leoleth)
+	await SpecFactory.use(game, leoleth, &'ms_siege_stabilizers', &'action_siege_stabilizers')
+	assert_true(UnitCondition.has_buff(leoleth, &'buff_siege_stabilizers', stab.persistent_id),
+		'fixture: engaged before the Aegis fires.')
+	var watcher = add_child_autoqfree(load('res://testkit/prompt_watcher.gd').new())
+	var actions_before:int = leoleth.state.actions
+	var heat_before:int = leoleth.core.current.heat
+	await SpecFactory.use(game, leoleth, AEGIS_ID, AEGIS_ACTION_ID)
+	assert_false(UnitCondition.has_buff(leoleth, &'buff_siege_stabilizers', stab.persistent_id),
+		'Cleared, the same as ZIP.')
+	assert_eq(watcher.kinds(&'yesno').size(), 1,
+		'THE REFERENCE: vanilla\'s own deactivate-tagged action (plain ActionSystem, no confirm_use '
+		+ 'call in its activate()) raises ONLY the Aegis\' own prompt - none of its own.')
+	assert_eq(leoleth.state.actions, actions_before - 1, 'Same action cost as the Aegis alone.')
+	assert_eq(leoleth.core.current.heat, heat_before, 'No heat.')
 
 ## THE FIX, RED before action_zip_disengage.tres gains metatags = [deactivate]: the restriction buff
 ## forbids disengage while it is up, because neither of its two exemptions (id contains 'deactivate',
