@@ -14,12 +14,12 @@
 	"load_before": [],
 	"mod_meta": {
 		"date_added": 1789382017,
-		"date_updated": 1790511284,
-		"file_id": 8260669,
+		"date_updated": 1790678779,
+		"file_id": 8263903,
 		"game_version": "1.4.3",
 		"modio_id": 6383598,
 		"name_id": "dgco-reag",
-		"revision": 20,
+		"revision": 22,
 		"user_id": 61561194,
 		"username": "Mr_Reag"
 	},
@@ -36,6 +36,6 @@
 		"Systems and weapons"
 	],
 	"title": "The Sixth Voice",
-	"version_number": "1.3.1",
+	"version_number": "1.3.2",
 	"website_url": "https://belram.itch.io/the-sixth-voice"
 }
