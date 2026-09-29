@@ -181,7 +181,7 @@ func test_e_this_mods_own_mod_main_reloads_unit_printer() -> void:
 	assert_eq(extended.get(&'UnitPrinter', ''), VANILLA_SCRIPT, 'And it points at the vanilla script.')
 
 ## f. THE LIVE CHAIN. Our extension is in the script the autoload node actually runs, and vanilla
-## is its root. Identified by source (see live_chain): our banner line, and Wickworks' copyright.
+## is its root. Identified by source (see live_chain): our banner line, and the vanilla copyright stamp.
 func test_f_our_extension_is_in_the_live_autoloads_script_chain() -> void:
 	var ours:Script = load(OUR_EXTENSION)
 	assert_not_null(ours, 'fixture: our extension loads from its unpacked path.')
@@ -192,6 +192,6 @@ func test_f_our_extension_is_in_the_live_autoloads_script_chain() -> void:
 	# per-file copyright line, so baking 2026 in would turn this into a release-day red that says
 	# nothing at all about the seam.
 	var root_header:String = live_chain().back().source_code.get_slice('\n', 0)
-	assert_true(root_header.begins_with('# Copyright (c) ') and root_header.contains('Wickworks'),
+	assert_true(root_header.begins_with('# Copyright (c) ') and root_header.contains('Lancer Tactics v'),
 		'Vanilla is the root of the chain.')
 	assert_true(live_chain().size() >= 2, 'At least vanilla plus ours.')

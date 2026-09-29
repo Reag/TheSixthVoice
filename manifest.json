@@ -4,7 +4,8 @@
 		"//Bela//"
 	],
 	"compatible_game_version": [
-		"1.4.3"
+		"1.4.3",
+		"1.4.4"
 	],
 	"dependencies": [],
 	"description": "Is normal technology too understandable? Have you ever wanted to perform feats that are nigh indistinguishable from magic? Do you like using technology taken from strange sources that has been turned into pure killing power by corporate giants? If so, that's kind of weird, but The Sixth Voice has you covered!\n\nImplemented so far: the Fitzgerald (IPS-N, full three-rank license), the M/K2 (GMS, an Everest alt frame), the Subutai (HA, a Barbarossa alt frame), the Myconid (HORUS, a Gorgon alt frame), the Maiden's Blush (SSC, a Mourning Cloak alt frame), the Vauban (HA, an Iskander alt frame), the Primrose (SSC, full three-rank license), the Sluagh (HORUS, full three-rank license), the Leoleth (HA, full three-rank license), the Naga (HORUS, full three-rank license), the Purple Thorn (SSC, full three-rank license), the Hazard (IPS-N, full three-rank license), the Shackleton (IPS-N, a Nelson alt frame), the Gloire (IPS-N, a Tortuga alt frame), the Grutte Pier (IPS-N, a Drake alt frame), the Koremasa (HA, full three-rank license), the Rakshasa (HORUS, a Goblin alt frame), the Lovers Knot (SSC, a Death's Head alt frame), the Six Sky (HA, a Sunzi alt frame, which needs the HA Sunzi mod) and the Black Mountain (SSC, an Emperor alt frame, which needs the SSC Emperor mod). If the Six Sky or the Black Mountain does not appear, set The Sixth Voice's Load priority above HA Sunzi's or SSC Emperor's in Mod Manage.",

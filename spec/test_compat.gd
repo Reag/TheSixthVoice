@@ -980,7 +980,7 @@ func test_both_extensions_are_in_one_chain_and_vanilla_is_its_root() -> void:
 	# THE YEAR IS DELIBERATELY NOT MATCHED: every modkit release re-stamps the per-file copyright line,
 	# so baking 2026 in would turn this into a release-day red that says nothing about the seam.
 	var root_header:String = live_printer_chain().back().source_code.get_slice('\n', 0)
-	assert_true(root_header.begins_with('# Copyright (c) ') and root_header.contains('Wickworks'),
+	assert_true(root_header.begins_with('# Copyright (c) ') and root_header.contains('Lancer Tactics v'),
 		'...and vanilla is its root, so every super() call still lands (%d scripts deep).' % live_printer_chain().size())
 
 # ------------------------------------------------- and a co-extender of the SAME FUNCTION
