@@ -21,9 +21,12 @@
 ##    (unit_relation.gd:364-365), and "allied character" excludes you on every card of this frame
 ##    (ruling 3, the author's call). The Black Mountain's own hits never open this.
 ##  - the attacker holds OVERSHIELD THE BLACK MOUNTAIN GRANTED: Overshield.is_granted_by(attacker, unit),
-##    the shared helper's "granted by" mark (ruling 5) - hung by grant_by / increase_by, alive while any
-##    Overshield remains, ended by the damage that zeroes it. Vanilla grants and other mods' grants
-##    carry no mark and never qualify; SP2's Exalt and Fell the Mighty are the Black Mountain's granters.
+##    the shared helper's "granted by" mark (ruling 5) - alive while any Overshield remains, ended by
+##    the damage that zeroes it. Hung by grant_by / increase_by AND, since the 2026-09-29 playtest
+##    finding (the Micro-Maintenance Suite never qualified), by res/content/events/
+##    event_unit_overshield.gd_ext.gd on EVERY grant made inside a gear activation: a vanilla Aceso
+##    Stabilizer or another mod's system the Black Mountain uses is Overshield it granted, as the card
+##    reads. spec/test_overshield_granted_by_any_source.gd pins it.
 ##  - the DEFENDER is a hostile CHARACTER (is_character() - a drone included, ruling 2026-09-27) within
 ##    the Black Mountain's live Sensors AND line of sight (ruling 4: on THIS card the clause modifies the hostile).
 ##  - "you MAY take 1 heat": CommonActionUtil.confirm_use for the Black Mountain's controller (an AI
