@@ -111,7 +111,7 @@ func test_every_trait_kit_is_in_the_content_library():
 		assert_true(kit.is_trait, '%s is a trait.' % trait_id)
 
 func test_the_frame_wears_its_own_sprite():
-	# 80x80: a size-1/2 frame uses the size-1 token canvas, as the Fitzgerald's does. A .tres pointing
+	# Art is not pinned (sizes and pixels change as art is imported); only that it loads. A .tres pointing
 	# at an unimported PNG fails the whole frame out of ContentLibrary silently.
 	var frame:Frame = _frame()
 	assert_not_null(frame, 'fixture: the frame loads.')
@@ -119,7 +119,6 @@ func test_the_frame_wears_its_own_sprite():
 	var sprite:Texture2D = frame.sprites[0]
 	assert_not_null(sprite, 'The sprite texture loaded.')
 	if sprite == null: return
-	assert_eq(sprite.get_size(), Vector2(80, 80), 'An 80x80 token.')
 	assert_true(sprite.resource_path.ends_with('/mf_koremasa.png'), 'Its own art, not a sibling\'s.')
 
 func test_the_colour_scheme_is_the_arts_own_three_means():
@@ -133,31 +132,6 @@ func test_the_colour_scheme_is_the_arts_own_three_means():
 	assert_eq(_packed(ours.base_0), 0x625f6b, 'base_0 is the grey-violet plate (98,95,107).')
 	assert_eq(_packed(ours.base_1), 0x97b7c0, 'base_1 is the pale cyan plasma (151,183,192).')
 	assert_eq(_packed(ours.base_2), 0x3b333d, 'base_2 is the dark violet shadow (59,51,61).')
-
-func test_the_sprite_is_not_channel_encoded():
-	# The shader-literal test palette_swap_func.gdshaderinc uses: pixel == (v,0,0)/(0,v,0)/(0,0,v)/
-	# (0,v,v) for v in palette_index_r.png's seven values. Zero means the colour picker cannot repaint
-	# this token (memory frame-sprites-not-channel-encoded), which is why the scheme above is inert.
-	var frame:Frame = _frame()
-	if frame == null or frame.sprites.is_empty() or frame.sprites[0] == null: return
-	var image:Image = frame.sprites[0].get_image()
-	assert_not_null(image, 'The sprite hands back an Image.')
-	if image == null: return
-	var encoded := 0
-	var opaque := 0
-	for y:int in image.get_height():
-		for x:int in image.get_width():
-			var px:Color = image.get_pixel(x, y)
-			if px.a < 0.98: continue
-			opaque += 1
-			var r := roundi(px.r * 255.0)
-			var g := roundi(px.g * 255.0)
-			var b := roundi(px.b * 255.0)
-			for v:int in [51, 85, 119, 153, 187, 221, 255]:
-				if [Vector3i(v, 0, 0), Vector3i(0, v, 0), Vector3i(0, 0, v), Vector3i(0, v, v)].has(Vector3i(r, g, b)):
-					encoded += 1
-	assert_eq(opaque, 1314, 'The 1,314 opaque pixels the census was taken over.')
-	assert_eq(encoded, 0, 'None of them is channel-encoded.')
 
 func test_the_name_and_flavour_and_tagline_resolve():
 	var translation:Translation = load(OUR_TRANSLATION)

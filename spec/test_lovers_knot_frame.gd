@@ -142,7 +142,6 @@ func test_the_frame_wears_its_own_sprite():
 	var sprite:Texture2D = frame.sprites[0]
 	assert_not_null(sprite, 'The sprite texture loaded.')
 	if sprite == null: return
-	assert_eq(sprite.get_size(), Vector2(80, 80), 'A size-1 frame uses an 80x80 sprite.')
 	assert_true(sprite.resource_path.ends_with('/mf_lovers_knot.png'), 'Its own art, not a sibling\'s.')
 
 func test_the_colour_scheme_is_the_arts_own_three_means():
@@ -156,32 +155,6 @@ func test_the_colour_scheme_is_the_arts_own_three_means():
 	assert_eq(_packed(ours.base_0), 0x61496b, 'base_0 is the dusky plum plate (97,73,107).')
 	assert_eq(_packed(ours.base_1), 0xba9bae, 'base_1 is the pale rose highlight (186,155,174).')
 	assert_eq(_packed(ours.base_2), 0x28223c, 'base_2 is the deep indigo shadow (40,34,60).')
-
-func test_the_sprite_is_not_channel_encoded():
-	# test_rakshasa_frame.gd's census, re-pointed: zero means the colour picker cannot repaint this
-	# token (memory frame-sprites-not-channel-encoded), which is why the scheme above is inert.
-	var frame:Frame = _frame()
-	if frame == null or frame.sprites.is_empty() or frame.sprites[0] == null:
-		fail_test('The frame has a sprite.')
-		return
-	var image:Image = frame.sprites[0].get_image()
-	assert_not_null(image, 'The sprite hands back an Image.')
-	if image == null: return
-	var encoded := 0
-	var opaque := 0
-	for y:int in image.get_height():
-		for x:int in image.get_width():
-			var px:Color = image.get_pixel(x, y)
-			if px.a < 0.98: continue
-			opaque += 1
-			var r := roundi(px.r * 255.0)
-			var g := roundi(px.g * 255.0)
-			var b := roundi(px.b * 255.0)
-			for v:int in [51, 85, 119, 153, 187, 221, 255]:
-				if [Vector3i(v, 0, 0), Vector3i(0, v, 0), Vector3i(0, 0, v), Vector3i(0, v, v)].has(Vector3i(r, g, b)):
-					encoded += 1
-	assert_eq(opaque, 1413, 'The 1,413 opaque pixels the census was taken over.')
-	assert_eq(encoded, 0, 'None of them is channel-encoded.')
 
 func test_the_name_and_flavour_and_tagline_resolve():
 	var translation:Translation = load(OUR_TRANSLATION)

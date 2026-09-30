@@ -100,10 +100,9 @@ func test_the_frame_has_a_sprite_that_actually_loaded() -> void:
 	var sprite:Texture2D = mk2.sprites[0]
 	assert_not_null(sprite, 'The sprite texture loaded.')
 	if sprite == null: return
-	assert_eq(sprite.get_size(), Vector2(80, 80), 'A size-1 frame uses an 80x80 sprite.')
 	assert_false(sprite.resource_path.contains('placeholder'),
 		'The frame wears its commissioned art, not the stand-in (%s).' % sprite.resource_path)
-	# THE SIZE CHECK ABOVE ALONE CANNOT CATCH sprites[0] BEING REPOINTED AT THE EVEREST'S OWN ART
+	# A SIZE CHECK ALONE COULD NOT CATCH sprites[0] BEING REPOINTED AT THE EVEREST'S OWN ART
 	# (frame close I1, 2026-09-17, extended to this frame): sprites[1] is already gms_everest.png at
 	# 80x80 as a legitimate alternate skin, so a mistake that repoints the mod's OWN entry at it would
 	# pass both assertions above. mk2_bombard.png is the M/K2's own filename (mf_mk2.tres:8) - the

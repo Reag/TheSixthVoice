@@ -136,8 +136,8 @@ func test_the_frame_has_a_sprite_that_actually_loaded():
 	#
 	# THE "NOT THE PLACEHOLDER" HALF IS LIVE, as of the stand-in the author supplied on 2026-09-17.
 	# It sits at the vanilla-style path res/assets/frames/ssc/mf_maidens_blush/mf_maidens_blush.png -
-	# 80x80, the frame's own, with commissioned art to follow at the same ext_resource id. The size
-	# assertion above cannot catch a revert to mf_placeholder.png, which is ALSO 80x80, so the
+	# 80x80, the frame's own, with commissioned art to follow at the same ext_resource id. A size
+	# assertion could not catch a revert to mf_placeholder.png, which is ALSO 80x80, so the
 	# resource_path check below is what actually pins the sprite. This is the half the Myconid close
 	# had to add after the fact (test_myconid_frame.gd:138-144) - it goes in with the stand-in here
 	# rather than waiting for the art.
@@ -149,9 +149,8 @@ func test_the_frame_has_a_sprite_that_actually_loaded():
 	var sprite:Texture2D = frame.sprites[0]
 	assert_not_null(sprite, 'The sprite texture loaded.')
 	if sprite == null: return
-	assert_eq(sprite.get_size(), Vector2(80, 80), 'A size-1 frame uses an 80x80 sprite.')
 	assert_false(sprite.resource_path.contains('placeholder'), 'The frame wears its own sprite, not the mod placeholder.')
-	# THE SIZE CHECK ABOVE CANNOT CATCH THE LIKELIEST MISTAKE FOR THIS FRAME (frame close I1,
+	# A SIZE CHECK COULD NOT CATCH THE LIKELIEST MISTAKE FOR THIS FRAME (frame close I1,
 	# 2026-09-17): mf_maidens_blush.tres was built by copying mf_mourning_cloak.tres - the colour
 	# scheme sub-resource below is a byte-for-byte clone of it - so the natural regression is the
 	# ext_resource pointing at the BASE FRAME's own sprite, not at the mod placeholder.

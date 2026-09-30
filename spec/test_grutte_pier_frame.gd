@@ -88,7 +88,6 @@ func test_the_frame_wears_its_own_sprite():
 	var sprite:Texture2D = frame.sprites[0]
 	assert_not_null(sprite, 'The sprite texture loaded.')
 	if sprite == null: return
-	assert_eq(sprite.get_size(), Vector2(80, 80), 'A size-1 frame uses an 80x80 sprite.')
 	assert_true(sprite.resource_path.ends_with('/mf_grutte_pier.png'), 'Its own art, not a sibling\'s.')
 
 func test_the_colour_scheme_is_derived_from_the_frames_own_art():

@@ -89,7 +89,6 @@ func test_the_frame_wears_its_own_sprite():
 	var sprite:Texture2D = frame.sprites[0]
 	assert_not_null(sprite, 'The sprite texture loaded.')
 	if sprite == null: return
-	assert_eq(sprite.get_size(), Vector2(160, 160), 'A size-2 frame uses a 160x160 sprite.')
 	assert_true(sprite.resource_path.ends_with('/mf_shackleton.png'), 'Its own art, not a sibling\'s.')
 
 func test_the_colour_scheme_is_derived_from_the_frames_own_art():

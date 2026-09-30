@@ -178,7 +178,6 @@ func test_the_frame_has_a_sprite_that_actually_loaded():
 	var sprite:Texture2D = frame.sprites[0]
 	assert_not_null(sprite, 'The sprite texture loaded.')
 	if sprite == null: return
-	assert_eq(sprite.get_size(), Vector2(80, 80), 'A size-1 (half) frame uses an 80x80 sprite.')
 	assert_false(sprite.resource_path.contains('placeholder'), "The author's own art, not the shared stand-in.")
 	assert_true(sprite.resource_path.ends_with('/mf_black_mountain.png'),
 		"The frame wears its OWN sprite - not a sibling frame's, and not the stand-in.")

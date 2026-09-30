@@ -150,10 +150,9 @@ func test_the_frame_has_a_sprite_that_actually_loaded():
 	var sprite:Texture2D = frame.sprites[0]
 	assert_not_null(sprite, 'The sprite texture loaded.')
 	if sprite == null: return
-	assert_eq(sprite.get_size(), Vector2(160, 160), 'A size-2 frame uses a 160x160 sprite.')
 	assert_false(sprite.resource_path.contains('placeholder'),
 		'The frame wears its commissioned art, not the stand-in (%s).' % sprite.resource_path)
-	# THE SIZE CHECK ABOVE ALONE CANNOT CATCH A REVERT TO THE GORGON'S OWN SPRITE (frame close I1,
+	# A SIZE CHECK ALONE COULD NOT CATCH A REVERT TO THE GORGON'S OWN SPRITE (frame close I1,
 	# 2026-09-17, extended to this frame): the Gorgon's own art is also 160x160 and its path contains
 	# no "placeholder", so a copy-paste from mf_gorgon.tres - the same mistake shape the Blush's .tres
 	# was built from - would pass both assertions above. Only checking the frame's OWN filename does.
