@@ -38,6 +38,11 @@ func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 	if core.is_unit_owner(context.target_unit): return false
 	if not super.check_if_passive_applies(core, context): return false
 	if not HolePuncher.applies_to_weapon(context): return false
+	# A weapon that already ignores cover (the Carronade, anything Seeking) has nothing left for this
+	# buff to erase - and the buff would still sit in PreAttack.applied_buffs with no accuracy mod of
+	# its own, which switches off House Guard 3 (talents mod) for whoever is being shot at. Same early
+	# return as buff_hole_puncher_soft_cover.gd. Pinned by test_rapier_carronade.gd.
+	if context.action.ignores_cover(context): return false
 	# context.unit, not the resolved attacker: if a relay is in play it is the relay's sight that
 	# the shot is taken along, which is the unit the engine hands us here.
 	return not UnitRelation.can_see(context.unit, context.target_unit)

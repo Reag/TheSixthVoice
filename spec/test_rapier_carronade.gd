@@ -425,6 +425,39 @@ func test_on_the_fitzgerald_it_blindfires_and_still_takes_no_penalty() -> void:
 	assert_eq(trait_mods(preattack(bizarre, unseen)), [-1],
 		'control: the trait IS live here - the Bizarre Cannon takes its -1 against the same target.')
 
+## The trait's OTHER half has to step aside too, and for a reason this mod's own play never shows.
+## buff_hole_puncher_ignore_cover is collected into PreAttack.applied_buffs whenever it applies
+## (attack_roll.gd:131-132) and adds no accuracy mod of its own. House Guard 3 (the resident talents
+## mod's Shield of the Legion) refuses to fire unless every non-cover accuracy mod on the roll is
+## matched one-for-one by an applied buff - so a stray IGNORE_COVER buff on an ENEMY Fitzgerald's blind
+## Carronade shot switches House Guard 3 off for the ally being shot at, with nothing changed in play
+## (the Carronade ignores cover already). Audit 2026-10-02, reports/2026-10-02-house-guard-3-audit.md.
+func test_a_blind_carronade_shot_carries_no_ignore_cover_buff() -> void:
+	var specific := _specific()
+	if specific == null: return
+	var unseen := make_unseen_target()
+	assert_false(UnitRelation.can_see(unit, unseen), 'fixture: the target is behind the wall, unseen.')
+
+	var pre := preattack(specific, unseen)
+	assert_eq(ignore_cover_ids(pre), [],
+		'No Hole Puncher IGNORE_COVER buff rides a weapon that already ignores cover.')
+	assert_eq(pre.accuracy_mods.size(), pre.applied_buffs.size(),
+		'So every accuracy mod is matched by an applied buff - the count House Guard 3 reads.')
+
+	# The control: the Bizarre Cannon, same unit, same target, same instant, DOES carry it - so the
+	# assertion above is not passing because the buff was never applied.
+	var cannon_gear := unit.get_gear(&'mw_bizarre_cannon')
+	if not GearCore.is_valid(cannon_gear): return
+	var bizarre := SpecificAction.create(unit, cannon_gear,
+		cannon_gear.get_action(&'action_bizarre_cannon'))
+	assert_eq(ignore_cover_ids(preattack(bizarre, unseen)), [&'buff_hole_puncher_ignore_cover'],
+		'control: the Bizarre Cannon\'s blind shot carries it.')
+
+func ignore_cover_ids(pre:AttackRoll.PreAttack) -> Array:
+	return pre.applied_buffs.filter(
+		func(core:BuffCore) -> bool: return core.base.to == Buff.TO.IGNORE_COVER
+	).map(func(core:BuffCore) -> StringName: return core.base.compcon_id)
+
 # ---------------------------------------------------------------- firing it
 
 func test_firing_heats_the_fitzgerald_by_two() -> void:

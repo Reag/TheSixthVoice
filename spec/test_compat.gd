@@ -1900,3 +1900,90 @@ func test_a_doomed_hit_by_an_emperor_ally_lands_exactly_plus_one() -> void:
 	assert_eq(Overshield.current(emperor), 2, 'fixture: the Emperor holds 2.')
 	await BlackMountainFixture.damage(bm_game, hostile, 3, emperor)
 	assert_eq(Overshield.current(emperor), 3, 'THE RULING: +1 on an Emperor too, not the Vestment\'s double count.')
+
+
+# ===================== HOUSE GUARD 3 - OUR SOFT COVER YIELDS =====================
+#
+# The resident talents mod's House Guard rank 3 (Shield of the Legion) fires on a miss only when the
+# COVER buffs on defender and attacker number exactly as many as PreAttack.cover_sources. Every COVER
+# buff keys to the same target_pos (cover_calculator.gd:57-62), so TWO cover buffs on one ally count
+# 2 against 1 and the trigger dies - even when both belong to the House Guard pilot. And rank 2
+# (Greater Guardian) always hangs one on every ally within range 2. So our ally-facing soft cover - the
+# Mark of the Dead, the Nightfare Nexus chip, the Grutte Pier's Bulwark - yields to any cover buff at
+# least as strong already on the unit, and among themselves keeps exactly one. Cover is max-then-
+# collapse, so nothing changes in play. Ruled 2026-10-02 (option A), reports/2026-10-02-house-guard-3-audit.md.
+
+const GREATER_GUARDIAN_COVER := &'buff_greater_guardian_soft_cover'
+const VANILLA_SOFT_COVER := &'buff_hive_frenzy_cover_aura'
+const NIGHTFARE_CHIP := &'buff_nightfare_soft_cover'
+const PIER_BULWARK_CHIP := &'buff_bulwark_cover'
+const OUR_SOFT_COVERS:Array[StringName] = [MARK_COVER_CHIP, NIGHTFARE_CHIP, PIER_BULWARK_CHIP]
+
+## The COVER buffs the engine (and House Guard 3) would read for this shot, by id, sorted.
+func cover_buff_ids(defender:Unit, attacker:Unit) -> Array:
+	var context := Context.create({target_unit = defender, unit = attacker})
+	var ids:Array = (
+		UnitCondition.get_buffs_to(defender, Buff.TO.COVER, context) +
+		UnitCondition.get_buffs_to(attacker, Buff.TO.COVER, context)
+	).map(func(core:BuffCore) -> StringName: return core.base.compcon_id)
+	ids.sort()
+	return ids
+
+## House Guard 3's own test (action_shield_of_the_legion_miss.gd: len(cover_buffs) != len(cover_sources)).
+func assert_house_guard_cover_count_holds(defender:Unit, attacker:Unit, why:String) -> void:
+	assert_eq(cover_buff_ids(defender, attacker).size(),
+		CoverCalculator.determine_cover(defender, attacker).sources.size(), why)
+
+func test_the_marks_soft_cover_yields_to_greater_guardian() -> void:
+	if skipped_without_talents(): return
+	var sluagh_game:Gamemaster = SluaghFixture.create_game(self)
+	var sluagh:Unit = SluaghFixture.create_sluagh(sluagh_game, SLUAGH_TILE)
+	var near_ally:Unit = SluaghFixture.create_ally(sluagh_game, SLUAGH_ADJACENT)
+	var shooter:Unit = SluaghFixture.create_hostile(sluagh_game, SLUAGH_SHOOTER)
+
+	await SluaghFixture.press_mark(sluagh_game, sluagh)
+	assert_eq(cover_buff_ids(near_ally, shooter), [MARK_COVER_CHIP],
+		'control: alone, the Mark\'s chip is the cover.')
+
+	SpecFactory.apply_buff(near_ally, GREATER_GUARDIAN_COVER)
+	assert_true(UnitCondition.has_buff(near_ally, MARK_COVER_CHIP),
+		'fixture: the Mark\'s chip is still HELD - it yields at read time, it is not removed.')
+	assert_eq(cover_buff_ids(near_ally, shooter), [GREATER_GUARDIAN_COVER],
+		'THE RULING: with Greater Guardian present, only its cover is read.')
+	assert_eq(CoverCalculator.determine_cover(near_ally, shooter).total, Lancer.COVER.SOFT,
+		'Nothing changes in play: the ally is still in soft cover.')
+	assert_house_guard_cover_count_holds(near_ally, shooter,
+		'And House Guard 3\'s count holds: one cover buff, one cover source.')
+
+	UnitCondition.clear_buff_id(SpecFactory.dummy_event(), near_ally, GREATER_GUARDIAN_COVER)
+	assert_eq(cover_buff_ids(near_ally, shooter), [MARK_COVER_CHIP],
+		'And the Mark\'s chip comes back the moment Greater Guardian\'s goes - no removal order to get wrong.')
+
+func test_each_of_our_soft_covers_yields_to_a_vanilla_soft_cover() -> void:
+	var sluagh_game:Gamemaster = SluaghFixture.create_game(self)
+	var shooter:Unit = SluaghFixture.create_hostile(sluagh_game, SLUAGH_SHOOTER)
+	var column := 0
+	for chip:StringName in OUR_SOFT_COVERS:
+		var ally_unit:Unit = SluaghFixture.create_ally(sluagh_game, Vector2i(2 + column, 2))
+		column += 2
+		SpecFactory.apply_buff(ally_unit, chip)
+		assert_eq(cover_buff_ids(ally_unit, shooter), [chip], 'control: alone, %s shelters.' % chip)
+		SpecFactory.apply_buff(ally_unit, VANILLA_SOFT_COVER)
+		assert_eq(cover_buff_ids(ally_unit, shooter), [VANILLA_SOFT_COVER],
+			'%s yields to a vanilla soft cover already on the unit.' % chip)
+		assert_eq(CoverCalculator.determine_cover(ally_unit, shooter).total, Lancer.COVER.SOFT,
+			'%s: the unit is still in soft cover.' % chip)
+		assert_house_guard_cover_count_holds(ally_unit, shooter, '%s: one cover buff, one source.' % chip)
+
+func test_our_soft_covers_stacked_together_leave_exactly_one() -> void:
+	var sluagh_game:Gamemaster = SluaghFixture.create_game(self)
+	var shooter:Unit = SluaghFixture.create_hostile(sluagh_game, SLUAGH_SHOOTER)
+	var ally_unit:Unit = SluaghFixture.create_ally(sluagh_game, SLUAGH_ADJACENT)
+	for chip:StringName in OUR_SOFT_COVERS: SpecFactory.apply_buff(ally_unit, chip)
+	for chip:StringName in OUR_SOFT_COVERS:
+		assert_true(UnitCondition.has_buff(ally_unit, chip), 'fixture: %s is held.' % chip)
+	assert_eq(cover_buff_ids(ally_unit, shooter).size(), 1,
+		'Three of ours on one unit read as exactly one - never none (they must not all yield to each other).')
+	assert_eq(CoverCalculator.determine_cover(ally_unit, shooter).total, Lancer.COVER.SOFT,
+		'And the unit is in soft cover.')
+	assert_house_guard_cover_count_holds(ally_unit, shooter, 'One cover buff, one source.')

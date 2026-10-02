@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="BuffCover" format=3]
+[gd_resource type="Resource" format=3]
 
-[ext_resource type="Script" uid="uid://d0l6p3u6jopti" path="res://engine/character/buff/archtypes/buff_cover.gd" id="1_cover"]
+[ext_resource type="Script" path="res://unpacked/Reag-TheSixthVoice/res/content/gear/shared/cover/buff_cover_yielding.gd" id="1_cover"]
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/icons/mt_bulwark.svg" id="2_icon"]
 
 ; BULWARK's cover (design ruling 5): SOFT (Lancer.COVER 1) against incoming attacks, on each allied
@@ -10,6 +10,9 @@
 ; sheltered ally is the trait's on-map sign; it wears the Kit's glyph family (SP3).
 [resource]
 script = ExtResource("1_cover")
+; YIELDING BuffCover (2026-10-02): stands down while the holder already has cover at least as good
+; from another COVER buff, so House Guard 3 (talents mod) still counts one cover buff per source.
+; No change in play - see buff_cover_yielding.gd.
 cover = 1
 to = &"cover"
 icon = ExtResource("2_icon")
