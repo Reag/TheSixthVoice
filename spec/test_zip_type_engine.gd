@@ -368,6 +368,48 @@ func test_a_flying_zip_move_charges_once_not_for_takeoff_and_landing():
 	assert_false(leoleth.has_status(Lancer.STATUS.FLYING), 'fixture: and landed at the end of the move.')
 	assert_eq(leoleth.core.current.heat, heat + 1, 'One move, one Heat - take-off and landing add nothing.')
 
+## TAKE-OFF AND LANDING AS ACTIONS (2026-10-07 survey). Vanilla's Takeoff (granted by the GMS Type-I
+## Flight System, which a Leoleth can take) and Land (every player mech's basic loadout) move no one:
+## they flip FLYING on their OWN activation event, after dressing that event with
+## MovementType.create(unit) to impersonate a move (action_takeoff.gd:50-52, action_land.gd:39-41).
+## That type merges the chip's tag, and the flip queues an entire_movement POST on that event - so
+## before the fix each press cost 1 Heat. Heat is read straight after the press: the Type-I's own
+## Size+1 Heat lands at END of turn, so it cannot leak into these numbers.
+const FLIGHT_KIT := &'ms_type_i_flight_system'
+const TAKEOFF := &'action_takeoff'
+const LAND_KIT := &'ms_land'
+const LAND := &'action_land'
+
+func _take_off() -> void:
+	LeolethFixture.equip(leoleth, FLIGHT_KIT)
+	await LeolethFixture.engage_zip(game, leoleth)
+	await SpecFactory.use(game, leoleth, FLIGHT_KIT, TAKEOFF)
+
+func test_taking_off_costs_no_zip_heat():
+	LeolethFixture.equip(leoleth, FLIGHT_KIT)
+	await LeolethFixture.engage_zip(game, leoleth)
+	var heat := leoleth.core.current.heat
+	await SpecFactory.use(game, leoleth, FLIGHT_KIT, TAKEOFF)
+	assert_true(leoleth.has_status(Lancer.STATUS.FLYING), 'fixture: the Takeoff took.')
+	assert_eq(leoleth.core.current.heat, heat, 'Taking off is not a move - no ZIP Heat.')
+
+func test_landing_costs_no_zip_heat():
+	await _take_off()
+	assert_true(leoleth.has_status(Lancer.STATUS.FLYING), 'fixture: airborne before landing.')
+	var heat := leoleth.core.current.heat
+	await SpecFactory.use(game, leoleth, LAND_KIT, LAND)
+	assert_false(leoleth.has_status(Lancer.STATUS.FLYING), 'fixture: the Land took.')
+	assert_eq(leoleth.core.current.heat, heat, 'Landing is not a move - no ZIP Heat.')
+
+## CONTROL for the fix: a ZIP move made while ALREADY flying flips nothing, and must still pay its 1.
+func test_a_zip_move_while_already_flying_still_costs_one_heat():
+	await _take_off()
+	var heat := leoleth.core.current.heat
+	await SpecFactory.move(game, leoleth, TWO_EAST, _system_type(leoleth))
+	assert_eq(leoleth.tile(), TWO_EAST, 'It moved.')
+	assert_true(leoleth.has_status(Lancer.STATUS.FLYING), 'fixture: and is still airborne - no flip.')
+	assert_eq(leoleth.core.current.heat, heat + 1, 'The ZIP move itself still costs its 1 Heat.')
+
 # ---------------------------------------------------------------- the real archetype, end to end
 
 ## A knockoff ActionSystemMovement on a runtime Kit, driven through the stock responder's
