@@ -10,7 +10,7 @@
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
 [ext_resource type="Texture2D" uid="uid://nbr4jr4otvca" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/horus/mf_myconid/mf_myconid.png" id="9_1hrnj"]
 [ext_resource type="Resource" uid="uid://cnx62bb0ihjrr" path="res://content/frames/shared/mt_guardian/mt_guardian.tres" id="9_guardian"]
-[ext_resource type="Resource" uid="uid://g81ib4g5em2f" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mt_symbiosis/mt_symbiosis.tres" id="11_symbiosis"]
+[ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mt_symbiosis/mt_symbiosis.tres" id="11_symbiosis"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/mt_halo/mt_halo.tres" id="12_halo"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/cp_quietus_machines.tres" id="13_core"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/horus/mf_myconid/cp_quietus_machines/mw_psychopomp_fold_pike.tres" id="14_pike"]
