@@ -352,6 +352,22 @@ func test_the_heat_is_the_holders_alone():
 	assert_eq(other.core.current.heat, other_heat + 1, 'The other holder paid.')
 	assert_eq(leoleth.core.current.heat, heat, 'The Leoleth did not.')
 
+## TAKE-OFF AND LANDING ARE NOT MOVES (fix 2026-10-07). entire_movement POST does NOT fire once per
+## event_unit_move: UnitCondition queues an EXTRA one on whatever event flips FLYING, on apply
+## (unit_condition.gd:175-177) and on clear (:226-228) - "if we landed or whatever, it also counts as
+## having moved". A flying move by a grounded unit gets FLYING applied at event_unit_move.gd:96-98 and
+## cleared at :120, so its ONE event fires THREE POSTs, and the chip charged 3 Heat.
+func test_a_flying_zip_move_charges_once_not_for_takeoff_and_landing():
+	await LeolethFixture.engage_zip(game, leoleth)
+	var type := _system_type(leoleth)
+	type.flying = true
+	assert_false(leoleth.has_status(Lancer.STATUS.FLYING), 'fixture: it starts grounded, so the move takes off.')
+	var heat := leoleth.core.current.heat
+	await SpecFactory.move(game, leoleth, TWO_EAST, type)
+	assert_eq(leoleth.tile(), TWO_EAST, 'It moved.')
+	assert_false(leoleth.has_status(Lancer.STATUS.FLYING), 'fixture: and landed at the end of the move.')
+	assert_eq(leoleth.core.current.heat, heat + 1, 'One move, one Heat - take-off and landing add nothing.')
+
 # ---------------------------------------------------------------- the real archetype, end to end
 
 ## A knockoff ActionSystemMovement on a runtime Kit, driven through the stock responder's
@@ -388,6 +404,30 @@ func test_a_real_system_movement_action_teleports_and_heats():
 	SpecFactory.current_responder.chosen_move_tile = Tile.INVALID
 	assert_eq(leoleth.tile(), TWO_EAST, 'The dash landed where the responder chose.')
 	assert_eq(leoleth.core.current.heat, heat + 1, 'THE SEAM END TO END: one heat for the tagged teleport.')
+
+## The case that found it (2026-10-07): a Rapid Burst Jump Jet boost, measured at 3 Heat. RBJJ applies
+## FLYING itself, on its OWN activation event, after overwriting that event's context.resource with the
+## tagged movement type to impersonate a move (action_rapid_burst_jump_jet_system.gd) - so the
+## take-off POST lands on a NON-move event that still reads as a ZIP teleport. The landing POST and the
+## move's own POST both land on the move event.
+##
+## 1 IS NOT THE CARD'S NUMBER. RBJJ is a Boost ("Your mech can Boost to fly") and the card exempts a
+## Boost, so by the card it should cost 0 and not teleport at all - but the chip cannot see which action
+## built the move (its buff context carries only the unit and flags), and the author kept that out of
+## scope on 2026-10-07. If the Boost exemption is ever fixed, this assertion becomes heat + 0.
+const RBJJ_KIT := &'ms_rapid_burst_jump_jet_system'
+const RBJJ_ACTION := &'action_rapid_burst_jump_jet_system'
+
+func test_a_jump_jet_boost_charges_once_not_for_takeoff_and_landing():
+	LeolethFixture.equip(leoleth, RBJJ_KIT)
+	await LeolethFixture.engage_zip(game, leoleth)
+	var heat := leoleth.core.current.heat
+	SpecFactory.current_responder.chosen_move_tile = TWO_EAST
+	await SpecFactory.use(game, leoleth, RBJJ_KIT, RBJJ_ACTION)
+	SpecFactory.current_responder.chosen_move_tile = Tile.INVALID
+	assert_eq(leoleth.tile(), TWO_EAST, 'The jump landed where the responder chose.')
+	assert_false(leoleth.has_status(Lancer.STATUS.FLYING), 'fixture: and came down again.')
+	assert_eq(leoleth.core.current.heat, heat + 1, 'One jump, one Heat - take-off and landing add nothing.')
 
 # ---------------------------------------------------------------- compat: the Trueblack Aegis (Pass F Task 15)
 

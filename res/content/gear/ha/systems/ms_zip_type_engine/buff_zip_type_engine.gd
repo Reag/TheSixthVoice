@@ -42,11 +42,21 @@
 # (movement_type.gd:101-102) - long before any step is taken. The engage/disengage pair is vanilla's
 # Retractable Profile shape.
 #
-# THE HEAT IS PER MOVEMENT EVENT. entire_movement fires once per event_unit_move
-# (event_unit_move.gd:121), and the event's context.resource is the merged MovementType, so the
-# tag says "this was a ZIP teleport" with no state to keep. Self-inflicted, HEAT category, the
-# card's number. The mover must be the holder: the bus offers every chip on the map every move
-# (reaction_bus.gd:61-67).
+# THE HEAT IS PER MOVEMENT EVENT. The event's context.resource is the merged MovementType, so the
+# tag says "this was a ZIP teleport". Self-inflicted, HEAT category, the card's number. The mover
+# must be the holder: the bus offers every chip on the map every move (reaction_bus.gd:61-67).
+#
+# "entire_movement FIRES ONCE PER event_unit_move" WAS STATED HERE AND IS FALSE - CORRECTED
+# 2026-10-07. It fires at event_unit_move.gd:121, and AGAIN on whatever event flips FLYING:
+# UnitCondition queues an extra POST on apply (unit_condition.gd:175-177) and on clear (:226-228),
+# "if we landed or whatever, it also counts as having moved". A ZIP-engaged Rapid Burst Jump Jet
+# boost paid 3 Heat: take-off on RBJJ's own activation event (which it dresses up with the tagged
+# movement type to impersonate a move), plus the move's own POST and the landing, both on the move
+# event. A flying move by a grounded unit takes off and lands inside event_unit_move (:96-98, :120)
+# and paid 3 as well. FIX: only an event_unit_move pays, and it pays once - activate stamps the move
+# event with CHARGED_META. The stamp goes on in activate, not triggers_on_event, because the bus still
+# runs check_if_prohibited AFTER triggers_on_event (reaction_bus.gd:137-138), and because two POSTs
+# can both be collected before the first one pays.
 #
 # activate DOES NOT CALL super - Buff.activate's default body clears the buff (buff.gd:254-255) and
 # this chip stays until disengaged (buff_rage_hatred.gd omits it for the same reason).
@@ -58,6 +68,7 @@ extends BuffMovementType
 
 const ZIP_TAG := &'reag_zip'
 const HEAT := 1
+const CHARGED_META := &'reag_zip_charged'
 
 func check_if_passive_applies(core:BuffCore, context:Context) -> bool:
 	if not super.check_if_passive_applies(core, context): return false
@@ -69,6 +80,9 @@ func get_required_triggering_context() -> Array[Context.PROP]:
 func triggers_on_event(_core:BuffCore, unit:Unit, triggering_event:EventCore) -> bool:
 	var context:Context = triggering_event.context
 	if context.unit != unit: return false
+	# Only the move itself pays, and only once - a take-off or landing re-fires this trigger (header).
+	if not triggering_event.base is EventUnitMove: return false
+	if triggering_event.has_meta(CHARGED_META): return false
 	if not MovementType.is_valid(context.resource): return false
 	var movement_type:MovementType = context.resource
 	# "Whenever YOU WOULD move" - a move the holder chose. Without this an involuntary move built
@@ -80,6 +94,9 @@ func triggers_on_event(_core:BuffCore, unit:Unit, triggering_event:EventCore) ->
 func activate(_core:BuffCore, activation:EventCore) -> void:
 	var unit:Unit = activation.context.unit
 	if not Unit.is_valid(unit): return
+	var move_event:EventCore = activation.context.event
+	if move_event.has_meta(CHARGED_META): return
+	move_event.set_meta(CHARGED_META, true)
 	CommonActionUtil.queue_damage_events(
 		activation, unit, [unit] as Array[Unit], HEAT, Lancer.DAMAGE_TYPE.HEAT,
 		[EventService.DAMAGE_FLAG.SELF_INFLICTED]
