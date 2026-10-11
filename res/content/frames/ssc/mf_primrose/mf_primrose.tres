@@ -8,20 +8,19 @@
 [ext_resource type="Resource" uid="uid://dj0bl2ve85q5o" path="res://content/mounts/mount_heavy.tres" id="6_mountheavy"]
 [ext_resource type="Script" uid="uid://ckrv6mvs5q65e" path="res://engine/character/gear/kit.gd" id="8_kit"]
 [ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ssc/mf_primrose/mf_primrose.png" id="9_sprite"]
+[ext_resource type="Texture2D" path="res://unpacked/Reag-TheSixthVoice/res/assets/frames/ssc/mf_primrose/mf_smilerose.png" id="13_smilerose"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_primrose/mt_magnetic_weight_redistribution/mt_magnetic_weight_redistribution.tres" id="10_mwr"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_primrose/mt_artful_caress/mt_artful_caress.tres" id="11_caress"]
 [ext_resource type="Resource" path="res://unpacked/Reag-TheSixthVoice/res/content/frames/ssc/mf_primrose/cp_mobian_rainbow/cp_mobian_rainbow.tres" id="12_core"]
 
 ; DERIVED FROM THE SPRITE ART, NOT LEFT AS THE PLACEHOLDER GRAYS (the Vauban's own SP5 ruling,
-; re-run here). Measured 2026-09-19 with the same shader-literal test palette_swap_func.gdshaderinc
-; uses (pixel == (v,0,0)/(0,v,0)/(0,0,v)/(0,v,v) for v in palette_index_r.png's seven red values):
-; mf_primrose.png (80x80, 2,696 opaque pixels) has ZERO channel-encoded pixels, so this scheme is
-; INERT on this sprite exactly like the Vauban's - it cannot repaint the token at all.
-; So base_0..2 hold the sprite's OWN most-common literal fill colors (a plain colour census,
-; excluding the pure-black linework at 178px/0,0,0): a teal-grey (97px), a pale grey (41px) and a
-; muted violet (37px), most-used first per the Iskander's own slot convention. When real
-; channel-encoded art replaces this sprite, it inherits a default that already looks like what the
-; art shows today, instead of grey.
+; re-run here). base_0..2 hold the 2026-09-19 sprite's most-common literal fill colors: a teal-grey,
+; a pale grey and a muted violet, most-used first per the Iskander's own slot convention. That
+; sprite had no channel-encoded pixels, so the scheme was inert on it.
+; THE 1.3.5 ART IS CHANNEL-ENCODED (measured 2026-10-11 with the same shader-literal test
+; palette_swap_func.gdshaderinc uses): mf_primrose.png and mf_smilerose.png use the R, G and B
+; slots, their _back views R and G. So these colours now paint the token by default, and the
+; player's colour picker repaints it.
 [sub_resource type="Resource" id="Resource_colorscheme"]
 script = ExtResource("3_colorscheme")
 base_0 = Color(0.4627451, 0.5372549, 0.56078434, 1)
@@ -50,7 +49,7 @@ activations = 1
 [resource]
 script = ExtResource("1_frame")
 default_color_scheme = SubResource("Resource_colorscheme")
-sprites = Array[Texture2D]([ExtResource("9_sprite")])
+sprites = Array[Texture2D]([ExtResource("9_sprite"), ExtResource("13_smilerose")])
 traits = Array[ExtResource("8_kit")]([ExtResource("10_mwr"), ExtResource("11_caress"), ExtResource("12_core")])
 mount_types = Array[ExtResource("4_mounttype")]([ExtResource("5_mountmain"), ExtResource("5_mountmain"), ExtResource("6_mountheavy")])
 stat = SubResource("Resource_statblock")

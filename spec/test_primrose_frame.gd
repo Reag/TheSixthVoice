@@ -129,6 +129,28 @@ func test_the_frame_has_a_sprite_that_actually_loaded():
 	assert_true(sprite.resource_path.ends_with('/mf_primrose.png'),
 		'The frame wears its OWN sprite - not a sibling frame\'s, and not the stand-in.')
 
+func test_the_smilerose_is_a_selectable_variant():
+	# 1.3.5 art: the Smilerose is a second entry in `sprites`, which holds player-selectable variants.
+	var frame:Frame = _frame()
+	assert_not_null(frame, 'fixture: the frame loads.')
+	if frame == null: return
+	assert_eq(frame.sprites.size(), 2, 'The Primrose and the Smilerose.')
+	if frame.sprites.size() < 2: return
+	assert_not_null(frame.sprites[1], 'The variant texture loaded.')
+	if frame.sprites[1] == null: return
+	assert_true(frame.sprites[1].resource_path.ends_with('/mf_smilerose.png'), 'The second variant is the Smilerose.')
+
+func test_every_variant_has_a_back_sprite():
+	# TokenBase.create_for_sprite looks for a sibling `<sprite>_back.png`; without one a full turn
+	# collapses to a single mirror flip (memory frame-facing-needs-a-back-sprite).
+	var frame:Frame = _frame()
+	assert_not_null(frame, 'fixture: the frame loads.')
+	if frame == null: return
+	for sprite:Texture2D in frame.sprites:
+		if sprite == null: continue
+		assert_not_null(TokenBase.create_for_sprite(frame, sprite).sprite_back,
+			'%s has a back view.' % sprite.resource_path.get_file())
+
 func test_the_colour_scheme_is_derived_from_the_frames_own_art():
 	# LITERALS, NOT A RELATIONSHIP - the Vauban's own shape
 	# (test_vauban_frame.gd:181), not the Fitzgerald-comparison this test used to run while the frame
