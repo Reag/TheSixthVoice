@@ -14,12 +14,12 @@
 	"load_before": [],
 	"mod_meta": {
 		"date_added": 1789382017,
-		"date_updated": 1791333948,
+		"date_updated": 1791726549,
 		"file_id": 8312539,
 		"game_version": "1.4.3",
 		"modio_id": 6383598,
 		"name_id": "dgco-reag",
-		"revision": 26,
+		"revision": 27,
 		"user_id": 61561194,
 		"username": "Mr_Reag"
 	},
@@ -30,12 +30,12 @@
 		"gavstarb-ssc_emperor"
 	],
 	"requires_restart": true,
-	"summary": "A partial implementation of 'The Sixth Voice' Lancer 3pp supplement by //Bela//. Created with permission. Please support the official release on itch.io!",
+	"summary": "An implementation of 'The Sixth Voice' Lancer 3pp supplement by //Bela//. Created with permission. Please support the official release on itch.io!",
 	"tags": [
 		"PC frames",
 		"Systems and weapons"
 	],
 	"title": "The Sixth Voice",
-	"version_number": "1.3.5",
+	"version_number": "1.3.6",
 	"website_url": "https://belram.itch.io/the-sixth-voice"
 }
